@@ -261,27 +261,29 @@ h4 {
 
 /* Desktop header */
 .topbar {
+  min-height: 82px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 36px;
+  gap: 32px;
   padding: 20px 0;
 }
 
 .logo {
+  justify-self: end;
   font-size: 1.5rem;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
   letter-spacing: -0.2px;
-  justify-self: end;
 }
 
 .nav {
     display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 24px;
+  justify-content: center;
+  gap: 20px;
+  min-width: 0;
 }
 
 .nav a {
@@ -1169,11 +1171,11 @@ h4 {
 }
 
 .cart-header-btn {
+   justify-self: start;
+  margin-inline-start: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  justify-self: start;
-  margin-inline-start: 12px;
   gap: 10px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: rgba(255, 255, 255, 0.96);
@@ -1184,8 +1186,6 @@ h4 {
   white-space: nowrap;
   min-height: 44px;
   box-shadow: var(--shadow-xs);
-  justify-self: start;
-  margin-inline-start: 20px;
 }
 
 .cart-header-btn:hover,
