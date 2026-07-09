@@ -221,7 +221,7 @@ button {
 
 .hero p {
   max-width: 65ch;
-  color: rgba(255,255,255,0.92);
+  color: rgba(0, 0, 0, 0.92);
   font-size: 1.06rem;
   margin-bottom: 28px;
 }
@@ -1394,7 +1394,7 @@ body {
   align-items: center;
   gap: 8px;
   background: rgba(255,255,255,0.12);
-  color: #fff;
+  color: #000000;
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: var(--radius-pill);
   padding: 9px 16px;
@@ -1414,7 +1414,7 @@ body {
 
 .hero p {
   max-width: 65ch;
-  color: rgba(255,255,255,0.92);
+  color: rgba(0, 0, 0, 0.92);
   font-size: 1.06rem;
   margin-bottom: 30px;
 }
