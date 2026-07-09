@@ -264,24 +264,27 @@ h4 {
   min-height: 82px;
   display: grid;
   grid-template-columns: auto 1fr auto;
+  grid-template-areas: "logo nav cart";
   align-items: center;
-  gap: 32px;
+  gap: 24px;
   padding: 20px 0;
 }
 
 .logo {
+  grid-area: logo;
   justify-self: end;
   font-size: 1.5rem;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
   letter-spacing: -0.2px;
-}
+}}
 
 .nav {
-    display: flex;
-  align-items: center;
+  grid-area: nav;
+  display: flex;
   justify-content: center;
+  align-items: center;
   gap: 20px;
   min-width: 0;
 }
@@ -1171,7 +1174,8 @@ h4 {
 }
 
 .cart-header-btn {
-   justify-self: start;
+  grid-area: cart;
+  justify-self: start;
   margin-inline-start: 0;
   display: inline-flex;
   align-items: center;
