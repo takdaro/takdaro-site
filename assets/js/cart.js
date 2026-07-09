@@ -250,3 +250,4 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("layout:loaded", function () {
   initCartUi();
 });
+
