@@ -1,7 +1,1 @@
-@'
-{
-  "name": "takdaro-site",
-  "compatibility_date": "2026-07-08",
-  "pages_build_output_dir": "."
-}
-'@ | Set-Content -Path .\wrangler.jsonc -Encoding UTF8
+﻿{ "name": "takdaro-site", "compatibility_date": "2026-07-08", "pages_build_output_dir": "." }
