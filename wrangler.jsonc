@@ -1,13 +1,5 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "takdaro-site",
   "compatibility_date": "2026-07-09",
-  "pages_build_output_dir": "./",
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "takdaro-db",
-      "database_id": "19894259-5c2d-4e9c-bc28-43ec401b3948"
-    }
-  ]
+  "pages_build_output_dir": "."
 }
