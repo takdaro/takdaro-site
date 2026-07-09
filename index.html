@@ -8,43 +8,7 @@
   <link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
-  <header class="site-header">
-    <div class="container">
-      <div class="topbar">
-        <a href="./index.html" class="logo">تک تجارت</a>
-
-        <nav class="nav" aria-label="منوی اصلی سایت">
-          <a href="./index.html">خانه</a>
-          <a href="./products.html">محصولات</a>
-          <a href="#about">درباره ما</a>
-          <a href="#services">خدمات</a>
-          <a href="#import-process">فرآیند واردات</a>
-          <a href="#values">ارزش‌ها</a>
-          <a href="#contact">تماس با ما</a>
-        </nav>
-
-        <button type="button" class="cart-header-btn" data-open-cart aria-label="نمایش سبد خرید">
-          سبد خرید
-          <span class="cart-badge" data-cart-count hidden>0</span>
-        </button>
-      </div>
-
-      <section class="hero">
-        <div class="hero-content">
-          <span class="hero-badge">پوشش سراسری کشور</span>
-          <h1>واردکننده و تامین‌کننده داروهای جهانی</h1>
-          <p>
-            شرکت تک تجارت با رویکردی تخصصی در حوزه سلامت، با هدف تامین مستمر داروهای حیاتی،
-            همکاری با جامعه پزشکی و ارائه راهکارهای یکپارچه، در مسیر ارتقای سلامت جامعه گام برمی‌دارد.
-          </p>
-          <div class="hero-actions">
-            <a href="./products.html" class="btn btn-primary">مشاهده محصولات</a>
-            <a href="#about" class="btn btn-secondary">بیشتر بدانید</a>
-          </div>
-        </div>
-      </section>
-    </div>
-  </header>
+  <div id="site-header"></div>
 
   <main>
     <section class="stats-section">
@@ -211,58 +175,10 @@
     </section>
   </main>
 
-  <footer id="contact" class="site-footer">
-    <div class="container footer-grid">
-      <div>
-        <h3>تک تجارت</h3>
-        <p>
-          در هر ساعت از روز که سوال یا پیشنهادی داشتید، می‌توانید با ما در تماس باشید.
-          کارشناسان ما تلاش می‌کنند در کوتاه‌ترین زمان پاسخ‌گوی شما باشند.
-        </p>
-        <p>
-          همچنین از طریق چت آنلاین می‌توانید سریع‌ترین ارتباط را برقرار کنید و رسید خود را در واتساپ دریافت نمایید.
-        </p>
-      </div>
+  <div id="site-footer"></div>
+  <div id="site-cart"></div>
 
-      <div>
-        <h4>اطلاعات تماس</h4>
-        <ul class="contact-list">
-          <li>شماره تماس: <a href="tel:02191302606">۰۲۱۹۱۳۰۲۶۰۶</a></li>
-          <li>واتساپ (فقط برای ارسال رسید): <a href="https://wa.me/989214147070" target="_blank" rel="noopener noreferrer">۰۹۲۱۴۱۴۷۰۷۰</a></li>
-          <li>ایمیل: <a href="mailto:takdaru@gmail.com">takdaru@gmail.com</a></li>
-          <li>چت آنلاین: <a href="https://takdaro.top/support/?login=true&back=home&page=1" target="_blank" rel="noopener noreferrer">ورود به چت آنلاین</a></li>
-        </ul>
-      </div>
-
-      <div>
-        <h4>ساعات پاسخ‌گویی</h4>
-        <ul class="contact-list">
-          <li>ساعت کاری شرکت: ۸ صبح تا ۵ بعد از ظهر</li>
-          <li>پاسخ‌گویی تلفنی: ۱۱ صبح تا ۵ بعد از ظهر</li>
-          <li>چت آنلاین: ۹ صبح تا ۱۲ شب</li>
-        </ul>
-      </div>
-    </div>
-  </footer>
-
-  <div class="cart-overlay" data-cart-overlay hidden></div>
-
-  <aside class="cart-drawer" data-cart-drawer aria-label="سبد خرید">
-    <div class="cart-drawer__head">
-      <h3>سبد خرید</h3>
-      <button type="button" data-close-cart aria-label="بستن سبد خرید">×</button>
-    </div>
-
-    <div class="cart-drawer__body">
-      <p data-mini-cart-empty>هنوز محصولی به سبد خرید اضافه نشده است.</p>
-      <div data-mini-cart-items></div>
-    </div>
-
-    <div class="cart-drawer__footer" data-mini-cart-footer hidden>
-      <a href="./checkout.html" class="btn btn-primary">ادامه و ثبت سفارش</a>
-    </div>
-  </aside>
-
+  <script src="./assets/js/layout.js"></script>
   <script src="./assets/js/products.js"></script>
   <script src="./assets/js/cart.js"></script>
   <script src="./assets/js/app.js"></script>
