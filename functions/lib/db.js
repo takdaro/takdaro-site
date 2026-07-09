@@ -1,4 +1,4 @@
-const nowIso = () => new Date().toISOString();
+﻿const nowIso = () => new Date().toISOString();
 
 function normalizeEmail(email) {
   if (!email) return null;
