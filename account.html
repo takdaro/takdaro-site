@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>حساب کاربری | تک تجارت</title>
+  <meta name="description" content="حساب کاربری کاربران تک تجارت" />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+  <style>
+    .account-page {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .account-sidebar,
+    .account-panel {
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+
+    .account-sidebar__head,
+    .account-panel__head {
+      padding: 24px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .account-sidebar__head h3,
+    .account-panel__head h3 {
+      margin: 0 0 8px;
+      color: #0f172a;
+      font-size: 1.08rem;
+    }
+
+    .account-sidebar__head p,
+    .account-panel__head p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.92rem;
+      line-height: 1.9;
+    }
+
+    .account-sidebar__body {
+      padding: 14px;
+    }
+
+    .account-menu {
+      display: grid;
+      gap: 8px;
+    }
+
+    .account-menu__btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 16px;
+      background: #fff;
+      color: #334155;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .account-menu__btn:hover {
+      border-color: rgba(37, 99, 235, 0.2);
+      background: #f8fbff;
+      color: #1d4ed8;
+    }
+
+    .account-menu__btn.is-active {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+    }
+
+    .account-menu__btn.is-danger {
+      color: #b91c1c;
+      background: #fff;
+    }
+
+    .account-menu__btn.is-danger:hover {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #b91c1c;
+    }
+
+    .account-menu__label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .account-menu__icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      color: #0f172a;
+      flex-shrink: 0;
+    }
+
+    .account-menu__btn.is-active .account-menu__icon {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .account-panel__body {
+      padding: 24px;
+    }
+
+    .account-section {
+      display: none;
+    }
+
+    .account-section.is-active {
+      display: block;
+    }
+
+    .account-section__title {
+      margin: 0 0 10px;
+      color: #0f172a;
+      font-size: 1.15rem;
+    }
+
+    .account-section__lead {
+      margin: 0 0 20px;
+      color: #64748b;
+      line-height: 1.9;
+      font-size: 0.95rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .stat-card span {
+      display: block;
+      color: #64748b;
+      font-size: 0.88rem;
+      margin-bottom: 10px;
+    }
+
+    .stat-card strong {
+      color: #0f172a;
+      font-size: 1.2rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .quick-card {
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: #fff;
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .quick-card h4 {
+      margin: 0 0 10px;
+      color: #0f172a;
+      font-size: 1rem;
+    }
+
+    .quick-card p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.92rem;
+      line-height: 1.9;
+    }
+
+    .wallet-card {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+      color: #fff;
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 45px rgba(37, 99, 235, 0.18);
+    }
+
+    .wallet-card::before,
+    .wallet-card::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+    }
+
+    .wallet-card::before {
+      width: 180px;
+      height: 180px;
+      top: -90px;
+      left: -50px;
+    }
+
+    .wallet-card::after {
+      width: 140px;
+      height: 140px;
+      bottom: -60px;
+      right: -30px;
+    }
+
+    .wallet-card__label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .wallet-card__balance {
+      margin: 0 0 8px;
+      font-size: 2rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .wallet-card__hint {
+      margin: 0 0 20px;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.9;
+      font-size: 0.92rem;
+      max-width: 48ch;
+    }
+
+    .wallet-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .wallet-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .wallet-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+    }
+
+    .wallet-btn--light {
+      background: #fff;
+      color: #1d4ed8;
+      border-color: #fff;
+    }
+
+    .wallet-btn--light:hover {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .info-card {
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: #f8fafc;
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .info-card span {
+      display: block;
+      margin-bottom: 8px;
+      color: #64748b;
+      font-size: 0.88rem;
+    }
+
+    .info-card strong {
+      color: #0f172a;
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 20px;
+      background: #fff;
+    }
+
+    .account-table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+    }
+
+    .account-table th,
+    .account-table td {
+      padding: 16px 14px;
+      text-align: right;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: middle;
+    }
+
+    .account-table th {
+      background: #f8fafc;
+      color: #334155;
+      font-size: 0.92rem;
+      white-space: nowrap;
+    }
+
+    .account-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-number {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-badge--success {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .status-badge--warning {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .status-badge--info {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .address-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .address-card {
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 20px;
+      background: #fff;
+      padding: 20px;
+    }
+
+    .address-card h4 {
+      margin: 0 0 12px;
+      color: #0f172a;
+      font-size: 1rem;
+    }
+
+    .address-card p {
+      margin: 0 0 14px;
+      color: #64748b;
+      line-height: 1.95;
+      font-size: 0.92rem;
+    }
+
+    .address-card .btn,
+    .panel-actions .btn {
+      min-height: 44px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-field label {
+      font-weight: 700;
+      color: #334155;
+      font-size: 0.94rem;
+    }
+
+    .form-field input,
+    .form-field textarea,
+    .form-field select {
+      width: 100%;
+      border: 1px solid #dbe2ea;
+      border-radius: 16px;
+      background: #fff;
+      padding: 14px 16px;
+      font: inherit;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-field input:focus,
+    .form-field textarea:focus,
+    .form-field select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    }
+
+    .panel-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .logout-box {
+      border: 1px dashed rgba(185, 28, 28, 0.24);
+      background: #fef2f2;
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .logout-box h4 {
+      margin: 0 0 10px;
+      color: #991b1b;
+      font-size: 1rem;
+    }
+
+    .logout-box p {
+      margin: 0 0 16px;
+      color: #7f1d1d;
+      line-height: 1.9;
+      font-size: 0.92rem;
+    }
+
+    .wallet-empty {
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: #f8fafc;
+      border-radius: 18px;
+      padding: 18px;
+      margin-top: 16px;
+      color: #64748b;
+      line-height: 1.9;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 1024px) {
+      .account-page {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .stats-grid,
+      .quick-grid,
+      .info-grid,
+      .address-grid,
+      .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .account-sidebar__head,
+      .account-panel__head,
+      .account-panel__body {
+        padding: 18px;
+      }
+
+      .account-sidebar {
+        border-radius: 20px;
+      }
+
+      .account-panel {
+        border-radius: 20px;
+      }
+
+      .wallet-card {
+        padding: 20px;
+        border-radius: 20px;
+      }
+
+      .wallet-card__balance {
+        font-size: 1.7rem;
+      }
+
+      .wallet-actions,
+      .panel-actions {
+        flex-direction: column;
+      }
+
+      .wallet-btn,
+      .panel-actions .btn,
+      .address-card .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header page-header">
+    <div class="container">
+      <div class="topbar">
+        <a href="./index.html" class="logo">تک تجارت</a>
+
+        <nav class="nav" aria-label="منوی اصلی سایت">
+          <a href="./index.html">خانه</a>
+          <a href="./products.html">محصولات</a>
+          <a href="./checkout.html">فاکتور</a>
+          <a href="./account.html" aria-current="page">حساب کاربری</a>
+        </nav>
+      </div>
+
+      <section class="hero hero-compact">
+        <div class="hero-content">
+          <span class="hero-badge">ناحیه کاربری</span>
+          <h1>حساب کاربری شما</h1>
+          <p>مدیریت سفارش‌ها، آدرس‌ها، اطلاعات حساب و کیف پول از یک پنل یکپارچه و ساده.</p>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="account-page">
+          <aside class="account-sidebar" aria-label="منوی حساب کاربری">
+            <div class="account-sidebar__head">
+              <h3>منوی حساب کاربری</h3>
+              <p>بخش مورد نظر را انتخاب کنید تا اطلاعات آن در همین صفحه نمایش داده شود.</p>
+            </div>
+
+            <div class="account-sidebar__body">
+              <nav class="account-menu">
+                <button class="account-menu__btn is-active" type="button" data-panel-target="dashboard">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">🏠</span>
+                    <span>داشبورد</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <button class="account-menu__btn" type="button" data-panel-target="orders">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">📦</span>
+                    <span>سفارش‌ها</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <button class="account-menu__btn" type="button" data-panel-target="addresses">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">📍</span>
+                    <span>آدرس‌ها</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <button class="account-menu__btn" type="button" data-panel-target="payments">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">💳</span>
+                    <span>روش‌های پرداخت</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <button class="account-menu__btn" type="button" data-panel-target="wallet">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">👛</span>
+                    <span>کیف پول</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <button class="account-menu__btn" type="button" data-panel-target="wallet-history">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">🧾</span>
+                    <span>تراکنش‌های کیف پول</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <button class="account-menu__btn" type="button" data-panel-target="account-details">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">👤</span>
+                    <span>جزئیات حساب</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <button class="account-menu__btn is-danger" type="button" data-panel-target="logout">
+                  <span class="account-menu__label">
+                    <span class="account-menu__icon">↩</span>
+                    <span>خروج</span>
+                  </span>
+                  <span>›</span>
+                </button>
+              </nav>
+            </div>
+          </aside>
+
+          <section class="account-panel">
+            <div class="account-panel__head">
+              <h3 id="panel-heading">داشبورد</h3>
+              <p id="panel-description">در این بخش می‌توانید خلاصه‌ای از وضعیت سفارش‌ها، کیف پول و اطلاعات حساب خود را مشاهده کنید.</p>
+            </div>
+
+            <div class="account-panel__body">
+              <div class="account-section is-active" id="panel-dashboard">
+                <h2 class="account-section__title">سلام، خوش آمدید</h2>
+                <p class="account-section__lead">
+                  از طریق این بخش می‌توانید آخرین وضعیت سفارش‌ها، موجودی کیف پول و میانبرهای سریع حساب کاربری خود را بررسی کنید.
+                </p>
+
+                <div class="stats-grid">
+                  <div class="stat-card">
+                    <span>سفارش‌های فعال</span>
+                    <strong>3</strong>
+                  </div>
+                  <div class="stat-card">
+                    <span>جمع خرید</span>
+                    <strong>42,800,000 تومان</strong>
+                  </div>
+                  <div class="stat-card">
+                    <span>موجودی کیف پول</span>
+                    <strong>5,650,000 تومان</strong>
+                  </div>
+                </div>
+
+                <div class="quick-grid">
+                  <div class="quick-card">
+                    <h4>پیگیری سفارش</h4>
+                    <p>وضعیت آخرین سفارش‌های ثبت‌شده، مبلغ و مرحله پردازش را از بخش سفارش‌ها مشاهده کنید.</p>
+                  </div>
+                  <div class="quick-card">
+                    <h4>مدیریت کیف پول</h4>
+                    <p>موجودی کیف پول، تراکنش‌های مالی و قابلیت شارژ اعتبار حساب از این بخش در دسترس است.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="account-section" id="panel-orders">
+                <h2 class="account-section__title">سفارش‌های من</h2>
+                <p class="account-section__lead">
+                  فهرست سفارش‌های ثبت‌شده، مبلغ کل، تاریخ و وضعیت هر سفارش در این بخش قابل مشاهده است.
+                </p>
+
+                <div class="table-wrap">
+                  <table class="account-table">
+                    <thead>
+                      <tr>
+                        <th>شماره سفارش</th>
+                        <th>تاریخ</th>
+                        <th>وضعیت</th>
+                        <th>مبلغ</th>
+                        <th>عملیات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="table-number">#12051</td>
+                        <td class="table-number">1405/04/16</td>
+                        <td><span class="status-badge status-badge--warning">در حال بررسی</span></td>
+                        <td class="table-number">12,800,000 تومان</td>
+                        <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
+                      </tr>
+                      <tr>
+                        <td class="table-number">#12014</td>
+                        <td class="table-number">1405/04/10</td>
+                        <td><span class="status-badge status-badge--success">تکمیل شده</span></td>
+                        <td class="table-number">18,400,000 تومان</td>
+                        <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
+                      </tr>
+                      <tr>
+                        <td class="table-number">#11972</td>
+                        <td class="table-number">1405/04/02</td>
+                        <td><span class="status-badge status-badge--info">ارسال شده</span></td>
+                        <td class="table-number">11,600,000 تومان</td>
+                        <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="account-section" id="panel-addresses">
+                <h2 class="account-section__title">آدرس‌های من</h2>
+                <p class="account-section__lead">
+                  آدرس‌های پیش‌فرض صورتحساب و ارسال را از این قسمت مدیریت و ویرایش کنید.
+                </p>
+
+                <div class="address-grid">
+                  <div class="address-card">
+                    <h4>آدرس صورتحساب</h4>
+                    <p>
+                      علی رضایی<br />
+                      تهران، خیابان ولیعصر، کوچه نمونه، پلاک 10، واحد 4<br />
+                      کد پستی: 1234567890<br />
+                      تلفن: 09123456789
+                    </p>
+                    <a href="#" class="btn btn-secondary">ویرایش آدرس</a>
+                  </div>
+
+                  <div class="address-card">
+                    <h4>آدرس ارسال</h4>
+                    <p>
+                      علی رضایی<br />
+                      تهران، سعادت‌آباد، بلوار دریا، خیابان نمونه، پلاک 22<br />
+                      کد پستی: 0987654321<br />
+                      تلفن: 09123456789
+                    </p>
+                    <a href="#" class="btn btn-secondary">ویرایش آدرس</a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="account-section" id="panel-payments">
+                <h2 class="account-section__title">روش‌های پرداخت</h2>
+                <p class="account-section__lead">
+                  کارت‌های ثبت‌شده یا روش‌های پرداخت مورد استفاده حساب کاربری در این قسمت قرار می‌گیرند.
+                </p>
+
+                <div class="table-wrap">
+                  <table class="account-table">
+                    <thead>
+                      <tr>
+                        <th>نوع</th>
+                        <th>عنوان</th>
+                        <th>وضعیت</th>
+                        <th>پیش‌فرض</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>کارت بانکی</td>
+                        <td class="table-number">**** **** **** 4582</td>
+                        <td><span class="status-badge status-badge--success">فعال</span></td>
+                        <td>بله</td>
+                      </tr>
+                      <tr>
+                        <td>کیف پول</td>
+                        <td>اعتبار داخلی حساب</td>
+                        <td><span class="status-badge status-badge--info">قابل استفاده</span></td>
+                        <td>خیر</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="account-section" id="panel-wallet">
+                <h2 class="account-section__title">کیف پول من</h2>
+                <p class="account-section__lead">
+                  موجودی فعلی کیف پول، امکان شارژ حساب و دسترسی سریع به تاریخچه تراکنش‌ها در این بخش قرار دارد.
+                </p>
+
+                <div class="wallet-card">
+                  <div class="wallet-card__label">کیف پول تک تجارت</div>
+                  <p class="wallet-card__balance">5,650,000 تومان</p>
+                  <p class="wallet-card__hint">
+                    از موجودی کیف پول می‌توان برای پرداخت سریع سفارش‌ها، تسویه بخشی از فاکتور و دریافت اعتبار برگشتی استفاده کرد.
+                  </p>
+
+                  <div class="wallet-actions">
+                    <button type="button" class="wallet-btn wallet-btn--light">شارژ کیف پول</button>
+                    <button type="button" class="wallet-btn">انتقال اعتبار</button>
+                    <button type="button" class="wallet-btn">درخواست برداشت</button>
+                  </div>
+                </div>
+
+                <div class="info-grid">
+                  <div class="info-card">
+                    <span>جمع شارژ این ماه</span>
+                    <strong>9,000,000 تومان</strong>
+                  </div>
+                  <div class="info-card">
+                    <span>جمع مصرف این ماه</span>
+                    <strong>3,350,000 تومان</strong>
+                  </div>
+                  <div class="info-card">
+                    <span>آخرین شارژ</span>
+                    <strong>2,000,000 تومان</strong>
+                  </div>
+                  <div class="info-card">
+                    <span>آخرین تراکنش</span>
+                    <strong>پرداخت سفارش #12051</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="account-section" id="panel-wallet-history">
+                <h2 class="account-section__title">تراکنش‌های کیف پول</h2>
+                <p class="account-section__lead">
+                  ورود و خروج‌های کیف پول، تاریخ انجام، مبلغ و وضعیت هر تراکنش در این بخش ثبت می‌شود.
+                </p>
+
+                <div class="table-wrap">
+                  <table class="account-table">
+                    <thead>
+                      <tr>
+                        <th>تاریخ</th>
+                        <th>شرح</th>
+                        <th>نوع</th>
+                        <th>مبلغ</th>
+                        <th>وضعیت</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="table-number">1405/04/17</td>
+                        <td>شارژ کیف پول از درگاه</td>
+                        <td>ورودی</td>
+                        <td class="table-number">2,000,000 تومان</td>
+                        <td><span class="status-badge status-badge--success">موفق</span></td>
+                      </tr>
+                      <tr>
+                        <td class="table-number">1405/04/16</td>
+                        <td>پرداخت سفارش #12051</td>
+                        <td>خروجی</td>
+                        <td class="table-number">1,350,000 تومان</td>
+                        <td><span class="status-badge status-badge--success">موفق</span></td>
+                      </tr>
+                      <tr>
+                        <td class="table-number">1405/04/11</td>
+                        <td>اعتبار هدیه خرید</td>
+                        <td>ورودی</td>
+                        <td class="table-number">500,000 تومان</td>
+                        <td><span class="status-badge status-badge--info">ثبت شده</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="wallet-empty">
+                  در نسخه بعدی می‌توانیم این جدول را به داده‌های واقعی کاربر، سفارش‌ها و کیف پول متصل کنیم.
+                </div>
+              </div>
+
+              <div class="account-section" id="panel-account-details">
+                <h2 class="account-section__title">جزئیات حساب</h2>
+                <p class="account-section__lead">
+                  اطلاعات شخصی، ایمیل، شماره تماس و رمز عبور حساب را از این قسمت به‌روزرسانی کنید.
+                </p>
+
+                <form class="form-grid">
+                  <div class="form-grid-2">
+                    <div class="form-field">
+                      <label for="first-name">نام</label>
+                      <input id="first-name" type="text" value="علی" />
+                    </div>
+
+                    <div class="form-field">
+                      <label for="last-name">نام خانوادگی</label>
+                      <input id="last-name" type="text" value="رضایی" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="form-field">
+                      <label for="email">ایمیل</label>
+                      <input id="email" type="email" value="ali@example.com" />
+                    </div>
+
+                    <div class="form-field">
+                      <label for="phone">شماره تماس</label>
+                      <input id="phone" type="tel" value="09123456789" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="form-field">
+                      <label for="password">رمز عبور جدید</label>
+                      <input id="password" type="password" placeholder="رمز عبور جدید" />
+                    </div>
+
+                    <div class="form-field">
+                      <label for="password-confirm">تکرار رمز عبور</label>
+                      <input id="password-confirm" type="password" placeholder="تکرار رمز عبور" />
+                    </div>
+                  </div>
+
+                  <div class="panel-actions">
+                    <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+                    <button type="button" class="btn btn-secondary">انصراف</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="account-section" id="panel-logout">
+                <h2 class="account-section__title">خروج از حساب</h2>
+                <p class="account-section__lead">
+                  در صورت نیاز می‌توانید از حساب کاربری خارج شوید و در مراجعه بعدی دوباره وارد شوید.
+                </p>
+
+                <div class="logout-box">
+                  <h4>آیا برای خروج مطمئن هستید؟</h4>
+                  <p>
+                    با خروج از حساب، دسترسی شما به سفارش‌ها، کیف پول و اطلاعات شخصی تا زمان ورود مجدد محدود می‌شود.
+                  </p>
+
+                  <div class="panel-actions">
+                    <a href="./index.html" class="btn btn-primary">تأیید خروج</a>
+                    <button type="button" class="btn btn-secondary" data-panel-target="dashboard">بازگشت به داشبورد</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="contact" class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <h3>تک تجارت</h3>
+        <p>
+          در هر ساعت از روز که سوال یا پیشنهادی داشتید، می‌توانید با ما در تماس باشید.
+          کارشناسان ما تلاش می‌کنند در کوتاه‌ترین زمان پاسخ‌گوی شما باشند.
+        </p>
+      </div>
+
+      <div>
+        <h4>اطلاعات تماس</h4>
+        <ul class="contact-list">
+          <li>شماره تماس: <a href="tel:02191302606">۰۲۱۹۱۳۰۲۶۰۶</a></li>
+          <li>واتساپ: <a href="https://wa.me/989214147070" target="_blank" rel="noopener noreferrer">۰۹۲۱۴۱۴۷۰۷۰</a></li>
+          <li>ایمیل: <a href="mailto:takdaru@gmail.com">takdaru@gmail.com</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>ساعات پاسخ‌گویی</h4>
+        <ul class="contact-list">
+          <li>ساعت کاری شرکت: ۸ صبح تا ۵ بعد از ظهر</li>
+          <li>پاسخ‌گویی تلفنی: ۱۱ صبح تا ۵ بعد از ظهر</li>
+          <li>چت آنلاین: ۹ صبح تا ۱۲ شب</li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const menuButtons = document.querySelectorAll("[data-panel-target]");
+    const sections = document.querySelectorAll(".account-section");
+    const panelHeading = document.getElementById("panel-heading");
+    const panelDescription = document.getElementById("panel-description");
+
+    const panelMeta = {
+      dashboard: {
+        title: "داشبورد",
+        description: "در این بخش می‌توانید خلاصه‌ای از وضعیت سفارش‌ها، کیف پول و اطلاعات حساب خود را مشاهده کنید."
+      },
+      orders: {
+        title: "سفارش‌ها",
+        description: "لیست کامل سفارش‌های ثبت‌شده، مبالغ و وضعیت هر سفارش در این بخش قرار دارد."
+      },
+      addresses: {
+        title: "آدرس‌ها",
+        description: "آدرس‌های پیش‌فرض صورتحساب و ارسال خود را در این قسمت مدیریت کنید."
+      },
+      payments: {
+        title: "روش‌های پرداخت",
+        description: "روش‌های پرداخت ذخیره‌شده و گزینه‌های تسویه سفارش را از این بخش ببینید."
+      },
+      wallet: {
+        title: "کیف پول",
+        description: "موجودی، شارژ حساب و عملیات مربوط به اعتبار داخلی کاربر در این بخش قرار دارد."
+      },
+      "wallet-history": {
+        title: "تراکنش‌های کیف پول",
+        description: "سوابق ورود و خروج اعتبار کیف پول به‌صورت کامل در این قسمت نمایش داده می‌شود."
+      },
+      "account-details": {
+        title: "جزئیات حساب",
+        description: "اطلاعات شخصی، شماره تماس، ایمیل و رمز عبور خود را از این قسمت ویرایش کنید."
+      },
+      logout: {
+        title: "خروج",
+        description: "در صورت نیاز می‌توانید به‌صورت ایمن از حساب کاربری خود خارج شوید."
+      }
+    };
+
+    function openPanel(panelName) {
+      menuButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.getAttribute("data-panel-target") === panelName && !button.classList.contains("is-danger"));
+      });
+
+      sections.forEach((section) => {
+        section.classList.toggle("is-active", section.id === `panel-${panelName}`);
+      });
+
+      if (panelMeta[panelName]) {
+        panelHeading.textContent = panelMeta[panelName].title;
+        panelDescription.textContent = panelMeta[panelName].description;
+      }
+    }
+
+    menuButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const panelName = button.getAttribute("data-panel-target");
+        if (panelName) openPanel(panelName);
+      });
+    });
+  </script>
+</body>
+</html>

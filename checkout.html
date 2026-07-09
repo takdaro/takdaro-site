@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>فاکتور | تک تجارت</title>
+  <meta name="description" content="صفحه فاکتور و ثبت سفارش تک تجارت." />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+  <style>
+    .checkout-page {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .checkout-panel {
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+
+    .checkout-panel__head {
+      padding: 24px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .checkout-panel__head h3 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+      color: #0f172a;
+    }
+
+    .checkout-panel__head p {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.9;
+      font-size: 0.95rem;
+    }
+
+    .checkout-panel__body {
+      padding: 24px;
+    }
+
+    .invoice-topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .invoice-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #dbeafe;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .invoice-table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 20px;
+      background: #fff;
+    }
+
+    .invoice-table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+
+    .invoice-table th,
+    .invoice-table td {
+      padding: 16px 14px;
+      text-align: right;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: middle;
+    }
+
+    .invoice-table th {
+      background: #f8fafc;
+      color: #334155;
+      font-size: 0.92rem;
+      white-space: nowrap;
+    }
+
+    .invoice-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .invoice-product {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 220px;
+    }
+
+    .invoice-product__image {
+      width: 62px;
+      height: 62px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: #f8fafc;
+      flex-shrink: 0;
+    }
+
+    .invoice-product__info strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #0f172a;
+      font-size: 0.96rem;
+    }
+
+    .invoice-product__info span {
+      color: #64748b;
+      font-size: 0.84rem;
+    }
+
+    .invoice-number {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .invoice-summary {
+      margin-top: 20px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .invoice-summary__row,
+    .invoice-summary__total {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-radius: 18px;
+      padding: 15px 16px;
+    }
+
+    .invoice-summary__row {
+      background: #f8fafc;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      color: #334155;
+    }
+
+    .invoice-summary__total {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.18);
+    }
+
+    .invoice-summary strong,
+    .invoice-summary__total strong {
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+    }
+
+    .checkout-empty {
+      text-align: center;
+      padding: 24px;
+      color: #64748b;
+    }
+
+    .checkout-empty .btn {
+      margin-top: 16px;
+    }
+
+    .customer-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-field label {
+      font-weight: 700;
+      color: #334155;
+      font-size: 0.95rem;
+    }
+
+    .form-field input,
+    .form-field textarea,
+    .form-field select {
+      width: 100%;
+      border: 1px solid #dbe2ea;
+      border-radius: 16px;
+      background: #fff;
+      padding: 14px 16px;
+      font: inherit;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-field input:focus,
+    .form-field textarea:focus,
+    .form-field select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    }
+
+    .checkout-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .checkout-note {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.9;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 960px) {
+      .checkout-page {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .checkout-panel__head,
+      .checkout-panel__body {
+        padding: 18px;
+      }
+
+      .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header page-header">
+    <div class="container">
+      <div class="topbar">
+        <a href="./index.html" class="logo">تک تجارت</a>
+
+        <nav class="nav" aria-label="منوی اصلی سایت">
+          <a href="./index.html">خانه</a>
+          <a href="./products.html">محصولات</a>
+          <a href="./checkout.html" aria-current="page">فاکتور</a>
+        </nav>
+      </div>
+
+      <section class="hero hero-compact">
+        <div class="hero-content">
+          <span class="hero-badge">ثبت سفارش</span>
+          <h1>فاکتور سفارش</h1>
+          <p>
+            محصولات سبد خرید خود را بررسی کنید، اطلاعات گیرنده را کامل وارد کنید و سفارش را برای تک تجارت ارسال نمایید.
+          </p>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="checkout-page">
+          <section class="checkout-panel" aria-labelledby="invoice-title">
+            <div class="checkout-panel__head">
+              <h3 id="invoice-title">خلاصه فاکتور</h3>
+              <p>نام محصول، تعداد، قیمت واحد، جمع هر ردیف و جمع کل سفارش شما در این بخش نمایش داده می‌شود.</p>
+            </div>
+
+            <div class="checkout-panel__body">
+              <div class="invoice-topbar">
+                <span class="invoice-badge" id="invoice-date">تاریخ: -</span>
+                <span class="invoice-badge" id="invoice-items-count">اقلام: 0</span>
+              </div>
+
+              <div id="checkout-empty" class="checkout-empty" hidden>
+                <p>هنوز محصولی به سبد خرید اضافه نشده است.</p>
+                <a href="./products.html" class="btn btn-primary">مشاهده محصولات</a>
+              </div>
+
+              <div id="checkout-content" hidden>
+                <div class="invoice-table-wrap">
+                  <table class="invoice-table">
+                    <thead>
+                      <tr>
+                        <th>محصول</th>
+                        <th>تعداد</th>
+                        <th>قیمت واحد</th>
+                        <th>جمع واحد</th>
+                      </tr>
+                    </thead>
+                    <tbody id="invoice-items-body"></tbody>
+                  </table>
+                </div>
+
+                <div class="invoice-summary">
+                  <div class="invoice-summary__row">
+                    <span>جمع تعداد</span>
+                    <strong id="summary-qty">0</strong>
+                  </div>
+                  <div class="invoice-summary__row">
+                    <span>جمع جزء</span>
+                    <strong id="summary-subtotal">تماس بگیرید</strong>
+                  </div>
+                  <div class="invoice-summary__row">
+                    <span>هزینه بسته‌بندی و ارسال</span>
+                    <strong id="summary-shipping">-</strong>
+                  </div>
+                  <div class="invoice-summary__total">
+                    <span>جمع کل</span>
+                    <strong id="summary-total">تماس بگیرید</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="checkout-panel" aria-labelledby="customer-title">
+            <div class="checkout-panel__head">
+              <h3 id="customer-title">اطلاعات خریدار</h3>
+              <p>لطفاً اطلاعات گیرنده را کامل و دقیق وارد کنید تا متن سفارش کامل برای واتساپ ساخته شود.</p>
+            </div>
+
+            <div class="checkout-panel__body">
+              <form id="checkout-form" class="customer-form" novalidate>
+                <div class="form-grid-2">
+                  <div class="form-field">
+                    <label for="first-name">نام</label>
+                    <input id="first-name" type="text" placeholder="مثلاً علی" required />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="last-name">نام خانوادگی</label>
+                    <input id="last-name" type="text" placeholder="مثلاً رضایی" required />
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-field">
+                    <label for="province">استان</label>
+                    <select id="province" required>
+                      <option value="">انتخاب کنید</option>
+                      <option value="tehran">تهران</option>
+                      <option value="tehran-counties">شهرستان های تهران بزرگ</option>
+                      <option value="iran-provinces">استانهای ایران</option>
+                    </select>
+                  </div>
+
+                  <div class="form-field">
+                    <label for="city">شهر</label>
+                    <input id="city" type="text" placeholder="مثلاً تهران" required />
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-field">
+                    <label for="postal-code">کد پستی</label>
+                    <input id="postal-code" type="text" inputmode="numeric" placeholder="مثلاً 1234567890" required />
+                  </div>
+
+                  <div class="form-field">
+                    <label for="phone">شماره تماس</label>
+                    <input id="phone" type="tel" inputmode="tel" placeholder="مثلاً 09123456789" required />
+                  </div>
+                </div>
+
+                <div class="form-field">
+                  <label for="address">آدرس دقیق</label>
+                  <textarea id="address" rows="5" placeholder="آدرس کامل، پلاک، واحد و توضیحات تحویل را وارد کنید" required></textarea>
+                </div>
+
+                <div class="checkout-actions">
+                  <button type="submit" class="btn btn-primary">ارسال سفارش به واتساپ</button>
+                  <a href="./products.html" class="btn btn-secondary">بازگشت به محصولات</a>
+                </div>
+
+                <p class="checkout-note">
+                  پس از ثبت، متن کامل سفارش شما شامل اقلام فاکتور و اطلاعات خریدار به‌صورت آماده در واتساپ باز می‌شود.
+                </p>
+              </form>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="contact" class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <h3>تک تجارت</h3>
+        <p>
+          در هر ساعت از روز که سوال یا پیشنهادی داشتید، می‌توانید با ما در تماس باشید.
+          کارشناسان ما تلاش می‌کنند در کوتاه‌ترین زمان پاسخ‌گوی شما باشند.
+        </p>
+      </div>
+
+      <div>
+        <h4>اطلاعات تماس</h4>
+        <ul class="contact-list">
+          <li>شماره تماس: <a href="tel:02191302606">۰۲۱۹۱۳۰۲۶۰۶</a></li>
+          <li>واتساپ: <a href="https://wa.me/989214147070" target="_blank" rel="noopener noreferrer">۰۹۲۱۴۱۴۷۰۷۰</a></li>
+          <li>ایمیل: <a href="mailto:takdaru@gmail.com">takdaru@gmail.com</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>ساعات پاسخ‌گویی</h4>
+        <ul class="contact-list">
+          <li>ساعت کاری شرکت: ۸ صبح تا ۵ بعد از ظهر</li>
+          <li>پاسخ‌گویی تلفنی: ۱۱ صبح تا ۵ بعد از ظهر</li>
+          <li>چت آنلاین: ۹ صبح تا ۱۲ شب</li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./assets/js/products.js"></script>
+  <script src="./price-overrides.js"></script>
+  <script src="./price-loader.js"></script>
+  <script src="./assets/js/cart.js"></script>
+  <script src="./assets/js/app.js"></script>
+
+  <script>
+    const SHIPPING_FEES = {
+      tehran: 700000,
+      "tehran-counties": 1200000,
+      "iran-provinces": 800000
+    };
+
+    const SHIPPING_LABELS = {
+      tehran: "تهران",
+      "tehran-counties": "شهرستان های تهران بزرگ",
+      "iran-provinces": "استانهای ایران"
+    };
+
+    const checkoutEmpty = document.getElementById("checkout-empty");
+    const checkoutContent = document.getElementById("checkout-content");
+    const checkoutForm = document.getElementById("checkout-form");
+
+    const invoiceItemsBody = document.getElementById("invoice-items-body");
+    const invoiceDate = document.getElementById("invoice-date");
+    const invoiceItemsCount = document.getElementById("invoice-items-count");
+
+    const summaryQty = document.getElementById("summary-qty");
+    const summarySubtotal = document.getElementById("summary-subtotal");
+    const summaryShipping = document.getElementById("summary-shipping");
+    const summaryTotal = document.getElementById("summary-total");
+    const provinceSelect = document.getElementById("province");
+
+    function toEnglishDigits(value) {
+      const map = {
+        "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
+        "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9"
+      };
+      return String(value).replace(/[۰-۹]/g, (d) => map[d]);
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("fa-IR").format(value);
+    }
+
+    function parsePrice(rawPrice) {
+      if (typeof rawPrice === "number") return rawPrice;
+      if (!rawPrice) return null;
+
+      const normalized = toEnglishDigits(String(rawPrice)).replace(/[^\d]/g, "");
+      if (!normalized) return null;
+
+      const amount = Number(normalized);
+      return Number.isFinite(amount) ? amount : null;
+    }
+
+    function formatPrice(rawPrice) {
+      const parsed = parsePrice(rawPrice);
+      return parsed === null ? "تماس بگیرید" : `${formatNumber(parsed)} تومان`;
+    }
+
+    function getSelectedShippingFee() {
+      const value = provinceSelect ? provinceSelect.value : "";
+      return SHIPPING_FEES[value] || 0;
+    }
+
+    function getSelectedShippingLabel() {
+      const value = provinceSelect ? provinceSelect.value : "";
+      return SHIPPING_LABELS[value] || "";
+    }
+
+    function getCartItems() {
+      if (window.CartStore && typeof window.CartStore.getCartDetailed === "function") {
+        return window.CartStore.getCartDetailed();
+      }
+      return [];
+    }
+
+    function renderCheckout() {
+      const items = getCartItems();
+      const today = new Date();
+      const shippingFee = getSelectedShippingFee();
+
+      invoiceDate.textContent = `تاریخ: ${today.toLocaleDateString("fa-IR")}`;
+      invoiceItemsCount.textContent = `اقلام: ${items.length}`;
+      summaryShipping.textContent = shippingFee ? `${formatNumber(shippingFee)} تومان` : "-";
+
+      if (!items.length) {
+        checkoutEmpty.hidden = false;
+        checkoutContent.hidden = true;
+        checkoutForm.style.display = "none";
+        return;
+      }
+
+      checkoutEmpty.hidden = true;
+      checkoutContent.hidden = false;
+      checkoutForm.style.display = "grid";
+
+      let totalQty = 0;
+      let subtotal = 0;
+      let hasNumericPrice = false;
+
+      invoiceItemsBody.innerHTML = items.map(({ product, qty }) => {
+        const unitPrice = parsePrice(product.price);
+        const rowTotal = unitPrice !== null ? unitPrice * qty : null;
+        totalQty += qty;
+
+        if (rowTotal !== null) {
+          subtotal += rowTotal;
+          hasNumericPrice = true;
+        }
+
+        const imageSrc = product.images && product.images.length
+          ? `./${product.images[0]}`
+          : "./assets/images/placeholder.png";
+
+        return `
+          <tr>
+            <td>
+              <div class="invoice-product">
+                <img class="invoice-product__image" src="${imageSrc}" alt="${product.name || "محصول"}" />
+                <div class="invoice-product__info">
+                  <strong>${product.name || "-"}</strong>
+                  <span>${product.category || "بدون دسته‌بندی"}</span>
+                </div>
+              </div>
+            </td>
+            <td class="invoice-number">${formatNumber(qty)}</td>
+            <td class="invoice-number">${formatPrice(product.price)}</td>
+            <td class="invoice-number">${rowTotal !== null ? `${formatNumber(rowTotal)} تومان` : "تماس بگیرید"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      const grandTotal = hasNumericPrice ? subtotal + shippingFee : null;
+
+      summaryQty.textContent = formatNumber(totalQty);
+      summarySubtotal.textContent = hasNumericPrice ? `${formatNumber(subtotal)} تومان` : "تماس بگیرید";
+      summaryTotal.textContent = grandTotal !== null ? `${formatNumber(grandTotal)} تومان` : "تماس بگیرید";
+    }
+
+    function validateForm(data) {
+      if (!data.firstName || !data.lastName || !data.province || !data.city || !data.postalCode || !data.phone || !data.address) {
+        alert("لطفاً تمام اطلاعات خریدار را کامل وارد کنید.");
+        return false;
+      }
+
+      const phone = toEnglishDigits(data.phone).replace(/\D/g, "");
+      const postalCode = toEnglishDigits(data.postalCode).replace(/\D/g, "");
+
+      if (phone.length < 10) {
+        alert("شماره تماس واردشده معتبر نیست.");
+        return false;
+      }
+
+      if (postalCode.length !== 10) {
+        alert("کد پستی باید 10 رقم باشد.");
+        return false;
+      }
+
+      return true;
+    }
+
+    checkoutForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const items = getCartItems();
+      if (!items.length) {
+        alert("سبد خرید شما خالی است.");
+        return;
+      }
+
+      const shippingFee = getSelectedShippingFee();
+      const shippingLabel = getSelectedShippingLabel();
+
+      const formData = {
+        firstName: document.getElementById("first-name").value.trim(),
+        lastName: document.getElementById("last-name").value.trim(),
+        province: shippingLabel,
+        city: document.getElementById("city").value.trim(),
+        postalCode: document.getElementById("postal-code").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        address: document.getElementById("address").value.trim()
+      };
+
+      if (!validateForm(formData)) return;
+
+      let totalQty = 0;
+      let subtotal = 0;
+      let hasNumericPrice = false;
+
+      const orderLines = items.map(({ product, qty }, index) => {
+        totalQty += qty;
+
+        const unitPrice = parsePrice(product.price);
+        const rowTotal = unitPrice !== null ? unitPrice * qty : null;
+
+        if (rowTotal !== null) {
+          subtotal += rowTotal;
+          hasNumericPrice = true;
+        }
+
+        return `${index + 1}. ${product.name}
+- تعداد: ${qty}
+- قیمت واحد: ${formatPrice(product.price)}
+- جمع واحد: ${rowTotal !== null ? `${formatNumber(rowTotal)} تومان` : "تماس بگیرید"}`;
+      }).join("\n\n");
+
+      const grandTotal = hasNumericPrice ? subtotal + shippingFee : null;
+
+      const message =
+`سلام وقت بخیر
+یک سفارش جدید از سایت تک تجارت ثبت شده است.
+
+جزئیات فاکتور:
+${orderLines}
+
+جمع تعداد: ${formatNumber(totalQty)}
+جمع جزء: ${hasNumericPrice ? `${formatNumber(subtotal)} تومان` : "تماس بگیرید"}
+استان / محدوده ارسال: ${shippingLabel}
+هزینه بسته‌بندی و ارسال: ${shippingFee ? `${formatNumber(shippingFee)} تومان` : "-"}
+جمع کل: ${grandTotal !== null ? `${formatNumber(grandTotal)} تومان` : "تماس بگیرید"}
+
+مشخصات خریدار:
+نام و نام خانوادگی: ${formData.firstName} ${formData.lastName}
+استان: ${formData.province}
+شهر: ${formData.city}
+آدرس دقیق: ${formData.address}
+کد پستی: ${formData.postalCode}
+شماره تماس: ${formData.phone}`;
+
+      const whatsappUrl = `https://wa.me/989214147070?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    });
+
+    if (provinceSelect) {
+      provinceSelect.addEventListener("change", renderCheckout);
+    }
+
+    document.addEventListener("DOMContentLoaded", renderCheckout);
+  </script>
+</body>
+</html>
