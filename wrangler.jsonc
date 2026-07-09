@@ -1,1 +1,12 @@
-﻿{ "name": "takdaro-site", "compatibility_date": "2026-07-08", "pages_build_output_dir": "." }
+﻿{
+  "name": "takdaro-site",
+  "compatibility_date": "2026-07-08",
+  "pages_build_output_dir": ".",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "takdaro-users-prod",
+      "database_id": "9abf05f1-7a9b-4044-9ce1-195da36758fd"
+    }
+  ]
+}
