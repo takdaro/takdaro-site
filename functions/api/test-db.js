@@ -1,13 +1,19 @@
 ﻿export async function onRequestGet(context) {
   try {
+    const row = await context.env.DB.prepare("SELECT 1 as ok").first();
+
     return Response.json({
-      ok: true,
-      hasDB: !!context.env.DB,
-      keys: Object.keys(context.env || {})
+      success: true,
+      db: true,
+      row
     });
   } catch (error) {
     return Response.json(
-      { ok: false, error: String(error?.message || error) },
+      {
+        success: false,
+        db: !!context.env.DB,
+        error: String(error?.message || error)
+      },
       { status: 500 }
     );
   }
