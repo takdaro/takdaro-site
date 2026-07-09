@@ -1,11 +1,14 @@
 ﻿export async function onRequestGet(context) {
-  const result = await context.env.DB
-    .prepare("SELECT COUNT(*) AS count FROM users")
-    .first();
-
-  return Response.json({
-    ok: true,
-    count: result?.count ?? 0
-  });
+  try {
+    return Response.json({
+      ok: true,
+      hasDB: !!context.env.DB,
+      keys: Object.keys(context.env || {})
+    });
+  } catch (error) {
+    return Response.json(
+      { ok: false, error: String(error?.message || error) },
+      { status: 500 }
+    );
+  }
 }
-
