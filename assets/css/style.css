@@ -1475,6 +1475,7 @@ select:focus-visible {
     text-align: center;
     font-size: 1.25rem;
     order: 2;
+    transform: translateX(-12px);
   }
 
   .cart-header-btn {
