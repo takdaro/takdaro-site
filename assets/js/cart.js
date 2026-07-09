@@ -251,3 +251,30 @@ document.addEventListener("layout:loaded", function () {
   initCartUi();
 });
 
+function updateCartBadge() {
+  const badge = document.querySelector("[data-cart-badge], .cart-badge");
+  if (!badge) return;
+
+  let cart = [];
+  try {
+    cart = JSON.parse(localStorage.getItem("takdaro_cart") || "[]");
+  } catch {
+    cart = [];
+  }
+
+  const count = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  badge.textContent = count;
+  badge.style.display = count > 0 ? "inline-flex" : "none";
+}
+
+function renderProducts(products) {
+  const grid = document.querySelector(".products-grid");
+  console.log("grid =>", grid);
+
+  if (!grid) {
+    console.log("products-grid not found");
+    return;
+  }
+
+  // ادامه رندر...
+}
