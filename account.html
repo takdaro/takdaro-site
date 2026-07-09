@@ -527,17 +527,14 @@
         padding: 18px;
       }
 
-      .account-sidebar {
-        border-radius: 20px;
-      }
-
-      .account-panel {
+      .account-sidebar,
+      .account-panel,
+      .wallet-card {
         border-radius: 20px;
       }
 
       .wallet-card {
         padding: 20px;
-        border-radius: 20px;
       }
 
       .wallet-card__balance {
@@ -558,30 +555,19 @@
   </style>
 </head>
 <body>
-  <header class="site-header page-header">
-    <div class="container">
-      <div class="topbar">
-        <a href="./index.html" class="logo">تک تجارت</a>
+  <div id="site-header"></div>
 
-        <nav class="nav" aria-label="منوی اصلی سایت">
-          <a href="./index.html">خانه</a>
-          <a href="./products.html">محصولات</a>
-          <a href="./checkout.html">فاکتور</a>
-          <a href="./account.html" aria-current="page">حساب کاربری</a>
-        </nav>
-      </div>
-
-      <section class="hero hero-compact">
+  <main>
+    <section class="hero hero-compact">
+      <div class="container">
         <div class="hero-content">
           <span class="hero-badge">ناحیه کاربری</span>
           <h1>حساب کاربری شما</h1>
           <p>مدیریت سفارش‌ها، آدرس‌ها، اطلاعات حساب و کیف پول از یک پنل یکپارچه و ساده.</p>
         </div>
-      </section>
-    </div>
-  </header>
+      </div>
+    </section>
 
-  <main>
     <section class="section">
       <div class="container">
         <div class="account-page">
@@ -592,7 +578,7 @@
             </div>
 
             <div class="account-sidebar__body">
-              <nav class="account-menu">
+              <nav class="account-menu" aria-label="بخش‌های حساب کاربری">
                 <button class="account-menu__btn is-active" type="button" data-panel-target="dashboard">
                   <span class="account-menu__label">
                     <span class="account-menu__icon">🏠</span>
@@ -903,7 +889,7 @@
                   اطلاعات شخصی، ایمیل، شماره تماس و رمز عبور حساب را از این قسمت به‌روزرسانی کنید.
                 </p>
 
-                <form class="form-grid">
+                <form class="form-grid" id="account-details-form">
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="first-name">نام</label>
@@ -972,41 +958,22 @@
     </section>
   </main>
 
-  <footer id="contact" class="site-footer">
-    <div class="container footer-grid">
-      <div>
-        <h3>تک تجارت</h3>
-        <p>
-          در هر ساعت از روز که سوال یا پیشنهادی داشتید، می‌توانید با ما در تماس باشید.
-          کارشناسان ما تلاش می‌کنند در کوتاه‌ترین زمان پاسخ‌گوی شما باشند.
-        </p>
-      </div>
+  <div id="site-footer"></div>
+  <div id="site-cart"></div>
 
-      <div>
-        <h4>اطلاعات تماس</h4>
-        <ul class="contact-list">
-          <li>شماره تماس: <a href="tel:02191302606">۰۲۱۹۱۳۰۲۶۰۶</a></li>
-          <li>واتساپ: <a href="https://wa.me/989214147070" target="_blank" rel="noopener noreferrer">۰۹۲۱۴۱۴۷۰۷۰</a></li>
-          <li>ایمیل: <a href="mailto:takdaru@gmail.com">takdaru@gmail.com</a></li>
-        </ul>
-      </div>
-
-      <div>
-        <h4>ساعات پاسخ‌گویی</h4>
-        <ul class="contact-list">
-          <li>ساعت کاری شرکت: ۸ صبح تا ۵ بعد از ظهر</li>
-          <li>پاسخ‌گویی تلفنی: ۱۱ صبح تا ۵ بعد از ظهر</li>
-          <li>چت آنلاین: ۹ صبح تا ۱۲ شب</li>
-        </ul>
-      </div>
-    </div>
-  </footer>
+  <script src="./assets/js/layout.js"></script>
+  <script src="./assets/js/products.js"></script>
+  <script src="./price-overrides.js"></script>
+  <script src="./price-loader.js"></script>
+  <script src="./assets/js/cart.js"></script>
+  <script src="./assets/js/app.js"></script>
 
   <script>
     const menuButtons = document.querySelectorAll("[data-panel-target]");
     const sections = document.querySelectorAll(".account-section");
     const panelHeading = document.getElementById("panel-heading");
     const panelDescription = document.getElementById("panel-description");
+    const accountForm = document.getElementById("account-details-form");
 
     const panelMeta = {
       dashboard: {
@@ -1045,7 +1012,8 @@
 
     function openPanel(panelName) {
       menuButtons.forEach((button) => {
-        button.classList.toggle("is-active", button.getAttribute("data-panel-target") === panelName && !button.classList.contains("is-danger"));
+        const isTarget = button.getAttribute("data-panel-target") === panelName;
+        button.classList.toggle("is-active", isTarget && !button.classList.contains("is-danger"));
       });
 
       sections.forEach((section) => {
@@ -1064,6 +1032,12 @@
         if (panelName) openPanel(panelName);
       });
     });
+
+    if (accountForm) {
+      accountForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+      });
+    }
   </script>
 </body>
 </html>

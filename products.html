@@ -8,29 +8,11 @@
   <link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
-  <header class="site-header page-header">
-    <div class="container">
-      <div class="topbar">
-        <a href="./index.html" class="logo">تک تجارت</a>
+  <div id="site-header"></div>
 
-        <nav class="nav" aria-label="منوی اصلی سایت">
-          <a href="./index.html">خانه</a>
-          <a href="./products.html" aria-current="page">محصولات</a>
-          <a href="./checkout.html">فاکتور</a>
-        </nav>
-
-        <button
-          type="button"
-          class="cart-header-btn"
-          data-open-cart
-          aria-label="نمایش سبد خرید"
-        >
-          سبد خرید
-          <span class="cart-badge" data-cart-count hidden>0</span>
-        </button>
-      </div>
-
-      <section class="hero hero-compact">
+  <main>
+    <section class="hero hero-compact">
+      <div class="container">
         <div class="hero-content">
           <span class="hero-badge">کاتالوگ محصولات</span>
           <h1>لیست محصولات</h1>
@@ -38,11 +20,9 @@
             مجموعه‌ای از محصولات تخصصی تک تجارت با نمایش ساده، خوانا و یکپارچه برای بررسی سریع‌تر.
           </p>
         </div>
-      </section>
-    </div>
-  </header>
+      </div>
+    </section>
 
-  <main>
     <section class="section">
       <div class="container">
         <div class="section-head">
@@ -60,72 +40,10 @@
     </section>
   </main>
 
-  <footer id="contact" class="site-footer">
-    <div class="container footer-grid">
-      <div>
-        <h3>تک تجارت</h3>
-        <p>
-          در هر ساعت از روز که سوال یا پیشنهادی داشتید، می‌توانید با ما در تماس باشید.
-          کارشناسان ما تلاش می‌کنند در کوتاه‌ترین زمان پاسخ‌گوی شما باشند.
-        </p>
-        <p>
-          همچنین از طریق چت آنلاین می‌توانید سریع‌ترین ارتباط را برقرار کنید و رسید خود را در واتساپ دریافت نمایید.
-        </p>
-      </div>
+  <div id="site-footer"></div>
+  <div id="site-cart"></div>
 
-      <div>
-        <h4>اطلاعات تماس</h4>
-        <ul class="contact-list">
-          <li>شماره تماس: <a href="tel:02191302606">۰۲۱۹۱۳۰۲۶۰۶</a></li>
-          <li>واتساپ (فقط برای ارسال رسید): <a href="https://wa.me/989214147070" target="_blank" rel="noopener noreferrer">۰۹۲۱۴۱۴۷۰۷۰</a></li>
-          <li>ایمیل: <a href="mailto:takdaru@gmail.com">takdaru@gmail.com</a></li>
-          <li>چت آنلاین: <a href="https://takdaro.top/support/?login=true&back=home&page=1" target="_blank" rel="noopener noreferrer">ورود به چت آنلاین</a></li>
-        </ul>
-      </div>
-
-      <div>
-        <h4>ساعات پاسخ‌گویی</h4>
-        <ul class="contact-list">
-          <li>ساعت کاری شرکت: ۸ صبح تا ۵ بعد از ظهر</li>
-          <li>پاسخ‌گویی تلفنی: ۱۱ صبح تا ۵ بعد از ظهر</li>
-          <li>چت آنلاین: ۹ صبح تا ۱۲ شب</li>
-        </ul>
-      </div>
-    </div>
-  </footer>
-
-  <div class="cart-overlay" data-cart-overlay hidden></div>
-
-  <aside
-    class="cart-drawer"
-    data-cart-drawer
-    aria-label="سبد خرید"
-    aria-hidden="true"
-  >
-    <div class="cart-drawer__head">
-      <h3>سبد خرید</h3>
-      <button
-        type="button"
-        class="cart-drawer__close"
-        data-close-cart
-        aria-label="بستن سبد خرید"
-      >
-        ×
-      </button>
-    </div>
-
-    <div class="cart-drawer__body">
-      <p class="cart-empty-text" data-mini-cart-empty>
-        هنوز محصولی به سبد خرید اضافه نشده است.
-      </p>
-      <div data-mini-cart-items></div>
-    </div>
-
-    <div class="cart-drawer__footer" data-mini-cart-footer hidden>
-      <a href="./checkout.html" class="btn btn-primary">ادامه و ثبت سفارش</a>
-    </div>
-  </aside>
-
+  <script src="./assets/js/layout.js"></script>
   <script src="./assets/js/products.js"></script>
   <script src="./price-overrides.js"></script>
   <script src="./price-loader.js"></script>

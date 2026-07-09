@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ورود | تک تجارت</title>
+  <meta name="description" content="ورود کاربران به حساب کاربری تک تجارت" />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+  <style>
+    .auth-section {
+      padding: 48px 0;
+    }
+
+    .auth-shell {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .auth-card {
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+
+    .auth-card__head {
+      padding: 24px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .auth-card__head h1 {
+      margin: 0 0 10px;
+      color: #0f172a;
+      font-size: 1.4rem;
+    }
+
+    .auth-card__head p {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.9;
+      font-size: 0.95rem;
+    }
+
+    .auth-card__body {
+      padding: 24px;
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-field label {
+      font-weight: 700;
+      color: #334155;
+      font-size: 0.94rem;
+    }
+
+    .form-field input {
+      width: 100%;
+      border: 1px solid #dbe2ea;
+      border-radius: 16px;
+      background: #fff;
+      padding: 14px 16px;
+      font: inherit;
+    }
+
+    .form-field input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    }
+
+    .auth-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .auth-note {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.9rem;
+      line-height: 1.9;
+    }
+
+    .auth-footer {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    @media (max-width: 640px) {
+      .auth-section {
+        padding: 24px 0;
+      }
+
+      .auth-card__head,
+      .auth-card__body {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main>
+    <section class="hero hero-compact">
+      <div class="container">
+        <div class="hero-content">
+          <span class="hero-badge">ورود کاربران</span>
+          <h1>ورود به حساب کاربری</h1>
+          <p>برای مشاهده سفارش‌ها، کیف پول و اطلاعات حساب، وارد پنل کاربری خود شوید.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-section">
+      <div class="container">
+        <div class="auth-shell">
+          <div class="auth-card">
+            <div class="auth-card__head">
+              <h1>ورود</h1>
+              <p>این صفحه فعلاً نمایشی است و در بازنگری بعدی به ورود واقعی متصل می‌شود.</p>
+            </div>
+
+            <div class="auth-card__body">
+              <form class="auth-form" id="login-form" novalidate>
+                <div class="form-field">
+                  <label for="login-identity">شماره تماس یا ایمیل</label>
+                  <input
+                    id="login-identity"
+                    name="identity"
+                    type="text"
+                    placeholder="مثلاً 09123456789 یا name@example.com"
+                    autocomplete="username"
+                    required
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="login-password">رمز عبور</label>
+                  <input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    placeholder="رمز عبور"
+                    autocomplete="current-password"
+                    required
+                  />
+                </div>
+
+                <div class="auth-row">
+                  <label class="auth-note">
+                    <input type="checkbox" name="remember" />
+                    مرا به خاطر بسپار
+                  </label>
+                  <a href="#" class="auth-note">بازیابی رمز عبور</a>
+                </div>
+
+                <div class="checkout-actions">
+                  <button type="submit" class="btn btn-primary">ورود به حساب</button>
+                  <a href="./register.html" class="btn btn-secondary">ایجاد حساب جدید</a>
+                </div>
+
+                <div class="auth-footer">
+                  <p class="auth-note">
+                    در نسخه نهایی، این فرم به احراز هویت واقعی، پیام خطا، بازیابی رمز و هدایت به حساب کاربری متصل می‌شود.
+                  </p>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <div id="site-cart"></div>
+
+  <script src="./assets/js/layout.js"></script>
+  <script src="./assets/js/products.js"></script>
+  <script src="./price-overrides.js"></script>
+  <script src="./price-loader.js"></script>
+  <script src="./assets/js/cart.js"></script>
+  <script src="./assets/js/app.js"></script>
+  <script>
+    const loginForm = document.getElementById("login-form");
+    if (loginForm) {
+      loginForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        alert("نسخه نمایشی ورود فعال است. در بازنگری بعدی، ورود واقعی متصل می‌شود.");
+      });
+    }
+  </script>
+</body>
+</html>
