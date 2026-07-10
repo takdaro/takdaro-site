@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const CART_KEY = "taktejarat_cart";
 
   function readCart() {
@@ -144,10 +144,10 @@
           <p>${product.category}</p>
 
           <div class="mini-cart-item__controls">
-            <button type="button" data-cart-action="increase" data-slug="${slug}" aria-label="افزایش تعداد">+</button>
+            <button type="button" data-cart-action="increase" data-slug="${slug}" aria-label="Ø§ÙØ²Ø§ÛŒØ´ ØªØ¹Ø¯Ø§Ø¯">+</button>
             <span>${qty}</span>
-            <button type="button" data-cart-action="decrease" data-slug="${slug}" aria-label="کاهش تعداد">-</button>
-            <button type="button" data-cart-action="remove" data-slug="${slug}" class="mini-cart-remove">حذف</button>
+            <button type="button" data-cart-action="decrease" data-slug="${slug}" aria-label="Ú©Ø§Ù‡Ø´ ØªØ¹Ø¯Ø§Ø¯">-</button>
+            <button type="button" data-cart-action="remove" data-slug="${slug}" class="mini-cart-remove">Ø­Ø°Ù</button>
           </div>
         </div>
       `;
@@ -276,5 +276,5 @@ function renderProducts(products) {
     return;
   }
 
-  // ????? ????...
+  // ادامه رندر...
 }

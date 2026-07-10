@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const products = Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
   const params = new URLSearchParams(window.location.search);
 
@@ -34,7 +34,7 @@
 
   function updateInvoiceQty(value) {
     const normalized = normalizeQuantity(value);
-    invoiceQuantity.textContent = `${normalized} عدد`;
+    invoiceQuantity.textContent = `${normalized} Ø¹Ø¯Ø¯`;
     quantityInput.value = normalized;
   }
 
@@ -55,12 +55,12 @@
     productCategory.textContent = product.category || "";
     productName.textContent = product.name || "-";
     productDescription.textContent = product.description || product.shortDescription || "-";
-    productPrice.textContent = product.priceLabel || "تماس بگیرید";
-    productStock.textContent = product.stockLabel || (product.inStock ? "موجود" : "ناموجود");
+    productPrice.textContent = product.priceLabel || "ØªÙ…Ø§Ø³ Ø¨Ú¯ÛŒØ±ÛŒØ¯";
+    productStock.textContent = product.stockLabel || (product.inStock ? "Ù…ÙˆØ¬ÙˆØ¯" : "Ù†Ø§Ù…ÙˆØ¬ÙˆØ¯");
 
     invoiceProductName.textContent = product.name || "-";
-    invoiceStock.textContent = product.stockLabel || (product.inStock ? "موجود" : "ناموجود");
-    invoicePrice.textContent = product.priceLabel || "تماس بگیرید";
+    invoiceStock.textContent = product.stockLabel || (product.inStock ? "Ù…ÙˆØ¬ÙˆØ¯" : "Ù†Ø§Ù…ÙˆØ¬ÙˆØ¯");
+    invoicePrice.textContent = product.priceLabel || "ØªÙ…Ø§Ø³ Ø¨Ú¯ÛŒØ±ÛŒØ¯";
 
     updateInvoiceQty(quantityFromUrl);
   }
@@ -77,7 +77,7 @@
     event.preventDefault();
 
     if (!product) {
-      alert("لطفاً ابتدا یک محصول انتخاب کنید.");
+      alert("Ù„Ø·ÙØ§Ù‹ Ø§Ø¨ØªØ¯Ø§ ÛŒÚ© Ù…Ø­ØµÙˆÙ„ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ù†ÛŒØ¯.");
       return;
     }
 
@@ -88,23 +88,23 @@
     const quantity = normalizeQuantity(quantityInput.value);
 
     if (!customerName || !customerPhone) {
-      alert("لطفاً نام و شماره تماس را وارد کنید.");
+      alert("Ù„Ø·ÙØ§Ù‹ Ù†Ø§Ù… Ùˆ Ø´Ù…Ø§Ø±Ù‡ ØªÙ…Ø§Ø³ Ø±Ø§ ÙˆØ§Ø±Ø¯ Ú©Ù†ÛŒØ¯.");
       return;
     }
 
     const messageLines = [
-      "سلام، وقت بخیر",
-      "برای ثبت سفارش از سایت تک تجارت پیام می‌دهم.",
+      "Ø³Ù„Ø§Ù…ØŒ ÙˆÙ‚Øª Ø¨Ø®ÛŒØ±",
+      "Ø¨Ø±Ø§ÛŒ Ø«Ø¨Øª Ø³ÙØ§Ø±Ø´ Ø§Ø² Ø³Ø§ÛŒØª ØªÚ© ØªØ¬Ø§Ø±Øª Ù¾ÛŒØ§Ù… Ù…ÛŒâ€ŒØ¯Ù‡Ù….",
       "",
-      `محصول: ${product.name}`,
-      `تعداد: ${quantity}`,
-      `وضعیت: ${product.stockLabel || (product.inStock ? "موجود" : "ناموجود")}`,
-      `قیمت: ${product.priceLabel || "تماس بگیرید"}`,
+      `Ù…Ø­ØµÙˆÙ„: ${product.name}`,
+      `ØªØ¹Ø¯Ø§Ø¯: ${quantity}`,
+      `ÙˆØ¶Ø¹ÛŒØª: ${product.stockLabel || (product.inStock ? "Ù…ÙˆØ¬ÙˆØ¯" : "Ù†Ø§Ù…ÙˆØ¬ÙˆØ¯")}`,
+      `Ù‚ÛŒÙ…Øª: ${product.priceLabel || "ØªÙ…Ø§Ø³ Ø¨Ú¯ÛŒØ±ÛŒØ¯"}`,
       "",
-      `نام مشتری: ${customerName}`,
-      `شماره تماس: ${customerPhone}`,
-      `شهر: ${customerCity || "-"}`,
-      `آدرس / توضیحات: ${customerAddress || "-"}`
+      `Ù†Ø§Ù… Ù…Ø´ØªØ±ÛŒ: ${customerName}`,
+      `Ø´Ù…Ø§Ø±Ù‡ ØªÙ…Ø§Ø³: ${customerPhone}`,
+      `Ø´Ù‡Ø±: ${customerCity || "-"}`,
+      `Ø¢Ø¯Ø±Ø³ / ØªÙˆØ¶ÛŒØ­Ø§Øª: ${customerAddress || "-"}`
     ];
 
     const message = encodeURIComponent(messageLines.join("\n"));

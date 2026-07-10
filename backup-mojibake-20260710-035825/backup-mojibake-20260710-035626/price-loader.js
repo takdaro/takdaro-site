@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const overrides = window.PRODUCT_PRICE_OVERRIDES || {};
   const products = Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
 
@@ -14,8 +14,8 @@
       product.price = override.price;
       product.priceLabel =
         typeof override.price === "number"
-          ? `${new Intl.NumberFormat("fa-IR").format(override.price)} تومان`
-          : "تماس بگیرید";
+          ? `${new Intl.NumberFormat("fa-IR").format(override.price)} ØªÙˆÙ…Ø§Ù†`
+          : "ØªÙ…Ø§Ø³ Ø¨Ú¯ÛŒØ±ÛŒØ¯";
     }
 
     if (Object.prototype.hasOwnProperty.call(override, "stockText")) {

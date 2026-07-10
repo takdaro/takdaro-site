@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   function getBasePath() {
     const path = window.location.pathname;
 
@@ -19,7 +19,7 @@
       const base = getBasePath();
       target.innerHTML = html.replaceAll("{{BASE}}", base);
     } catch (error) {
-      console.error(`خطا در بارگذاری ${filePath}`, error);
+      console.error(`Ø®Ø·Ø§ Ø¯Ø± Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ ${filePath}`, error);
     }
   }
 
@@ -38,7 +38,7 @@
       menuToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
       menuToggle.setAttribute(
         "aria-label",
-        isOpen ? "بستن منو" : "باز کردن منو"
+        isOpen ? "Ø¨Ø³ØªÙ† Ù…Ù†Ùˆ" : "Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† Ù…Ù†Ùˆ"
       );
     });
 
@@ -50,7 +50,7 @@
         mobileNav.classList.remove("is-open");
         menuToggle.classList.remove("is-active");
         menuToggle.setAttribute("aria-expanded", "false");
-        menuToggle.setAttribute("aria-label", "باز کردن منو");
+        menuToggle.setAttribute("aria-label", "Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† Ù…Ù†Ùˆ");
       }
     });
 
@@ -59,7 +59,7 @@
         mobileNav.classList.remove("is-open");
         menuToggle.classList.remove("is-active");
         menuToggle.setAttribute("aria-expanded", "false");
-        menuToggle.setAttribute("aria-label", "باز کردن منو");
+        menuToggle.setAttribute("aria-label", "Ø¨Ø§Ø² Ú©Ø±Ø¯Ù† Ù…Ù†Ùˆ");
       }
     });
   }

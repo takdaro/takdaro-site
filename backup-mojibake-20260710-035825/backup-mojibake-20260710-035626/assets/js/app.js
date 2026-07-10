@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   function getProducts() {
     if (typeof window === "undefined") return [];
     if (!window.PRODUCTS || !Array.isArray(window.PRODUCTS)) return [];
@@ -12,16 +12,16 @@
         : "/assets/images/placeholder.png";
 
     const pageUrl = product.pageUrl ? `./${product.pageUrl}` : "#";
-    const title = product.name || "بدون نام";
-    const category = product.category || "محصول";
+    const title = product.name || "Ø¨Ø¯ÙˆÙ† Ù†Ø§Ù…";
+    const category = product.category || "Ù…Ø­ØµÙˆÙ„";
     const shortDescription = product.shortDescription || "";
-    const priceLabel = product.priceLabel || "تماس بگیرید";
-    const stockLabel = product.stockLabel || (product.inStock ? "موجود" : "ناموجود");
+    const priceLabel = product.priceLabel || "ØªÙ…Ø§Ø³ Ø¨Ú¯ÛŒØ±ÛŒØ¯";
+    const stockLabel = product.stockLabel || (product.inStock ? "Ù…ÙˆØ¬ÙˆØ¯" : "Ù†Ø§Ù…ÙˆØ¬ÙˆØ¯");
     const stockClass = product.inStock ? "in-stock" : "out-of-stock";
 
     return `
       <article class="product-card">
-        <a href="${pageUrl}" class="product-card__image-link" aria-label="مشاهده محصول ${title}">
+        <a href="${pageUrl}" class="product-card__image-link" aria-label="Ù…Ø´Ø§Ù‡Ø¯Ù‡ Ù…Ø­ØµÙˆÙ„ ${title}">
           <img
             src="${imageSrc}"
             alt="${title}"
@@ -45,7 +45,7 @@
           </div>
 
           <div class="product-card__actions">
-            <a href="${pageUrl}" class="btn btn-primary">مشاهده محصول</a>
+            <a href="${pageUrl}" class="btn btn-primary">Ù…Ø´Ø§Ù‡Ø¯Ù‡ Ù…Ø­ØµÙˆÙ„</a>
           </div>
         </div>
       </article>
@@ -67,8 +67,8 @@
     if (!products.length) {
       grid.innerHTML = `
         <div class="empty-products">
-          <h3>محصولی برای نمایش پیدا نشد.</h3>
-          <p>فایل products.js را بررسی کنید.</p>
+          <h3>Ù…Ø­ØµÙˆÙ„ÛŒ Ø¨Ø±Ø§ÛŒ Ù†Ù…Ø§ÛŒØ´ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.</h3>
+          <p>ÙØ§ÛŒÙ„ products.js Ø±Ø§ Ø¨Ø±Ø±Ø³ÛŒ Ú©Ù†ÛŒØ¯.</p>
         </div>
       `;
       return;
