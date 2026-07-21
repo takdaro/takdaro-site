@@ -3,7 +3,8 @@
     register: "/api/auth/register",
     login: "/api/auth/login",
     logout: "/api/auth/logout",
-    me: "/api/auth/me"
+    me: "/api/auth/me",
+    profile: "/api/auth/profile"
   };
 
   async function request(url, options = {}) {
@@ -60,6 +61,25 @@
   async function getCurrentUser() {
     return request(endpoints.me, {
       method: "GET"
+    });
+  }
+
+  async function getProfile() {
+    return request(endpoints.profile, {
+      method: "GET"
+    });
+  }
+
+  async function updateProfile(payload) {
+    return request(endpoints.profile, {
+      method: "POST",
+      body: JSON.stringify({
+        full_name: String(payload.full_name || "").trim(),
+        email: String(payload.email || "").trim(),
+        phone: String(payload.phone || "").trim(),
+        password: String(payload.password || ""),
+        password_confirm: String(payload.password_confirm || "")
+      })
     });
   }
 
@@ -194,20 +214,42 @@
   function fillUserFields(user, options = {}) {
     if (!user) return;
 
-    const nameElements = document.querySelectorAll(options.nameSelector || '[data-user-full-name]');
-    const emailElements = document.querySelectorAll(options.emailSelector || '[data-user-email]');
-    const idElements = document.querySelectorAll(options.idSelector || '[data-user-id]');
+    const nameElements = document.querySelectorAll(options.nameSelector || "[data-user-full-name]");
+    const emailElements = document.querySelectorAll(options.emailSelector || "[data-user-email]");
+    const phoneElements = document.querySelectorAll(options.phoneSelector || "[data-user-phone]");
+    const idElements = document.querySelectorAll(options.idSelector || "[data-user-id]");
 
     nameElements.forEach((el) => {
-      el.textContent = user.full_name || "";
+      if ("value" in el && el.tagName === "INPUT") {
+        el.value = user.full_name || "";
+      } else {
+        el.textContent = user.full_name || "";
+      }
     });
 
     emailElements.forEach((el) => {
-      el.textContent = user.email || "";
+      if ("value" in el && el.tagName === "INPUT") {
+        el.value = user.email || "";
+      } else {
+        el.textContent = user.email || "";
+      }
+    });
+
+    phoneElements.forEach((el) => {
+      if ("value" in el && el.tagName === "INPUT") {
+        el.value = user.phone || "";
+      } else {
+        el.textContent = user.phone || "";
+      }
     });
 
     idElements.forEach((el) => {
-      el.textContent = user.id != null ? String(user.id) : "";
+      const value = user.id != null ? String(user.id) : "";
+      if ("value" in el && el.tagName === "INPUT") {
+        el.value = value;
+      } else {
+        el.textContent = value;
+      }
     });
   }
 
@@ -216,6 +258,8 @@
     login,
     logout,
     getCurrentUser,
+    getProfile,
+    updateProfile,
     bindRegisterForm,
     bindLoginForm,
     bindLogoutButton,
