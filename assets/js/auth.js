@@ -164,7 +164,6 @@
         }
 
         setMessage(messageBox, "Login successful.", "success");
-
         redirectTo(options.redirectAfterSuccess || "/account.html", true);
       } catch (error) {
         setMessage(messageBox, String(error?.message || error || "Login failed."));
