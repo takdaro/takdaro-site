@@ -1,19 +1,17 @@
-﻿const nowIso = () => new Date().toISOString();
-
-function normalizeEmail(email) {
+﻿function normalizeEmail(email) {
   if (!email) return null;
   return String(email).trim().toLowerCase();
 }
 
-function normalizeMobile(mobile) {
-  if (!mobile) return null;
-  return String(mobile).trim().replace(/[^\d+]/g, "");
+function normalizePhone(phone) {
+  if (!phone) return null;
+  return String(phone).trim().replace(/[^\d+]/g, "");
 }
 
 function normalizeIdentity(identity) {
   const value = String(identity || "").trim();
   if (!value) return "";
-  return value.includes("@") ? normalizeEmail(value) : normalizeMobile(value);
+  return value.includes("@") ? normalizeEmail(value) : normalizePhone(value);
 }
 
 function getDb(env) {
@@ -27,7 +25,7 @@ function getDb(env) {
 export async function findUserById(env, userId) {
   const db = getDb(env);
   return db
-    .prepare(`SELECT id, full_name, mobile, email, password_hash, created_at, updated_at
+    .prepare(`SELECT id, full_name, phone, email, password_hash, created_at
               FROM users
               WHERE id = ?`)
     .bind(userId)
@@ -41,7 +39,7 @@ export async function findUserByIdentity(env, identity) {
 
   if (normalized.includes("@")) {
     return db
-      .prepare(`SELECT id, full_name, mobile, email, password_hash, created_at, updated_at
+      .prepare(`SELECT id, full_name, phone, email, password_hash, created_at
                 FROM users
                 WHERE email = ?`)
       .bind(normalized)
@@ -49,111 +47,97 @@ export async function findUserByIdentity(env, identity) {
   }
 
   return db
-    .prepare(`SELECT id, full_name, mobile, email, password_hash, created_at, updated_at
+    .prepare(`SELECT id, full_name, phone, email, password_hash, created_at
               FROM users
-              WHERE mobile = ?`)
+              WHERE phone = ?`)
     .bind(normalized)
     .first();
 }
 
-export async function createUser(env, { fullName, mobile, email, passwordHash }) {
+export async function createUser(env, { fullName, phone, email, passwordHash }) {
   const db = getDb(env);
   const normalizedFullName = String(fullName || "").trim();
-  const normalizedMobile = normalizeMobile(mobile);
+  const normalizedPhone = normalizePhone(phone);
   const normalizedEmail = normalizeEmail(email);
-  const timestamp = nowIso();
 
-  if (!normalizedFullName || !normalizedMobile || !normalizedEmail || !passwordHash) {
-    throw new Error("fullName, mobile, email and passwordHash are required");
+  if (!normalizedFullName || !normalizedPhone || !normalizedEmail || !passwordHash) {
+    throw new Error("fullName, phone, email and passwordHash are required");
   }
 
   const result = await db
-    .prepare(`INSERT INTO users (full_name, mobile, email, password_hash, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?)`)
+    .prepare(`INSERT INTO users (full_name, phone, email, password_hash)
+              VALUES (?, ?, ?, ?)`)
     .bind(
       normalizedFullName,
-      normalizedMobile,
+      normalizedPhone,
       normalizedEmail,
-      passwordHash,
-      timestamp,
-      timestamp
+      passwordHash
     )
     .run();
 
   return findUserById(env, result.meta?.last_row_id);
 }
 
-export async function createSession(env, { userId, tokenHash, expiresAt }) {
+export async function createSession(env, { sessionId, userId }) {
   const db = getDb(env);
-  const timestamp = nowIso();
 
-  if (!userId || !tokenHash || !expiresAt) {
-    throw new Error("userId, tokenHash and expiresAt are required");
+  if (!sessionId || !userId) {
+    throw new Error("sessionId and userId are required");
   }
 
-  const result = await db
-    .prepare(`INSERT INTO sessions (user_id, token_hash, created_at, expires_at)
-              VALUES (?, ?, ?, ?)`)
-    .bind(userId, tokenHash, timestamp, expiresAt)
+  await db
+    .prepare(`INSERT INTO sessions (id, user_id, created_at)
+              VALUES (?, ?, CURRENT_TIMESTAMP)`)
+    .bind(sessionId, userId)
     .run();
 
   return db
-    .prepare(`SELECT id, user_id, token_hash, created_at, expires_at
+    .prepare(`SELECT id, user_id, created_at
               FROM sessions
               WHERE id = ?`)
-    .bind(result.meta?.last_row_id)
+    .bind(sessionId)
     .first();
 }
 
-export async function findSessionByTokenHash(env, tokenHash) {
+export async function findSessionById(env, sessionId) {
   const db = getDb(env);
   return db
-    .prepare(`SELECT id, user_id, token_hash, created_at, expires_at
+    .prepare(`SELECT id, user_id, created_at
               FROM sessions
-              WHERE token_hash = ?`)
-    .bind(tokenHash)
+              WHERE id = ?`)
+    .bind(sessionId)
     .first();
 }
 
-export async function getSessionUser(env, tokenHash) {
+export async function getSessionUser(env, sessionId) {
   const db = getDb(env);
   return db
     .prepare(`SELECT
                 s.id AS session_id,
                 s.user_id,
-                s.expires_at,
                 u.id,
                 u.full_name,
-                u.mobile,
+                u.phone,
                 u.email,
-                u.created_at,
-                u.updated_at
+                u.created_at
               FROM sessions s
               INNER JOIN users u ON u.id = s.user_id
-              WHERE s.token_hash = ?`)
-    .bind(tokenHash)
+              WHERE s.id = ?`)
+    .bind(sessionId)
     .first();
 }
 
-export async function deleteSessionByTokenHash(env, tokenHash) {
+export async function deleteSessionById(env, sessionId) {
   const db = getDb(env);
   return db
-    .prepare(`DELETE FROM sessions WHERE token_hash = ?`)
-    .bind(tokenHash)
-    .run();
-}
-
-export async function deleteExpiredSessions(env) {
-  const db = getDb(env);
-  return db
-    .prepare(`DELETE FROM sessions WHERE expires_at <= ?`)
-    .bind(nowIso())
+    .prepare(`DELETE FROM sessions WHERE id = ?`)
+    .bind(sessionId)
     .run();
 }
 
 export {
   getDb,
   normalizeEmail,
-  normalizeMobile,
+  normalizePhone,
   normalizeIdentity,
 };
