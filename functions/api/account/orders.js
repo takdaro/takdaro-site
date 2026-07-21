@@ -1,4 +1,4 @@
-﻿function getCookie(cookieString, key) {
+function getCookie(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));

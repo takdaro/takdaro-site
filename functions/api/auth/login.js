@@ -6,10 +6,15 @@
     .join("");
 }
 
+function normalizeEmail(email) {
+  if (!email) return "";
+  return String(email).trim().toLowerCase();
+}
+
 export async function onRequestPost(context) {
   try {
     const body = await context.request.json();
-    const email = String(body.email || "").trim().toLowerCase();
+    const email = normalizeEmail(body.email || "");
     const password = String(body.password || "");
 
     if (!email || !password) {
@@ -23,7 +28,7 @@ export async function onRequestPost(context) {
 
     const user = await context.env.DB
       .prepare(
-        "SELECT id, full_name, email, password_hash FROM users WHERE email = ?"
+        "SELECT id, full_name, mobile, email, password_hash, created_at, updated_at FROM users WHERE email = ?"
       )
       .bind(email)
       .first();
@@ -38,7 +43,9 @@ export async function onRequestPost(context) {
     const sessionId = crypto.randomUUID();
 
     await context.env.DB
-      .prepare("INSERT INTO sessions (id, user_id) VALUES (?, ?)")
+      .prepare(
+        "INSERT INTO sessions (id, user_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)"
+      )
       .bind(sessionId, user.id)
       .run();
 
@@ -47,7 +54,10 @@ export async function onRequestPost(context) {
       user: {
         id: user.id,
         full_name: user.full_name,
-        email: user.email
+        mobile: user.mobile,
+        email: user.email,
+        created_at: user.created_at,
+        updated_at: user.updated_at
       }
     });
 

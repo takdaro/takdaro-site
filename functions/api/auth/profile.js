@@ -42,7 +42,7 @@ export async function onRequestGet(context) {
     }
 
     const user = await context.env.DB
-      .prepare("SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?")
+      .prepare("SELECT id, full_name, mobile, email, created_at FROM users WHERE id = ?")
       .bind(userId)
       .first();
 
@@ -83,7 +83,7 @@ export async function onRequestPost(context) {
 
     const full_name = String(body.full_name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
-    const phone = String(body.phone || "").trim();
+    const mobile = String(body.mobile || "").trim();
     const password = String(body.password || "");
     const password_confirm = String(body.password_confirm || "");
 
@@ -127,21 +127,21 @@ export async function onRequestPost(context) {
 
       await context.env.DB
         .prepare(
-          "UPDATE users SET full_name = ?, email = ?, phone = ?, password_hash = ? WHERE id = ?"
+          "UPDATE users SET full_name = ?, email = ?, mobile = ?, password_hash = ? WHERE id = ?"
         )
-        .bind(full_name, email, phone || null, password_hash, userId)
+        .bind(full_name, email, mobile || null, password_hash, userId)
         .run();
     } else {
       await context.env.DB
         .prepare(
-          "UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?"
+          "UPDATE users SET full_name = ?, email = ?, mobile = ? WHERE id = ?"
         )
-        .bind(full_name, email, phone || null, userId)
+        .bind(full_name, email, mobile || null, userId)
         .run();
     }
 
     const user = await context.env.DB
-      .prepare("SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?")
+      .prepare("SELECT id, full_name, mobile, email, created_at FROM users WHERE id = ?")
       .bind(userId)
       .first();
 

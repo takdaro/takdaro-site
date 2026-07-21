@@ -7,19 +7,19 @@ function normalizeEmail(email) {
 
 function normalizeMobile(mobile) {
   if (!mobile) return null;
-  return String(mobile).trim().replace(/[^\d+]/g, '');
+  return String(mobile).trim().replace(/[^\d+]/g, "");
 }
 
 function normalizeIdentity(identity) {
-  const value = String(identity || '').trim();
-  if (!value) return '';
-  return value.includes('@') ? normalizeEmail(value) : normalizeMobile(value);
+  const value = String(identity || "").trim();
+  if (!value) return "";
+  return value.includes("@") ? normalizeEmail(value) : normalizeMobile(value);
 }
 
 function getDb(env) {
   const db = env?.DB || env?.db;
   if (!db) {
-    throw new Error('D1 binding not found. Expected env.DB');
+    throw new Error("D1 binding not found. Expected env.DB");
   }
   return db;
 }
@@ -39,7 +39,7 @@ export async function findUserByIdentity(env, identity) {
   const normalized = normalizeIdentity(identity);
   if (!normalized) return null;
 
-  if (normalized.includes('@')) {
+  if (normalized.includes("@")) {
     return db
       .prepare(`SELECT id, full_name, mobile, email, password_hash, created_at, updated_at
                 FROM users
@@ -58,15 +58,20 @@ export async function findUserByIdentity(env, identity) {
 
 export async function createUser(env, { fullName, mobile, email, passwordHash }) {
   const db = getDb(env);
+  const normalizedFullName = String(fullName || "").trim();
   const normalizedMobile = normalizeMobile(mobile);
   const normalizedEmail = normalizeEmail(email);
   const timestamp = nowIso();
+
+  if (!normalizedFullName || !normalizedMobile || !normalizedEmail || !passwordHash) {
+    throw new Error("fullName, mobile, email and passwordHash are required");
+  }
 
   const result = await db
     .prepare(`INSERT INTO users (full_name, mobile, email, password_hash, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?)`)
     .bind(
-      String(fullName || '').trim(),
+      normalizedFullName,
       normalizedMobile,
       normalizedEmail,
       passwordHash,
@@ -75,12 +80,16 @@ export async function createUser(env, { fullName, mobile, email, passwordHash })
     )
     .run();
 
-  return findUserById(env, result.meta.last_row_id);
+  return findUserById(env, result.meta?.last_row_id);
 }
 
 export async function createSession(env, { userId, tokenHash, expiresAt }) {
   const db = getDb(env);
   const timestamp = nowIso();
+
+  if (!userId || !tokenHash || !expiresAt) {
+    throw new Error("userId, tokenHash and expiresAt are required");
+  }
 
   const result = await db
     .prepare(`INSERT INTO sessions (user_id, token_hash, created_at, expires_at)
@@ -92,7 +101,7 @@ export async function createSession(env, { userId, tokenHash, expiresAt }) {
     .prepare(`SELECT id, user_id, token_hash, created_at, expires_at
               FROM sessions
               WHERE id = ?`)
-    .bind(result.meta.last_row_id)
+    .bind(result.meta?.last_row_id)
     .first();
 }
 
@@ -148,4 +157,3 @@ export {
   normalizeMobile,
   normalizeIdentity,
 };
-

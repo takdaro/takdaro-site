@@ -1,0 +1,29 @@
+CREATE TABLE IF NOT EXISTS addresses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('billing', 'shipping')),
+  full_name TEXT NOT NULL,
+  address_line TEXT NOT NULL,
+  postal_code TEXT,
+  phone TEXT,
+  city TEXT,
+  state TEXT,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  order_number TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL,
+  total_amount INTEGER NOT NULL,
+  shipping_amount INTEGER NOT NULL DEFAULT 0,
+  discount_amount INTEGER NOT NULL DEFAULT 0,
+  payment_status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

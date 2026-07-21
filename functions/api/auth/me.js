@@ -19,7 +19,7 @@ export async function onRequestGet(context) {
 
     const user = await context.env.DB
       .prepare(
-        `SELECT users.id, users.full_name, users.email
+        `SELECT users.id, users.full_name, users.mobile, users.email, users.created_at, users.updated_at
          FROM sessions
          JOIN users ON users.id = sessions.user_id
          WHERE sessions.id = ?`

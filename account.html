@@ -977,8 +977,8 @@
                     </div>
 
                     <div class="form-field">
-                      <label for="phone">شماره تماس</label>
-                      <input id="phone" type="tel" data-user-phone />
+                      <label for="mobile">شماره تماس</label>
+                      <input id="mobile" type="tel" data-user-mobile />
                     </div>
                   </div>
 
@@ -1128,9 +1128,9 @@
       fillAccountName(currentUser.full_name || "");
 
       const emailInput = document.getElementById("account-email");
-      const phoneInput = document.getElementById("phone");
+      const mobileInput = document.getElementById("mobile");
       if (emailInput) emailInput.value = currentUser.email || "";
-      if (phoneInput) phoneInput.value = currentUser.phone || "";
+      if (mobileInput) mobileInput.value = currentUser.mobile || "";
 
       const passwordInput = document.getElementById("password");
       const passwordConfirmInput = document.getElementById("password-confirm");
@@ -1156,7 +1156,7 @@
         const firstName = document.getElementById("first-name")?.value || "";
         const lastName = document.getElementById("last-name")?.value || "";
         const email = document.getElementById("account-email")?.value || "";
-        const phone = document.getElementById("phone")?.value || "";
+        const mobile = document.getElementById("mobile")?.value || "";
         const password = document.getElementById("password")?.value || "";
         const password_confirm = document.getElementById("password-confirm")?.value || "";
 
@@ -1165,7 +1165,7 @@
         const result = await window.Auth.updateProfile({
           full_name,
           email,
-          phone,
+          mobile,
           password,
           password_confirm
         });
@@ -1179,7 +1179,7 @@
         window.Auth.fillUserFields(currentUser, {
           nameSelector: "[data-user-full-name]",
           emailSelector: "[data-user-email]",
-          phoneSelector: "[data-user-phone]"
+          mobileSelector: "[data-user-mobile]"
         });
 
         setAccountMessage("اطلاعات حساب با موفقیت ذخیره شد.", "success");
@@ -1208,7 +1208,7 @@
       window.Auth.fillUserFields(currentUser, {
         nameSelector: "[data-user-full-name]",
         emailSelector: "[data-user-email]",
-        phoneSelector: "[data-user-phone]"
+        mobileSelector: "[data-user-mobile]"
       });
 
       fillAccountName(currentUser.full_name || "");
