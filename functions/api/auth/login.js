@@ -28,7 +28,7 @@ export async function onRequestPost(context) {
 
     const user = await context.env.DB
       .prepare(
-        "SELECT id, full_name, mobile, email, password_hash, created_at, updated_at FROM users WHERE email = ?"
+        "SELECT id, full_name, phone, email, password_hash, created_at FROM users WHERE email = ?"
       )
       .bind(email)
       .first();
@@ -54,10 +54,9 @@ export async function onRequestPost(context) {
       user: {
         id: user.id,
         full_name: user.full_name,
-        mobile: user.mobile,
+        phone: user.phone,
         email: user.email,
-        created_at: user.created_at,
-        updated_at: user.updated_at
+        created_at: user.created_at
       }
     });
 

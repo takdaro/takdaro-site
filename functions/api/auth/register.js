@@ -6,7 +6,7 @@
     .join("");
 }
 
-function normalizeMobile(value) {
+function normalizePhone(value) {
   if (!value) return "";
   return String(value).trim().replace(/[^\d+]/g, "");
 }
@@ -17,12 +17,12 @@ export async function onRequestPost(context) {
 
     const full_name = String(body.full_name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
-    const mobile = normalizeMobile(body.mobile || "");
+    const phone = normalizePhone(body.phone || "");
     const password = String(body.password || "");
 
-    if (!full_name || !email || !mobile || !password) {
+    if (!full_name || !email || !phone || !password) {
       return Response.json(
-        { success: false, error: "full_name, email, mobile, password required" },
+        { success: false, error: "full_name, email, phone, password required" },
         { status: 400 }
       );
     }
@@ -54,14 +54,14 @@ export async function onRequestPost(context) {
       );
     }
 
-    const existingMobile = await context.env.DB
-      .prepare("SELECT id FROM users WHERE mobile = ?")
-      .bind(mobile)
+    const existingPhone = await context.env.DB
+      .prepare("SELECT id FROM users WHERE phone = ?")
+      .bind(phone)
       .first();
 
-    if (existingMobile) {
+    if (existingPhone) {
       return Response.json(
-        { success: false, error: "mobile already exists" },
+        { success: false, error: "phone already exists" },
         { status: 409 }
       );
     }
@@ -70,9 +70,9 @@ export async function onRequestPost(context) {
 
     const result = await context.env.DB
       .prepare(
-        "INSERT INTO users (full_name, mobile, email, password_hash) VALUES (?, ?, ?, ?)"
+        "INSERT INTO users (full_name, email, phone, password_hash) VALUES (?, ?, ?, ?)"
       )
-      .bind(full_name, mobile, email, password_hash)
+      .bind(full_name, email, phone, password_hash)
       .run();
 
     return Response.json(
@@ -88,7 +88,7 @@ export async function onRequestPost(context) {
 
     if (message.toLowerCase().includes("unique")) {
       return Response.json(
-        { success: false, error: "email or mobile already exists" },
+        { success: false, error: "email or phone already exists" },
         { status: 409 }
       );
     }

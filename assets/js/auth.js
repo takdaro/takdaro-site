@@ -36,7 +36,7 @@
       method: "POST",
       body: JSON.stringify({
         full_name: String(payload.full_name || "").trim(),
-        mobile: String(payload.mobile || "").trim(),
+        phone: String(payload.phone || "").trim(),
         email: String(payload.email || "").trim(),
         password: String(payload.password || "")
       })
@@ -77,7 +77,7 @@
       body: JSON.stringify({
         full_name: String(payload.full_name || "").trim(),
         email: String(payload.email || "").trim(),
-        mobile: String(payload.mobile || "").trim(),
+        phone: String(payload.phone || "").trim(),
         password: String(payload.password || ""),
         password_confirm: String(payload.password_confirm || "")
       })
@@ -112,14 +112,14 @@
       setMessage(messageBox, "");
 
       const full_name = form.full_name?.value || "";
-      const mobile = form.mobile?.value || "";
+      const phone = form.phone?.value || "";
       const email = form.email?.value || "";
       const password = form.password?.value || "";
 
       if (submitButton) submitButton.disabled = true;
 
       try {
-        const result = await register({ full_name, mobile, email, password });
+        const result = await register({ full_name, phone, email, password });
 
         if (!result.ok || !result.data?.success) {
           setMessage(messageBox, result.data?.error || "Registration failed.");
@@ -217,7 +217,7 @@
 
     const nameElements = document.querySelectorAll(options.nameSelector || "[data-user-full-name]");
     const emailElements = document.querySelectorAll(options.emailSelector || "[data-user-email]");
-    const mobileElements = document.querySelectorAll(options.mobileSelector || "[data-user-mobile]");
+    const phoneElements = document.querySelectorAll(options.phoneSelector || "[data-user-phone]");
     const idElements = document.querySelectorAll(options.idSelector || "[data-user-id]");
 
     nameElements.forEach((el) => {
@@ -236,11 +236,11 @@
       }
     });
 
-    mobileElements.forEach((el) => {
+    phoneElements.forEach((el) => {
       if ("value" in el && el.tagName === "INPUT") {
-        el.value = user.mobile || "";
+        el.value = user.phone || "";
       } else {
-        el.textContent = user.mobile || "";
+        el.textContent = user.phone || "";
       }
     });
 
