@@ -12,12 +12,17 @@
 
   function normalizeCartItems(items) {
     if (!Array.isArray(items)) return [];
+
     return items
       .map((item) => {
         if (!item || !item.slug) return null;
+
         return {
           slug: String(item.slug),
-          qty: Math.max(1, Number(item.qty || item.quantity || 1))
+          qty: Math.max(1, Number(item.qty || item.quantity || 1)),
+          name: item.name || "",
+          category: item.category || "",
+          image: item.image || ""
         };
       })
       .filter(Boolean);
@@ -26,6 +31,7 @@
   function migrateLegacyCart() {
     try {
       const current = localStorage.getItem(CART_KEY);
+
       if (current) {
         const parsed = JSON.parse(current);
         localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(parsed)));
@@ -63,19 +69,42 @@
     return products.find((item) => item.slug === slug) || null;
   }
 
+  function buildCartItemFromProduct(slug, qty, product) {
+    const image =
+      Array.isArray(product?.images) && product.images.length
+        ? product.images[0]
+        : "";
+
+    return {
+      slug: String(slug),
+      qty: Math.max(1, Number(qty || 1)),
+      name: product?.name || "",
+      category: product?.category || "",
+      image
+    };
+  }
+
   function getCartDetailed() {
     return readCart()
       .map((item) => {
         const product = findProduct(item.slug);
-        if (!product) return null;
 
         return {
           slug: item.slug,
           qty: Number(item.qty || 0),
-          product
+          product: {
+            slug: item.slug,
+            name: product?.name || item.name || "",
+            category: product?.category || item.category || "",
+            images: Array.isArray(product?.images)
+              ? product.images
+              : item.image
+              ? [item.image]
+              : []
+          }
         };
       })
-      .filter(Boolean);
+      .filter((item) => item.qty > 0);
   }
 
   function getCartCount() {
@@ -83,7 +112,9 @@
   }
 
   function updateCartBadge() {
-    const badges = document.querySelectorAll("[data-cart-count], [data-cart-badge], .cart-badge");
+    const badges = document.querySelectorAll(
+      "[data-cart-count], [data-cart-badge], .cart-badge"
+    );
     const count = getCartCount();
 
     badges.forEach((badge) => {
@@ -114,8 +145,12 @@
     footer.hidden = false;
 
     items.forEach(({ slug, qty, product }) => {
-      const image = Array.isArray(product.images) && product.images.length ? product.images[0] : "";
+      const image =
+        Array.isArray(product.images) && product.images.length
+          ? product.images[0]
+          : "";
       const imageSrc = image ? `${base}${image}` : "";
+
       const article = document.createElement("article");
       article.className = "mini-cart-item";
       article.innerHTML = `
@@ -157,8 +192,12 @@
 
     if (existing) {
       existing.qty += quantity;
+      existing.name = product.name || existing.name || "";
+      existing.category = product.category || existing.category || "";
+      existing.image =
+        (Array.isArray(product.images) && product.images[0]) || existing.image || "";
     } else {
-      cart.push({ slug, qty: quantity });
+      cart.push(buildCartItemFromProduct(slug, quantity, product));
     }
 
     saveCart(cart);
@@ -283,7 +322,12 @@
     setupMiniCartToggle();
   }
 
-  document.addEventListener("DOMContentLoaded", initCartUi);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCartUi);
+  } else {
+    initCartUi();
+  }
+
   document.addEventListener("layout:loaded", initCartUi);
 
   window.CartStore = {
