@@ -5,6 +5,11 @@ function getCookie(cookieString, key) {
   return target ? target.slice(key.length + 1) : null;
 }
 
+function normalizePhone(value) {
+  if (!value) return "";
+  return String(value).trim().replace(/[^\d+]/g, "");
+}
+
 async function getCurrentUserId(context) {
   const cookieString = context.request.headers.get("Cookie") || "";
   const sessionId = getCookie(cookieString, "session_id");
@@ -74,7 +79,7 @@ export async function onRequestPost(context) {
     const full_name = String(body.full_name || "").trim();
     const address_line = String(body.address_line || "").trim();
     const postal_code = String(body.postal_code || "").trim();
-    const phone = String(body.phone || "").trim();
+    const phone = normalizePhone(body.phone || "");
     const city = String(body.city || "").trim();
     const state = String(body.state || "").trim();
     const is_default = body.is_default ? 1 : 0;
@@ -100,12 +105,42 @@ export async function onRequestPost(context) {
           user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `)
-      .bind(userId, type, full_name, address_line, postal_code || null, phone || null, city || null, state || null, is_default)
+      .bind(
+        userId,
+        type,
+        full_name,
+        address_line,
+        postal_code || null,
+        phone || null,
+        city || null,
+        state || null,
+        is_default
+      )
       .run();
+
+    const address = await context.env.DB
+      .prepare(`
+        SELECT
+          id,
+          type,
+          full_name,
+          address_line,
+          postal_code,
+          phone,
+          city,
+          state,
+          is_default,
+          created_at,
+          updated_at
+        FROM addresses
+        WHERE id = ? AND user_id = ?
+      `)
+      .bind(result.meta?.last_row_id, userId)
+      .first();
 
     return Response.json({
       success: true,
-      id: result.meta?.last_row_id || null
+      address
     });
   } catch (error) {
     return Response.json(

@@ -722,21 +722,21 @@
               <div class="account-section is-active" id="panel-dashboard">
                 <h2 class="account-section__title">سلام، <span data-user-full-name>کاربر گرامی</span></h2>
                 <p class="account-section__lead">
-                  از طریق این بخش می‌توانید آخرین وضعیت سفارش‌ها، موجودی کیف پول و میانبرهای سریع حساب کاربری خود را بررسی کنید.
+                  از طریق این بخش می‌توانید آخرین وضعیت سفارش‌ها، کیف پول و میانبرهای سریع حساب کاربری خود را بررسی کنید.
                 </p>
 
                 <div class="stats-grid">
                   <div class="stat-card">
-                    <span>سفارش‌های فعال</span>
-                    <strong>3</strong>
+                    <span>تعداد سفارش‌ها</span>
+                    <strong id="dashboard-orders-count">0</strong>
                   </div>
                   <div class="stat-card">
                     <span>جمع خرید</span>
-                    <strong>42,800,000 تومان</strong>
+                    <strong id="dashboard-total-spent">0 تومان</strong>
                   </div>
                   <div class="stat-card">
                     <span>موجودی کیف پول</span>
-                    <strong>5,650,000 تومان</strong>
+                    <strong>0 تومان</strong>
                   </div>
                 </div>
 
@@ -769,27 +769,9 @@
                         <th>عملیات</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="orders-table-body">
                       <tr>
-                        <td class="table-number">#12051</td>
-                        <td class="table-number">1405/04/16</td>
-                        <td><span class="status-badge status-badge--warning">در حال بررسی</span></td>
-                        <td class="table-number">12,800,000 تومان</td>
-                        <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
-                      </tr>
-                      <tr>
-                        <td class="table-number">#12014</td>
-                        <td class="table-number">1405/04/10</td>
-                        <td><span class="status-badge status-badge--success">تکمیل شده</span></td>
-                        <td class="table-number">18,400,000 تومان</td>
-                        <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
-                      </tr>
-                      <tr>
-                        <td class="table-number">#11972</td>
-                        <td class="table-number">1405/04/02</td>
-                        <td><span class="status-badge status-badge--info">ارسال شده</span></td>
-                        <td class="table-number">11,600,000 تومان</td>
-                        <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
+                        <td colspan="5">در حال دریافت سفارش‌ها...</td>
                       </tr>
                     </tbody>
                   </table>
@@ -802,27 +784,10 @@
                   آدرس‌های پیش‌فرض صورتحساب و ارسال را از این قسمت مدیریت و ویرایش کنید.
                 </p>
 
-                <div class="address-grid">
+                <div class="address-grid" id="addresses-grid">
                   <div class="address-card">
-                    <h4>آدرس صورتحساب</h4>
-                    <p>
-                      <span data-user-full-name>علی رضایی</span><br />
-                      تهران، خیابان ولیعصر، کوچه نمونه، پلاک 10، واحد 4<br />
-                      کد پستی: 1234567890<br />
-                      تلفن: 09123456789
-                    </p>
-                    <a href="#" class="btn btn-secondary">ویرایش آدرس</a>
-                  </div>
-
-                  <div class="address-card">
-                    <h4>آدرس ارسال</h4>
-                    <p>
-                      <span data-user-full-name>علی رضایی</span><br />
-                      تهران، سعادت‌آباد، بلوار دریا، خیابان نمونه، پلاک 22<br />
-                      کد پستی: 0987654321<br />
-                      تلفن: 09123456789
-                    </p>
-                    <a href="#" class="btn btn-secondary">ویرایش آدرس</a>
+                    <h4>در حال دریافت آدرس‌ها...</h4>
+                    <p>لطفاً کمی صبر کنید.</p>
                   </div>
                 </div>
               </div>
@@ -846,15 +811,9 @@
                     <tbody>
                       <tr>
                         <td>کارت بانکی</td>
-                        <td class="table-number">**** **** **** 4582</td>
-                        <td><span class="status-badge status-badge--success">فعال</span></td>
-                        <td>بله</td>
-                      </tr>
-                      <tr>
-                        <td>کیف پول</td>
-                        <td>اعتبار داخلی حساب</td>
-                        <td><span class="status-badge status-badge--info">قابل استفاده</span></td>
-                        <td>خیر</td>
+                        <td class="table-number">در نسخه بعدی</td>
+                        <td><span class="status-badge status-badge--info">آماده توسعه</span></td>
+                        <td>-</td>
                       </tr>
                     </tbody>
                   </table>
@@ -869,7 +828,7 @@
 
                 <div class="wallet-card">
                   <div class="wallet-card__label">کیف پول تک تجارت</div>
-                  <p class="wallet-card__balance">5,650,000 تومان</p>
+                  <p class="wallet-card__balance">0 تومان</p>
                   <p class="wallet-card__hint">
                     از موجودی کیف پول می‌توان برای پرداخت سریع سفارش‌ها، تسویه بخشی از فاکتور و دریافت اعتبار برگشتی استفاده کرد.
                   </p>
@@ -884,19 +843,19 @@
                 <div class="info-grid">
                   <div class="info-card">
                     <span>جمع شارژ این ماه</span>
-                    <strong>9,000,000 تومان</strong>
+                    <strong>0 تومان</strong>
                   </div>
                   <div class="info-card">
                     <span>جمع مصرف این ماه</span>
-                    <strong>3,350,000 تومان</strong>
+                    <strong>0 تومان</strong>
                   </div>
                   <div class="info-card">
                     <span>آخرین شارژ</span>
-                    <strong>2,000,000 تومان</strong>
+                    <strong>-</strong>
                   </div>
                   <div class="info-card">
                     <span>آخرین تراکنش</span>
-                    <strong>پرداخت سفارش #12051</strong>
+                    <strong>-</strong>
                   </div>
                 </div>
               </div>
@@ -920,25 +879,7 @@
                     </thead>
                     <tbody>
                       <tr>
-                        <td class="table-number">1405/04/17</td>
-                        <td>شارژ کیف پول از درگاه</td>
-                        <td>ورودی</td>
-                        <td class="table-number">2,000,000 تومان</td>
-                        <td><span class="status-badge status-badge--success">موفق</span></td>
-                      </tr>
-                      <tr>
-                        <td class="table-number">1405/04/16</td>
-                        <td>پرداخت سفارش #12051</td>
-                        <td>خروجی</td>
-                        <td class="table-number">1,350,000 تومان</td>
-                        <td><span class="status-badge status-badge--success">موفق</span></td>
-                      </tr>
-                      <tr>
-                        <td class="table-number">1405/04/11</td>
-                        <td>اعتبار هدیه خرید</td>
-                        <td>ورودی</td>
-                        <td class="table-number">500,000 تومان</td>
-                        <td><span class="status-badge status-badge--info">ثبت شده</span></td>
+                        <td colspan="5">در نسخه بعدی به داده واقعی متصل می‌شود.</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1047,8 +988,11 @@
     const accountPage = document.getElementById("account-page");
     const accountMessage = document.querySelector("[data-account-message]");
     const resetProfileBtn = document.getElementById("reset-profile-btn");
+    const ordersCountEl = document.getElementById("dashboard-orders-count");
+    const totalSpentEl = document.getElementById("dashboard-total-spent");
 
     let currentUser = null;
+    let currentOrders = [];
 
     const panelMeta = {
       dashboard: {
@@ -1139,6 +1083,181 @@
       setAccountMessage("");
     }
 
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatPrice(value) {
+      const number = Number(value || 0);
+      return `${number.toLocaleString("fa-IR")} تومان`;
+    }
+
+    function formatDate(value) {
+      if (!value) return "-";
+      return escapeHtml(value);
+    }
+
+    function orderStatusClass(status) {
+      const normalized = String(status || "").trim().toLowerCase();
+
+      if (["completed", "paid", "success"].includes(normalized)) {
+        return "status-badge status-badge--success";
+      }
+
+      if (["shipped", "sent", "processing"].includes(normalized)) {
+        return "status-badge status-badge--info";
+      }
+
+      return "status-badge status-badge--warning";
+    }
+
+    function updateDashboardStats(orders) {
+      const safeOrders = Array.isArray(orders) ? orders : [];
+      const count = safeOrders.length;
+      const total = safeOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+
+      if (ordersCountEl) {
+        ordersCountEl.textContent = count.toLocaleString("fa-IR");
+      }
+
+      if (totalSpentEl) {
+        totalSpentEl.textContent = formatPrice(total);
+      }
+    }
+
+    async function loadOrders() {
+      const tbody = document.getElementById("orders-table-body");
+      if (!tbody) return;
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5">در حال دریافت سفارش‌ها...</td>
+        </tr>
+      `;
+
+      try {
+        const response = await fetch("/api/account/orders", {
+          credentials: "same-origin"
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5">خطا در دریافت سفارش‌ها.</td>
+            </tr>
+          `;
+          updateDashboardStats([]);
+          return;
+        }
+
+        const orders = Array.isArray(data.orders) ? data.orders : [];
+        currentOrders = orders;
+        updateDashboardStats(orders);
+
+        if (!orders.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5">هنوز سفارشی ثبت نشده است.</td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = orders.map((order) => `
+          <tr>
+            <td class="table-number">#${escapeHtml(order.order_number || order.id || "-")}</td>
+            <td class="table-number">${formatDate(order.created_at)}</td>
+            <td><span class="${orderStatusClass(order.status)}">${escapeHtml(order.status || "-")}</span></td>
+            <td class="table-number">${formatPrice(order.total_amount)}</td>
+            <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
+          </tr>
+        `).join("");
+      } catch (error) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5">خطا در دریافت سفارش‌ها.</td>
+          </tr>
+        `;
+        updateDashboardStats([]);
+      }
+    }
+
+    function renderAddressCard(address) {
+      const typeLabel = address.type === "billing" ? "آدرس صورتحساب" : "آدرس ارسال";
+      const defaultLabel = Number(address.is_default) === 1 ? " (پیش‌فرض)" : "";
+
+      return `
+        <div class="address-card">
+          <h4>${typeLabel}${defaultLabel}</h4>
+          <p>
+            ${escapeHtml(address.full_name || "")}<br />
+            ${escapeHtml(address.address_line || "")}<br />
+            کد پستی: ${escapeHtml(address.postal_code || "-")}<br />
+            تلفن: ${escapeHtml(address.phone || "-")}<br />
+            شهر: ${escapeHtml(address.city || "-")}<br />
+            استان: ${escapeHtml(address.state || "-")}
+          </p>
+          <a href="#" class="btn btn-secondary">ویرایش آدرس</a>
+        </div>
+      `;
+    }
+
+    async function loadAddresses() {
+      const grid = document.getElementById("addresses-grid");
+      if (!grid) return;
+
+      grid.innerHTML = `
+        <div class="address-card">
+          <h4>در حال دریافت آدرس‌ها...</h4>
+          <p>لطفاً کمی صبر کنید.</p>
+        </div>
+      `;
+
+      try {
+        const response = await fetch("/api/account/addresses", {
+          credentials: "same-origin"
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+          grid.innerHTML = `
+            <div class="address-card">
+              <h4>خطا</h4>
+              <p>دریافت آدرس‌ها با مشکل مواجه شد.</p>
+            </div>
+          `;
+          return;
+        }
+
+        const addresses = Array.isArray(data.addresses) ? data.addresses : [];
+
+        if (!addresses.length) {
+          grid.innerHTML = `
+            <div class="address-card">
+              <h4>آدرسی ثبت نشده است</h4>
+              <p>هنوز هیچ آدرسی برای این حساب ثبت نشده است.</p>
+            </div>
+          `;
+          return;
+        }
+
+        grid.innerHTML = addresses.map(renderAddressCard).join("");
+      } catch (error) {
+        grid.innerHTML = `
+          <div class="address-card">
+            <h4>خطا</h4>
+            <p>دریافت آدرس‌ها با مشکل مواجه شد.</p>
+          </div>
+        `;
+      }
+    }
+
     menuButtons.forEach((button) => {
       button.addEventListener("click", () => {
         const panelName = button.getAttribute("data-panel-target");
@@ -1213,6 +1332,9 @@
 
       fillAccountName(currentUser.full_name || "");
       resetFormFromUser();
+
+      await loadOrders();
+      await loadAddresses();
 
       if (accountLoading) {
         accountLoading.classList.add("account-hidden");

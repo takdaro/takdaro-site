@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -234,6 +234,35 @@
       font-size: 0.92rem;
     }
 
+    .checkout-message {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 16px;
+      line-height: 1.9;
+      font-size: 0.94rem;
+    }
+
+    .checkout-message.is-success {
+      display: block;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #bbf7d0;
+    }
+
+    .checkout-message.is-error {
+      display: block;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .checkout-message.is-info {
+      display: block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
     @media (max-width: 960px) {
       .checkout-page {
         grid-template-columns: 1fr;
@@ -328,11 +357,13 @@
           <section class="checkout-panel" aria-labelledby="customer-title">
             <div class="checkout-panel__head">
               <h3 id="customer-title">اطلاعات خریدار</h3>
-              <p>لطفاً اطلاعات گیرنده را کامل و دقیق وارد کنید تا متن سفارش کامل برای واتساپ ساخته شود.</p>
+              <p>اطلاعات گیرنده را کامل وارد کنید. اگر وارد حساب شده باشید، اطلاعات شما به‌صورت خودکار بارگذاری می‌شود.</p>
             </div>
 
             <div class="checkout-panel__body">
               <form id="checkout-form" class="customer-form" novalidate>
+                <div id="checkout-message" class="checkout-message"></div>
+
                 <div class="form-grid-2">
                   <div class="form-field">
                     <label for="first-name">نام</label>
@@ -380,12 +411,12 @@
                 </div>
 
                 <div class="checkout-actions">
-                  <button type="submit" class="btn btn-primary">ارسال سفارش به واتساپ</button>
+                  <button type="submit" class="btn btn-primary" id="submit-order-btn">ثبت سفارش و ارسال به واتساپ</button>
                   <a href="./products.html" class="btn btn-secondary">بازگشت به محصولات</a>
                 </div>
 
                 <p class="checkout-note">
-                  پس از ثبت، متن کامل سفارش شما شامل اقلام فاکتور و اطلاعات خریدار به‌صورت آماده در واتساپ باز می‌شود.
+                  پس از ثبت، سفارش در سیستم ذخیره می‌شود و متن آماده سفارش نیز در واتساپ باز خواهد شد.
                 </p>
               </form>
             </div>
@@ -404,6 +435,7 @@
   <script src="./price-loader.js"></script>
   <script src="/assets/js/cart.js"></script>
   <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/auth.js"></script>
 
   <script>
     const SHIPPING_FEES = {
@@ -421,6 +453,8 @@
     const checkoutEmpty = document.getElementById("checkout-empty");
     const checkoutContent = document.getElementById("checkout-content");
     const checkoutForm = document.getElementById("checkout-form");
+    const checkoutMessage = document.getElementById("checkout-message");
+    const submitOrderBtn = document.getElementById("submit-order-btn");
 
     const invoiceItemsBody = document.getElementById("invoice-items-body");
     const invoiceDate = document.getElementById("invoice-date");
@@ -432,16 +466,38 @@
     const summaryTotal = document.getElementById("summary-total");
     const provinceSelect = document.getElementById("province");
 
+    let currentUser = null;
+
+    function setCheckoutMessage(message, type = "info") {
+      if (!checkoutMessage) return;
+      checkoutMessage.textContent = message || "";
+      checkoutMessage.className = "checkout-message";
+      if (message) {
+        if (type === "success") checkoutMessage.classList.add("is-success");
+        else if (type === "error") checkoutMessage.classList.add("is-error");
+        else checkoutMessage.classList.add("is-info");
+      }
+    }
+
     function toEnglishDigits(value) {
       const map = {
         "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
         "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9"
       };
-      return String(value).replace(/[۰-۹]/g, (d) => map[d]);
+      return String(value ?? "").replace(/[۰-۹]/g, (d) => map[d]);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function formatNumber(value) {
-      return new Intl.NumberFormat("fa-IR").format(value);
+      return new Intl.NumberFormat("fa-IR").format(Number(value || 0));
     }
 
     function parsePrice(rawPrice) {
@@ -475,6 +531,69 @@
         return window.CartStore.getCartDetailed();
       }
       return [];
+    }
+
+    function clearCart() {
+      if (window.CartStore && typeof window.CartStore.clearCart === "function") {
+        window.CartStore.clearCart();
+        return;
+      }
+      try {
+        localStorage.removeItem("cart");
+      } catch (error) {}
+    }
+
+    function splitFullName(fullName) {
+      const safeName = String(fullName || "").trim();
+      const parts = safeName.split(/\s+/).filter(Boolean);
+      return {
+        firstName: parts[0] || "",
+        lastName: parts.slice(1).join(" ")
+      };
+    }
+
+    function provinceValueFromAddress(address) {
+      const state = String(address?.state || "").trim();
+      if (!state) return "";
+      if (state.includes("تهران")) return "tehran";
+      return "iran-provinces";
+    }
+
+    function buildOrderPayload(items, formData) {
+      const shippingFee = getSelectedShippingFee();
+      let subtotal = 0;
+
+      const normalizedItems = items.map(({ product, qty }) => {
+        const unitPrice = parsePrice(product.price) || 0;
+        const rowTotal = unitPrice * qty;
+        subtotal += rowTotal;
+
+        return {
+          product_id: product.id || null,
+          name: product.name || "",
+          qty,
+          unit_price: unitPrice,
+          row_total: rowTotal
+        };
+      });
+
+      return {
+        address: {
+          type: "shipping",
+          full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+          address_line: formData.address,
+          postal_code: toEnglishDigits(formData.postalCode).replace(/\D/g, ""),
+          phone: toEnglishDigits(formData.phone).replace(/\D/g, ""),
+          city: formData.city,
+          state: formData.province
+        },
+        order: {
+          items: normalizedItems,
+          subtotal_amount: subtotal,
+          shipping_amount: shippingFee,
+          total_amount: subtotal + shippingFee
+        }
+      };
     }
 
     function renderCheckout() {
@@ -519,10 +638,10 @@
           <tr>
             <td>
               <div class="invoice-product">
-                <img class="invoice-product__image" src="${imageSrc}" alt="${product.name || "محصول"}" />
+                <img class="invoice-product__image" src="${imageSrc}" alt="${escapeHtml(product.name || "محصول")}" />
                 <div class="invoice-product__info">
-                  <strong>${product.name || "-"}</strong>
-                  <span>${product.category || "بدون دسته‌بندی"}</span>
+                  <strong>${escapeHtml(product.name || "-")}</strong>
+                  <span>${escapeHtml(product.category || "بدون دسته‌بندی")}</span>
                 </div>
               </div>
             </td>
@@ -542,7 +661,7 @@
 
     function validateForm(data) {
       if (!data.firstName || !data.lastName || !data.province || !data.city || !data.postalCode || !data.phone || !data.address) {
-        alert("لطفاً تمام اطلاعات خریدار را کامل وارد کنید.");
+        setCheckoutMessage("لطفاً تمام اطلاعات خریدار را کامل وارد کنید.", "error");
         return false;
       }
 
@@ -550,24 +669,76 @@
       const postalCode = toEnglishDigits(data.postalCode).replace(/\D/g, "");
 
       if (phone.length < 10) {
-        alert("شماره تماس واردشده معتبر نیست.");
+        setCheckoutMessage("شماره تماس واردشده معتبر نیست.", "error");
         return false;
       }
 
       if (postalCode.length !== 10) {
-        alert("کد پستی باید 10 رقم باشد.");
+        setCheckoutMessage("کد پستی باید 10 رقم باشد.", "error");
         return false;
       }
 
       return true;
     }
 
-    checkoutForm.addEventListener("submit", function (event) {
+    async function tryFillUserData() {
+      if (!window.Auth) return;
+
+      try {
+        const user = await window.Auth.getCurrentUser();
+        if (!user) return;
+        currentUser = user;
+
+        const profileResult = await window.Auth.getProfile();
+        const profileUser = profileResult?.data?.user || user;
+        currentUser = profileUser;
+
+        const nameParts = splitFullName(profileUser.full_name || "");
+        const firstNameInput = document.getElementById("first-name");
+        const lastNameInput = document.getElementById("last-name");
+        const phoneInput = document.getElementById("phone");
+
+        if (firstNameInput && !firstNameInput.value) firstNameInput.value = nameParts.firstName;
+        if (lastNameInput && !lastNameInput.value) lastNameInput.value = nameParts.lastName;
+        if (phoneInput && !phoneInput.value) phoneInput.value = profileUser.phone || "";
+
+        const addressesResponse = await fetch("/api/account/addresses", {
+          credentials: "same-origin"
+        });
+        const addressesData = await addressesResponse.json();
+
+        if (!addressesResponse.ok || !addressesData?.success) return;
+
+        const addresses = Array.isArray(addressesData.addresses) ? addressesData.addresses : [];
+        const shippingAddress = addresses.find((item) => item.type === "shipping" && Number(item.is_default) === 1)
+          || addresses.find((item) => item.type === "shipping")
+          || addresses.find((item) => Number(item.is_default) === 1)
+          || addresses[0];
+
+        if (!shippingAddress) return;
+
+        const provinceInput = document.getElementById("province");
+        const cityInput = document.getElementById("city");
+        const postalCodeInput = document.getElementById("postal-code");
+        const addressInput = document.getElementById("address");
+
+        if (provinceInput && !provinceInput.value) provinceInput.value = provinceValueFromAddress(shippingAddress);
+        if (cityInput && !cityInput.value) cityInput.value = shippingAddress.city || "";
+        if (postalCodeInput && !postalCodeInput.value) postalCodeInput.value = shippingAddress.postal_code || "";
+        if (phoneInput && !phoneInput.value) phoneInput.value = shippingAddress.phone || "";
+        if (addressInput && !addressInput.value) addressInput.value = shippingAddress.address_line || "";
+
+        renderCheckout();
+      } catch (error) {}
+    }
+
+    checkoutForm.addEventListener("submit", async function (event) {
       event.preventDefault();
+      setCheckoutMessage("");
 
       const items = getCartItems();
       if (!items.length) {
-        alert("سبد خرید شما خالی است.");
+        setCheckoutMessage("سبد خرید شما خالی است.", "error");
         return;
       }
 
@@ -585,6 +756,9 @@
       };
 
       if (!validateForm(formData)) return;
+
+      submitOrderBtn.disabled = true;
+      setCheckoutMessage("در حال ثبت سفارش...", "info");
 
       let totalQty = 0;
       let subtotal = 0;
@@ -609,9 +783,33 @@
 
       const grandTotal = hasNumericPrice ? subtotal + shippingFee : null;
 
-      const message =
+      try {
+        const payload = buildOrderPayload(items, formData);
+
+        const response = await fetch("/api/account/create-order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "same-origin",
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+          setCheckoutMessage(data?.error || "ثبت سفارش با مشکل مواجه شد.", "error");
+          submitOrderBtn.disabled = false;
+          return;
+        }
+
+        const orderNumber = data.order?.order_number || "-";
+
+        const message =
 `سلام وقت بخیر
 یک سفارش جدید از سایت تک تجارت ثبت شده است.
+
+شماره سفارش: ${orderNumber}
 
 جزئیات فاکتور:
 ${orderLines}
@@ -630,16 +828,27 @@ ${orderLines}
 کد پستی: ${formData.postalCode}
 شماره تماس: ${formData.phone}`;
 
-      const whatsappUrl = `https://wa.me/989214147070?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        clearCart();
+        renderCheckout();
+        setCheckoutMessage("سفارش با موفقیت ثبت شد. در حال انتقال به واتساپ...", "success");
+
+        const whatsappUrl = `https://wa.me/989214147070?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+      } catch (error) {
+        setCheckoutMessage("ثبت سفارش با خطا مواجه شد.", "error");
+      } finally {
+        submitOrderBtn.disabled = false;
+      }
     });
 
     if (provinceSelect) {
       provinceSelect.addEventListener("change", renderCheckout);
     }
 
-    document.addEventListener("DOMContentLoaded", renderCheckout);
+    document.addEventListener("DOMContentLoaded", async function () {
+      renderCheckout();
+      await tryFillUserData();
+    });
   </script>
 </body>
 </html>
-
