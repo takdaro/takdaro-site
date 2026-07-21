@@ -533,6 +533,29 @@
       line-height: 1.9;
     }
 
+    .account-message {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 16px;
+      margin-bottom: 18px;
+      line-height: 1.9;
+      font-size: 0.94rem;
+    }
+
+    .account-message.is-success {
+      display: block;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #bbf7d0;
+    }
+
+    .account-message.is-error {
+      display: block;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
     .account-hidden {
       display: none !important;
     }
@@ -606,6 +629,8 @@
         <div class="account-loading" id="account-loading">
           در حال بررسی وضعیت ورود و دریافت اطلاعات حساب...
         </div>
+
+        <div class="account-message" id="account-message"></div>
 
         <div class="account-page account-hidden" id="account-page">
           <aside class="account-sidebar" aria-label="منوی حساب کاربری">
@@ -931,6 +956,8 @@
                 </p>
 
                 <form class="form-grid" id="account-details-form">
+                  <div class="account-message" data-account-message></div>
+
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="first-name">نام</label>
@@ -951,7 +978,7 @@
 
                     <div class="form-field">
                       <label for="phone">شماره تماس</label>
-                      <input id="phone" type="tel" value="09123456789" />
+                      <input id="phone" type="tel" data-user-phone />
                     </div>
                   </div>
 
@@ -969,7 +996,7 @@
 
                   <div class="panel-actions">
                     <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
-                    <button type="button" class="btn btn-secondary">انصراف</button>
+                    <button type="button" class="btn btn-secondary" id="reset-profile-btn">انصراف</button>
                   </div>
                 </form>
               </div>
@@ -1018,6 +1045,10 @@
     const accountForm = document.getElementById("account-details-form");
     const accountLoading = document.getElementById("account-loading");
     const accountPage = document.getElementById("account-page");
+    const accountMessage = document.querySelector("[data-account-message]");
+    const resetProfileBtn = document.getElementById("reset-profile-btn");
+
+    let currentUser = null;
 
     const panelMeta = {
       dashboard: {
@@ -1054,6 +1085,15 @@
       }
     };
 
+    function setAccountMessage(message, type = "error") {
+      if (!accountMessage) return;
+      accountMessage.textContent = message || "";
+      accountMessage.className = "account-message";
+      if (message) {
+        accountMessage.classList.add(type === "success" ? "is-success" : "is-error");
+      }
+    }
+
     function openPanel(panelName) {
       menuButtons.forEach((button) => {
         const isTarget = button.getAttribute("data-panel-target") === panelName;
@@ -1083,6 +1123,22 @@
       if (lastNameInput) lastNameInput.value = lastName;
     }
 
+    function resetFormFromUser() {
+      if (!currentUser) return;
+      fillAccountName(currentUser.full_name || "");
+
+      const emailInput = document.getElementById("account-email");
+      const phoneInput = document.getElementById("phone");
+      if (emailInput) emailInput.value = currentUser.email || "";
+      if (phoneInput) phoneInput.value = currentUser.phone || "";
+
+      const passwordInput = document.getElementById("password");
+      const passwordConfirmInput = document.getElementById("password-confirm");
+      if (passwordInput) passwordInput.value = "";
+      if (passwordConfirmInput) passwordConfirmInput.value = "";
+      setAccountMessage("");
+    }
+
     menuButtons.forEach((button) => {
       button.addEventListener("click", () => {
         const panelName = button.getAttribute("data-panel-target");
@@ -1091,8 +1147,49 @@
     });
 
     if (accountForm) {
-      accountForm.addEventListener("submit", (event) => {
+      accountForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        setAccountMessage("");
+
+        if (!window.Auth) return;
+
+        const firstName = document.getElementById("first-name")?.value || "";
+        const lastName = document.getElementById("last-name")?.value || "";
+        const email = document.getElementById("account-email")?.value || "";
+        const phone = document.getElementById("phone")?.value || "";
+        const password = document.getElementById("password")?.value || "";
+        const password_confirm = document.getElementById("password-confirm")?.value || "";
+
+        const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim();
+
+        const result = await window.Auth.updateProfile({
+          full_name,
+          email,
+          phone,
+          password,
+          password_confirm
+        });
+
+        if (!result.ok || !result.data?.success) {
+          setAccountMessage(result.data?.error || "خطا در ذخیره اطلاعات.", "error");
+          return;
+        }
+
+        currentUser = result.data.user;
+        window.Auth.fillUserFields(currentUser, {
+          nameSelector: "[data-user-full-name]",
+          emailSelector: "[data-user-email]",
+          phoneSelector: "[data-user-phone]"
+        });
+
+        setAccountMessage("اطلاعات حساب با موفقیت ذخیره شد.", "success");
+        resetFormFromUser();
+      });
+    }
+
+    if (resetProfileBtn) {
+      resetProfileBtn.addEventListener("click", () => {
+        resetFormFromUser();
       });
     }
 
@@ -1105,12 +1202,17 @@
 
       if (!user) return;
 
-      window.Auth.fillUserFields(user, {
+      const profileResult = await window.Auth.getProfile();
+      currentUser = profileResult.data?.user || user;
+
+      window.Auth.fillUserFields(currentUser, {
         nameSelector: "[data-user-full-name]",
-        emailSelector: "[data-user-email]"
+        emailSelector: "[data-user-email]",
+        phoneSelector: "[data-user-phone]"
       });
 
-      fillAccountName(user.full_name || "");
+      fillAccountName(currentUser.full_name || "");
+      resetFormFromUser();
 
       if (accountLoading) {
         accountLoading.classList.add("account-hidden");
