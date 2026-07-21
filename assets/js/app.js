@@ -1,7 +1,7 @@
 (function () {
   function getProducts() {
     if (typeof window === "undefined") return [];
-    if (!window.PRODUCTS || !Array.isArray(window.PRODUCTS)) return [];
+    if (!Array.isArray(window.PRODUCTS)) return [];
     return window.PRODUCTS;
   }
 
@@ -9,7 +9,7 @@
     const imageSrc =
       Array.isArray(product.images) && product.images.length
         ? `./${product.images[0]}`
-        : "/assets/images/placeholder.png";
+        : "./assets/images/placeholder.png";
 
     const pageUrl = product.pageUrl ? `./${product.pageUrl}` : "#";
     const title = product.name || "بدون نام";
@@ -54,15 +54,9 @@
 
   function renderProducts() {
     const grid = document.getElementById("products-grid");
-    console.log("grid =>", grid);
-
-    if (!grid) {
-      console.error("products-grid not found");
-      return;
-    }
+    if (!grid) return;
 
     const products = getProducts();
-    console.log("products =>", products);
 
     if (!products.length) {
       grid.innerHTML = `
@@ -74,11 +68,7 @@
       return;
     }
 
-    const markup = products.map(createProductCard).join("");
-    console.log("markup length =>", markup.length);
-
-    grid.innerHTML = markup;
-    console.log("render completed");
+    grid.innerHTML = products.map(createProductCard).join("");
   }
 
   if (document.readyState === "loading") {
@@ -87,4 +77,3 @@
     renderProducts();
   }
 })();
-
