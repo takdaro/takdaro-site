@@ -1,11 +1,10 @@
 ﻿CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   full_name TEXT NOT NULL,
-  mobile TEXT NOT NULL UNIQUE,
-  email TEXT UNIQUE,
+  email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  phone TEXT
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -15,6 +14,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_mobile ON users(mobile);
+CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);

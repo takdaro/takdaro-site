@@ -27,3 +27,9 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id);
+CREATE INDEX IF NOT EXISTS idx_addresses_type ON addresses(type);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
