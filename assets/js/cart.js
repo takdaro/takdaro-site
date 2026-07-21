@@ -10,6 +10,17 @@
     return "./";
   }
 
+  function getProductPriceLabel(product) {
+    if (!product) return "";
+    return (
+      product.priceLabel ||
+      product.displayPrice ||
+      product.salePrice ||
+      product.price ||
+      ""
+    );
+  }
+
   function normalizeCartItems(items) {
     if (!Array.isArray(items)) return [];
 
@@ -22,7 +33,9 @@
           qty: Math.max(1, Number(item.qty || item.quantity || 1)),
           name: item.name || "",
           category: item.category || "",
-          image: item.image || ""
+          image: item.image || "",
+          priceLabel: item.priceLabel || "",
+          inStock: item.inStock !== false
         };
       })
       .filter(Boolean);
@@ -80,7 +93,9 @@
       qty: Math.max(1, Number(qty || 1)),
       name: product?.name || "",
       category: product?.category || "",
-      image
+      image,
+      priceLabel: getProductPriceLabel(product),
+      inStock: product?.inStock !== false
     };
   }
 
@@ -100,11 +115,13 @@
               ? product.images
               : item.image
               ? [item.image]
-              : []
+              : [],
+            priceLabel: getProductPriceLabel(product) || item.priceLabel || "",
+            inStock: product?.inStock ?? item.inStock ?? true
           }
         };
       })
-      .filter((item) => item.qty > 0);
+      .filter((item) => item.qty > 0 && item.product.inStock !== false);
   }
 
   function getCartCount() {
@@ -150,6 +167,7 @@
           ? product.images[0]
           : "";
       const imageSrc = image ? `${base}${image}` : "";
+      const priceLabel = product.priceLabel || "";
 
       const article = document.createElement("article");
       article.className = "mini-cart-item";
@@ -160,6 +178,7 @@
         <div class="mini-cart-item__body">
           <h4>${product.name || ""}</h4>
           <p>${product.category || ""}</p>
+          ${priceLabel ? `<div class="mini-cart-item__price">${priceLabel}</div>` : ""}
           <div class="mini-cart-item__controls">
             <button type="button" data-cart-action="increase" data-slug="${slug}" aria-label="افزایش تعداد">+</button>
             <span>${qty}</span>
@@ -185,6 +204,7 @@
   function addToCart(slug, qty) {
     const product = findProduct(slug);
     if (!product) return;
+    if (product.inStock === false) return;
 
     const quantity = Math.max(1, parseInt(qty, 10) || 1);
     const cart = readCart();
@@ -196,6 +216,8 @@
       existing.category = product.category || existing.category || "";
       existing.image =
         (Array.isArray(product.images) && product.images[0]) || existing.image || "";
+      existing.priceLabel = getProductPriceLabel(product) || existing.priceLabel || "";
+      existing.inStock = product.inStock !== false;
     } else {
       cart.push(buildCartItemFromProduct(slug, quantity, product));
     }
@@ -299,6 +321,10 @@
         const qtyTarget = addButton.getAttribute("data-qty-target");
         let qty = 1;
 
+        if (addButton.disabled || addButton.getAttribute("aria-disabled") === "true") {
+          return;
+        }
+
         if (qtyTarget) {
           const input = document.querySelector(qtyTarget);
           if (input) qty = parseInt(input.value, 10) || 1;
@@ -312,6 +338,32 @@
     });
   }
 
+  function syncAddToCartButtons() {
+    const buttons = document.querySelectorAll("[data-add-to-cart]");
+
+    buttons.forEach((button) => {
+      const slug = button.getAttribute("data-add-to-cart");
+      const product = findProduct(slug);
+
+      if (!product) return;
+
+      if (product.inStock === false) {
+        button.disabled = true;
+        button.setAttribute("aria-disabled", "true");
+        if (!button.dataset.originalText) {
+          button.dataset.originalText = button.textContent.trim();
+        }
+        button.textContent = "ناموجود";
+      } else {
+        button.disabled = false;
+        button.removeAttribute("aria-disabled");
+        if (button.dataset.originalText) {
+          button.textContent = button.dataset.originalText;
+        }
+      }
+    });
+  }
+
   function setupMiniCartToggle() {
     if (cartToggleBound) return;
     cartToggleBound = true;
@@ -320,6 +372,7 @@
   function initCartUi() {
     migrateLegacyCart();
     syncCartUi();
+    syncAddToCartButtons();
     setupMiniCartEvents();
     setupMiniCartToggle();
   }

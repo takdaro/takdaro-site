@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>حساب کاربری | تک تجارت</title>
   <meta name="description" content="حساب کاربری کاربران تک تجارت" />
-  <link rel="stylesheet" href="/assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
   <style>
     .account-page {
       display: grid;
@@ -262,6 +262,8 @@
       background: rgba(255, 255, 255, 0.08);
       font-size: 0.85rem;
       font-weight: 700;
+      position: relative;
+      z-index: 1;
     }
 
     .wallet-card__balance {
@@ -270,6 +272,8 @@
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.02em;
+      position: relative;
+      z-index: 1;
     }
 
     .wallet-card__hint {
@@ -278,12 +282,16 @@
       line-height: 1.9;
       font-size: 0.92rem;
       max-width: 48ch;
+      position: relative;
+      z-index: 1;
     }
 
     .wallet-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
+      position: relative;
+      z-index: 1;
     }
 
     .wallet-btn {
@@ -437,8 +445,33 @@
       font-size: 0.92rem;
     }
 
+    .address-card__meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .address-card__meta.is-default {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .address-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
     .address-card .btn,
-    .panel-actions .btn {
+    .panel-actions .btn,
+    .address-actions .btn {
       min-height: 44px;
     }
 
@@ -598,13 +631,15 @@
       }
 
       .wallet-actions,
-      .panel-actions {
+      .panel-actions,
+      .address-actions {
         flex-direction: column;
       }
 
       .wallet-btn,
       .panel-actions .btn,
-      .address-card .btn {
+      .address-card .btn,
+      .address-actions .btn {
         width: 100%;
       }
     }
@@ -617,9 +652,9 @@
     <section class="hero hero-compact">
       <div class="container">
         <div class="hero-content">
-          <span class="hero-badge">ناحیه کاربری</span>
-          <h1>حساب کاربری شما</h1>
-          <p>مدیریت سفارش‌ها، آدرس‌ها، اطلاعات حساب و کیف پول از یک پنل یکپارچه و ساده.</p>
+          <span class="hero-badge">حساب کاربری</span>
+          <h1>مدیریت حساب کاربری</h1>
+          <p>از این بخش می‌توانی سفارش‌ها، آدرس‌ها، اطلاعات حساب و وضعیت کیف پول را مدیریت کنی.</p>
         </div>
       </div>
     </section>
@@ -627,19 +662,17 @@
     <section class="section">
       <div class="container">
         <div class="account-loading" id="account-loading">
-          در حال بررسی وضعیت ورود و دریافت اطلاعات حساب...
+          در حال بارگذاری اطلاعات حساب کاربری...
         </div>
-
-        <div class="account-message" id="account-message"></div>
 
         <div class="account-page account-hidden" id="account-page">
           <aside class="account-sidebar" aria-label="منوی حساب کاربری">
             <div class="account-sidebar__head">
-              <h3>منوی حساب کاربری</h3>
-              <p>بخش مورد نظر را انتخاب کنید تا اطلاعات آن در همین صفحه نمایش داده شود.</p>
+              <h3>ناحیه کاربری</h3>
+              <p>به حساب کاربری خودت خوش آمدی.</p>
               <div class="account-user-chip">
                 <span>کاربر:</span>
-                <strong data-user-full-name>...</strong>
+                <strong data-user-full-name>—</strong>
               </div>
             </div>
 
@@ -672,7 +705,7 @@
                 <button class="account-menu__btn" type="button" data-panel-target="payments">
                   <span class="account-menu__label">
                     <span class="account-menu__icon">💳</span>
-                    <span>روش‌های پرداخت</span>
+                    <span>پرداخت‌ها</span>
                   </span>
                   <span>›</span>
                 </button>
@@ -688,7 +721,7 @@
                 <button class="account-menu__btn" type="button" data-panel-target="wallet-history">
                   <span class="account-menu__label">
                     <span class="account-menu__icon">🧾</span>
-                    <span>تراکنش‌های کیف پول</span>
+                    <span>تاریخچه کیف پول</span>
                   </span>
                   <span>›</span>
                 </button>
@@ -703,7 +736,7 @@
 
                 <button class="account-menu__btn is-danger" type="button" data-panel-target="logout">
                   <span class="account-menu__label">
-                    <span class="account-menu__icon">↩</span>
+                    <span class="account-menu__icon">🚪</span>
                     <span>خروج</span>
                   </span>
                   <span>›</span>
@@ -715,15 +748,13 @@
           <section class="account-panel">
             <div class="account-panel__head">
               <h3 id="panel-heading">داشبورد</h3>
-              <p id="panel-description">در این بخش می‌توانید خلاصه‌ای از وضعیت سفارش‌ها، کیف پول و اطلاعات حساب خود را مشاهده کنید.</p>
+              <p id="panel-description">نمای کلی حساب کاربری و وضعیت فعالیت‌هایت را اینجا می‌بینی.</p>
             </div>
 
             <div class="account-panel__body">
               <div class="account-section is-active" id="panel-dashboard">
-                <h2 class="account-section__title">سلام، <span data-user-full-name>کاربر گرامی</span></h2>
-                <p class="account-section__lead">
-                  از طریق این بخش می‌توانید آخرین وضعیت سفارش‌ها، کیف پول و میانبرهای سریع حساب کاربری خود را بررسی کنید.
-                </p>
+                <h2 class="account-section__title">سلام <span data-user-full-name>کاربر</span></h2>
+                <p class="account-section__lead">از این بخش می‌توانی به بخش‌های مختلف حساب کاربری دسترسی داشته باشی.</p>
 
                 <div class="stats-grid">
                   <div class="stat-card">
@@ -731,32 +762,30 @@
                     <strong id="dashboard-orders-count">0</strong>
                   </div>
                   <div class="stat-card">
-                    <span>جمع خرید</span>
+                    <span>مجموع خرید</span>
                     <strong id="dashboard-total-spent">0 تومان</strong>
                   </div>
                   <div class="stat-card">
-                    <span>موجودی کیف پول</span>
-                    <strong>0 تومان</strong>
+                    <span>آدرس‌های ثبت شده</span>
+                    <strong id="dashboard-addresses-count">0</strong>
                   </div>
                 </div>
 
                 <div class="quick-grid">
                   <div class="quick-card">
-                    <h4>پیگیری سفارش</h4>
-                    <p>وضعیت آخرین سفارش‌های ثبت‌شده، مبلغ و مرحله پردازش را از بخش سفارش‌ها مشاهده کنید.</p>
+                    <h4>سفارش‌های اخیر</h4>
+                    <p>وضعیت سفارش‌های ثبت‌شده‌ات از همین صفحه قابل مشاهده است.</p>
                   </div>
                   <div class="quick-card">
-                    <h4>مدیریت کیف پول</h4>
-                    <p>موجودی کیف پول، تراکنش‌های مالی و قابلیت شارژ اعتبار حساب از این بخش در دسترس است.</p>
+                    <h4>آدرس‌های ارسال</h4>
+                    <p>می‌توانی آدرس جدید اضافه کنی، ویرایش کنی یا یکی را پیش‌فرض قرار بدهی.</p>
                   </div>
                 </div>
               </div>
 
               <div class="account-section" id="panel-orders">
                 <h2 class="account-section__title">سفارش‌های من</h2>
-                <p class="account-section__lead">
-                  فهرست سفارش‌های ثبت‌شده، مبلغ کل، تاریخ و وضعیت هر سفارش در این بخش قابل مشاهده است.
-                </p>
+                <p class="account-section__lead">لیست سفارش‌های ثبت‌شده و وضعیت هر سفارش در این بخش نمایش داده می‌شود.</p>
 
                 <div class="table-wrap">
                   <table class="account-table">
@@ -766,12 +795,12 @@
                         <th>تاریخ</th>
                         <th>وضعیت</th>
                         <th>مبلغ</th>
-                        <th>عملیات</th>
+                        <th>جزئیات</th>
                       </tr>
                     </thead>
                     <tbody id="orders-table-body">
                       <tr>
-                        <td colspan="5">در حال دریافت سفارش‌ها...</td>
+                        <td colspan="5">در حال بارگذاری سفارش‌ها...</td>
                       </tr>
                     </tbody>
                   </table>
@@ -780,40 +809,100 @@
 
               <div class="account-section" id="panel-addresses">
                 <h2 class="account-section__title">آدرس‌های من</h2>
-                <p class="account-section__lead">
-                  آدرس‌های پیش‌فرض صورتحساب و ارسال را از این قسمت مدیریت و ویرایش کنید.
-                </p>
+                <p class="account-section__lead">آدرس‌های ارسال و صورتحساب خودت را اینجا مدیریت کن.</p>
+
+                <div class="account-message" id="address-message"></div>
+
+                <div class="panel-actions" style="margin-top: 0; margin-bottom: 16px;">
+                  <button type="button" class="btn btn-primary" id="add-address-btn">افزودن آدرس جدید</button>
+                </div>
+
+                <form class="form-grid account-hidden" id="address-form" novalidate>
+                  <input type="hidden" id="address-id" />
+
+                  <div class="form-grid-2">
+                    <div class="form-field">
+                      <label for="address-full-name">نام تحویل‌گیرنده</label>
+                      <input id="address-full-name" type="text" required />
+                    </div>
+
+                    <div class="form-field">
+                      <label for="address-phone">شماره تماس</label>
+                      <input id="address-phone" type="tel" required />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="form-field">
+                      <label for="address-type">نوع آدرس</label>
+                      <select id="address-type" required>
+                        <option value="shipping">ارسال</option>
+                        <option value="billing">صورتحساب</option>
+                      </select>
+                    </div>
+
+                    <div class="form-field">
+                      <label for="address-postal-code">کد پستی</label>
+                      <input id="address-postal-code" type="text" inputmode="numeric" required />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="form-field">
+                      <label for="address-state">استان</label>
+                      <input id="address-state" type="text" required />
+                    </div>
+
+                    <div class="form-field">
+                      <label for="address-city">شهر</label>
+                      <input id="address-city" type="text" required />
+                    </div>
+                  </div>
+
+                  <div class="form-field">
+                    <label for="address-line">نشانی کامل</label>
+                    <textarea id="address-line" rows="4" required></textarea>
+                  </div>
+
+                  <div class="form-field" style="flex-direction: row; align-items: center; gap: 10px;">
+                    <input id="address-is-default" type="checkbox" style="width: auto;" />
+                    <label for="address-is-default" style="margin: 0;">این آدرس به‌عنوان پیش‌فرض ثبت شود</label>
+                  </div>
+
+                  <div class="panel-actions">
+                    <button type="submit" class="btn btn-primary" id="save-address-btn">ذخیره آدرس</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-address-btn">انصراف</button>
+                  </div>
+                </form>
 
                 <div class="address-grid" id="addresses-grid">
                   <div class="address-card">
-                    <h4>در حال دریافت آدرس‌ها...</h4>
-                    <p>لطفاً کمی صبر کنید.</p>
+                    <h4>در حال بارگذاری...</h4>
+                    <p>اطلاعات آدرس‌ها در حال دریافت است.</p>
                   </div>
                 </div>
               </div>
 
               <div class="account-section" id="panel-payments">
-                <h2 class="account-section__title">روش‌های پرداخت</h2>
-                <p class="account-section__lead">
-                  کارت‌های ثبت‌شده یا روش‌های پرداخت مورد استفاده حساب کاربری در این قسمت قرار می‌گیرند.
-                </p>
+                <h2 class="account-section__title">پرداخت‌ها</h2>
+                <p class="account-section__lead">سوابق پرداخت‌های انجام‌شده برای سفارش‌های تو در این بخش قرار می‌گیرد.</p>
 
                 <div class="table-wrap">
                   <table class="account-table">
                     <thead>
                       <tr>
-                        <th>نوع</th>
-                        <th>عنوان</th>
+                        <th>شماره تراکنش</th>
+                        <th>تاریخ</th>
+                        <th>مبلغ</th>
                         <th>وضعیت</th>
-                        <th>پیش‌فرض</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
-                        <td>کارت بانکی</td>
-                        <td class="table-number">در نسخه بعدی</td>
-                        <td><span class="status-badge status-badge--info">آماده توسعه</span></td>
                         <td>-</td>
+                        <td>-</td>
+                        <td class="table-number">0</td>
+                        <td><span class="status-badge status-badge--info">هنوز داده‌ای ثبت نشده</span></td>
                       </tr>
                     </tbody>
                   </table>
@@ -821,32 +910,28 @@
               </div>
 
               <div class="account-section" id="panel-wallet">
-                <h2 class="account-section__title">کیف پول من</h2>
-                <p class="account-section__lead">
-                  موجودی فعلی کیف پول، امکان شارژ حساب و دسترسی سریع به تاریخچه تراکنش‌ها در این بخش قرار دارد.
-                </p>
+                <h2 class="account-section__title">کیف پول</h2>
+                <p class="account-section__lead">موجودی کیف پول و راه‌های استفاده از آن را اینجا مشاهده می‌کنی.</p>
 
                 <div class="wallet-card">
-                  <div class="wallet-card__label">کیف پول تک تجارت</div>
+                  <div class="wallet-card__label">کیف پول مشتری</div>
                   <p class="wallet-card__balance">0 تومان</p>
-                  <p class="wallet-card__hint">
-                    از موجودی کیف پول می‌توان برای پرداخت سریع سفارش‌ها، تسویه بخشی از فاکتور و دریافت اعتبار برگشتی استفاده کرد.
-                  </p>
+                  <p class="wallet-card__hint">در نسخه بعدی می‌توانیم شارژ کیف پول، کسر موجودی و اتصال آن به سفارش‌ها را واقعی کنیم.</p>
 
                   <div class="wallet-actions">
-                    <button type="button" class="wallet-btn wallet-btn--light">شارژ کیف پول</button>
+                    <button type="button" class="wallet-btn wallet-btn--light">افزایش موجودی</button>
                     <button type="button" class="wallet-btn">انتقال اعتبار</button>
-                    <button type="button" class="wallet-btn">درخواست برداشت</button>
+                    <button type="button" class="wallet-btn">جزئیات بیشتر</button>
                   </div>
                 </div>
 
                 <div class="info-grid">
                   <div class="info-card">
-                    <span>جمع شارژ این ماه</span>
+                    <span>موجودی فعلی</span>
                     <strong>0 تومان</strong>
                   </div>
                   <div class="info-card">
-                    <span>جمع مصرف این ماه</span>
+                    <span>اعتبار در انتظار</span>
                     <strong>0 تومان</strong>
                   </div>
                   <div class="info-card">
@@ -854,47 +939,43 @@
                     <strong>-</strong>
                   </div>
                   <div class="info-card">
-                    <span>آخرین تراکنش</span>
+                    <span>آخرین برداشت</span>
                     <strong>-</strong>
                   </div>
                 </div>
               </div>
 
               <div class="account-section" id="panel-wallet-history">
-                <h2 class="account-section__title">تراکنش‌های کیف پول</h2>
-                <p class="account-section__lead">
-                  ورود و خروج‌های کیف پول، تاریخ انجام، مبلغ و وضعیت هر تراکنش در این بخش ثبت می‌شود.
-                </p>
+                <h2 class="account-section__title">تاریخچه کیف پول</h2>
+                <p class="account-section__lead">ریز عملیات کیف پول در این قسمت قرار می‌گیرد.</p>
 
                 <div class="table-wrap">
                   <table class="account-table">
                     <thead>
                       <tr>
                         <th>تاریخ</th>
+                        <th>نوع عملیات</th>
                         <th>شرح</th>
-                        <th>نوع</th>
                         <th>مبلغ</th>
-                        <th>وضعیت</th>
+                        <th>مانده</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
-                        <td colspan="5">در نسخه بعدی به داده واقعی متصل می‌شود.</td>
+                        <td colspan="5">هنوز تراکنشی برای کیف پول ثبت نشده است.</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
 
                 <div class="wallet-empty">
-                  در نسخه بعدی می‌توانیم این جدول را به داده‌های واقعی کاربر، سفارش‌ها و کیف پول متصل کنیم.
+                  این بخش فعلاً نمایشی است و در مرحله بعد می‌توانیم آن را به داده واقعی دیتابیس وصل کنیم.
                 </div>
               </div>
 
               <div class="account-section" id="panel-account-details">
                 <h2 class="account-section__title">جزئیات حساب</h2>
-                <p class="account-section__lead">
-                  اطلاعات شخصی، ایمیل، شماره تماس و رمز عبور حساب را از این قسمت به‌روزرسانی کنید.
-                </p>
+                <p class="account-section__lead">اطلاعات حساب کاربری و مشخصات تماس خودت را در این بخش ویرایش کن.</p>
 
                 <form class="form-grid" id="account-details-form">
                   <div class="account-message" data-account-message></div>
@@ -926,7 +1007,7 @@
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="password">رمز عبور جدید</label>
-                      <input id="password" type="password" placeholder="رمز عبور جدید" />
+                      <input id="password" type="password" placeholder="در صورت نیاز وارد کنید" />
                     </div>
 
                     <div class="form-field">
@@ -937,25 +1018,21 @@
 
                   <div class="panel-actions">
                     <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
-                    <button type="button" class="btn btn-secondary" id="reset-profile-btn">انصراف</button>
+                    <button type="button" class="btn btn-secondary" id="reset-profile-btn">بازنشانی فرم</button>
                   </div>
                 </form>
               </div>
 
               <div class="account-section" id="panel-logout">
                 <h2 class="account-section__title">خروج از حساب</h2>
-                <p class="account-section__lead">
-                  در صورت نیاز می‌توانید از حساب کاربری خارج شوید و در مراجعه بعدی دوباره وارد شوید.
-                </p>
+                <p class="account-section__lead">برای پایان دادن به نشست فعلی، از دکمه زیر استفاده کن.</p>
 
                 <div class="logout-box">
-                  <h4>آیا برای خروج مطمئن هستید؟</h4>
-                  <p>
-                    با خروج از حساب، دسترسی شما به سفارش‌ها، کیف پول و اطلاعات شخصی تا زمان ورود مجدد محدود می‌شود.
-                  </p>
+                  <h4>خروج امن</h4>
+                  <p>با خروج از حساب، نشست فعلی تو بسته می‌شود و برای ورود دوباره باید مشخصاتت را وارد کنی.</p>
 
                   <div class="panel-actions">
-                    <button type="button" class="btn btn-primary" data-auth-logout>تأیید خروج</button>
+                    <button type="button" class="btn btn-primary" data-auth-logout>خروج از حساب</button>
                     <button type="button" class="btn btn-secondary" data-panel-target="dashboard">بازگشت به داشبورد</button>
                   </div>
                 </div>
@@ -970,13 +1047,13 @@
   <div id="site-footer"></div>
   <div id="site-cart"></div>
 
-  <script src="/assets/js/layout.js"></script>
-  <script src="/assets/js/products.js"></script>
+  <script src="assets/js/layout.js"></script>
+  <script src="assets/js/products.js"></script>
   <script src="./price-overrides.js"></script>
   <script src="./price-loader.js"></script>
-  <script src="/assets/js/cart.js"></script>
-  <script src="/assets/js/app.js"></script>
-  <script src="/assets/js/auth.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth.js"></script>
 
   <script>
     const menuButtons = document.querySelectorAll("[data-panel-target]");
@@ -990,51 +1067,69 @@
     const resetProfileBtn = document.getElementById("reset-profile-btn");
     const ordersCountEl = document.getElementById("dashboard-orders-count");
     const totalSpentEl = document.getElementById("dashboard-total-spent");
+    const addressesCountEl = document.getElementById("dashboard-addresses-count");
+
+    const addressForm = document.getElementById("address-form");
+    const addressMessage = document.getElementById("address-message");
+    const addAddressBtn = document.getElementById("add-address-btn");
+    const cancelAddressBtn = document.getElementById("cancel-address-btn");
+    const saveAddressBtn = document.getElementById("save-address-btn");
+    const addressesGrid = document.getElementById("addresses-grid");
 
     let currentUser = null;
     let currentOrders = [];
+    let currentAddresses = [];
 
     const panelMeta = {
       dashboard: {
         title: "داشبورد",
-        description: "در این بخش می‌توانید خلاصه‌ای از وضعیت سفارش‌ها، کیف پول و اطلاعات حساب خود را مشاهده کنید."
+        description: "نمای کلی حساب کاربری و وضعیت فعالیت‌هایت را اینجا می‌بینی."
       },
       orders: {
         title: "سفارش‌ها",
-        description: "لیست کامل سفارش‌های ثبت‌شده، مبالغ و وضعیت هر سفارش در این بخش قرار دارد."
+        description: "مشاهده وضعیت و جزئیات سفارش‌های ثبت شده."
       },
       addresses: {
         title: "آدرس‌ها",
-        description: "آدرس‌های پیش‌فرض صورتحساب و ارسال خود را در این قسمت مدیریت کنید."
+        description: "مدیریت آدرس‌های ارسال و صورتحساب."
       },
       payments: {
-        title: "روش‌های پرداخت",
-        description: "روش‌های پرداخت ذخیره‌شده و گزینه‌های تسویه سفارش را از این بخش ببینید."
+        title: "پرداخت‌ها",
+        description: "لیست پرداخت‌ها و تراکنش‌های انجام شده."
       },
       wallet: {
         title: "کیف پول",
-        description: "موجودی، شارژ حساب و عملیات مربوط به اعتبار داخلی کاربر در این بخش قرار دارد."
+        description: "وضعیت موجودی و امکانات کیف پول کاربری."
       },
       "wallet-history": {
-        title: "تراکنش‌های کیف پول",
-        description: "سوابق ورود و خروج اعتبار کیف پول به‌صورت کامل در این قسمت نمایش داده می‌شود."
+        title: "تاریخچه کیف پول",
+        description: "ریز عملیات و تغییرات موجودی کیف پول."
       },
       "account-details": {
         title: "جزئیات حساب",
-        description: "اطلاعات شخصی، شماره تماس، ایمیل و رمز عبور خود را از این قسمت ویرایش کنید."
+        description: "ویرایش اطلاعات حساب، ایمیل، شماره تماس و رمز عبور."
       },
       logout: {
         title: "خروج",
-        description: "در صورت نیاز می‌توانید به‌صورت ایمن از حساب کاربری خود خارج شوید."
+        description: "پایان نشست فعلی و خروج امن از حساب."
       }
     };
 
     function setAccountMessage(message, type = "error") {
       if (!accountMessage) return;
-      accountMessage.textContent = message || "";
+      accountMessage.textContent = message;
       accountMessage.className = "account-message";
       if (message) {
         accountMessage.classList.add(type === "success" ? "is-success" : "is-error");
+      }
+    }
+
+    function setAddressMessage(message, type = "error") {
+      if (!addressMessage) return;
+      addressMessage.textContent = message;
+      addressMessage.className = "account-message";
+      if (message) {
+        addressMessage.classList.add(type === "success" ? "is-success" : "is-error");
       }
     }
 
@@ -1056,7 +1151,7 @@
 
     function fillAccountName(fullName) {
       const safeName = String(fullName || "").trim();
-      const parts = safeName.split(/\s+/).filter(Boolean);
+      const parts = safeName.split(" ").filter(Boolean);
       const firstName = parts[0] || "";
       const lastName = parts.slice(1).join(" ");
 
@@ -1069,17 +1164,19 @@
 
     function resetFormFromUser() {
       if (!currentUser) return;
-      fillAccountName(currentUser.full_name || "");
-
+      fillAccountName(currentUser.fullname || "");
       const emailInput = document.getElementById("account-email");
       const phoneInput = document.getElementById("phone");
+
       if (emailInput) emailInput.value = currentUser.email || "";
       if (phoneInput) phoneInput.value = currentUser.phone || "";
 
       const passwordInput = document.getElementById("password");
       const passwordConfirmInput = document.getElementById("password-confirm");
+
       if (passwordInput) passwordInput.value = "";
       if (passwordConfirmInput) passwordConfirmInput.value = "";
+
       setAccountMessage("");
     }
 
@@ -1090,6 +1187,20 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    function toEnglishDigits(value) {
+      const map = {
+        "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
+        "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9",
+        "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+        "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9"
+      };
+
+      return String(value ?? "")
+        .split("")
+        .map((char) => map[char] ?? char)
+        .join("");
     }
 
     function formatPrice(value) {
@@ -1104,74 +1215,57 @@
 
     function orderStatusClass(status) {
       const normalized = String(status || "").trim().toLowerCase();
-
       if (["completed", "paid", "success"].includes(normalized)) {
         return "status-badge status-badge--success";
       }
-
       if (["shipped", "sent", "processing"].includes(normalized)) {
         return "status-badge status-badge--info";
       }
-
       return "status-badge status-badge--warning";
     }
 
-    function updateDashboardStats(orders) {
+    function updateDashboardStats(orders, addresses) {
       const safeOrders = Array.isArray(orders) ? orders : [];
+      const safeAddresses = Array.isArray(addresses) ? addresses : [];
       const count = safeOrders.length;
       const total = safeOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
 
-      if (ordersCountEl) {
-        ordersCountEl.textContent = count.toLocaleString("fa-IR");
-      }
-
-      if (totalSpentEl) {
-        totalSpentEl.textContent = formatPrice(total);
-      }
+      if (ordersCountEl) ordersCountEl.textContent = count.toLocaleString("fa-IR");
+      if (totalSpentEl) totalSpentEl.textContent = formatPrice(total);
+      if (addressesCountEl) addressesCountEl.textContent = safeAddresses.length.toLocaleString("fa-IR");
     }
 
     async function loadOrders() {
       const tbody = document.getElementById("orders-table-body");
       if (!tbody) return;
 
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5">در حال دریافت سفارش‌ها...</td>
-        </tr>
-      `;
+      tbody.innerHTML = '<tr><td colspan="5">در حال بارگذاری سفارش‌ها...</td></tr>';
 
       try {
         const response = await fetch("/api/account/orders", {
           credentials: "same-origin"
         });
+
         const data = await response.json();
 
         if (!response.ok || !data?.success) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5">خطا در دریافت سفارش‌ها.</td>
-            </tr>
-          `;
-          updateDashboardStats([]);
+          tbody.innerHTML = '<tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>';
+          updateDashboardStats([], currentAddresses);
           return;
         }
 
         const orders = Array.isArray(data.orders) ? data.orders : [];
         currentOrders = orders;
-        updateDashboardStats(orders);
+        updateDashboardStats(orders, currentAddresses);
 
         if (!orders.length) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5">هنوز سفارشی ثبت نشده است.</td>
-            </tr>
-          `;
+          tbody.innerHTML = '<tr><td colspan="5">هنوز سفارشی ثبت نشده است.</td></tr>';
           return;
         }
 
         tbody.innerHTML = orders.map((order) => `
           <tr>
-            <td class="table-number">#${escapeHtml(order.order_number || order.id || "-")}</td>
+            <td class="table-number">${escapeHtml(order.order_number || order.id || "-")}</td>
             <td class="table-number">${formatDate(order.created_at)}</td>
             <td><span class="${orderStatusClass(order.status)}">${escapeHtml(order.status || "-")}</span></td>
             <td class="table-number">${formatPrice(order.total_amount)}</td>
@@ -1179,43 +1273,116 @@
           </tr>
         `).join("");
       } catch (error) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5">خطا در دریافت سفارش‌ها.</td>
-          </tr>
-        `;
-        updateDashboardStats([]);
+        tbody.innerHTML = '<tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>';
+        updateDashboardStats([], currentAddresses);
       }
+    }
+
+    function resetAddressForm() {
+      document.getElementById("address-id").value = "";
+      document.getElementById("address-full-name").value = currentUser?.fullname || "";
+      document.getElementById("address-phone").value = currentUser?.phone || "";
+      document.getElementById("address-type").value = "shipping";
+      document.getElementById("address-postal-code").value = "";
+      document.getElementById("address-state").value = "";
+      document.getElementById("address-city").value = "";
+      document.getElementById("address-line").value = "";
+      document.getElementById("address-is-default").checked = false;
+      setAddressMessage("");
+    }
+
+    function openAddressForm(address = null) {
+      if (!addressForm) return;
+      addressForm.classList.remove("account-hidden");
+
+      if (!address) {
+        resetAddressForm();
+        return;
+      }
+
+      document.getElementById("address-id").value = address.id || "";
+      document.getElementById("address-full-name").value = address.full_name || "";
+      document.getElementById("address-phone").value = address.phone || "";
+      document.getElementById("address-type").value = address.type || "shipping";
+      document.getElementById("address-postal-code").value = address.postal_code || "";
+      document.getElementById("address-state").value = address.state || "";
+      document.getElementById("address-city").value = address.city || "";
+      document.getElementById("address-line").value = address.address_line || "";
+      document.getElementById("address-is-default").checked = Number(address.is_default) === 1;
+      setAddressMessage("");
+    }
+
+    function closeAddressForm() {
+      if (!addressForm) return;
+      addressForm.classList.add("account-hidden");
+      resetAddressForm();
+    }
+
+    function collectAddressFormData() {
+      return {
+        id: document.getElementById("address-id").value.trim(),
+        full_name: document.getElementById("address-full-name").value.trim(),
+        phone: toEnglishDigits(document.getElementById("address-phone").value).replace(/\s+/g, ""),
+        type: document.getElementById("address-type").value,
+        postal_code: toEnglishDigits(document.getElementById("address-postal-code").value).replace(/\s+/g, ""),
+        state: document.getElementById("address-state").value.trim(),
+        city: document.getElementById("address-city").value.trim(),
+        address_line: document.getElementById("address-line").value.trim(),
+        is_default: document.getElementById("address-is-default").checked ? 1 : 0
+      };
+    }
+
+    function validateAddressForm(data) {
+      if (!data.full_name || !data.phone || !data.type || !data.postal_code || !data.state || !data.city || !data.address_line) {
+        setAddressMessage("لطفاً همه فیلدهای آدرس را کامل کن.", "error");
+        return false;
+      }
+
+      if (data.phone.length < 10) {
+        setAddressMessage("شماره تماس معتبر نیست.", "error");
+        return false;
+      }
+
+      if (data.postal_code.length !== 10) {
+        setAddressMessage("کد پستی باید 10 رقم باشد.", "error");
+        return false;
+      }
+
+      return true;
     }
 
     function renderAddressCard(address) {
       const typeLabel = address.type === "billing" ? "آدرس صورتحساب" : "آدرس ارسال";
-      const defaultLabel = Number(address.is_default) === 1 ? " (پیش‌فرض)" : "";
+      const isDefault = Number(address.is_default) === 1;
 
       return `
         <div class="address-card">
-          <h4>${typeLabel}${defaultLabel}</h4>
+          <div class="address-card__meta ${isDefault ? "is-default" : ""}">
+            ${escapeHtml(typeLabel)}${isDefault ? " | پیش‌فرض" : ""}
+          </div>
+          <h4>${escapeHtml(address.full_name || "-")}</h4>
           <p>
-            ${escapeHtml(address.full_name || "")}<br />
-            ${escapeHtml(address.address_line || "")}<br />
+            ${escapeHtml(address.address_line || "-")}<br />
             کد پستی: ${escapeHtml(address.postal_code || "-")}<br />
             تلفن: ${escapeHtml(address.phone || "-")}<br />
-            شهر: ${escapeHtml(address.city || "-")}<br />
-            استان: ${escapeHtml(address.state || "-")}
+            ${escapeHtml(address.city || "-")} - ${escapeHtml(address.state || "-")}
           </p>
-          <a href="#" class="btn btn-secondary">ویرایش آدرس</a>
+          <div class="address-actions">
+            <button type="button" class="btn btn-secondary" data-edit-address="${escapeHtml(address.id)}">ویرایش</button>
+            <button type="button" class="btn btn-secondary" data-default-address="${escapeHtml(address.id)}">پیش‌فرض</button>
+            <button type="button" class="btn btn-secondary" data-delete-address="${escapeHtml(address.id)}">حذف</button>
+          </div>
         </div>
       `;
     }
 
     async function loadAddresses() {
-      const grid = document.getElementById("addresses-grid");
-      if (!grid) return;
+      if (!addressesGrid) return;
 
-      grid.innerHTML = `
+      addressesGrid.innerHTML = `
         <div class="address-card">
-          <h4>در حال دریافت آدرس‌ها...</h4>
-          <p>لطفاً کمی صبر کنید.</p>
+          <h4>در حال بارگذاری...</h4>
+          <p>اطلاعات آدرس‌ها در حال دریافت است.</p>
         </div>
       `;
 
@@ -1223,39 +1390,90 @@
         const response = await fetch("/api/account/addresses", {
           credentials: "same-origin"
         });
+
         const data = await response.json();
 
         if (!response.ok || !data?.success) {
-          grid.innerHTML = `
+          addressesGrid.innerHTML = `
             <div class="address-card">
               <h4>خطا</h4>
-              <p>دریافت آدرس‌ها با مشکل مواجه شد.</p>
+              <p>دریافت آدرس‌ها با خطا مواجه شد.</p>
             </div>
           `;
+          updateDashboardStats(currentOrders, []);
           return;
         }
 
         const addresses = Array.isArray(data.addresses) ? data.addresses : [];
+        currentAddresses = addresses;
+        updateDashboardStats(currentOrders, addresses);
 
         if (!addresses.length) {
-          grid.innerHTML = `
+          addressesGrid.innerHTML = `
             <div class="address-card">
-              <h4>آدرسی ثبت نشده است</h4>
-              <p>هنوز هیچ آدرسی برای این حساب ثبت نشده است.</p>
+              <h4>آدرسی ثبت نشده</h4>
+              <p>هنوز آدرسی برای این حساب ثبت نشده است. از دکمه بالا برای افزودن آدرس استفاده کن.</p>
             </div>
           `;
           return;
         }
 
-        grid.innerHTML = addresses.map(renderAddressCard).join("");
+        addressesGrid.innerHTML = addresses.map(renderAddressCard).join("");
       } catch (error) {
-        grid.innerHTML = `
+        addressesGrid.innerHTML = `
           <div class="address-card">
             <h4>خطا</h4>
-            <p>دریافت آدرس‌ها با مشکل مواجه شد.</p>
+            <p>دریافت آدرس‌ها با خطا مواجه شد.</p>
           </div>
         `;
+        updateDashboardStats(currentOrders, []);
       }
+    }
+
+    async function saveAddress(data) {
+      const isEdit = Boolean(data.id);
+      const url = isEdit
+        ? `/api/account/addresses/${encodeURIComponent(data.id)}`
+        : "/api/account/addresses";
+      const method = isEdit ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          full_name: data.full_name,
+          phone: data.phone,
+          type: data.type,
+          postal_code: data.postal_code,
+          state: data.state,
+          city: data.city,
+          address_line: data.address_line,
+          is_default: data.is_default
+        })
+      });
+
+      return response.json();
+    }
+
+    async function deleteAddress(addressId) {
+      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}`, {
+        method: "DELETE",
+        credentials: "same-origin"
+      });
+
+      return response.json();
+    }
+
+    async function makeAddressDefault(addressId) {
+      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}/default`, {
+        method: "POST",
+        credentials: "same-origin"
+      });
+
+      return response.json();
     }
 
     menuButtons.forEach((button) => {
@@ -1264,6 +1482,99 @@
         if (panelName) openPanel(panelName);
       });
     });
+
+    if (addAddressBtn) {
+      addAddressBtn.addEventListener("click", () => {
+        openAddressForm();
+      });
+    }
+
+    if (cancelAddressBtn) {
+      cancelAddressBtn.addEventListener("click", () => {
+        closeAddressForm();
+      });
+    }
+
+    if (addressForm) {
+      addressForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setAddressMessage("");
+
+        const data = collectAddressFormData();
+        if (!validateAddressForm(data)) return;
+
+        saveAddressBtn.disabled = true;
+
+        try {
+          const result = await saveAddress(data);
+
+          if (!result?.success) {
+            setAddressMessage(result?.error || "ذخیره آدرس با خطا مواجه شد.", "error");
+            saveAddressBtn.disabled = false;
+            return;
+          }
+
+          setAddressMessage("آدرس با موفقیت ذخیره شد.", "success");
+          closeAddressForm();
+          await loadAddresses();
+        } catch (error) {
+          setAddressMessage("ذخیره آدرس با خطا مواجه شد.", "error");
+        } finally {
+          saveAddressBtn.disabled = false;
+        }
+      });
+    }
+
+    if (addressesGrid) {
+      addressesGrid.addEventListener("click", async (event) => {
+        const editBtn = event.target.closest("[data-edit-address]");
+        const deleteBtn = event.target.closest("[data-delete-address]");
+        const defaultBtn = event.target.closest("[data-default-address]");
+
+        if (editBtn) {
+          const addressId = editBtn.getAttribute("data-edit-address");
+          const address = currentAddresses.find((item) => String(item.id) === String(addressId));
+          if (address) openAddressForm(address);
+          return;
+        }
+
+        if (deleteBtn) {
+          const addressId = deleteBtn.getAttribute("data-delete-address");
+          if (!confirm("آیا از حذف این آدرس مطمئن هستی؟")) return;
+
+          try {
+            const result = await deleteAddress(addressId);
+            if (!result?.success) {
+              setAddressMessage(result?.error || "حذف آدرس با خطا مواجه شد.", "error");
+              return;
+            }
+
+            setAddressMessage("آدرس با موفقیت حذف شد.", "success");
+            await loadAddresses();
+          } catch (error) {
+            setAddressMessage("حذف آدرس با خطا مواجه شد.", "error");
+          }
+          return;
+        }
+
+        if (defaultBtn) {
+          const addressId = defaultBtn.getAttribute("data-default-address");
+
+          try {
+            const result = await makeAddressDefault(addressId);
+            if (!result?.success) {
+              setAddressMessage(result?.error || "تغییر آدرس پیش‌فرض با خطا مواجه شد.", "error");
+              return;
+            }
+
+            setAddressMessage("آدرس پیش‌فرض با موفقیت به‌روزرسانی شد.", "success");
+            await loadAddresses();
+          } catch (error) {
+            setAddressMessage("تغییر آدرس پیش‌فرض با خطا مواجه شد.", "error");
+          }
+        }
+      });
+    }
 
     if (accountForm) {
       accountForm.addEventListener("submit", async (event) => {
@@ -1277,24 +1588,25 @@
         const email = document.getElementById("account-email")?.value || "";
         const phone = document.getElementById("phone")?.value || "";
         const password = document.getElementById("password")?.value || "";
-        const password_confirm = document.getElementById("password-confirm")?.value || "";
+        const passwordConfirm = document.getElementById("password-confirm")?.value || "";
 
-        const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim();
+        const fullname = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim();
 
         const result = await window.Auth.updateProfile({
-          full_name,
+          fullname,
           email,
           phone,
           password,
-          password_confirm
+          passwordConfirm
         });
 
         if (!result.ok || !result.data?.success) {
-          setAccountMessage(result.data?.error || "خطا در ذخیره اطلاعات.", "error");
+          setAccountMessage(result.data?.error || "ذخیره اطلاعات حساب با خطا مواجه شد.", "error");
           return;
         }
 
         currentUser = result.data.user;
+
         window.Auth.fillUserFields(currentUser, {
           nameSelector: "[data-user-full-name]",
           emailSelector: "[data-user-email]",
@@ -1330,8 +1642,9 @@
         phoneSelector: "[data-user-phone]"
       });
 
-      fillAccountName(currentUser.full_name || "");
+      fillAccountName(currentUser.fullname || "");
       resetFormFromUser();
+      resetAddressForm();
 
       await loadOrders();
       await loadAddresses();

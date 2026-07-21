@@ -500,6 +500,17 @@
       return new Intl.NumberFormat("fa-IR").format(Number(value || 0));
     }
 
+    function getRawPrice(product) {
+      if (!product) return "";
+      return (
+        product.price ||
+        product.priceLabel ||
+        product.displayPrice ||
+        product.salePrice ||
+        ""
+      );
+    }
+
     function parsePrice(rawPrice) {
       if (typeof rawPrice === "number") return rawPrice;
       if (!rawPrice) return null;
@@ -539,7 +550,7 @@
         return;
       }
       try {
-        localStorage.removeItem("cart");
+        localStorage.removeItem("takdaro_cart");
       } catch (error) {}
     }
 
@@ -564,7 +575,8 @@
       let subtotal = 0;
 
       const normalizedItems = items.map(({ product, qty }) => {
-        const unitPrice = parsePrice(product.price) || 0;
+        const rawPrice = getRawPrice(product);
+        const unitPrice = parsePrice(rawPrice) || 0;
         const rowTotal = unitPrice * qty;
         subtotal += rowTotal;
 
@@ -621,7 +633,8 @@
       let hasNumericPrice = false;
 
       invoiceItemsBody.innerHTML = items.map(({ product, qty }) => {
-        const unitPrice = parsePrice(product.price);
+        const rawPrice = getRawPrice(product);
+        const unitPrice = parsePrice(rawPrice);
         const rowTotal = unitPrice !== null ? unitPrice * qty : null;
         totalQty += qty;
 
@@ -646,7 +659,7 @@
               </div>
             </td>
             <td class="invoice-number">${formatNumber(qty)}</td>
-            <td class="invoice-number">${formatPrice(product.price)}</td>
+            <td class="invoice-number">${formatPrice(rawPrice)}</td>
             <td class="invoice-number">${rowTotal !== null ? `${formatNumber(rowTotal)} تومان` : "تماس بگیرید"}</td>
           </tr>
         `;
@@ -767,7 +780,8 @@
       const orderLines = items.map(({ product, qty }, index) => {
         totalQty += qty;
 
-        const unitPrice = parsePrice(product.price);
+        const rawPrice = getRawPrice(product);
+        const unitPrice = parsePrice(rawPrice);
         const rowTotal = unitPrice !== null ? unitPrice * qty : null;
 
         if (rowTotal !== null) {
@@ -777,7 +791,7 @@
 
         return `${index + 1}. ${product.name}
 - تعداد: ${qty}
-- قیمت واحد: ${formatPrice(product.price)}
+- قیمت واحد: ${formatPrice(rawPrice)}
 - جمع واحد: ${rowTotal !== null ? `${formatNumber(rowTotal)} تومان` : "تماس بگیرید"}`;
       }).join("\n\n");
 
