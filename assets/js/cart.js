@@ -1,20 +1,61 @@
 ﻿(function () {
   const CART_KEY = "takdaro_cart";
+  const LEGACY_CART_KEYS = ["taktejarat_cart"];
   let cartEventsBound = false;
   let cartToggleBound = false;
+
+  function getBasePath() {
+    const path = window.location.pathname;
+    if (path.includes("/products/")) return "../";
+    return "./";
+  }
+
+  function normalizeCartItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items
+      .map((item) => {
+        if (!item || !item.slug) return null;
+        return {
+          slug: String(item.slug),
+          qty: Math.max(1, Number(item.qty || item.quantity || 1))
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function migrateLegacyCart() {
+    try {
+      const current = localStorage.getItem(CART_KEY);
+      if (current) {
+        const parsed = JSON.parse(current);
+        localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(parsed)));
+        return;
+      }
+
+      for (const oldKey of LEGACY_CART_KEYS) {
+        const legacyValue = localStorage.getItem(oldKey);
+        if (!legacyValue) continue;
+
+        const parsed = JSON.parse(legacyValue);
+        localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(parsed)));
+        localStorage.removeItem(oldKey);
+        break;
+      }
+    } catch (error) {}
+  }
 
   function readCart() {
     try {
       const raw = localStorage.getItem(CART_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      return normalizeCartItems(parsed);
     } catch (error) {
       return [];
     }
   }
 
   function writeCart(cart) {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    localStorage.setItem(CART_KEY, JSON.stringify(normalizeCartItems(cart)));
   }
 
   function findProduct(slug) {
@@ -59,6 +100,7 @@
 
     if (!container || !empty || !footer) return;
 
+    const base = getBasePath();
     const items = getCartDetailed();
     container.innerHTML = "";
 
@@ -73,11 +115,12 @@
 
     items.forEach(({ slug, qty, product }) => {
       const image = Array.isArray(product.images) && product.images.length ? product.images[0] : "";
+      const imageSrc = image ? `${base}${image}` : "";
       const article = document.createElement("article");
       article.className = "mini-cart-item";
       article.innerHTML = `
         <div class="mini-cart-item__image">
-          ${image ? `<img src="./${image}" alt="${product.name}">` : ""}
+          ${imageSrc ? `<img src="${imageSrc}" alt="${product.name || ""}">` : ""}
         </div>
         <div class="mini-cart-item__body">
           <h4>${product.name || ""}</h4>
@@ -191,9 +234,7 @@
           if (input) qty = parseInt(input.value, 10) || 1;
         }
 
-        if (slug) {
-          addToCart(slug, qty);
-        }
+        if (slug) addToCart(slug, qty);
       }
     });
   }
@@ -207,6 +248,7 @@
     if (!drawer || !overlay) return;
 
     function openCart() {
+      renderMiniCart();
       drawer.classList.add("is-open");
       overlay.hidden = false;
     }
@@ -235,6 +277,7 @@
   }
 
   function initCartUi() {
+    migrateLegacyCart();
     syncCartUi();
     setupMiniCartEvents();
     setupMiniCartToggle();
