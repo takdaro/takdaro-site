@@ -56,49 +56,42 @@ function validateAddressInput(data) {
   return null;
 }
 
-export async function onRequestGet(context) {
+async function getOwnedAddress(env, userId, addressId) {
+  return env.DB.prepare(`
+    SELECT
+      id,
+      user_id,
+      type,
+      full_name,
+      address_line,
+      postal_code,
+      phone,
+      city,
+      state,
+      is_default,
+      created_at,
+      updated_at
+    FROM addresses
+    WHERE id = ? AND user_id = ?
+    LIMIT 1
+  `).bind(addressId, userId).first();
+}
+
+export async function onRequestPut(context) {
   try {
     const user = await getCurrentUser(context.request, context.env);
     if (!user) {
       return json({ success: false, error: "Unauthorized" }, 401);
     }
 
-    const result = await context.env.DB.prepare(`
-      SELECT
-        id,
-        user_id,
-        type,
-        full_name,
-        address_line,
-        postal_code,
-        phone,
-        city,
-        state,
-        is_default,
-        created_at,
-        updated_at
-      FROM addresses
-      WHERE user_id = ?
-      ORDER BY is_default DESC, id DESC
-    `).bind(user.id).all();
+    const addressId = Number(context.params.id);
+    if (!addressId) {
+      return json({ success: false, error: "شناسه آدرس نامعتبر است." }, 400);
+    }
 
-    return json({
-      success: true,
-      addresses: result.results || []
-    });
-  } catch (error) {
-    return json(
-      { success: false, error: String(error?.message || error) },
-      500
-    );
-  }
-}
-
-export async function onRequestPost(context) {
-  try {
-    const user = await getCurrentUser(context.request, context.env);
-    if (!user) {
-      return json({ success: false, error: "Unauthorized" }, 401);
+    const existing = await getOwnedAddress(context.env, user.id, addressId);
+    if (!existing) {
+      return json({ success: false, error: "آدرس پیدا نشد." }, 404);
     }
 
     const body = await context.request.json();
@@ -117,22 +110,20 @@ export async function onRequestPost(context) {
       `).bind(user.id).run();
     }
 
-    const result = await context.env.DB.prepare(`
-      INSERT INTO addresses (
-        user_id,
-        type,
-        full_name,
-        address_line,
-        postal_code,
-        phone,
-        city,
-        state,
-        is_default,
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    await context.env.DB.prepare(`
+      UPDATE addresses
+      SET
+        type = ?,
+        full_name = ?,
+        address_line = ?,
+        postal_code = ?,
+        phone = ?,
+        city = ?,
+        state = ?,
+        is_default = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ?
     `).bind(
-      user.id,
       data.type,
       data.full_name,
       data.address_line,
@@ -140,36 +131,67 @@ export async function onRequestPost(context) {
       data.phone,
       data.city,
       data.state,
-      data.is_default
+      data.is_default,
+      addressId,
+      user.id
     ).run();
 
-    const insertedId = result.meta?.last_row_id || null;
-
-    const address = insertedId
-      ? await context.env.DB.prepare(`
-          SELECT
-            id,
-            user_id,
-            type,
-            full_name,
-            address_line,
-            postal_code,
-            phone,
-            city,
-            state,
-            is_default,
-            created_at,
-            updated_at
-          FROM addresses
-          WHERE id = ? AND user_id = ?
-          LIMIT 1
-        `).bind(insertedId, user.id).first()
-      : null;
+    const address = await getOwnedAddress(context.env, user.id, addressId);
 
     return json({
       success: true,
-      id: insertedId,
       address
+    });
+  } catch (error) {
+    return json(
+      { success: false, error: String(error?.message || error) },
+      500
+    );
+  }
+}
+
+export async function onRequestDelete(context) {
+  try {
+    const user = await getCurrentUser(context.request, context.env);
+    if (!user) {
+      return json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const addressId = Number(context.params.id);
+    if (!addressId) {
+      return json({ success: false, error: "شناسه آدرس نامعتبر است." }, 400);
+    }
+
+    const existing = await getOwnedAddress(context.env, user.id, addressId);
+    if (!existing) {
+      return json({ success: false, error: "آدرس پیدا نشد." }, 404);
+    }
+
+    await context.env.DB.prepare(`
+      DELETE FROM addresses
+      WHERE id = ? AND user_id = ?
+    `).bind(addressId, user.id).run();
+
+    if (Number(existing.is_default) === 1) {
+      const fallback = await context.env.DB.prepare(`
+        SELECT id
+        FROM addresses
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+      `).bind(user.id).first();
+
+      if (fallback?.id) {
+        await context.env.DB.prepare(`
+          UPDATE addresses
+          SET is_default = 1, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND user_id = ?
+        `).bind(fallback.id, user.id).run();
+      }
+    }
+
+    return json({
+      success: true
     });
   } catch (error) {
     return json(
