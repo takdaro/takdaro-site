@@ -245,11 +245,42 @@
     saveCart([]);
   }
 
+  function openCart() {
+    const drawer = document.querySelector("[data-cart-drawer]");
+    const overlay = document.querySelector("[data-cart-overlay]");
+    if (!drawer || !overlay) return;
+
+    renderMiniCart();
+    drawer.classList.add("is-open");
+    overlay.hidden = false;
+  }
+
+  function closeCart() {
+    const drawer = document.querySelector("[data-cart-drawer]");
+    const overlay = document.querySelector("[data-cart-overlay]");
+    if (!drawer || !overlay) return;
+
+    drawer.classList.remove("is-open");
+    overlay.hidden = true;
+  }
+
   function setupMiniCartEvents() {
     if (cartEventsBound) return;
     cartEventsBound = true;
 
     document.addEventListener("click", function (event) {
+      const openTrigger = event.target.closest("[data-open-cart]");
+      if (openTrigger) {
+        openCart();
+        return;
+      }
+
+      const closeTrigger = event.target.closest("[data-close-cart], [data-cart-overlay]");
+      if (closeTrigger) {
+        closeCart();
+        return;
+      }
+
       const trigger = event.target.closest("[data-cart-action]");
       if (trigger) {
         const action = trigger.getAttribute("data-cart-action");
@@ -273,46 +304,17 @@
           if (input) qty = parseInt(input.value, 10) || 1;
         }
 
-        if (slug) addToCart(slug, qty);
+        if (slug) {
+          addToCart(slug, qty);
+          openCart();
+        }
       }
     });
   }
 
   function setupMiniCartToggle() {
-    const drawer = document.querySelector("[data-cart-drawer]");
-    const overlay = document.querySelector("[data-cart-overlay]");
-    const openButtons = document.querySelectorAll("[data-open-cart]");
-    const closeButtons = document.querySelectorAll("[data-close-cart]");
-
-    if (!drawer || !overlay) return;
-
-    function openCart() {
-      renderMiniCart();
-      drawer.classList.add("is-open");
-      overlay.hidden = false;
-    }
-
-    function closeCart() {
-      drawer.classList.remove("is-open");
-      overlay.hidden = true;
-    }
-
-    openButtons.forEach((button) => {
-      if (button.dataset.cartBound === "true") return;
-      button.dataset.cartBound = "true";
-      button.addEventListener("click", openCart);
-    });
-
-    closeButtons.forEach((button) => {
-      if (button.dataset.cartBound === "true") return;
-      button.dataset.cartBound = "true";
-      button.addEventListener("click", closeCart);
-    });
-
-    if (!cartToggleBound) {
-      cartToggleBound = true;
-      overlay.addEventListener("click", closeCart);
-    }
+    if (cartToggleBound) return;
+    cartToggleBound = true;
   }
 
   function initCartUi() {
@@ -342,6 +344,8 @@
     getCartCount,
     initCartUi,
     updateCartBadge,
-    renderMiniCart
+    renderMiniCart,
+    openCart,
+    closeCart
   };
 })();
