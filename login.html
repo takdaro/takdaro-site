@@ -102,6 +102,28 @@
       border-top: 1px solid rgba(15, 23, 42, 0.06);
     }
 
+    .auth-message {
+      display: none;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 0.92rem;
+      line-height: 1.9;
+    }
+
+    .auth-message.is-error {
+      display: block;
+      background: rgba(220, 38, 38, 0.08);
+      color: #b91c1c;
+      border: 1px solid rgba(220, 38, 38, 0.16);
+    }
+
+    .auth-message.is-success {
+      display: block;
+      background: rgba(22, 163, 74, 0.08);
+      color: #166534;
+      border: 1px solid rgba(22, 163, 74, 0.16);
+    }
+
     @media (max-width: 640px) {
       .auth-section {
         padding: 24px 0;
@@ -134,18 +156,20 @@
           <div class="auth-card">
             <div class="auth-card__head">
               <h1>ورود</h1>
-              <p>این صفحه فعلاً نمایشی است و در بازنگری بعدی به ورود واقعی متصل می‌شود.</p>
+              <p>با ایمیل و رمز عبور خود وارد حساب کاربری شوید.</p>
             </div>
 
             <div class="auth-card__body">
               <form class="auth-form" id="login-form" novalidate>
+                <div class="auth-message" data-auth-message></div>
+
                 <div class="form-field">
-                  <label for="login-identity">شماره تماس یا ایمیل</label>
+                  <label for="login-identity">ایمیل</label>
                   <input
                     id="login-identity"
                     name="identity"
                     type="text"
-                    placeholder="مثلاً 09123456789 یا name@example.com"
+                    placeholder="name@example.com"
                     autocomplete="username"
                     required
                   />
@@ -178,7 +202,7 @@
 
                 <div class="auth-footer">
                   <p class="auth-note">
-                    در نسخه نهایی، این فرم به احراز هویت واقعی، پیام خطا، بازیابی رمز و هدایت به حساب کاربری متصل می‌شود.
+                    پس از ورود موفق، به حساب کاربری خود هدایت می‌شوید.
                   </p>
                 </div>
               </form>
@@ -198,14 +222,21 @@
   <script src="./price-loader.js"></script>
   <script src="/assets/js/cart.js"></script>
   <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/auth.js"></script>
   <script>
-    const loginForm = document.getElementById("login-form");
-    if (loginForm) {
-      loginForm.addEventListener("submit", function (event) {
-        event.preventDefault();
-        alert("نسخه نمایشی ورود فعال است. در بازنگری بعدی، ورود واقعی متصل می‌شود.");
+    document.addEventListener("DOMContentLoaded", async function () {
+      if (!window.Auth) return;
+
+      await window.Auth.redirectIfAuthenticated({
+        redirectTo: "/account.html"
       });
-    }
+
+      window.Auth.bindLoginForm({
+        formSelector: "#login-form",
+        messageSelector: "[data-auth-message]",
+        redirectAfterSuccess: "/account.html"
+      });
+    });
   </script>
 </body>
 </html>

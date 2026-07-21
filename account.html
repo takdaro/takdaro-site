@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -143,6 +143,25 @@
       color: #64748b;
       line-height: 1.9;
       font-size: 0.95rem;
+    }
+
+    .account-user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 0.9rem;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+
+    .account-user-chip strong {
+      color: #0f172a;
+      font-weight: 800;
     }
 
     .stats-grid {
@@ -504,6 +523,20 @@
       font-size: 0.92rem;
     }
 
+    .account-loading {
+      padding: 18px;
+      border-radius: 18px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      margin-bottom: 18px;
+      line-height: 1.9;
+    }
+
+    .account-hidden {
+      display: none !important;
+    }
+
     @media (max-width: 1024px) {
       .account-page {
         grid-template-columns: 1fr;
@@ -570,11 +603,19 @@
 
     <section class="section">
       <div class="container">
-        <div class="account-page">
+        <div class="account-loading" id="account-loading">
+          در حال بررسی وضعیت ورود و دریافت اطلاعات حساب...
+        </div>
+
+        <div class="account-page account-hidden" id="account-page">
           <aside class="account-sidebar" aria-label="منوی حساب کاربری">
             <div class="account-sidebar__head">
               <h3>منوی حساب کاربری</h3>
               <p>بخش مورد نظر را انتخاب کنید تا اطلاعات آن در همین صفحه نمایش داده شود.</p>
+              <div class="account-user-chip">
+                <span>کاربر:</span>
+                <strong data-user-full-name>...</strong>
+              </div>
             </div>
 
             <div class="account-sidebar__body">
@@ -654,7 +695,7 @@
 
             <div class="account-panel__body">
               <div class="account-section is-active" id="panel-dashboard">
-                <h2 class="account-section__title">سلام، خوش آمدید</h2>
+                <h2 class="account-section__title">سلام، <span data-user-full-name>کاربر گرامی</span></h2>
                 <p class="account-section__lead">
                   از طریق این بخش می‌توانید آخرین وضعیت سفارش‌ها، موجودی کیف پول و میانبرهای سریع حساب کاربری خود را بررسی کنید.
                 </p>
@@ -740,7 +781,7 @@
                   <div class="address-card">
                     <h4>آدرس صورتحساب</h4>
                     <p>
-                      علی رضایی<br />
+                      <span data-user-full-name>علی رضایی</span><br />
                       تهران، خیابان ولیعصر، کوچه نمونه، پلاک 10، واحد 4<br />
                       کد پستی: 1234567890<br />
                       تلفن: 09123456789
@@ -751,7 +792,7 @@
                   <div class="address-card">
                     <h4>آدرس ارسال</h4>
                     <p>
-                      علی رضایی<br />
+                      <span data-user-full-name>علی رضایی</span><br />
                       تهران، سعادت‌آباد، بلوار دریا، خیابان نمونه، پلاک 22<br />
                       کد پستی: 0987654321<br />
                       تلفن: 09123456789
@@ -893,19 +934,19 @@
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="first-name">نام</label>
-                      <input id="first-name" type="text" value="علی" />
+                      <input id="first-name" type="text" />
                     </div>
 
                     <div class="form-field">
                       <label for="last-name">نام خانوادگی</label>
-                      <input id="last-name" type="text" value="رضایی" />
+                      <input id="last-name" type="text" />
                     </div>
                   </div>
 
                   <div class="form-grid-2">
                     <div class="form-field">
-                      <label for="email">ایمیل</label>
-                      <input id="email" type="email" value="ali@example.com" />
+                      <label for="account-email">ایمیل</label>
+                      <input id="account-email" type="email" data-user-email />
                     </div>
 
                     <div class="form-field">
@@ -946,7 +987,7 @@
                   </p>
 
                   <div class="panel-actions">
-                    <a href="./index.html" class="btn btn-primary">تأیید خروج</a>
+                    <button type="button" class="btn btn-primary" data-auth-logout>تأیید خروج</button>
                     <button type="button" class="btn btn-secondary" data-panel-target="dashboard">بازگشت به داشبورد</button>
                   </div>
                 </div>
@@ -967,6 +1008,7 @@
   <script src="./price-loader.js"></script>
   <script src="/assets/js/cart.js"></script>
   <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/auth.js"></script>
 
   <script>
     const menuButtons = document.querySelectorAll("[data-panel-target]");
@@ -974,6 +1016,8 @@
     const panelHeading = document.getElementById("panel-heading");
     const panelDescription = document.getElementById("panel-description");
     const accountForm = document.getElementById("account-details-form");
+    const accountLoading = document.getElementById("account-loading");
+    const accountPage = document.getElementById("account-page");
 
     const panelMeta = {
       dashboard: {
@@ -1026,6 +1070,19 @@
       }
     }
 
+    function fillAccountName(fullName) {
+      const safeName = String(fullName || "").trim();
+      const parts = safeName.split(/\s+/).filter(Boolean);
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ");
+
+      const firstNameInput = document.getElementById("first-name");
+      const lastNameInput = document.getElementById("last-name");
+
+      if (firstNameInput) firstNameInput.value = firstName;
+      if (lastNameInput) lastNameInput.value = lastName;
+    }
+
     menuButtons.forEach((button) => {
       button.addEventListener("click", () => {
         const panelName = button.getAttribute("data-panel-target");
@@ -1038,7 +1095,36 @@
         event.preventDefault();
       });
     }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      if (!window.Auth) return;
+
+      const user = await window.Auth.requireAuth({
+        redirectTo: "/login.html"
+      });
+
+      if (!user) return;
+
+      window.Auth.fillUserFields(user, {
+        nameSelector: "[data-user-full-name]",
+        emailSelector: "[data-user-email]"
+      });
+
+      fillAccountName(user.full_name || "");
+
+      if (accountLoading) {
+        accountLoading.classList.add("account-hidden");
+      }
+
+      if (accountPage) {
+        accountPage.classList.remove("account-hidden");
+      }
+
+      window.Auth.bindLogoutButton({
+        buttonSelector: "[data-auth-logout]",
+        redirectAfterSuccess: "/login.html"
+      });
+    });
   </script>
 </body>
 </html>
-
