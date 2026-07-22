@@ -475,5 +475,4 @@ export async function onRequestDelete(context) {
       { status: 500 }
     );
   }
-}  اینم نیاز داری یا اوکیه
-</query>
+} 
