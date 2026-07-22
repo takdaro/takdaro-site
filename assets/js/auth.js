@@ -4,7 +4,8 @@
     login: "/api/auth/login",
     logout: "/api/auth/logout",
     me: "/api/auth/me",
-    profile: "/api/auth/profile"
+    profile: "/api/auth/profile",
+    adminMe: "/api/admin/me"
   };
 
   async function request(url, options = {}) {
@@ -24,11 +25,7 @@
       data = null;
     }
 
-    return {
-      ok: response.ok,
-      status: response.status,
-      data
-    };
+    return { ok: response.ok, status: response.status, data };
   }
 
   async function register(payload) {
@@ -54,21 +51,19 @@
   }
 
   async function logout() {
-    return request(endpoints.logout, {
-      method: "POST"
-    });
+    return request(endpoints.logout, { method: "POST" });
   }
 
   async function getCurrentUser() {
-    return request(endpoints.me, {
-      method: "GET"
-    });
+    return request(endpoints.me, { method: "GET" });
+  }
+
+  async function getAdminUser() {
+    return request(endpoints.adminMe, { method: "GET" });
   }
 
   async function getProfile() {
-    return request(endpoints.profile, {
-      method: "GET"
-    });
+    return request(endpoints.profile, { method: "GET" });
   }
 
   async function updateProfile(payload) {
@@ -199,11 +194,9 @@
 
     button.addEventListener("click", async (event) => {
       event.preventDefault();
-
       try {
         await logout();
       } catch {}
-
       redirectTo(options.redirectAfterSuccess || "/index.html", true);
     });
   }
@@ -212,8 +205,18 @@
     const result = await getCurrentUser();
 
     if (!result.ok || !result.data?.success || !result.data?.user) {
-      const loginUrl = buildLoginRedirect(options.redirectPath);
-      redirectTo(loginUrl, true);
+      redirectTo(buildLoginRedirect(options.redirectPath), true);
+      return null;
+    }
+
+    return result.data.user;
+  }
+
+  async function requireAdmin(options = {}) {
+    const result = await getAdminUser();
+
+    if (!result.ok || !result.data?.success || !result.data?.user) {
+      redirectTo(buildLoginRedirect(options.redirectPath || "/admin.html"), true);
       return null;
     }
 
@@ -245,7 +248,7 @@
       return null;
     }
 
-    return requireAuth();
+    return requireAuth(options);
   }
 
   function fillUserFields(user, options = {}) {
@@ -255,38 +258,40 @@
     const emailElements = document.querySelectorAll(options.emailSelector || "[data-user-email]");
     const phoneElements = document.querySelectorAll(options.phoneSelector || "[data-user-phone]");
     const idElements = document.querySelectorAll(options.idSelector || "[data-user-id]");
+    const roleElements = document.querySelectorAll(options.roleSelector || "[data-user-role]");
+    const walletElements = document.querySelectorAll(options.walletSelector || "[data-user-wallet]");
 
     nameElements.forEach((el) => {
-      if ("value" in el && el.tagName === "INPUT") {
-        el.value = user.full_name || "";
-      } else {
-        el.textContent = user.full_name || "";
-      }
+      if ("value" in el && el.tagName === "INPUT") el.value = user.full_name || "";
+      else el.textContent = user.full_name || "";
     });
 
     emailElements.forEach((el) => {
-      if ("value" in el && el.tagName === "INPUT") {
-        el.value = user.email || "";
-      } else {
-        el.textContent = user.email || "";
-      }
+      if ("value" in el && el.tagName === "INPUT") el.value = user.email || "";
+      else el.textContent = user.email || "";
     });
 
     phoneElements.forEach((el) => {
-      if ("value" in el && el.tagName === "INPUT") {
-        el.value = user.phone || "";
-      } else {
-        el.textContent = user.phone || "";
-      }
+      if ("value" in el && el.tagName === "INPUT") el.value = user.phone || "";
+      else el.textContent = user.phone || "";
     });
 
     idElements.forEach((el) => {
       const value = user.id != null ? String(user.id) : "";
-      if ("value" in el && el.tagName === "INPUT") {
-        el.value = value;
-      } else {
-        el.textContent = value;
-      }
+      if ("value" in el && el.tagName === "INPUT") el.value = value;
+      else el.textContent = value;
+    });
+
+    roleElements.forEach((el) => {
+      const value = user.role || "";
+      if ("value" in el && el.tagName === "INPUT") el.value = value;
+      else el.textContent = value;
+    });
+
+    walletElements.forEach((el) => {
+      const value = Number(user.wallet_balance || 0).toLocaleString("fa-IR");
+      if ("value" in el && el.tagName === "INPUT") el.value = value;
+      else el.textContent = value;
     });
   }
 
@@ -295,12 +300,14 @@
     login,
     logout,
     getCurrentUser,
+    getAdminUser,
     getProfile,
     updateProfile,
     bindRegisterForm,
     bindLoginForm,
     bindLogoutButton,
     requireAuth,
+    requireAdmin,
     redirectIfAuthenticated,
     protectPage,
     fillUserFields,

@@ -1,10 +1,8 @@
 ﻿function getCookie(cookieString, key) {
   if (!cookieString) return null;
-
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   if (!target) return null;
-
   return target.slice(key.length + 1);
 }
 
@@ -18,12 +16,20 @@ export async function onRequestGet(context) {
     }
 
     const user = await context.env.DB
-      .prepare(
-        `SELECT users.id, users.full_name, users.phone, users.email, users.created_at
-         FROM sessions
-         JOIN users ON users.id = sessions.user_id
-         WHERE sessions.id = ?`
-      )
+      .prepare(`
+        SELECT
+          users.id,
+          users.full_name,
+          users.phone,
+          users.email,
+          users.role,
+          users.wallet_balance,
+          users.created_at,
+          users.updated_at
+        FROM sessions
+        JOIN users ON users.id = sessions.user_id
+        WHERE sessions.id = ?
+      `)
       .bind(sessionId)
       .first();
 

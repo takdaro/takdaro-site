@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>پنل مدیریت | تک تجارت</title>
+  <meta name="description" content="پنل مدیریت کاربران، سفارش‌ها و کیف پول" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .admin-layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .admin-sidebar,
+    .admin-panel {
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+    .admin-sidebar-head,
+    .admin-panel-head {
+      padding: 24px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      background:
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 35%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+    .admin-sidebar-head h3,
+    .admin-panel-head h3 {
+      margin: 0 0 8px;
+      color: #0f172a;
+      font-size: 1.08rem;
+    }
+    .admin-sidebar-head p,
+    .admin-panel-head p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.92rem;
+      line-height: 1.9;
+    }
+    .admin-sidebar-body {
+      padding: 14px;
+    }
+    .admin-menu {
+      display: grid;
+      gap: 8px;
+    }
+    .admin-menu-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 16px;
+      background: #fff;
+      color: #334155;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .admin-menu-btn:hover {
+      border-color: rgba(16, 185, 129, 0.25);
+      background: #f0fdf4;
+      color: #047857;
+    }
+    .admin-menu-btn.is-active {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #047857;
+    }
+    .admin-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #047857;
+      font-size: 0.9rem;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+    .admin-panel-body {
+      padding: 24px;
+    }
+    .admin-section {
+      display: none;
+    }
+    .admin-section.is-active {
+      display: block;
+    }
+    .admin-message {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 16px;
+      margin-bottom: 18px;
+      line-height: 1.9;
+      font-size: 0.94rem;
+    }
+    .admin-message.is-success {
+      display: block;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #bbf7d0;
+    }
+    .admin-message.is-error {
+      display: block;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 20px;
+      padding: 18px;
+    }
+    .stat-card span {
+      display: block;
+      color: #64748b;
+      font-size: 0.88rem;
+      margin-bottom: 10px;
+    }
+    .stat-card strong {
+      color: #0f172a;
+      font-size: 1.2rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-field label {
+      font-weight: 700;
+      color: #334155;
+      font-size: 0.94rem;
+    }
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      width: 100%;
+      border: 1px solid #dbe2ea;
+      border-radius: 16px;
+      background: #fff;
+      padding: 14px 16px;
+      font: inherit;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 20px;
+      background: #fff;
+    }
+    .admin-table {
+      width: 100%;
+      min-width: 960px;
+      border-collapse: collapse;
+    }
+    .admin-table th,
+    .admin-table td {
+      padding: 14px 12px;
+      text-align: right;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: middle;
+      font-size: 0.92rem;
+    }
+    .admin-table th {
+      background: #f8fafc;
+      color: #334155;
+      white-space: nowrap;
+    }
+    .admin-table tr:last-child td {
+      border-bottom: none;
+    }
+    .table-number {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .status-badge--success { background: #ecfdf5; color: #047857; }
+    .status-badge--warning { background: #fff7ed; color: #c2410c; }
+    .status-badge--info { background: #eff6ff; color: #1d4ed8; }
+    .status-badge--danger { background: #fef2f2; color: #b91c1c; }
+    .panel-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .detail-card {
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 20px;
+      background: #fff;
+      padding: 18px;
+      margin-top: 16px;
+    }
+    .detail-card h4 {
+      margin: 0 0 10px;
+      color: #0f172a;
+      font-size: 1rem;
+    }
+    .detail-card p {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.9;
+      font-size: 0.92rem;
+    }
+    .admin-loading {
+      padding: 18px;
+      border-radius: 18px;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      margin-bottom: 18px;
+      line-height: 1.9;
+    }
+    .admin-hidden {
+      display: none !important;
+    }
+    @media (max-width: 1100px) {
+      .admin-layout {
+        grid-template-columns: 1fr;
+      }
+      .stats-grid,
+      .filters-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    @media (max-width: 768px) {
+      .stats-grid,
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+      .admin-panel-body,
+      .admin-panel-head,
+      .admin-sidebar-head {
+        padding: 18px;
+      }
+      .panel-actions .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main>
+    <section class="hero hero-compact">
+      <div class="container">
+        <div class="hero-content">
+          <span class="hero-badge">پنل مدیریت</span>
+          <h1>مدیریت فروشگاه</h1>
+          <p>مدیریت کاربران، سفارش‌ها، کیف پول و گزارش‌های اصلی فروشگاه.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div id="admin-loading" class="admin-loading">
+          در حال بررسی دسترسی مدیریتی و بارگذاری اطلاعات...
+        </div>
+
+        <div id="admin-app" class="admin-layout admin-hidden">
+          <aside class="admin-sidebar">
+            <div class="admin-sidebar-head">
+              <h3>ناحیه مدیریت</h3>
+              <p>این بخش فقط برای مدیران سایت در دسترس است.</p>
+              <div class="admin-chip">
+                <span>مدیر:</span>
+                <strong data-user-full-name>—</strong>
+                <span>|</span>
+                <strong data-user-role>—</strong>
+              </div>
+            </div>
+
+            <div class="admin-sidebar-body">
+              <nav class="admin-menu">
+                <button class="admin-menu-btn is-active" type="button" data-admin-panel="dashboard">داشبورد</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="orders">سفارش‌ها</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="users">کاربران</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="wallet">کیف پول</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="logout">خروج</button>
+              </nav>
+            </div>
+          </aside>
+
+          <section class="admin-panel">
+            <div class="admin-panel-head">
+              <h3 id="admin-panel-heading">داشبورد</h3>
+              <p id="admin-panel-description">نمای کلی وضعیت فروشگاه و آخرین فعالیت‌ها.</p>
+            </div>
+
+            <div class="admin-panel-body">
+              <div id="admin-message" class="admin-message"></div>
+
+              <div id="admin-panel-dashboard" class="admin-section is-active">
+                <div class="stats-grid">
+                  <div class="stat-card"><span>کل کاربران</span><strong id="stat-users">0</strong></div>
+                  <div class="stat-card"><span>کل سفارش‌ها</span><strong id="stat-orders">0</strong></div>
+                  <div class="stat-card"><span>سفارش‌های معلق</span><strong id="stat-pending">0</strong></div>
+                  <div class="stat-card"><span>درآمد کل</span><strong id="stat-revenue">0</strong></div>
+                  <div class="stat-card"><span>جمع کیف پول</span><strong id="stat-wallet">0</strong></div>
+                </div>
+
+                <div class="detail-card">
+                  <h4>آخرین کاربران</h4>
+                  <div class="table-wrap">
+                    <table class="admin-table">
+                      <thead>
+                        <tr>
+                          <th>شناسه</th>
+                          <th>نام</th>
+                          <th>ایمیل</th>
+                          <th>نقش</th>
+                          <th>تاریخ</th>
+                        </tr>
+                      </thead>
+                      <tbody id="latest-users-body"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="detail-card">
+                  <h4>آخرین سفارش‌ها</h4>
+                  <div class="table-wrap">
+                    <table class="admin-table">
+                      <thead>
+                        <tr>
+                          <th>شماره سفارش</th>
+                          <th>وضعیت</th>
+                          <th>وضعیت پرداخت</th>
+                          <th>مبلغ</th>
+                          <th>تاریخ</th>
+                        </tr>
+                      </thead>
+                      <tbody id="latest-orders-body"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div id="admin-panel-orders" class="admin-section">
+                <div class="filters-grid">
+                  <div class="form-field">
+                    <label for="orders-search">جستجو</label>
+                    <input id="orders-search" type="text" placeholder="شماره سفارش، نام یا ایمیل" />
+                  </div>
+                  <div class="form-field">
+                    <label for="orders-status">وضعیت سفارش</label>
+                    <select id="orders-status">
+                      <option value="">همه</option>
+                      <option value="pending">pending</option>
+                      <option value="processing">processing</option>
+                      <option value="shipped">shipped</option>
+                      <option value="completed">completed</option>
+                      <option value="cancelled">cancelled</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="orders-payment-status">وضعیت پرداخت</label>
+                    <select id="orders-payment-status">
+                      <option value="">همه</option>
+                      <option value="pending">pending</option>
+                      <option value="paid">paid</option>
+                      <option value="completed">completed</option>
+                      <option value="failed">failed</option>
+                    </select>
+                  </div>
+                  <div class="form-field" style="justify-content:flex-end;">
+                    <label style="opacity:0;">اقدام</label>
+                    <button class="btn btn-primary" type="button" id="orders-filter-btn">اعمال فیلتر</button>
+                  </div>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>شماره سفارش</th>
+                        <th>کاربر</th>
+                        <th>ایمیل</th>
+                        <th>وضعیت</th>
+                        <th>پرداخت</th>
+                        <th>مبلغ</th>
+                        <th>تاریخ</th>
+                        <th>اقدام</th>
+                      </tr>
+                    </thead>
+                    <tbody id="orders-body"></tbody>
+                  </table>
+                </div>
+
+                <div id="order-detail" class="detail-card admin-hidden"></div>
+              </div>
+
+              <div id="admin-panel-users" class="admin-section">
+                <div class="filters-grid">
+                  <div class="form-field">
+                    <label for="users-search">جستجو</label>
+                    <input id="users-search" type="text" placeholder="نام، ایمیل یا شماره" />
+                  </div>
+                  <div class="form-field">
+                    <label for="users-role">نقش</label>
+                    <select id="users-role">
+                      <option value="">همه</option>
+                      <option value="customer">customer</option>
+                      <option value="admin">admin</option>
+                      <option value="super_admin">super_admin</option>
+                    </select>
+                  </div>
+                  <div class="form-field" style="justify-content:flex-end;">
+                    <label style="opacity:0;">اقدام</label>
+                    <button class="btn btn-primary" type="button" id="users-filter-btn">اعمال فیلتر</button>
+                  </div>
+                </div>
+
+                <div class="table-wrap">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>شناسه</th>
+                        <th>نام</th>
+                        <th>ایمیل</th>
+                        <th>شماره</th>
+                        <th>نقش</th>
+                        <th>کیف پول</th>
+                        <th>سفارش‌ها</th>
+                        <th>اقدام</th>
+                      </tr>
+                    </thead>
+                    <tbody id="users-body"></tbody>
+                  </table>
+                </div>
+
+                <div id="user-edit-box" class="detail-card admin-hidden"></div>
+              </div>
+
+              <div id="admin-panel-wallet" class="admin-section">
+                <div class="filters-grid">
+                  <div class="form-field">
+                    <label for="wallet-user-id">شناسه کاربر</label>
+                    <input id="wallet-user-id" type="number" min="1" placeholder="مثلاً 1" />
+                  </div>
+                  <div class="form-field" style="justify-content:flex-end;">
+                    <label style="opacity:0;">اقدام</label>
+                    <button class="btn btn-primary" type="button" id="wallet-load-btn">بارگذاری کیف پول</button>
+                  </div>
+                </div>
+
+                <div id="wallet-user-box" class="detail-card admin-hidden"></div>
+                <div id="wallet-adjust-box" class="detail-card admin-hidden"></div>
+                <div id="wallet-history-box" class="detail-card admin-hidden"></div>
+              </div>
+
+              <div id="admin-panel-logout" class="admin-section">
+                <div class="detail-card">
+                  <h4>خروج از پنل مدیریت</h4>
+                  <p>برای پایان نشست مدیریتی از دکمه زیر استفاده کن.</p>
+                  <div class="panel-actions">
+                    <button type="button" class="btn btn-primary" data-auth-logout>خروج</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <div id="site-cart"></div>
+
+  <script src="assets/js/layout.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script>
+    const adminPanels = document.querySelectorAll("[data-admin-panel]");
+    const adminSections = document.querySelectorAll(".admin-section");
+    const adminHeading = document.getElementById("admin-panel-heading");
+    const adminDescription = document.getElementById("admin-panel-description");
+    const adminLoading = document.getElementById("admin-loading");
+    const adminApp = document.getElementById("admin-app");
+    const adminMessage = document.getElementById("admin-message");
+
+    const panelMeta = {
+      dashboard: { title: "داشبورد", description: "نمای کلی وضعیت فروشگاه و آخرین فعالیت‌ها." },
+      orders: { title: "سفارش‌ها", description: "مدیریت و بررسی همه سفارش‌های ثبت شده." },
+      users: { title: "کاربران", description: "مدیریت کاربران، نقش‌ها و اطلاعات حساب." },
+      wallet: { title: "کیف پول", description: "مدیریت موجودی و تراکنش‌های کیف پول کاربران." },
+      logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
+    };
+
+    function setAdminMessage(message, type = "error") {
+      adminMessage.textContent = message || "";
+      adminMessage.className = "admin-message";
+      if (message) {
+        adminMessage.classList.add(type === "success" ? "is-success" : "is-error");
+      }
+    }
+
+    function openAdminPanel(panel) {
+      adminPanels.forEach((btn) => {
+        btn.classList.toggle("is-active", btn.getAttribute("data-admin-panel") === panel);
+      });
+
+      adminSections.forEach((section) => {
+        section.classList.toggle("is-active", section.id === `admin-panel-${panel}`);
+      });
+
+      if (panelMeta[panel]) {
+        adminHeading.textContent = panelMeta[panel].title;
+        adminDescription.textContent = panelMeta[panel].description;
+      }
+    }
+
+    function esc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function money(value) {
+      return Number(value || 0).toLocaleString("fa-IR");
+    }
+
+    function badge(value) {
+      const v = String(value || "").toLowerCase();
+      let cls = "status-badge status-badge--warning";
+      if (["paid", "completed", "success"].includes(v)) cls = "status-badge status-badge--success";
+      else if (["processing", "shipped"].includes(v)) cls = "status-badge status-badge--info";
+      else if (["cancelled", "failed"].includes(v)) cls = "status-badge status-badge--danger";
+      return `<span class="${cls}">${esc(value || "-")}</span>`;
+    }
+
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        ...options
+      });
+      const data = await response.json();
+      return { ok: response.ok, data };
+    }
+
+    async function loadDashboard() {
+      const result = await api("/api/admin/stats");
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "دریافت آمار انجام نشد.");
+        return;
+      }
+
+      const stats = result.data.stats || {};
+      document.getElementById("stat-users").textContent = money(stats.total_users || 0);
+      document.getElementById("stat-orders").textContent = money(stats.total_orders || 0);
+      document.getElementById("stat-pending").textContent = money(stats.pending_orders || 0);
+      document.getElementById("stat-revenue").textContent = money(stats.total_revenue || 0);
+      document.getElementById("stat-wallet").textContent = money(stats.total_wallet_balance || 0);
+
+      const latestUsersBody = document.getElementById("latest-users-body");
+      const latestOrdersBody = document.getElementById("latest-orders-body");
+
+      latestUsersBody.innerHTML = (result.data.latest_users || []).map((user) => `
+        <tr>
+          <td class="table-number">${esc(user.id)}</td>
+          <td>${esc(user.full_name)}</td>
+          <td>${esc(user.email)}</td>
+          <td>${badge(user.role)}</td>
+          <td class="table-number">${esc(user.created_at)}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
+
+      latestOrdersBody.innerHTML = (result.data.latest_orders || []).map((order) => `
+        <tr>
+          <td class="table-number">${esc(order.order_number)}</td>
+          <td>${badge(order.status)}</td>
+          <td>${badge(order.payment_status)}</td>
+          <td class="table-number">${money(order.total_amount)}</td>
+          <td class="table-number">${esc(order.created_at)}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
+    }
+
+    async function loadOrders() {
+      const search = document.getElementById("orders-search").value.trim();
+      const status = document.getElementById("orders-status").value.trim();
+      const payment_status = document.getElementById("orders-payment-status").value.trim();
+
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (status) params.set("status", status);
+      if (payment_status) params.set("payment_status", payment_status);
+
+      const result = await api(`/api/admin/orders?${params.toString()}`);
+      const tbody = document.getElementById("orders-body");
+
+      if (!result.ok || !result.data?.success) {
+        tbody.innerHTML = `<tr><td colspan="8">دریافت سفارش‌ها انجام نشد.</td></tr>`;
+        return;
+      }
+
+      const orders = result.data.orders || [];
+      tbody.innerHTML = orders.map((order) => `
+        <tr>
+          <td class="table-number">${esc(order.order_number)}</td>
+          <td>${esc(order.full_name || "-")}</td>
+          <td>${esc(order.email || "-")}</td>
+          <td>${badge(order.status)}</td>
+          <td>${badge(order.payment_status)}</td>
+          <td class="table-number">${money(order.total_amount)}</td>
+          <td class="table-number">${esc(order.created_at)}</td>
+          <td>
+            <button class="btn btn-secondary" type="button" data-view-order="${esc(order.order_number)}">جزئیات</button>
+          </td>
+        </tr>
+      `).join("") || `<tr><td colspan="8">سفارشی پیدا نشد.</td></tr>`;
+    }
+
+    async function loadOrderDetail(orderNumber) {
+      const result = await api(`/api/admin/orders/${encodeURIComponent(orderNumber)}`);
+      const box = document.getElementById("order-detail");
+
+      if (!result.ok || !result.data?.success) {
+        box.classList.remove("admin-hidden");
+        box.innerHTML = `<h4>خطا</h4><p>${esc(result.data?.error || "دریافت جزئیات سفارش انجام نشد.")}</p>`;
+        return;
+      }
+
+      const order = result.data.order;
+      const items = order.items || [];
+
+      box.classList.remove("admin-hidden");
+      box.innerHTML = `
+        <h4>جزئیات سفارش ${esc(order.order_number)}</h4>
+        <p>
+          کاربر: ${esc(order.full_name)}<br>
+          ایمیل: ${esc(order.email)}<br>
+          شماره: ${esc(order.phone || "-")}<br>
+          وضعیت: ${esc(order.status)}<br>
+          پرداخت: ${esc(order.payment_status)}<br>
+          مبلغ: ${money(order.total_amount)}<br>
+          تاریخ: ${esc(order.created_at)}
+        </p>
+
+        <div class="panel-actions">
+          <select id="detail-status">
+            <option value="pending">pending</option>
+            <option value="processing">processing</option>
+            <option value="shipped">shipped</option>
+            <option value="completed">completed</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+
+          <select id="detail-payment-status">
+            <option value="pending">pending</option>
+            <option value="paid">paid</option>
+            <option value="completed">completed</option>
+            <option value="failed">failed</option>
+          </select>
+
+          <button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>
+        </div>
+
+        <div class="table-wrap" style="margin-top:16px;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>محصول</th>
+                <th>تعداد</th>
+                <th>قیمت واحد</th>
+                <th>جمع</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                items.length
+                  ? items.map((item) => `
+                    <tr>
+                      <td>${esc(item.product_name)}</td>
+                      <td class="table-number">${esc(item.quantity)}</td>
+                      <td class="table-number">${money(item.unit_price)}</td>
+                      <td class="table-number">${money(item.total_price)}</td>
+                    </tr>
+                  `).join("")
+                  : `<tr><td colspan="4">آیتمی ثبت نشده است.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById("detail-status").value = order.status || "pending";
+      document.getElementById("detail-payment-status").value = order.payment_status || "pending";
+
+      document.getElementById("save-order-status-btn").addEventListener("click", async () => {
+        const status = document.getElementById("detail-status").value;
+        const payment_status = document.getElementById("detail-payment-status").value;
+
+        const saveResult = await api("/api/admin/orders", {
+          method: "POST",
+          body: JSON.stringify({
+            order_number: order.order_number,
+            status,
+            payment_status
+          })
+        });
+
+        if (!saveResult.ok || !saveResult.data?.success) {
+          setAdminMessage(saveResult.data?.error || "ذخیره وضعیت سفارش انجام نشد.");
+          return;
+        }
+
+        setAdminMessage("وضعیت سفارش با موفقیت ذخیره شد.", "success");
+        await loadOrders();
+        await loadOrderDetail(order.order_number);
+      });
+    }
+
+    async function loadUsers() {
+      const search = document.getElementById("users-search").value.trim();
+      const role = document.getElementById("users-role").value.trim();
+
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (role) params.set("role", role);
+
+      const result = await api(`/api/admin/users?${params.toString()}`);
+      const tbody = document.getElementById("users-body");
+
+      if (!result.ok || !result.data?.success) {
+        tbody.innerHTML = `<tr><td colspan="8">دریافت کاربران انجام نشد.</td></tr>`;
+        return;
+      }
+
+      const users = result.data.users || [];
+      tbody.innerHTML = users.map((user) => `
+        <tr>
+          <td class="table-number">${esc(user.id)}</td>
+          <td>${esc(user.full_name || "-")}</td>
+          <td>${esc(user.email || "-")}</td>
+          <td>${esc(user.phone || "-")}</td>
+          <td>${badge(user.role)}</td>
+          <td class="table-number">${money(user.wallet_balance || 0)}</td>
+          <td class="table-number">${money(user.orders_count || 0)}</td>
+          <td>
+            <button class="btn btn-secondary" type="button" data-edit-user='${esc(JSON.stringify(user))}'>ویرایش</button>
+          </td>
+        </tr>
+      `).join("") || `<tr><td colspan="8">کاربری پیدا نشد.</td></tr>`;
+    }
+
+    function openUserEdit(user) {
+      const box = document.getElementById("user-edit-box");
+      box.classList.remove("admin-hidden");
+      box.innerHTML = `
+        <h4>ویرایش کاربر #${esc(user.id)}</h4>
+        <div class="filters-grid">
+          <div class="form-field">
+            <label for="edit-user-full-name">نام</label>
+            <input id="edit-user-full-name" type="text" value="${esc(user.full_name || "")}" />
+          </div>
+          <div class="form-field">
+            <label for="edit-user-email">ایمیل</label>
+            <input id="edit-user-email" type="email" value="${esc(user.email || "")}" />
+          </div>
+          <div class="form-field">
+            <label for="edit-user-phone">شماره</label>
+            <input id="edit-user-phone" type="text" value="${esc(user.phone || "")}" />
+          </div>
+          <div class="form-field">
+            <label for="edit-user-role">نقش</label>
+            <select id="edit-user-role">
+              <option value="customer">customer</option>
+              <option value="admin">admin</option>
+              <option value="super_admin">super_admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره</button>
+        </div>
+      `;
+
+      document.getElementById("edit-user-role").value = user.role || "customer";
+
+      document.getElementById("save-user-btn").addEventListener("click", async () => {
+        const payload = {
+          user_id: user.id,
+          full_name: document.getElementById("edit-user-full-name").value.trim(),
+          email: document.getElementById("edit-user-email").value.trim(),
+          phone: document.getElementById("edit-user-phone").value.trim(),
+          role: document.getElementById("edit-user-role").value.trim()
+        };
+
+        const result = await api("/api/admin/users", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        if (!result.ok || !result.data?.success) {
+          setAdminMessage(result.data?.error || "ذخیره کاربر انجام نشد.");
+          return;
+        }
+
+        setAdminMessage("اطلاعات کاربر با موفقیت ذخیره شد.", "success");
+        await loadUsers();
+      });
+    }
+
+    async function loadWalletUser() {
+      const userId = Number(document.getElementById("wallet-user-id").value || 0);
+      if (!userId) {
+        setAdminMessage("شناسه کاربر را وارد کن.");
+        return;
+      }
+
+      const result = await api(`/api/admin/wallet?user_id=${encodeURIComponent(userId)}`);
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "دریافت کیف پول انجام نشد.");
+        return;
+      }
+
+      const user = result.data.user;
+      const txs = result.data.transactions || [];
+
+      const userBox = document.getElementById("wallet-user-box");
+      const adjustBox = document.getElementById("wallet-adjust-box");
+      const historyBox = document.getElementById("wallet-history-box");
+
+      userBox.classList.remove("admin-hidden");
+      adjustBox.classList.remove("admin-hidden");
+      historyBox.classList.remove("admin-hidden");
+
+      userBox.innerHTML = `
+        <h4>اطلاعات کیف پول</h4>
+        <p>
+          کاربر: ${esc(user.full_name)}<br>
+          ایمیل: ${esc(user.email)}<br>
+          شماره: ${esc(user.phone || "-")}<br>
+          نقش: ${esc(user.role || "-")}<br>
+          موجودی فعلی: ${money(user.wallet_balance || 0)}
+        </p>
+      `;
+
+      adjustBox.innerHTML = `
+        <h4>تعدیل کیف پول</h4>
+        <div class="filters-grid">
+          <div class="form-field">
+            <label for="wallet-type">نوع عملیات</label>
+            <select id="wallet-type">
+              <option value="credit">credit</option>
+              <option value="debit">debit</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="wallet-amount">مبلغ</label>
+            <input id="wallet-amount" type="number" min="1" />
+          </div>
+          <div class="form-field">
+            <label for="wallet-note">یادداشت</label>
+            <input id="wallet-note" type="text" placeholder="اختیاری" />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" type="button" id="wallet-save-btn">ثبت عملیات</button>
+        </div>
+      `;
+
+      historyBox.innerHTML = `
+        <h4>تاریخچه تراکنش‌ها</h4>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>شناسه</th>
+                <th>نوع</th>
+                <th>مبلغ</th>
+                <th>قبل</th>
+                <th>بعد</th>
+                <th>وضعیت</th>
+                <th>یادداشت</th>
+                <th>تاریخ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                txs.length
+                  ? txs.map((tx) => `
+                    <tr>
+                      <td class="table-number">${esc(tx.id)}</td>
+                      <td>${badge(tx.type)}</td>
+                      <td class="table-number">${money(tx.amount)}</td>
+                      <td class="table-number">${money(tx.balance_before)}</td>
+                      <td class="table-number">${money(tx.balance_after)}</td>
+                      <td>${badge(tx.status)}</td>
+                      <td>${esc(tx.note || "-")}</td>
+                      <td class="table-number">${esc(tx.created_at)}</td>
+                    </tr>
+                  `).join("")
+                  : `<tr><td colspan="8">تراکنشی ثبت نشده است.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById("wallet-save-btn").addEventListener("click", async () => {
+        const type = document.getElementById("wallet-type").value;
+        const amount = Number(document.getElementById("wallet-amount").value || 0);
+        const note = document.getElementById("wallet-note").value.trim();
+
+        const saveResult = await api("/api/admin/wallet", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: user.id,
+            type,
+            amount,
+            note,
+            reference_type: "admin"
+          })
+        });
+
+        if (!saveResult.ok || !saveResult.data?.success) {
+          setAdminMessage(saveResult.data?.error || "ثبت عملیات کیف پول انجام نشد.");
+          return;
+        }
+
+        setAdminMessage("عملیات کیف پول با موفقیت ثبت شد.", "success");
+        await loadWalletUser();
+        await loadDashboard();
+        await loadUsers();
+      });
+    }
+
+    adminPanels.forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const panel = btn.getAttribute("data-admin-panel");
+        openAdminPanel(panel);
+
+        if (panel === "dashboard") await loadDashboard();
+        if (panel === "orders") await loadOrders();
+        if (panel === "users") await loadUsers();
+      });
+    });
+
+    document.getElementById("orders-filter-btn").addEventListener("click", loadOrders);
+    document.getElementById("users-filter-btn").addEventListener("click", loadUsers);
+    document.getElementById("wallet-load-btn").addEventListener("click", loadWalletUser);
+
+    document.getElementById("orders-body").addEventListener("click", async (event) => {
+      const btn = event.target.closest("[data-view-order]");
+      if (!btn) return;
+      await loadOrderDetail(btn.getAttribute("data-view-order"));
+    });
+
+    document.getElementById("users-body").addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-edit-user]");
+      if (!btn) return;
+      const user = JSON.parse(btn.getAttribute("data-edit-user"));
+      openUserEdit(user);
+    });
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const adminUser = await window.Auth.requireAdmin({ redirectPath: "/admin.html" });
+      if (!adminUser) return;
+
+      window.Auth.fillUserFields(adminUser, {
+        nameSelector: "[data-user-full-name]",
+        roleSelector: "[data-user-role]"
+      });
+
+      await loadDashboard();
+      window.Auth.bindLogoutButton({
+        buttonSelector: "[data-auth-logout]",
+        redirectAfterSuccess: "/index.html"
+      });
+
+      adminLoading.classList.add("admin-hidden");
+      adminApp.classList.remove("admin-hidden");
+    });
+  </script>
+</body>
+</html>

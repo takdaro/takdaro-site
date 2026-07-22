@@ -27,9 +27,20 @@ export async function onRequestPost(context) {
     const password_hash = await sha256(password);
 
     const user = await context.env.DB
-      .prepare(
-        "SELECT id, full_name, phone, email, password_hash, created_at FROM users WHERE email = ?"
-      )
+      .prepare(`
+        SELECT
+          id,
+          full_name,
+          phone,
+          email,
+          role,
+          wallet_balance,
+          password_hash,
+          created_at,
+          updated_at
+        FROM users
+        WHERE email = ?
+      `)
       .bind(email)
       .first();
 
@@ -43,9 +54,10 @@ export async function onRequestPost(context) {
     const sessionId = crypto.randomUUID();
 
     await context.env.DB
-      .prepare(
-        "INSERT INTO sessions (id, user_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)"
-      )
+      .prepare(`
+        INSERT INTO sessions (id, user_id, created_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+      `)
       .bind(sessionId, user.id)
       .run();
 
@@ -56,7 +68,10 @@ export async function onRequestPost(context) {
         full_name: user.full_name,
         phone: user.phone,
         email: user.email,
-        created_at: user.created_at
+        role: user.role,
+        wallet_balance: user.wallet_balance,
+        created_at: user.created_at,
+        updated_at: user.updated_at
       }
     });
 
