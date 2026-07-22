@@ -37,4 +37,3 @@ export async function onRequestPost(context) {
       { status: 500 }
     );
   }
-}
