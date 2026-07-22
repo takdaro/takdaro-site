@@ -1,5 +1,5 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
-import { hashPassword } from "../../lib/auth";
+import { hashPassword } from "../../lib/password";
 
 function toInt(value, fallback = 1) {
   const n = Number.parseInt(value, 10);
@@ -475,4 +475,5 @@ export async function onRequestDelete(context) {
       { status: 500 }
     );
   }
-}
+}  اینم نیاز داری یا اوکیه
+</query>
