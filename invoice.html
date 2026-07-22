@@ -686,11 +686,34 @@
 
         if (items.length) {
           itemsBody.innerHTML = items.map((item, index) => {
-            const qty = Number(item.quantity || item.qty || 0);
-            const unitPrice = Number(item.unit_price || 0);
-            const rowTotal = item.total_price != null
-              ? Number(item.total_price)
-              : unitPrice * qty;
+            const unitPrice = Number(
+              item.unit_price ??
+              item.price ??
+              0
+            );
+
+            const rowTotal = Number(
+              item.total_price ??
+              item.row_total ??
+              item.line_total ??
+              0
+            );
+
+            let qty = Number(
+              item.quantity ??
+              item.qty ??
+              item.count ??
+              item.amount ??
+              0
+            );
+
+            if ((!qty || qty < 1) && unitPrice > 0 && rowTotal > 0) {
+              qty = Math.round(rowTotal / unitPrice);
+            }
+
+            if (!qty || qty < 1) {
+              qty = 1;
+            }
 
             return `
               <tr>
@@ -698,7 +721,7 @@
                 <td>${escapeHtml(item.product_name || item.name || "-")}</td>
                 <td class="table-number">${qty.toLocaleString("fa-IR")}</td>
                 <td class="table-number">${formatPrice(unitPrice)}</td>
-                <td class="table-number">${formatPrice(rowTotal)}</td>
+                <td class="table-number">${formatPrice(rowTotal || (unitPrice * qty))}</td>
               </tr>
             `;
           }).join("");
