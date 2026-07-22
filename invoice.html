@@ -75,6 +75,7 @@
       font-weight: 700;
       white-space: nowrap;
     }
+
     .status-badge--success { background: #ecfdf5; color: #047857; }
     .status-badge--info    { background: #eff6ff; color: #1d4ed8; }
     .status-badge--warning { background: #fff7ed; color: #c2410c; }
@@ -86,6 +87,8 @@
       padding: 24px;
       margin-bottom: 24px;
       box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
 
     .invoice-section h2 {
@@ -178,6 +181,8 @@
       border: 1px solid rgba(15, 23, 42, 0.06);
       background: #f8fafc;
       padding: 16px;
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
 
     .invoice-address-card h3 {
@@ -209,6 +214,7 @@
       line-height: 1.9;
       display: none;
     }
+
     .invoice-message.is-error {
       display: block;
       background: #fef2f2;
@@ -220,12 +226,191 @@
       .invoice-meta {
         grid-template-columns: 1fr;
       }
+
       .invoice-summary,
       .invoice-addresses {
         grid-template-columns: 1fr;
       }
+
       .invoice-page {
         padding: 16px 0 32px;
+      }
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 4mm;
+    }
+
+    @media print {
+      html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm !important;
+        min-height: 297mm !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        color: #000 !important;
+        font-size: 10px !important;
+        line-height: 1.35 !important;
+      }
+
+      #site-header,
+      #site-footer,
+      #site-cart,
+      .hero,
+      .invoice-actions,
+      .invoice-message {
+        display: none !important;
+      }
+
+      main,
+      .section,
+      .container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+
+      .invoice-page {
+        width: 76mm !important;
+        max-width: 76mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+      }
+
+      body.is-printing-onepage .invoice-page {
+        transform: scale(0.78);
+        transform-origin: top center;
+      }
+
+      .invoice-header,
+      .invoice-section,
+      .invoice-meta-item,
+      .summary-card,
+      .invoice-address-card {
+        box-shadow: none !important;
+        background: #fff !important;
+      }
+
+      .invoice-header,
+      .invoice-section {
+        border-radius: 8px !important;
+        margin-bottom: 6px !important;
+        padding: 8px !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+
+      .invoice-header h1,
+      .invoice-section h2,
+      .invoice-address-card h3 {
+        margin: 0 0 4px !important;
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+      }
+
+      .invoice-header p,
+      .invoice-section p,
+      .invoice-address-card p {
+        margin: 0 !important;
+        font-size: 9px !important;
+        line-height: 1.45 !important;
+        color: #222 !important;
+      }
+
+      .invoice-meta {
+        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+        margin-top: 8px !important;
+      }
+
+      .invoice-meta-item,
+      .summary-card,
+      .invoice-address-card {
+        padding: 6px 8px !important;
+        border-radius: 8px !important;
+      }
+
+      .invoice-meta-item span,
+      .summary-card span {
+        font-size: 8px !important;
+        margin-bottom: 2px !important;
+      }
+
+      .invoice-meta-item strong,
+      .summary-card strong,
+      #summary-payment-status,
+      .status-badge {
+        font-size: 9px !important;
+        line-height: 1.2 !important;
+      }
+
+      .status-badge {
+        min-height: 18px !important;
+        padding: 0 6px !important;
+        border-radius: 999px !important;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .invoice-summary,
+      .invoice-addresses {
+        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+        margin-top: 6px !important;
+      }
+
+      .invoice-table-wrap {
+        overflow: hidden !important;
+        border-radius: 8px !important;
+      }
+
+      .invoice-table {
+        min-width: 0 !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+      }
+
+      .invoice-table th,
+      .invoice-table td {
+        padding: 4px 3px !important;
+        font-size: 8px !important;
+        line-height: 1.25 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+      }
+
+      .invoice-table th:nth-child(1),
+      .invoice-table td:nth-child(1) {
+        width: 8% !important;
+      }
+
+      .invoice-table th:nth-child(2),
+      .invoice-table td:nth-child(2) {
+        width: 38% !important;
+      }
+
+      .invoice-table th:nth-child(3),
+      .invoice-table td:nth-child(3) {
+        width: 14% !important;
+      }
+
+      .invoice-table th:nth-child(4),
+      .invoice-table td:nth-child(4),
+      .invoice-table th:nth-child(5),
+      .invoice-table td:nth-child(5) {
+        width: 20% !important;
+      }
+
+      .table-number {
+        white-space: nowrap !important;
       }
     }
   </style>
@@ -246,7 +431,7 @@
 
     <section class="section">
       <div class="container">
-        <div class="invoice-page">
+        <div class="invoice-page" id="invoice-root">
           <div class="invoice-message" id="invoice-message"></div>
 
           <div class="invoice-header" id="invoice-header">
@@ -324,7 +509,7 @@
               <button type="button" class="btn btn-secondary" onclick="window.history.back()">
                 بازگشت
               </button>
-              <button type="button" class="btn btn-primary" onclick="window.print()">
+              <button type="button" class="btn btn-primary" id="print-invoice-btn">
                 چاپ فاکتور
               </button>
             </div>
@@ -354,6 +539,11 @@
   <div id="site-cart"></div>
 
   <script src="assets/js/layout.js"></script>
+  <script src="assets/js/products.js"></script>
+  <script src="price-overrides.js"></script>
+  <script src="price-loader.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/app.js"></script>
   <script src="assets/js/auth.js"></script>
 
   <script>
@@ -377,6 +567,7 @@
     const addressesSection = document.getElementById("invoice-addresses-section");
     const shippingAddressText = document.getElementById("shipping-address-text");
     const billingAddressText = document.getElementById("billing-address-text");
+    const printInvoiceBtn = document.getElementById("print-invoice-btn");
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -400,17 +591,19 @@
     function orderStatusBadge(status) {
       const normalized = String(status || "").trim().toLowerCase();
       let cls = "status-badge status-badge--warning";
+
       if (["completed", "paid", "success"].includes(normalized)) {
         cls = "status-badge status-badge--success";
       } else if (["shipped", "sent", "processing"].includes(normalized)) {
         cls = "status-badge status-badge--info";
       }
+
       return '<span class="' + cls + '">' + escapeHtml(status || "-") + "</span>";
     }
 
     function setError(message) {
       if (!invoiceMessage) return;
-      invoiceMessage.textContent = message;
+      invoiceMessage.textContent = message || "خطایی رخ داده است.";
       invoiceMessage.className = "invoice-message is-error";
     }
 
@@ -421,29 +614,35 @@
 
       const lines = [];
 
-      if (address.full_name) {
-        lines.push("نام: " + address.full_name);
-      }
-
-      if (address.phone) {
-        lines.push("تلفن: " + address.phone);
-      }
-
-      if (address.address_line) {
-        lines.push("آدرس: " + address.address_line);
-      }
+      if (address.full_name) lines.push("نام: " + address.full_name);
+      if (address.phone) lines.push("تلفن: " + address.phone);
+      if (address.address_line) lines.push("آدرس: " + address.address_line);
 
       const cityState = [address.city, address.state].filter(Boolean).join(" - ");
-      if (cityState) {
-        lines.push("شهر/استان: " + cityState);
-      }
+      if (cityState) lines.push("شهر/استان: " + cityState);
 
-      if (address.postal_code) {
-        lines.push("کد پستی: " + address.postal_code);
-      }
+      if (address.postal_code) lines.push("کد پستی: " + address.postal_code);
 
       return lines.length ? lines.join("\n") : "آدرسی برای این بخش ثبت نشده است.";
     }
+
+    function enablePrintMode() {
+      document.body.classList.add("is-printing-invoice", "is-printing-onepage");
+    }
+
+    function disablePrintMode() {
+      document.body.classList.remove("is-printing-invoice", "is-printing-onepage");
+    }
+
+    function printInvoice() {
+      enablePrintMode();
+      setTimeout(() => {
+        window.print();
+      }, 80);
+    }
+
+    window.addEventListener("beforeprint", enablePrintMode);
+    window.addEventListener("afterprint", disablePrintMode);
 
     async function loadInvoice() {
       const params = new URLSearchParams(window.location.search);
@@ -455,7 +654,7 @@
         return;
       }
 
-      if (!window.Auth) {
+      if (!window.Auth || typeof window.Auth.requireAuth !== "function") {
         setError("سیستم احراز هویت در دسترس نیست.");
         return;
       }
@@ -488,27 +687,26 @@
         headerText.textContent = "فاکتور سفارش انتخاب‌شده در زیر نمایش داده شده است.";
 
         const items = Array.isArray(order.items) ? order.items : [];
-
         itemsSection.style.display = "block";
 
         if (items.length) {
-          itemsBody.innerHTML = items
-            .map((item, index) => {
-              const rowTotal = item.total_price != null
-                ? item.total_price
-                : Number(item.unit_price || 0) * Number(item.quantity || item.qty || 0);
+          itemsBody.innerHTML = items.map((item, index) => {
+            const qty = Number(item.quantity || item.qty || 0);
+            const unitPrice = Number(item.unit_price || 0);
+            const rowTotal = item.total_price != null
+              ? Number(item.total_price)
+              : unitPrice * qty;
 
-              return `
-                <tr>
-                  <td class="table-number">${index + 1}</td>
-                  <td>${escapeHtml(item.product_name || item.name || "-")}</td>
-                  <td class="table-number">${Number(item.quantity || item.qty || 0).toLocaleString("fa-IR")}</td>
-                  <td class="table-number">${formatPrice(item.unit_price || 0)}</td>
-                  <td class="table-number">${formatPrice(rowTotal)}</td>
-                </tr>
-              `;
-            })
-            .join("");
+            return `
+              <tr>
+                <td class="table-number">${index + 1}</td>
+                <td>${escapeHtml(item.product_name || item.name || "-")}</td>
+                <td class="table-number">${qty.toLocaleString("fa-IR")}</td>
+                <td class="table-number">${formatPrice(unitPrice)}</td>
+                <td class="table-number">${formatPrice(rowTotal)}</td>
+              </tr>
+            `;
+          }).join("");
         } else {
           itemsBody.innerHTML =
             '<tr><td colspan="5">برای این سفارش هیچ قلم کالایی ثبت نشده است.</td></tr>';
@@ -534,7 +732,13 @@
       }
     }
 
-    document.addEventListener("DOMContentLoaded", loadInvoice);
+    if (printInvoiceBtn) {
+      printInvoiceBtn.addEventListener("click", printInvoice);
+    }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      await loadInvoice();
+    });
   </script>
 </body>
 </html>

@@ -698,12 +698,10 @@
       if (!window.Auth) return;
 
       try {
-        const user = await window.Auth.getCurrentUser();
-        if (!user) return;
-        currentUser = user;
-
         const profileResult = await window.Auth.getProfile();
-        const profileUser = profileResult?.data?.user || user;
+        const profileUser = profileResult?.data?.user || null;
+        if (!profileUser) return;
+
         currentUser = profileUser;
 
         const nameParts = splitFullName(profileUser.full_name || "");
@@ -745,81 +743,82 @@
       } catch (error) {}
     }
 
-    checkoutForm.addEventListener("submit", async function (event) {
-      event.preventDefault();
-      setCheckoutMessage("");
+    if (checkoutForm) {
+      checkoutForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        setCheckoutMessage("");
 
-      const items = getCartItems();
-      if (!items.length) {
-        setCheckoutMessage("سبد خرید شما خالی است.", "error");
-        return;
-      }
-
-      const shippingFee = getSelectedShippingFee();
-      const shippingLabel = getSelectedShippingLabel();
-
-      const formData = {
-        firstName: document.getElementById("first-name").value.trim(),
-        lastName: document.getElementById("last-name").value.trim(),
-        province: shippingLabel,
-        city: document.getElementById("city").value.trim(),
-        postalCode: document.getElementById("postal-code").value.trim(),
-        phone: document.getElementById("phone").value.trim(),
-        address: document.getElementById("address").value.trim()
-      };
-
-      if (!validateForm(formData)) return;
-
-      submitOrderBtn.disabled = true;
-      setCheckoutMessage("در حال ثبت سفارش...", "info");
-
-      let totalQty = 0;
-      let subtotal = 0;
-      let hasNumericPrice = false;
-
-      const orderLines = items.map(({ product, qty }, index) => {
-        totalQty += qty;
-
-        const rawPrice = getRawPrice(product);
-        const unitPrice = parsePrice(rawPrice);
-        const rowTotal = unitPrice !== null ? unitPrice * qty : null;
-
-        if (rowTotal !== null) {
-          subtotal += rowTotal;
-          hasNumericPrice = true;
-        }
-
-        return `${index + 1}. ${product.name}
-- تعداد: ${qty}
-- قیمت واحد: ${formatPrice(rawPrice)}
-- جمع واحد: ${rowTotal !== null ? `${formatNumber(rowTotal)} تومان` : "تماس بگیرید"}`;
-      }).join("\n\n");
-
-      const grandTotal = hasNumericPrice ? subtotal + shippingFee : null;
-
-      try {
-        const payload = buildOrderPayload(items, formData);
-
-        const response = await fetch("/api/account/create-order", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          credentials: "same-origin",
-          body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data?.success) {
-          setCheckoutMessage(data?.error || "ثبت سفارش با مشکل مواجه شد.", "error");
-          submitOrderBtn.disabled = false;
+        const items = getCartItems();
+        if (!items.length) {
+          setCheckoutMessage("سبد خرید شما خالی است.", "error");
           return;
         }
 
-        const orderNumber = data.order?.order_number || "-";
+        const shippingFee = getSelectedShippingFee();
+        const shippingLabel = getSelectedShippingLabel();
 
-        const message =
+        const formData = {
+          firstName: document.getElementById("first-name").value.trim(),
+          lastName: document.getElementById("last-name").value.trim(),
+          province: shippingLabel,
+          city: document.getElementById("city").value.trim(),
+          postalCode: document.getElementById("postal-code").value.trim(),
+          phone: document.getElementById("phone").value.trim(),
+          address: document.getElementById("address").value.trim()
+        };
+
+        if (!validateForm(formData)) return;
+
+        submitOrderBtn.disabled = true;
+        setCheckoutMessage("در حال ثبت سفارش...", "info");
+
+        let totalQty = 0;
+        let subtotal = 0;
+        let hasNumericPrice = false;
+
+        const orderLines = items.map(({ product, qty }, index) => {
+          totalQty += qty;
+
+          const rawPrice = getRawPrice(product);
+          const unitPrice = parsePrice(rawPrice);
+          const rowTotal = unitPrice !== null ? unitPrice * qty : null;
+
+          if (rowTotal !== null) {
+            subtotal += rowTotal;
+            hasNumericPrice = true;
+          }
+
+          return `${index + 1}. ${product.name}
+- تعداد: ${qty}
+- قیمت واحد: ${formatPrice(rawPrice)}
+- جمع واحد: ${rowTotal !== null ? `${formatNumber(rowTotal)} تومان` : "تماس بگیرید"}`;
+        }).join("\n\n");
+
+        const grandTotal = hasNumericPrice ? subtotal + shippingFee : null;
+
+        try {
+          const payload = buildOrderPayload(items, formData);
+
+          const response = await fetch("/api/account/create-order", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+
+          if (!response.ok || !data?.success) {
+            setCheckoutMessage(data?.error || "ثبت سفارش با مشکل مواجه شد.", "error");
+            submitOrderBtn.disabled = false;
+            return;
+          }
+
+          const orderNumber = data.order?.order_number || "-";
+
+          const message =
 `سلام وقت بخیر
 یک سفارش جدید از سایت تک تجارت ثبت شده است.
 
@@ -842,24 +841,32 @@ ${orderLines}
 کد پستی: ${formData.postalCode}
 شماره تماس: ${formData.phone}`;
 
-        clearCart();
-        renderCheckout();
-        setCheckoutMessage("سفارش با موفقیت ثبت شد. در حال انتقال به واتساپ...", "success");
+          clearCart();
+          renderCheckout();
+          setCheckoutMessage("سفارش با موفقیت ثبت شد. در حال انتقال به واتساپ...", "success");
 
-        const whatsappUrl = `https://wa.me/989214147070?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-      } catch (error) {
-        setCheckoutMessage("ثبت سفارش با خطا مواجه شد.", "error");
-      } finally {
-        submitOrderBtn.disabled = false;
-      }
-    });
+          const whatsappUrl = `https://wa.me/989214147070?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        } catch (error) {
+          setCheckoutMessage("ثبت سفارش با خطا مواجه شد.", "error");
+        } finally {
+          submitOrderBtn.disabled = false;
+        }
+      });
+    }
 
     if (provinceSelect) {
       provinceSelect.addEventListener("change", renderCheckout);
     }
 
     document.addEventListener("DOMContentLoaded", async function () {
+      if (window.Auth && typeof window.Auth.requireAuth === "function") {
+        const user = await window.Auth.requireAuth({
+          redirectTo: "/login.html"
+        });
+        if (!user) return;
+      }
+
       renderCheckout();
       await tryFillUserData();
     });

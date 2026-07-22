@@ -49,12 +49,12 @@
   <script src="./price-loader.js"></script>
   <script src="/assets/js/cart.js"></script>
   <script src="/assets/js/app.js"></script>
+  <script src="/assets/js/auth.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async function () {
-    if (!window.Auth) return;
-    await window.Auth.protectPage();
+      if (!window.Auth) return;
+      await window.Auth.protectPage();
     });
   </script>
 </body>
 </html>
-
