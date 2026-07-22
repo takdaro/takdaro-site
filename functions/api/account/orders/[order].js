@@ -19,6 +19,49 @@ async function getCurrentUserId(context) {
   return session?.user_id ?? null;
 }
 
+function toSafeNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function normalizeItem(item) {
+  const unitPrice = toSafeNumber(item.unit_price ?? item.price ?? 0, 0);
+  const quantity = toSafeNumber(
+    item.quantity ?? item.qty ?? item.count ?? item.amount ?? 0,
+    0
+  );
+  const totalPrice = toSafeNumber(
+    item.total_price ?? item.row_total ?? item.line_total ?? 0,
+    0
+  );
+
+  let finalQuantity = quantity;
+  if ((!finalQuantity || finalQuantity < 1) && totalPrice > 0 && unitPrice > 0) {
+    const derivedQty = totalPrice / unitPrice;
+    if (Number.isFinite(derivedQty) && derivedQty >= 1) {
+      finalQuantity = Math.round(derivedQty);
+    }
+  }
+
+  if (!finalQuantity || finalQuantity < 1) {
+    finalQuantity = 1;
+  }
+
+  const finalRowTotal = totalPrice > 0 ? totalPrice : unitPrice * finalQuantity;
+
+  return {
+    id: item.id,
+    product_name: item.product_name || item.name || "",
+    quantity: finalQuantity,
+    qty: finalQuantity,
+    unit_price: unitPrice,
+    price: unitPrice,
+    total_price: finalRowTotal,
+    row_total: finalRowTotal,
+    created_at: item.created_at || null
+  };
+}
+
 export async function onRequestGet(context) {
   try {
     const userId = await getCurrentUserId(context);
@@ -49,6 +92,7 @@ export async function onRequestGet(context) {
           o.shipping_amount,
           o.discount_amount,
           o.payment_status,
+          o.paid_amount,
           o.created_at,
 
           o.shipping_address_id,
@@ -99,9 +143,11 @@ export async function onRequestGet(context) {
       .bind(order.id)
       .all();
 
-    const items = Array.isArray(itemsResult?.results)
+    const rawItems = Array.isArray(itemsResult?.results)
       ? itemsResult.results
       : [];
+
+    const items = rawItems.map(normalizeItem);
 
     return Response.json({
       success: true,
@@ -109,10 +155,11 @@ export async function onRequestGet(context) {
         id: order.id,
         order_number: order.order_number,
         status: order.status,
-        total_amount: order.total_amount,
-        shipping_amount: order.shipping_amount,
-        discount_amount: order.discount_amount,
+        total_amount: toSafeNumber(order.total_amount, 0),
+        shipping_amount: toSafeNumber(order.shipping_amount, 0),
+        discount_amount: toSafeNumber(order.discount_amount, 0),
         payment_status: order.payment_status,
+        paid_amount: toSafeNumber(order.paid_amount ?? order.total_amount, 0),
         created_at: order.created_at,
         items,
         shipping_address: order.shipping_address_id ? {

@@ -84,7 +84,9 @@
     element.textContent = message || "";
     element.style.display = message ? "block" : "none";
     element.classList.remove("is-error", "is-success");
-    element.classList.add(type === "success" ? "is-success" : "is-error");
+    if (message) {
+      element.classList.add(type === "success" ? "is-success" : "is-error");
+    }
   }
 
   function redirectTo(url, replace = false) {
@@ -132,11 +134,11 @@
         const result = await register({ full_name, phone, email, password });
 
         if (!result.ok || !result.data?.success) {
-          setMessage(messageBox, result.data?.error || "Registration failed.");
+          setMessage(messageBox, result.data?.error || "ثبت‌نام انجام نشد.");
           return;
         }
 
-        setMessage(messageBox, "Account created successfully.", "success");
+        setMessage(messageBox, "حساب کاربری با موفقیت ایجاد شد.", "success");
 
         const redirectTarget = getRedirectParam();
         const fallbackRedirect = options.redirectAfterSuccess || "/products.html";
@@ -145,7 +147,7 @@
           redirectTo(redirectTarget || fallbackRedirect, true);
         }, 700);
       } catch (error) {
-        setMessage(messageBox, String(error?.message || error || "Registration failed."));
+        setMessage(messageBox, String(error?.message || error || "ثبت‌نام انجام نشد."));
       } finally {
         if (submitButton) submitButton.disabled = false;
       }
@@ -172,16 +174,16 @@
         const result = await login({ email, password });
 
         if (!result.ok || !result.data?.success) {
-          setMessage(messageBox, result.data?.error || "Login failed.");
+          setMessage(messageBox, result.data?.error || "ورود انجام نشد.");
           return;
         }
 
-        setMessage(messageBox, "Login successful.", "success");
+        setMessage(messageBox, "ورود با موفقیت انجام شد.", "success");
 
         const redirectTarget = getRedirectParam();
         redirectTo(redirectTarget || options.redirectAfterSuccess || "/products.html", true);
       } catch (error) {
-        setMessage(messageBox, String(error?.message || error || "Login failed."));
+        setMessage(messageBox, String(error?.message || error || "ورود انجام نشد."));
       } finally {
         if (submitButton) submitButton.disabled = false;
       }

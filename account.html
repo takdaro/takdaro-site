@@ -1047,15 +1047,45 @@
       return escapeHtml(value);
     }
 
+    function translateOrderStatus(status) {
+      const normalized = String(status || "").trim().toLowerCase();
+
+      const map = {
+        pending: "در انتظار",
+        processing: "در حال پردازش",
+        shipped: "ارسال شده",
+        sent: "ارسال شده",
+        completed: "تکمیل شده",
+        paid: "پرداخت شده",
+        success: "موفق",
+        cancelled: "لغو شده",
+        canceled: "لغو شده",
+        failed: "ناموفق"
+      };
+
+      return map[normalized] || (status ? String(status) : "-");
+    }
+
     function orderStatusClass(status) {
       const normalized = String(status || "").trim().toLowerCase();
+
       if (["completed", "paid", "success"].includes(normalized)) {
         return "status-badge status-badge--success";
       }
+
       if (["shipped", "sent", "processing"].includes(normalized)) {
         return "status-badge status-badge--info";
       }
+
       return "status-badge status-badge--warning";
+    }
+
+    function renderOrderStatusBadge(status) {
+      return `
+        <span class="${orderStatusClass(status)}">
+          ${escapeHtml(translateOrderStatus(status))}
+        </span>
+      `;
     }
 
     function updateDashboardStats(orders, addresses) {
@@ -1113,14 +1143,11 @@
             </td>
             <td class="table-number">${formatDate(order.created_at)}</td>
             <td>
-              <span class="${orderStatusClass(order.status)}">
-                ${escapeHtml(order.status || "-")}
-              </span>
+              ${renderOrderStatusBadge(order.status)}
             </td>
             <td class="table-number">${formatPrice(order.total_amount || 0)}</td>
             <td>
-              <a href="invoice.html?order=${encodeURIComponent(order.order_number || "")}"
-                 class="btn btn-secondary">
+              <a href="invoice.html?order=${encodeURIComponent(order.order_number || "")}" class="btn btn-secondary">
                 مشاهده
               </a>
             </td>
@@ -1178,13 +1205,9 @@
       return {
         id: document.getElementById("address-id").value.trim(),
         full_name: document.getElementById("address-full-name").value.trim(),
-        phone: toEnglishDigits(
-          document.getElementById("address-phone").value.replace(/\D/g, "")
-        ),
+        phone: toEnglishDigits(document.getElementById("address-phone").value.replace(/\D/g, "")),
         type: document.getElementById("address-type").value,
-        postal_code: toEnglishDigits(
-          document.getElementById("address-postal-code").value.replace(/\D/g, "")
-        ),
+        postal_code: toEnglishDigits(document.getElementById("address-postal-code").value.replace(/\D/g, "")),
         state: document.getElementById("address-state").value.trim(),
         city: document.getElementById("address-city").value.trim(),
         address_line: document.getElementById("address-line").value.trim(),
@@ -1236,15 +1259,9 @@
             ${escapeHtml(address.city || "")} - ${escapeHtml(address.state || "")}
           </p>
           <div class="address-actions">
-            <button type="button" class="btn btn-secondary" data-edit-address="${escapeHtml(address.id)}">
-              ویرایش
-            </button>
-            <button type="button" class="btn btn-secondary" data-default-address="${escapeHtml(address.id)}">
-              تنظیم به عنوان پیش‌فرض
-            </button>
-            <button type="button" class="btn btn-secondary" data-delete-address="${escapeHtml(address.id)}">
-              حذف
-            </button>
+            <button type="button" class="btn btn-secondary" data-edit-address="${escapeHtml(address.id)}">ویرایش</button>
+            <button type="button" class="btn btn-secondary" data-default-address="${escapeHtml(address.id)}">تنظیم به عنوان پیش‌فرض</button>
+            <button type="button" class="btn btn-secondary" data-delete-address="${escapeHtml(address.id)}">حذف</button>
           </div>
         </div>
       `;
@@ -1501,9 +1518,7 @@
           password_confirm: passwordConfirm
         };
 
-        if (!validateProfileForm(payload)) {
-          return;
-        }
+        if (!validateProfileForm(payload)) return;
 
         if (saveProfileBtn) saveProfileBtn.disabled = true;
 

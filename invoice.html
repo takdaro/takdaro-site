@@ -497,7 +497,9 @@
               </div>
               <div class="summary-card">
                 <span>وضعیت پرداخت</span>
-                <strong id="summary-payment-status">-</strong>
+                <strong id="summary-payment-status">
+                  <span class="status-badge status-badge--info">-</span>
+                </strong>
               </div>
             </div>
 
@@ -585,17 +587,62 @@
       return escapeHtml(value);
     }
 
-    function orderStatusBadge(status) {
+    function translateOrderStatus(status) {
       const normalized = String(status || "").trim().toLowerCase();
-      let cls = "status-badge status-badge--warning";
+
+      const map = {
+        pending: "در انتظار",
+        processing: "در حال پردازش",
+        shipped: "ارسال شده",
+        sent: "ارسال شده",
+        completed: "تکمیل شده",
+        paid: "پرداخت شده",
+        success: "موفق",
+        cancelled: "لغو شده",
+        canceled: "لغو شده",
+        failed: "ناموفق"
+      };
+
+      return map[normalized] || (status ? String(status) : "-");
+    }
+
+    function translatePaymentStatus(status) {
+      const normalized = String(status || "").trim().toLowerCase();
+
+      const map = {
+        pending: "در انتظار پرداخت",
+        unpaid: "پرداخت نشده",
+        waiting: "در انتظار پرداخت",
+        processing: "در حال بررسی",
+        paid: "پرداخت شده",
+        success: "موفق",
+        completed: "تکمیل شده",
+        failed: "ناموفق",
+        cancelled: "لغو شده",
+        canceled: "لغو شده",
+        refunded: "بازگشت وجه",
+        partial: "پرداخت جزئی"
+      };
+
+      return map[normalized] || (status ? String(status) : "-");
+    }
+
+    function statusBadgeClass(status) {
+      const normalized = String(status || "").trim().toLowerCase();
 
       if (["completed", "paid", "success"].includes(normalized)) {
-        cls = "status-badge status-badge--success";
-      } else if (["shipped", "sent", "processing"].includes(normalized)) {
-        cls = "status-badge status-badge--info";
+        return "status-badge status-badge--success";
       }
 
-      return '<span class="' + cls + '">' + escapeHtml(status || "-") + "</span>";
+      if (["shipped", "sent", "processing"].includes(normalized)) {
+        return "status-badge status-badge--info";
+      }
+
+      return "status-badge status-badge--warning";
+    }
+
+    function renderStatusBadge(status, translator) {
+      return `<span class="${statusBadgeClass(status)}">${escapeHtml(translator(status))}</span>`;
     }
 
     function setError(message) {
@@ -673,17 +720,10 @@
         }
 
         const order = data.order;
-        console.log("FULL ORDER RESPONSE:", data);
-        console.log("ORDER OBJECT:", order);
-        console.log("ORDER ITEMS:", order.items);
-
-        if (Array.isArray(order.items)) {
-        console.table(order.items);
-        }    
 
         metaOrderNumber.textContent = order.order_number || order.id || "-";
         metaCreatedAt.textContent = formatDate(order.created_at);
-        metaStatus.innerHTML = orderStatusBadge(order.status);
+        metaStatus.innerHTML = renderStatusBadge(order.status, translateOrderStatus);
         metaBlock.style.display = "grid";
 
         headerText.textContent = "فاکتور سفارش انتخاب‌شده در زیر نمایش داده شده است.";
@@ -727,7 +767,7 @@
 
             return `
               <tr>
-                <td class="table-number">${index + 1}</td>
+                <td class="table-number">${(index + 1).toLocaleString("fa-IR")}</td>
                 <td>${escapeHtml(item.product_name || item.name || "-")}</td>
                 <td class="table-number">${qty.toLocaleString("fa-IR")}</td>
                 <td class="table-number">${formatPrice(unitPrice)}</td>
@@ -751,7 +791,10 @@
         summaryDiscount.textContent = formatPrice(discountAmount);
         summaryShipping.textContent = formatPrice(shippingAmount);
         summaryPaid.textContent = formatPrice(paidAmount);
-        summaryPaymentStatus.textContent = String(order.payment_status || order.status || "-");
+        summaryPaymentStatus.innerHTML = renderStatusBadge(
+          order.payment_status || order.status,
+          translatePaymentStatus
+        );
 
         addressesSection.style.display = "block";
         shippingAddressText.textContent = formatAddress(order.shipping_address);
