@@ -146,10 +146,6 @@
       gap: 14px;
       margin-bottom: 18px;
     }
-    .form-grid {
-      display: grid;
-      gap: 16px;
-    }
     .form-field {
       display: flex;
       flex-direction: column;
@@ -451,56 +447,6 @@
                   </div>
                 </div>
 
-                <div class="detail-card">
-                  <h4>افزودن کاربر جدید</h4>
-                  <p>برای ایجاد حساب جدید، اطلاعات کاربر را وارد کن.</p>
-
-                  <div id="new-user-message" class="admin-message"></div>
-
-                  <form id="new-user-form" class="form-grid" novalidate>
-                    <div class="filters-grid">
-                      <div class="form-field">
-                        <label for="new-user-full-name">نام و نام خانوادگی</label>
-                        <input id="new-user-full-name" type="text" required />
-                      </div>
-
-                      <div class="form-field">
-                        <label for="new-user-email">ایمیل</label>
-                        <input id="new-user-email" type="email" required />
-                      </div>
-
-                      <div class="form-field">
-                        <label for="new-user-phone">شماره</label>
-                        <input id="new-user-phone" type="text" />
-                      </div>
-
-                      <div class="form-field">
-                        <label for="new-user-role">نقش</label>
-                        <select id="new-user-role" required>
-                          <option value="user">مشتری</option>
-                          <option value="admin">ادمین</option>
-                          <option value="super_admin">مدیر کل</option>
-                        </select>
-                      </div>
-
-                      <div class="form-field">
-                        <label for="new-user-password">رمز عبور</label>
-                        <input id="new-user-password" type="password" required />
-                      </div>
-
-                      <div class="form-field">
-                        <label for="new-user-password-confirm">تکرار رمز عبور</label>
-                        <input id="new-user-password-confirm" type="password" required />
-                      </div>
-                    </div>
-
-                    <div class="panel-actions">
-                      <button class="btn btn-primary" type="submit" id="create-user-btn">ایجاد کاربر</button>
-                      <button class="btn btn-secondary" type="button" id="reset-new-user-btn">پاک کردن فرم</button>
-                    </div>
-                  </form>
-                </div>
-
                 <div class="table-wrap">
                   <table class="admin-table">
                     <thead>
@@ -569,11 +515,6 @@
     const adminApp = document.getElementById("admin-app");
     const adminMessage = document.getElementById("admin-message");
 
-    const newUserForm = document.getElementById("new-user-form");
-    const newUserMessage = document.getElementById("new-user-message");
-    const createUserBtn = document.getElementById("create-user-btn");
-    const resetNewUserBtn = document.getElementById("reset-new-user-btn");
-
     const panelMeta = {
       dashboard: { title: "داشبورد", description: "نمای کلی وضعیت فروشگاه و آخرین فعالیت‌ها." },
       orders: { title: "سفارش‌ها", description: "مدیریت و بررسی همه سفارش‌های ثبت شده." },
@@ -588,22 +529,6 @@
       if (message) {
         adminMessage.classList.add(type === "success" ? "is-success" : "is-error");
       }
-    }
-
-    function setNewUserMessage(message, type = "error") {
-      if (!newUserMessage) return;
-      newUserMessage.textContent = message || "";
-      newUserMessage.className = "admin-message";
-      if (message) {
-        newUserMessage.classList.add(type === "success" ? "is-success" : "is-error");
-      }
-    }
-
-    function resetNewUserForm() {
-      if (!newUserForm) return;
-      newUserForm.reset();
-      document.getElementById("new-user-role").value = "user";
-      setNewUserMessage("");
     }
 
     function openAdminPanel(panel) {
@@ -723,25 +648,6 @@
       return { ok: response.ok, data };
     }
 
-    function validateNewUserPayload(payload) {
-      if (!payload.full_name || !payload.email || !payload.role || !payload.password || !payload.password_confirm) {
-        setNewUserMessage("لطفاً همه فیلدهای ضروری را کامل کن.");
-        return false;
-      }
-
-      if (payload.password.length < 8) {
-        setNewUserMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
-        return false;
-      }
-
-      if (payload.password !== payload.password_confirm) {
-        setNewUserMessage("رمز عبور و تکرار آن یکسان نیست.");
-        return false;
-      }
-
-      return true;
-    }
-
     async function deleteOrder(orderNumber) {
       if (!orderNumber) {
         setAdminMessage("شماره سفارش معتبر نیست.");
@@ -768,6 +674,39 @@
       document.getElementById("order-detail").classList.add("admin-hidden");
       document.getElementById("order-detail").innerHTML = "";
       await loadOrders();
+      await loadDashboard();
+      return true;
+    }
+
+    async function deleteUser(user) {
+      const userId = Number(user?.id || 0);
+      const userName = user?.full_name || `#${userId}`;
+
+      if (!userId) {
+        setAdminMessage("شناسه کاربر معتبر نیست.");
+        return false;
+      }
+
+      const firstConfirm = window.confirm(`آیا از حذف کاربر ${userName} مطمئن هستی؟`);
+      if (!firstConfirm) return false;
+
+      const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست و اطلاعات وابسته کاربر هم حذف می‌شود. حذف انجام شود؟");
+      if (!secondConfirm) return false;
+
+      const result = await api("/api/admin/users", {
+        method: "DELETE",
+        body: JSON.stringify({ user_id: userId })
+      });
+
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "حذف کاربر انجام نشد.");
+        return false;
+      }
+
+      setAdminMessage("کاربر با موفقیت حذف شد.", "success");
+      document.getElementById("user-edit-box").classList.add("admin-hidden");
+      document.getElementById("user-edit-box").innerHTML = "";
+      await loadUsers();
       await loadDashboard();
       return true;
     }
@@ -980,7 +919,10 @@
           <td class="table-number">${money(user.wallet_balance || 0)}</td>
           <td class="table-number">${money(user.orders_count || 0)}</td>
           <td>
-            <button class="btn btn-secondary" type="button" data-edit-user='${esc(JSON.stringify(user))}'>ویرایش</button>
+            <div class="panel-actions" style="margin-top:0;">
+              <button class="btn btn-secondary" type="button" data-edit-user='${esc(JSON.stringify(user))}'>ویرایش</button>
+              <button class="btn btn-secondary" type="button" data-delete-user='${esc(JSON.stringify(user))}'>حذف</button>
+            </div>
           </td>
         </tr>
       `).join("") || `<tr><td colspan="8">کاربری پیدا نشد.</td></tr>`;
@@ -1024,6 +966,7 @@
         <div class="panel-actions">
           <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
           <button class="btn btn-secondary" type="button" id="save-user-password-btn">تغییر رمز عبور</button>
+          <button class="btn btn-secondary" type="button" id="delete-user-btn">حذف کاربر</button>
         </div>
       `;
 
@@ -1088,6 +1031,10 @@
         document.getElementById("edit-user-password").value = "";
         document.getElementById("edit-user-password-confirm").value = "";
         setAdminMessage("رمز عبور کاربر با موفقیت تغییر کرد.", "success");
+      });
+
+      document.getElementById("delete-user-btn").addEventListener("click", async () => {
+        await deleteUser(user);
       });
     }
 
@@ -1231,53 +1178,6 @@
     document.getElementById("users-filter-btn").addEventListener("click", loadUsers);
     document.getElementById("wallet-load-btn").addEventListener("click", loadWalletUser);
 
-    if (newUserForm) {
-      newUserForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        setNewUserMessage("");
-
-        const payload = {
-          full_name: document.getElementById("new-user-full-name").value.trim(),
-          email: document.getElementById("new-user-email").value.trim(),
-          phone: document.getElementById("new-user-phone").value.trim(),
-          role: document.getElementById("new-user-role").value.trim(),
-          password: document.getElementById("new-user-password").value,
-          password_confirm: document.getElementById("new-user-password-confirm").value
-        };
-
-        if (!validateNewUserPayload(payload)) return;
-
-        createUserBtn.disabled = true;
-
-        try {
-          const result = await api("/api/admin/users", {
-            method: "POST",
-            body: JSON.stringify(payload)
-          });
-
-          if (!result.ok || !result.data?.success) {
-            setNewUserMessage(result.data?.error || "ایجاد کاربر جدید انجام نشد.");
-            return;
-          }
-
-          setNewUserMessage("کاربر جدید با موفقیت ایجاد شد.", "success");
-          resetNewUserForm();
-          document.getElementById("user-edit-box").classList.add("admin-hidden");
-          document.getElementById("user-edit-box").innerHTML = "";
-          await loadUsers();
-          await loadDashboard();
-        } catch (error) {
-          setNewUserMessage("خطا در ارتباط با سرور.");
-        } finally {
-          createUserBtn.disabled = false;
-        }
-      });
-    }
-
-    if (resetNewUserBtn) {
-      resetNewUserBtn.addEventListener("click", resetNewUserForm);
-    }
-
     document.getElementById("orders-body").addEventListener("click", async (event) => {
       const viewBtn = event.target.closest("[data-view-order]");
       if (viewBtn) {
@@ -1291,11 +1191,19 @@
       }
     });
 
-    document.getElementById("users-body").addEventListener("click", (event) => {
-      const btn = event.target.closest("[data-edit-user]");
-      if (!btn) return;
-      const user = JSON.parse(btn.getAttribute("data-edit-user"));
-      openUserEdit(user);
+    document.getElementById("users-body").addEventListener("click", async (event) => {
+      const editBtn = event.target.closest("[data-edit-user]");
+      if (editBtn) {
+        const user = JSON.parse(editBtn.getAttribute("data-edit-user"));
+        openUserEdit(user);
+        return;
+      }
+
+      const deleteBtn = event.target.closest("[data-delete-user]");
+      if (deleteBtn) {
+        const user = JSON.parse(deleteBtn.getAttribute("data-delete-user"));
+        await deleteUser(user);
+      }
     });
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -1307,9 +1215,7 @@
         roleSelector: "[data-user-role]"
       });
 
-      resetNewUserForm();
       await loadDashboard();
-
       window.Auth.bindLogoutButton({
         buttonSelector: "[data-auth-logout]",
         redirectAfterSuccess: "/index.html"
