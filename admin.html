@@ -146,6 +146,20 @@
       gap: 14px;
       margin-bottom: 18px;
     }
+    .filters-grid.filters-grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .filters-grid.filters-grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .users-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
     .form-field {
       display: flex;
       flex-direction: column;
@@ -245,6 +259,12 @@
       margin-bottom: 18px;
       line-height: 1.9;
     }
+    .admin-help {
+      margin-top: 6px;
+      color: #64748b;
+      font-size: 0.86rem;
+      line-height: 1.8;
+    }
     .admin-hidden {
       display: none !important;
     }
@@ -253,13 +273,17 @@
         grid-template-columns: 1fr;
       }
       .stats-grid,
-      .filters-grid {
+      .filters-grid,
+      .filters-grid.filters-grid-2,
+      .filters-grid.filters-grid-3 {
         grid-template-columns: 1fr 1fr;
       }
     }
     @media (max-width: 768px) {
       .stats-grid,
-      .filters-grid {
+      .filters-grid,
+      .filters-grid.filters-grid-2,
+      .filters-grid.filters-grid-3 {
         grid-template-columns: 1fr;
       }
       .admin-panel-body,
@@ -267,8 +291,13 @@
       .admin-sidebar-head {
         padding: 18px;
       }
-      .panel-actions .btn {
+      .panel-actions .btn,
+      .users-toolbar .btn {
         width: 100%;
+      }
+      .users-toolbar {
+        flex-direction: column;
+        align-items: stretch;
       }
     }
   </style>
@@ -427,6 +456,11 @@
               </div>
 
               <div id="admin-panel-users" class="admin-section">
+                <div class="users-toolbar">
+                  <h4 style="margin:0;color:#0f172a;">مدیریت کاربران</h4>
+                  <button class="btn btn-primary" type="button" id="show-create-user-btn">افزودن کاربر</button>
+                </div>
+
                 <div class="filters-grid">
                   <div class="form-field">
                     <label for="users-search">جستجو</label>
@@ -446,6 +480,8 @@
                     <button class="btn btn-primary" type="button" id="users-filter-btn">اعمال فیلتر</button>
                   </div>
                 </div>
+
+                <div id="user-create-box" class="detail-card admin-hidden"></div>
 
                 <div class="table-wrap">
                   <table class="admin-table">
@@ -514,6 +550,8 @@
     const adminLoading = document.getElementById("admin-loading");
     const adminApp = document.getElementById("admin-app");
     const adminMessage = document.getElementById("admin-message");
+    const userCreateBox = document.getElementById("user-create-box");
+    const userEditBox = document.getElementById("user-edit-box");
 
     const panelMeta = {
       dashboard: { title: "داشبورد", description: "نمای کلی وضعیت فروشگاه و آخرین فعالیت‌ها." },
@@ -561,15 +599,12 @@
 
     function formatDate(value) {
       if (!value) return "-";
-
       try {
         const normalized = String(value).trim().replace(" ", "T");
         const date = new Date(normalized);
-
         if (Number.isNaN(date.getTime())) {
           return esc(String(value));
         }
-
         return new Intl.DateTimeFormat("fa-IR", {
           year: "numeric",
           month: "long",
@@ -632,7 +667,7 @@
     function badge(value) {
       const v = String(value || "").toLowerCase();
       let cls = "status-badge status-badge--warning";
-      if (["paid", "completed", "success"].includes(v)) cls = "status-badge status-badge--success";
+      if (["paid", "completed", "success", "credit"].includes(v)) cls = "status-badge status-badge--success";
       else if (["processing", "shipped"].includes(v)) cls = "status-badge status-badge--info";
       else if (["cancelled", "failed", "debit"].includes(v)) cls = "status-badge status-badge--danger";
       return `<span class="${cls}">${esc(faGenericStatus(value))}</span>`;
@@ -644,8 +679,111 @@
         headers: { "Content-Type": "application/json" },
         ...options
       });
-      const data = await response.json();
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = { success: false, error: "پاسخ سرور نامعتبر است." };
+      }
+
       return { ok: response.ok, data };
+    }
+
+    function closeUserCreateBox() {
+      userCreateBox.classList.add("admin-hidden");
+      userCreateBox.innerHTML = "";
+    }
+
+    function closeUserEditBox() {
+      userEditBox.classList.add("admin-hidden");
+      userEditBox.innerHTML = "";
+    }
+
+    function openUserCreate() {
+      closeUserEditBox();
+      userCreateBox.classList.remove("admin-hidden");
+      userCreateBox.innerHTML = `
+        <h4>افزودن کاربر جدید</h4>
+        <div class="filters-grid">
+          <div class="form-field">
+            <label for="create-user-full-name">نام</label>
+            <input id="create-user-full-name" type="text" placeholder="نام و نام خانوادگی" />
+          </div>
+          <div class="form-field">
+            <label for="create-user-email">ایمیل</label>
+            <input id="create-user-email" type="email" placeholder="example@mail.com" />
+          </div>
+          <div class="form-field">
+            <label for="create-user-phone">شماره</label>
+            <input id="create-user-phone" type="text" placeholder="0912..." />
+          </div>
+          <div class="form-field">
+            <label for="create-user-role">نقش</label>
+            <select id="create-user-role">
+              <option value="user">مشتری</option>
+              <option value="admin">ادمین</option>
+              <option value="super_admin">مدیر کل</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="create-user-password">رمز عبور</label>
+            <input id="create-user-password" type="password" placeholder="حداقل 8 کاراکتر" />
+          </div>
+          <div class="form-field">
+            <label for="create-user-password-confirm">تکرار رمز عبور</label>
+            <input id="create-user-password-confirm" type="password" placeholder="تکرار رمز عبور" />
+          </div>
+        </div>
+        <p class="admin-help">برای ساخت کاربر جدید، همه فیلدهای بالا را کامل کن.</p>
+        <div class="panel-actions">
+          <button class="btn btn-primary" type="button" id="create-user-btn">ایجاد کاربر</button>
+          <button class="btn btn-secondary" type="button" id="cancel-create-user-btn">بستن</button>
+        </div>
+      `;
+
+      document.getElementById("create-user-btn").addEventListener("click", async () => {
+        const payload = {
+          full_name: document.getElementById("create-user-full-name").value.trim(),
+          email: document.getElementById("create-user-email").value.trim(),
+          phone: document.getElementById("create-user-phone").value.trim(),
+          role: document.getElementById("create-user-role").value.trim(),
+          password: document.getElementById("create-user-password").value,
+          password_confirm: document.getElementById("create-user-password-confirm").value
+        };
+
+        if (!payload.full_name || !payload.email || !payload.role || !payload.password || !payload.password_confirm) {
+          setAdminMessage("برای ایجاد کاربر، همه فیلدهای ضروری را کامل کن.");
+          return;
+        }
+
+        if (payload.password.length < 8) {
+          setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
+          return;
+        }
+
+        if (payload.password !== payload.password_confirm) {
+          setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
+          return;
+        }
+
+        const result = await api("/api/admin/users", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        if (!result.ok || !result.data?.success) {
+          setAdminMessage(result.data?.error || "ایجاد کاربر انجام نشد.");
+          return;
+        }
+
+        setAdminMessage("کاربر جدید با موفقیت ایجاد شد.", "success");
+        closeUserCreateBox();
+        await loadUsers();
+        await loadDashboard();
+      });
+
+      document.getElementById("cancel-create-user-btn").addEventListener("click", closeUserCreateBox);
     }
 
     async function deleteOrder(orderNumber) {
@@ -704,8 +842,8 @@
       }
 
       setAdminMessage("کاربر با موفقیت حذف شد.", "success");
-      document.getElementById("user-edit-box").classList.add("admin-hidden");
-      document.getElementById("user-edit-box").innerHTML = "";
+      closeUserEditBox();
+      closeUserCreateBox();
       await loadUsers();
       await loadDashboard();
       return true;
@@ -929,9 +1067,9 @@
     }
 
     function openUserEdit(user) {
-      const box = document.getElementById("user-edit-box");
-      box.classList.remove("admin-hidden");
-      box.innerHTML = `
+      closeUserCreateBox();
+      userEditBox.classList.remove("admin-hidden");
+      userEditBox.innerHTML = `
         <h4>ویرایش کاربر #${esc(user.id)}</h4>
         <div class="filters-grid">
           <div class="form-field">
@@ -967,6 +1105,7 @@
           <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
           <button class="btn btn-secondary" type="button" id="save-user-password-btn">تغییر رمز عبور</button>
           <button class="btn btn-secondary" type="button" id="delete-user-btn">حذف کاربر</button>
+          <button class="btn btn-secondary" type="button" id="close-user-edit-btn">بستن</button>
         </div>
       `;
 
@@ -993,6 +1132,7 @@
 
         setAdminMessage("اطلاعات کاربر با موفقیت ذخیره شد.", "success");
         await loadUsers();
+        await loadDashboard();
       });
 
       document.getElementById("save-user-password-btn").addEventListener("click", async () => {
@@ -1036,6 +1176,8 @@
       document.getElementById("delete-user-btn").addEventListener("click", async () => {
         await deleteUser(user);
       });
+
+      document.getElementById("close-user-edit-btn").addEventListener("click", closeUserEditBox);
     }
 
     async function loadWalletUser() {
@@ -1075,7 +1217,7 @@
 
       adjustBox.innerHTML = `
         <h4>تعدیل کیف پول</h4>
-        <div class="filters-grid">
+        <div class="filters-grid filters-grid-3">
           <div class="form-field">
             <label for="wallet-type">نوع عملیات</label>
             <select id="wallet-type">
@@ -1177,6 +1319,7 @@
     document.getElementById("orders-filter-btn").addEventListener("click", loadOrders);
     document.getElementById("users-filter-btn").addEventListener("click", loadUsers);
     document.getElementById("wallet-load-btn").addEventListener("click", loadWalletUser);
+    document.getElementById("show-create-user-btn").addEventListener("click", openUserCreate);
 
     document.getElementById("orders-body").addEventListener("click", async (event) => {
       const viewBtn = event.target.closest("[data-view-order]");

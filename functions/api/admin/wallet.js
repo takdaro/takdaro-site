@@ -1,9 +1,30 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
 
+async function ensureWalletTransactionsTable(db) {
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS wallet_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      balance_before INTEGER NOT NULL DEFAULT 0,
+      balance_after INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'completed',
+      reference_type TEXT,
+      reference_id TEXT,
+      note TEXT,
+      created_by_user_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+}
+
 export async function onRequestGet(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
+
+    await ensureWalletTransactionsTable(context.env.DB);
 
     const url = new URL(context.request.url);
     const userId = Number(url.searchParams.get("user_id") || 0);
@@ -17,7 +38,7 @@ export async function onRequestGet(context) {
 
     const user = await context.env.DB
       .prepare(`
-        SELECT id, full_name, email, phone, role, wallet_balance
+        SELECT id, full_name, email, phone, role, COALESCE(wallet_balance, 0) AS wallet_balance
         FROM users
         WHERE id = ?
       `)
@@ -34,8 +55,17 @@ export async function onRequestGet(context) {
     const txs = await context.env.DB
       .prepare(`
         SELECT
-          id, type, amount, balance_before, balance_after, status,
-          reference_type, reference_id, note, created_by_user_id, created_at
+          id,
+          type,
+          amount,
+          balance_before,
+          balance_after,
+          status,
+          reference_type,
+          reference_id,
+          note,
+          created_by_user_id,
+          created_at
         FROM wallet_transactions
         WHERE user_id = ?
         ORDER BY id DESC
@@ -61,6 +91,8 @@ export async function onRequestPost(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
+
+    await ensureWalletTransactionsTable(context.env.DB);
 
     const body = await context.request.json();
     const user_id = Number(body.user_id || 0);
@@ -109,7 +141,18 @@ export async function onRequestPost(context) {
 
       context.env.DB.prepare(`
         INSERT INTO wallet_transactions
-        (user_id, type, amount, balance_before, balance_after, status, reference_type, reference_id, note, created_by_user_id)
+        (
+          user_id,
+          type,
+          amount,
+          balance_before,
+          balance_after,
+          status,
+          reference_type,
+          reference_id,
+          note,
+          created_by_user_id
+        )
         VALUES (?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
       `).bind(
         user_id,
@@ -134,7 +177,7 @@ export async function onRequestPost(context) {
 
     const updated = await context.env.DB
       .prepare(`
-        SELECT id, full_name, email, phone, role, wallet_balance
+        SELECT id, full_name, email, phone, role, COALESCE(wallet_balance, 0) AS wallet_balance
         FROM users
         WHERE id = ?
       `)
@@ -144,8 +187,17 @@ export async function onRequestPost(context) {
     const latestTx = await context.env.DB
       .prepare(`
         SELECT
-          id, type, amount, balance_before, balance_after, status,
-          reference_type, reference_id, note, created_by_user_id, created_at
+          id,
+          type,
+          amount,
+          balance_before,
+          balance_after,
+          status,
+          reference_type,
+          reference_id,
+          note,
+          created_by_user_id,
+          created_at
         FROM wallet_transactions
         WHERE user_id = ?
         ORDER BY id DESC

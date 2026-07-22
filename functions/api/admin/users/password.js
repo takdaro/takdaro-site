@@ -1,10 +1,37 @@
 import { requireAdmin, logAdminAction } from "../../../lib/admin";
 
-async function sha256Hex(value) {
-  const data = new TextEncoder().encode(String(value));
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+function bytesToHex(bytes) {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function hashPassword(password, iterations = 100000) {
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(String(password)),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"]
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt,
+      iterations,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    256
+  );
+
+  const hashBytes = new Uint8Array(derivedBits);
+  const saltHex = bytesToHex(salt);
+  const hashHex = bytesToHex(hashBytes);
+
+  return `pbkdf2_sha256$${iterations}$${saltHex}$${hashHex}`;
 }
 
 export async function onRequestPost(context) {
@@ -60,7 +87,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    const password_hash = await sha256Hex(password);
+    const password_hash = await hashPassword(password);
 
     await context.env.DB
       .prepare(`
