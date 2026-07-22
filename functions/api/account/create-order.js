@@ -86,7 +86,13 @@ function extractItemName(item) {
 }
 
 function extractItemQuantity(item) {
-  const quantity = normalizeNumber(item?.quantity);
+  const quantity = normalizeNumber(
+    item?.qty ??
+    item?.quantity ??
+    item?.count ??
+    item?.amount
+  );
+
   return quantity > 0 ? quantity : 1;
 }
 
@@ -100,13 +106,33 @@ function extractItemUnitPrice(item) {
   const productPrice = normalizeNumber(item?.product?.price);
   if (productPrice > 0) return productPrice;
 
-  const total = normalizeNumber(item?.total_price || item?.total);
+  const rowTotal = normalizeNumber(
+    item?.row_total ??
+    item?.total_price ??
+    item?.total
+  );
+
   const quantity = extractItemQuantity(item);
-  if (total > 0 && quantity > 0) {
-    return Math.floor(total / quantity);
+  if (rowTotal > 0 && quantity > 0) {
+    return Math.round(rowTotal / quantity);
   }
 
   return 0;
+}
+
+function extractItemTotalPrice(item) {
+  const directTotal = normalizeNumber(
+    item?.row_total ??
+    item?.total_price ??
+    item?.line_total ??
+    item?.total
+  );
+
+  if (directTotal > 0) return directTotal;
+
+  const quantity = extractItemQuantity(item);
+  const unitPrice = extractItemUnitPrice(item);
+  return quantity * unitPrice;
 }
 
 export async function onRequestPost(context) {
@@ -270,7 +296,7 @@ export async function onRequestPost(context) {
       const productName = extractItemName(item);
       const quantity = extractItemQuantity(item);
       const unitPrice = extractItemUnitPrice(item);
-      const totalPrice = quantity * unitPrice;
+      const totalPrice = extractItemTotalPrice(item);
 
       await context.env.DB
         .prepare(`

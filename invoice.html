@@ -673,6 +673,13 @@
         }
 
         const order = data.order;
+        console.log("FULL ORDER RESPONSE:", data);
+        console.log("ORDER OBJECT:", order);
+        console.log("ORDER ITEMS:", order.items);
+
+        if (Array.isArray(order.items)) {
+        console.table(order.items);
+        }    
 
         metaOrderNumber.textContent = order.order_number || order.id || "-";
         metaCreatedAt.textContent = formatDate(order.created_at);
