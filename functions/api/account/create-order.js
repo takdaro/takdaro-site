@@ -75,6 +75,40 @@ function validatePayload(body) {
   return null;
 }
 
+function extractItemName(item) {
+  return normalizeText(
+    item?.product_name ||
+    item?.name ||
+    item?.title ||
+    item?.product?.name ||
+    "محصول"
+  );
+}
+
+function extractItemQuantity(item) {
+  const quantity = normalizeNumber(item?.quantity);
+  return quantity > 0 ? quantity : 1;
+}
+
+function extractItemUnitPrice(item) {
+  const directPrice = normalizeNumber(item?.unit_price);
+  if (directPrice > 0) return directPrice;
+
+  const price = normalizeNumber(item?.price);
+  if (price > 0) return price;
+
+  const productPrice = normalizeNumber(item?.product?.price);
+  if (productPrice > 0) return productPrice;
+
+  const total = normalizeNumber(item?.total_price || item?.total);
+  const quantity = extractItemQuantity(item);
+  if (total > 0 && quantity > 0) {
+    return Math.floor(total / quantity);
+  }
+
+  return 0;
+}
+
 export async function onRequestPost(context) {
   try {
     const userId = await getCurrentUserId(context);
@@ -207,20 +241,58 @@ export async function onRequestPost(context) {
           shipping_amount,
           discount_amount,
           payment_status,
-          created_at,
-          updated_at
+          shipping_address_id,
+          billing_address_id,
+          created_at
         )
-        VALUES (?, ?, 'pending', ?, ?, 0, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES (?, ?, 'pending', ?, ?, 0, 'pending', ?, ?, CURRENT_TIMESTAMP)
       `)
       .bind(
         userId,
         orderNumber,
         totalAmount,
-        shippingAmount
+        shippingAmount,
+        addressId,
+        addressId
       )
       .run();
 
     const orderId = orderInsert.meta?.last_row_id ?? null;
+
+    if (!orderId) {
+      return Response.json(
+        { success: false, error: "order-create-failed" },
+        { status: 500 }
+      );
+    }
+
+    for (const item of items) {
+      const productName = extractItemName(item);
+      const quantity = extractItemQuantity(item);
+      const unitPrice = extractItemUnitPrice(item);
+      const totalPrice = quantity * unitPrice;
+
+      await context.env.DB
+        .prepare(`
+          INSERT INTO order_items (
+            order_id,
+            product_name,
+            quantity,
+            unit_price,
+            total_price,
+            created_at
+          )
+          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `)
+        .bind(
+          orderId,
+          productName,
+          quantity,
+          unitPrice,
+          totalPrice
+        )
+        .run();
+    }
 
     return Response.json({
       success: true,
@@ -231,7 +303,8 @@ export async function onRequestPost(context) {
         payment_status: "pending",
         total_amount: totalAmount,
         shipping_amount: shippingAmount,
-        address_id: addressId,
+        shipping_address_id: addressId,
+        billing_address_id: addressId,
         items_count: items.length
       }
     });

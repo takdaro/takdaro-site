@@ -191,6 +191,7 @@
       font-size: 0.9rem;
       color: #64748b;
       line-height: 1.8;
+      white-space: pre-line;
     }
 
     .invoice-actions {
@@ -336,11 +337,11 @@
             <div class="invoice-addresses">
               <div class="invoice-address-card" id="shipping-address-card">
                 <h3>آدرس ارسال</h3>
-                <p id="shipping-address-text">آدرس ارسال هنوز در داده‌های سفارش قرار نگرفته است.</p>
+                <p id="shipping-address-text">در حال بارگذاری آدرس ارسال...</p>
               </div>
               <div class="invoice-address-card" id="billing-address-card">
                 <h3>آدرس صورتحساب</h3>
-                <p id="billing-address-text">آدرس صورتحساب هنوز در داده‌های سفارش قرار نگرفته است.</p>
+                <p id="billing-address-text">در حال بارگذاری آدرس صورتحساب...</p>
               </div>
             </div>
           </div>
@@ -413,6 +414,37 @@
       invoiceMessage.className = "invoice-message is-error";
     }
 
+    function formatAddress(address) {
+      if (!address || typeof address !== "object") {
+        return "آدرسی برای این بخش ثبت نشده است.";
+      }
+
+      const lines = [];
+
+      if (address.full_name) {
+        lines.push("نام: " + address.full_name);
+      }
+
+      if (address.phone) {
+        lines.push("تلفن: " + address.phone);
+      }
+
+      if (address.address_line) {
+        lines.push("آدرس: " + address.address_line);
+      }
+
+      const cityState = [address.city, address.state].filter(Boolean).join(" - ");
+      if (cityState) {
+        lines.push("شهر/استان: " + cityState);
+      }
+
+      if (address.postal_code) {
+        lines.push("کد پستی: " + address.postal_code);
+      }
+
+      return lines.length ? lines.join("\n") : "آدرسی برای این بخش ثبت نشده است.";
+    }
+
     async function loadInvoice() {
       const params = new URLSearchParams(window.location.search);
       const orderParam = params.get("order");
@@ -434,7 +466,6 @@
       if (!user) return;
 
       try {
-        // endpoint جزئیات سفارش: /api/account/orders/:orderNumber
         const response = await fetch(
           "/api/account/orders/" + encodeURIComponent(orderParam),
           { credentials: "same-origin" }
@@ -449,7 +480,6 @@
 
         const order = data.order;
 
-        // متادیتا
         metaOrderNumber.textContent = order.order_number || order.id || "-";
         metaCreatedAt.textContent = formatDate(order.created_at);
         metaStatus.innerHTML = orderStatusBadge(order.status);
@@ -457,11 +487,11 @@
 
         headerText.textContent = "فاکتور سفارش انتخاب‌شده در زیر نمایش داده شده است.";
 
-        // ===== اقلام سفارش =====
         const items = Array.isArray(order.items) ? order.items : [];
 
+        itemsSection.style.display = "block";
+
         if (items.length) {
-          itemsSection.style.display = "block";
           itemsBody.innerHTML = items
             .map((item, index) => {
               const rowTotal = item.total_price != null
@@ -480,12 +510,10 @@
             })
             .join("");
         } else {
-          itemsSection.style.display = "block";
           itemsBody.innerHTML =
             '<tr><td colspan="5">برای این سفارش هیچ قلم کالایی ثبت نشده است.</td></tr>';
         }
 
-        // ===== خلاصه فاکتور =====
         summarySection.style.display = "block";
 
         const totalAmount = Number(order.total_amount || 0);
@@ -497,12 +525,9 @@
         summaryPaid.textContent = formatPrice(paidAmount);
         summaryPaymentStatus.textContent = String(order.payment_status || order.status || "-");
 
-        // ===== آدرس‌ها (در صورت وجود) =====
         addressesSection.style.display = "block";
-        shippingAddressText.textContent =
-          order.shipping_address || "آدرس ارسال هنوز در داده‌های سفارش قرار نگرفته است.";
-        billingAddressText.textContent =
-          order.billing_address || "آدرس صورتحساب هنوز در داده‌های سفارش قرار نگرفته است.";
+        shippingAddressText.textContent = formatAddress(order.shipping_address);
+        billingAddressText.textContent = formatAddress(order.billing_address || order.shipping_address);
       } catch (error) {
         setError("دریافت فاکتور با خطا مواجه شد.");
         headerText.textContent = "لطفاً بعداً دوباره تلاش کن.";
