@@ -10,7 +10,7 @@ async function getCurrentUser(request, env) {
   if (!sessionId) return null;
 
   const row = await env.DB.prepare(`
-    SELECT users.id, users.email, users.fullname, users.phone
+    SSELECT users.id, users.email, users.full_name, users.phone
     FROM sessions
     JOIN users ON users.id = sessions.user_id
     WHERE sessions.id = ?

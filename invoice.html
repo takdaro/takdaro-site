@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>فاکتور سفارش | تک تجارت</title>
+  <meta name="description" content="مشاهده فاکتور و جزئیات سفارش کاربر در تک تجارت" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .invoice-page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .invoice-header {
+      border-radius: 24px;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+      margin-bottom: 24px;
+    }
+
+    .invoice-header h1 {
+      margin: 0 0 8px;
+      font-size: 1.4rem;
+      color: #0f172a;
+    }
+
+    .invoice-header p {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.9;
+    }
+
+    .invoice-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .invoice-meta-item {
+      background: #f8fafc;
+      border-radius: 18px;
+      padding: 14px 16px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .invoice-meta-item span {
+      display: block;
+      font-size: 0.86rem;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    .invoice-meta-item strong {
+      display: block;
+      font-size: 0.98rem;
+      color: #0f172a;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .status-badge--success { background: #ecfdf5; color: #047857; }
+    .status-badge--info    { background: #eff6ff; color: #1d4ed8; }
+    .status-badge--warning { background: #fff7ed; color: #c2410c; }
+
+    .invoice-section {
+      border-radius: 24px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: #fff;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
+    }
+
+    .invoice-section h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+      color: #0f172a;
+    }
+
+    .invoice-section p {
+      margin: 0 0 18px;
+      font-size: 0.92rem;
+      color: #64748b;
+      line-height: 1.8;
+    }
+
+    .invoice-table-wrap {
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: #fff;
+    }
+
+    .invoice-table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+    }
+
+    .invoice-table th,
+    .invoice-table td {
+      padding: 12px 14px;
+      text-align: right;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      vertical-align: middle;
+      font-size: 0.9rem;
+    }
+
+    .invoice-table th {
+      background: #f8fafc;
+      color: #334155;
+      white-space: nowrap;
+    }
+
+    .invoice-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-number {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .invoice-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .summary-card {
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: #f8fafc;
+      padding: 16px;
+    }
+
+    .summary-card span {
+      display: block;
+      font-size: 0.86rem;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    .summary-card strong {
+      display: block;
+      font-size: 1rem;
+      color: #0f172a;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .invoice-addresses {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .invoice-address-card {
+      border-radius: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: #f8fafc;
+      padding: 16px;
+    }
+
+    .invoice-address-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+      color: #0f172a;
+    }
+
+    .invoice-address-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #64748b;
+      line-height: 1.8;
+    }
+
+    .invoice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .invoice-message {
+      padding: 14px 16px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      font-size: 0.94rem;
+      line-height: 1.9;
+      display: none;
+    }
+    .invoice-message.is-error {
+      display: block;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    @media (max-width: 768px) {
+      .invoice-meta {
+        grid-template-columns: 1fr;
+      }
+      .invoice-summary,
+      .invoice-addresses {
+        grid-template-columns: 1fr;
+      }
+      .invoice-page {
+        padding: 16px 0 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main>
+    <section class="hero hero-compact">
+      <div class="container">
+        <div class="hero-content">
+          <span class="hero-badge">فاکتور سفارش</span>
+          <h1>مشاهده فاکتور</h1>
+          <p>جزئیات کامل سفارش و فاکتور پرداخت را در این صفحه مشاهده می‌کنی.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="invoice-page">
+          <div class="invoice-message" id="invoice-message"></div>
+
+          <div class="invoice-header" id="invoice-header">
+            <h1>فاکتور سفارش</h1>
+            <p id="invoice-header-text">
+              در حال بارگذاری اطلاعات سفارش...
+            </p>
+
+            <div class="invoice-meta" id="invoice-meta" style="display: none;">
+              <div class="invoice-meta-item">
+                <span>شماره سفارش</span>
+                <strong id="meta-order-number">-</strong>
+              </div>
+              <div class="invoice-meta-item">
+                <span>تاریخ ثبت</span>
+                <strong id="meta-created-at">-</strong>
+              </div>
+              <div class="invoice-meta-item">
+                <span>وضعیت سفارش</span>
+                <strong id="meta-status">
+                  <span class="status-badge status-badge--info">-</span>
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="invoice-section" id="invoice-items-section" style="display: none;">
+            <h2>اقلام سفارش</h2>
+            <p>لیست کالاهای ثبت‌شده در این سفارش.</p>
+
+            <div class="invoice-table-wrap">
+              <table class="invoice-table">
+                <thead>
+                  <tr>
+                    <th>ردیف</th>
+                    <th>نام کالا</th>
+                    <th>تعداد</th>
+                    <th>قیمت واحد</th>
+                    <th>مجموع</th>
+                  </tr>
+                </thead>
+                <tbody id="invoice-items-body">
+                  <tr>
+                    <td colspan="5">در حال بارگذاری اقلام...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="invoice-section" id="invoice-summary-section" style="display: none;">
+            <h2>خلاصه فاکتور</h2>
+            <p>جمع مبالغ برای این سفارش.</p>
+
+            <div class="invoice-summary">
+              <div class="summary-card">
+                <span>جمع کل سفارش</span>
+                <strong id="summary-total">0 تومان</strong>
+              </div>
+              <div class="summary-card">
+                <span>تخفیف</span>
+                <strong id="summary-discount">0 تومان</strong>
+              </div>
+              <div class="summary-card">
+                <span>مبلغ پرداختی</span>
+                <strong id="summary-paid">0 تومان</strong>
+              </div>
+              <div class="summary-card">
+                <span>وضعیت پرداخت</span>
+                <strong id="summary-payment-status">-</strong>
+              </div>
+            </div>
+
+            <div class="invoice-actions">
+              <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                بازگشت
+              </button>
+              <button type="button" class="btn btn-primary" onclick="window.print()">
+                چاپ فاکتور
+              </button>
+            </div>
+          </div>
+
+          <div class="invoice-section" id="invoice-addresses-section" style="display: none;">
+            <h2>آدرس‌ها</h2>
+            <p>آدرس ارسال و آدرس صورتحساب مرتبط با این سفارش.</p>
+
+            <div class="invoice-addresses">
+              <div class="invoice-address-card" id="shipping-address-card">
+                <h3>آدرس ارسال</h3>
+                <p id="shipping-address-text">آدرس ارسال هنوز در داده‌های سفارش قرار نگرفته است.</p>
+              </div>
+              <div class="invoice-address-card" id="billing-address-card">
+                <h3>آدرس صورتحساب</h3>
+                <p id="billing-address-text">آدرس صورتحساب هنوز در داده‌های سفارش قرار نگرفته است.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <div id="site-cart"></div>
+
+  <script src="assets/js/layout.js"></script>
+  <script src="assets/js/auth.js"></script>
+
+  <script>
+    const invoiceMessage = document.getElementById("invoice-message");
+    const headerText = document.getElementById("invoice-header-text");
+    const metaBlock = document.getElementById("invoice-meta");
+
+    const metaOrderNumber = document.getElementById("meta-order-number");
+    const metaCreatedAt = document.getElementById("meta-created-at");
+    const metaStatus = document.getElementById("meta-status");
+
+    const itemsSection = document.getElementById("invoice-items-section");
+    const itemsBody = document.getElementById("invoice-items-body");
+
+    const summarySection = document.getElementById("invoice-summary-section");
+    const summaryTotal = document.getElementById("summary-total");
+    const summaryDiscount = document.getElementById("summary-discount");
+    const summaryPaid = document.getElementById("summary-paid");
+    const summaryPaymentStatus = document.getElementById("summary-payment-status");
+
+    const addressesSection = document.getElementById("invoice-addresses-section");
+    const shippingAddressText = document.getElementById("shipping-address-text");
+    const billingAddressText = document.getElementById("billing-address-text");
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function formatPrice(value) {
+      const number = Number(value || 0);
+      return number.toLocaleString("fa-IR") + " تومان";
+    }
+
+    function formatDate(value) {
+      if (!value) return "-";
+      return escapeHtml(value);
+    }
+
+    function orderStatusBadge(status) {
+      const normalized = String(status || "").trim().toLowerCase();
+      let cls = "status-badge status-badge--warning";
+      if (["completed", "paid", "success"].includes(normalized)) {
+        cls = "status-badge status-badge--success";
+      } else if (["shipped", "sent", "processing"].includes(normalized)) {
+        cls = "status-badge status-badge--info";
+      }
+      return '<span class="' + cls + '">' + escapeHtml(status || "-") + "</span>";
+    }
+
+    function setError(message) {
+      if (!invoiceMessage) return;
+      invoiceMessage.textContent = message;
+      invoiceMessage.className = "invoice-message is-error";
+    }
+
+    async function loadInvoice() {
+      const params = new URLSearchParams(window.location.search);
+      const orderParam = params.get("order");
+
+      if (!orderParam) {
+        setError("شماره سفارش در آدرس صفحه پیدا نشد.");
+        headerText.textContent = "لطفاً از صفحه سفارش‌ها وارد این صفحه شو.";
+        return;
+      }
+
+      if (!window.Auth) {
+        setError("سیستم احراز هویت در دسترس نیست.");
+        return;
+      }
+
+      const user = await window.Auth.requireAuth({
+        redirectTo: "/login.html"
+      });
+      if (!user) return;
+
+      try {
+        // endpoint جزئیات سفارش: /api/account/orders/:orderNumber
+        const response = await fetch(
+          "/api/account/orders/" + encodeURIComponent(orderParam),
+          { credentials: "same-origin" }
+        );
+        const data = await response.json();
+
+        if (!response.ok || !data?.success || !data.order) {
+          setError("دریافت جزئیات سفارش با خطا مواجه شد.");
+          headerText.textContent = "امکان نمایش فاکتور وجود ندارد.";
+          return;
+        }
+
+        const order = data.order;
+
+        // متادیتا
+        metaOrderNumber.textContent = order.order_number || order.id || "-";
+        metaCreatedAt.textContent = formatDate(order.created_at);
+        metaStatus.innerHTML = orderStatusBadge(order.status);
+        metaBlock.style.display = "grid";
+
+        headerText.textContent = "فاکتور سفارش انتخاب‌شده در زیر نمایش داده شده است.";
+
+        // ===== اقلام سفارش =====
+        const items = Array.isArray(order.items) ? order.items : [];
+
+        if (items.length) {
+          itemsSection.style.display = "block";
+          itemsBody.innerHTML = items
+            .map((item, index) => {
+              const rowTotal = item.total_price != null
+                ? item.total_price
+                : Number(item.unit_price || 0) * Number(item.quantity || item.qty || 0);
+
+              return `
+                <tr>
+                  <td class="table-number">${index + 1}</td>
+                  <td>${escapeHtml(item.product_name || item.name || "-")}</td>
+                  <td class="table-number">${Number(item.quantity || item.qty || 0).toLocaleString("fa-IR")}</td>
+                  <td class="table-number">${formatPrice(item.unit_price || 0)}</td>
+                  <td class="table-number">${formatPrice(rowTotal)}</td>
+                </tr>
+              `;
+            })
+            .join("");
+        } else {
+          itemsSection.style.display = "block";
+          itemsBody.innerHTML =
+            '<tr><td colspan="5">برای این سفارش هیچ قلم کالایی ثبت نشده است.</td></tr>';
+        }
+
+        // ===== خلاصه فاکتور =====
+        summarySection.style.display = "block";
+
+        const totalAmount = Number(order.total_amount || 0);
+        const discountAmount = Number(order.discount_amount || 0);
+        const paidAmount = Number(order.paid_amount || totalAmount);
+
+        summaryTotal.textContent = formatPrice(totalAmount);
+        summaryDiscount.textContent = formatPrice(discountAmount);
+        summaryPaid.textContent = formatPrice(paidAmount);
+        summaryPaymentStatus.textContent = String(order.payment_status || order.status || "-");
+
+        // ===== آدرس‌ها (در صورت وجود) =====
+        addressesSection.style.display = "block";
+        shippingAddressText.textContent =
+          order.shipping_address || "آدرس ارسال هنوز در داده‌های سفارش قرار نگرفته است.";
+        billingAddressText.textContent =
+          order.billing_address || "آدرس صورتحساب هنوز در داده‌های سفارش قرار نگرفته است.";
+      } catch (error) {
+        setError("دریافت فاکتور با خطا مواجه شد.");
+        headerText.textContent = "لطفاً بعداً دوباره تلاش کن.";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadInvoice);
+  </script>
+</body>
+</html>

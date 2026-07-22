@@ -15,7 +15,7 @@ async function getCurrentUser(request, env) {
   if (!sessionId) return null;
 
   const row = await env.DB.prepare(`
-    SELECT users.id, users.email, users.fullname, users.phone
+    SELECT users.id, users.email, users.full_name, users.phone
     FROM sessions
     JOIN users ON users.id = sessions.user_id
     WHERE sessions.id = ?
@@ -38,15 +38,12 @@ function normalizeAddressInput(body = {}) {
     phone: normalizePhone(body.phone ?? ""),
     city: String(body.city ?? "").trim(),
     state: String(body.state ?? "").trim(),
-    is_default:
-      Number(body.is_default ?? body.isdefault ?? 0) === 1 ? 1 : 0
+    is_default: Number(body.is_default ?? body.isdefault ?? 0) === 1 ? 1 : 0
   };
 }
 
 function validateAddressInput(data) {
-  if (!["shipping", "billing"].includes(data.type)) {
-    return "نوع آدرس نامعتبر است.";
-  }
+  if (!["shipping", "billing"].includes(data.type)) return "نوع آدرس نامعتبر است.";
   if (!data.full_name) return "نام تحویل‌گیرنده الزامی است.";
   if (!data.address_line) return "نشانی کامل الزامی است.";
   if (!data.postal_code) return "کد پستی الزامی است.";
@@ -59,47 +56,25 @@ function validateAddressInput(data) {
 export async function onRequestGet(context) {
   try {
     const user = await getCurrentUser(context.request, context.env);
-    if (!user) {
-      return json({ success: false, error: "Unauthorized" }, 401);
-    }
+    if (!user) return json({ success: false, error: "Unauthorized" }, 401);
 
     const result = await context.env.DB.prepare(`
-      SELECT
-        id,
-        user_id,
-        type,
-        full_name,
-        address_line,
-        postal_code,
-        phone,
-        city,
-        state,
-        is_default,
-        created_at,
-        updated_at
+      SELECT id, user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
       FROM addresses
       WHERE user_id = ?
       ORDER BY is_default DESC, id DESC
     `).bind(user.id).all();
 
-    return json({
-      success: true,
-      addresses: result.results || []
-    });
+    return json({ success: true, addresses: result.results || [] });
   } catch (error) {
-    return json(
-      { success: false, error: String(error?.message || error) },
-      500
-    );
+    return json({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context.request, context.env);
-    if (!user) {
-      return json({ success: false, error: "Unauthorized" }, 401);
-    }
+    if (!user) return json({ success: false, error: "Unauthorized" }, 401);
 
     const body = await context.request.json();
     const data = normalizeAddressInput(body);
@@ -119,17 +94,7 @@ export async function onRequestPost(context) {
 
     const result = await context.env.DB.prepare(`
       INSERT INTO addresses (
-        user_id,
-        type,
-        full_name,
-        address_line,
-        postal_code,
-        phone,
-        city,
-        state,
-        is_default,
-        created_at,
-        updated_at
+        user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `).bind(
       user.id,
@@ -147,34 +112,15 @@ export async function onRequestPost(context) {
 
     const address = insertedId
       ? await context.env.DB.prepare(`
-          SELECT
-            id,
-            user_id,
-            type,
-            full_name,
-            address_line,
-            postal_code,
-            phone,
-            city,
-            state,
-            is_default,
-            created_at,
-            updated_at
+          SELECT id, user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
           FROM addresses
           WHERE id = ? AND user_id = ?
           LIMIT 1
         `).bind(insertedId, user.id).first()
       : null;
 
-    return json({
-      success: true,
-      id: insertedId,
-      address
-    });
+    return json({ success: true, id: insertedId, address });
   } catch (error) {
-    return json(
-      { success: false, error: String(error?.message || error) },
-      500
-    );
+    return json({ success: false, error: String(error?.message || error) }, 500);
   }
 }

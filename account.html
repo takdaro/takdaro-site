@@ -752,9 +752,14 @@
             </div>
 
             <div class="account-panel__body">
+              <!-- Dashboard -->
               <div class="account-section is-active" id="panel-dashboard">
-                <h2 class="account-section__title">سلام <span data-user-full-name>کاربر</span></h2>
-                <p class="account-section__lead">از این بخش می‌توانی به بخش‌های مختلف حساب کاربری دسترسی داشته باشی.</p>
+                <h2 class="account-section__title">
+                  سلام <span data-user-full-name>کاربر</span>
+                </h2>
+                <p class="account-section__lead">
+                  از این بخش می‌توانی به بخش‌های مختلف حساب کاربری دسترسی داشته باشی.
+                </p>
 
                 <div class="stats-grid">
                   <div class="stat-card">
@@ -783,9 +788,12 @@
                 </div>
               </div>
 
+              <!-- Orders -->
               <div class="account-section" id="panel-orders">
                 <h2 class="account-section__title">سفارش‌های من</h2>
-                <p class="account-section__lead">لیست سفارش‌های ثبت‌شده و وضعیت هر سفارش در این بخش نمایش داده می‌شود.</p>
+                <p class="account-section__lead">
+                  لیست سفارش‌های ثبت‌شده و وضعیت هر سفارش در این بخش نمایش داده می‌شود.
+                </p>
 
                 <div class="table-wrap">
                   <table class="account-table">
@@ -807,9 +815,12 @@
                 </div>
               </div>
 
+              <!-- Addresses -->
               <div class="account-section" id="panel-addresses">
                 <h2 class="account-section__title">آدرس‌های من</h2>
-                <p class="account-section__lead">آدرس‌های ارسال و صورتحساب خودت را اینجا مدیریت کن.</p>
+                <p class="account-section__lead">
+                  آدرس‌های ارسال و صورتحساب خودت را اینجا مدیریت کن.
+                </p>
 
                 <div class="account-message" id="address-message"></div>
 
@@ -866,7 +877,9 @@
 
                   <div class="form-field" style="flex-direction: row; align-items: center; gap: 10px;">
                     <input id="address-is-default" type="checkbox" style="width: auto;" />
-                    <label for="address-is-default" style="margin: 0;">این آدرس به‌عنوان پیش‌فرض ثبت شود</label>
+                    <label for="address-is-default" style="margin: 0;">
+                      این آدرس به‌عنوان پیش‌فرض ثبت شود
+                    </label>
                   </div>
 
                   <div class="panel-actions">
@@ -883,9 +896,12 @@
                 </div>
               </div>
 
+              <!-- Payments -->
               <div class="account-section" id="panel-payments">
                 <h2 class="account-section__title">پرداخت‌ها</h2>
-                <p class="account-section__lead">سوابق پرداخت‌های انجام‌شده برای سفارش‌های تو در این بخش قرار می‌گیرد.</p>
+                <p class="account-section__lead">
+                  سوابق پرداخت‌های انجام‌شده برای سفارش‌های تو در این بخش قرار می‌گیرد.
+                </p>
 
                 <div class="table-wrap">
                   <table class="account-table">
@@ -902,21 +918,28 @@
                         <td>-</td>
                         <td>-</td>
                         <td class="table-number">0</td>
-                        <td><span class="status-badge status-badge--info">هنوز داده‌ای ثبت نشده</span></td>
+                        <td>
+                          <span class="status-badge status-badge--info">هنوز داده‌ای ثبت نشده</span>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
+              <!-- Wallet -->
               <div class="account-section" id="panel-wallet">
                 <h2 class="account-section__title">کیف پول</h2>
-                <p class="account-section__lead">موجودی کیف پول و راه‌های استفاده از آن را اینجا مشاهده می‌کنی.</p>
+                <p class="account-section__lead">
+                  موجودی کیف پول و راه‌های استفاده از آن را اینجا مشاهده می‌کنی.
+                </p>
 
                 <div class="wallet-card">
                   <div class="wallet-card__label">کیف پول مشتری</div>
                   <p class="wallet-card__balance">0 تومان</p>
-                  <p class="wallet-card__hint">در نسخه بعدی می‌توانیم شارژ کیف پول، کسر موجودی و اتصال آن به سفارش‌ها را واقعی کنیم.</p>
+                  <p class="wallet-card__hint">
+                    در نسخه بعدی می‌توانیم شارژ کیف پول، کسر موجودی و اتصال آن به سفارش‌ها را واقعی کنیم.
+                  </p>
 
                   <div class="wallet-actions">
                     <button type="button" class="wallet-btn wallet-btn--light">افزایش موجودی</button>
@@ -945,9 +968,12 @@
                 </div>
               </div>
 
+              <!-- Wallet history -->
               <div class="account-section" id="panel-wallet-history">
                 <h2 class="account-section__title">تاریخچه کیف پول</h2>
-                <p class="account-section__lead">ریز عملیات کیف پول در این قسمت قرار می‌گیرد.</p>
+                <p class="account-section__lead">
+                  ریز عملیات کیف پول در این قسمت قرار می‌گیرد.
+                </p>
 
                 <div class="table-wrap">
                   <table class="account-table">
@@ -973,9 +999,12 @@
                 </div>
               </div>
 
+              <!-- Account details -->
               <div class="account-section" id="panel-account-details">
                 <h2 class="account-section__title">جزئیات حساب</h2>
-                <p class="account-section__lead">اطلاعات حساب کاربری و مشخصات تماس خودت را در این بخش ویرایش کن.</p>
+                <p class="account-section__lead">
+                  اطلاعات حساب کاربری و مشخصات تماس خودت را در این بخش ویرایش کن.
+                </p>
 
                 <form class="form-grid" id="account-details-form">
                   <div class="account-message" data-account-message></div>
@@ -1023,17 +1052,24 @@
                 </form>
               </div>
 
+              <!-- Logout -->
               <div class="account-section" id="panel-logout">
                 <h2 class="account-section__title">خروج از حساب</h2>
-                <p class="account-section__lead">برای پایان دادن به نشست فعلی، از دکمه زیر استفاده کن.</p>
+                <p class="account-section__lead">
+                  برای پایان دادن به نشست فعلی، از دکمه زیر استفاده کن.
+                </p>
 
                 <div class="logout-box">
                   <h4>خروج امن</h4>
-                  <p>با خروج از حساب، نشست فعلی تو بسته می‌شود و برای ورود دوباره باید مشخصاتت را وارد کنی.</p>
+                  <p>
+                    با خروج از حساب، نشست فعلی تو بسته می‌شود و برای ورود دوباره باید مشخصاتت را وارد کنی.
+                  </p>
 
                   <div class="panel-actions">
                     <button type="button" class="btn btn-primary" data-auth-logout>خروج از حساب</button>
-                    <button type="button" class="btn btn-secondary" data-panel-target="dashboard">بازگشت به داشبورد</button>
+                    <button type="button" class="btn btn-secondary" data-panel-target="dashboard">
+                      بازگشت به داشبورد
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1068,13 +1104,13 @@
     const ordersCountEl = document.getElementById("dashboard-orders-count");
     const totalSpentEl = document.getElementById("dashboard-total-spent");
     const addressesCountEl = document.getElementById("dashboard-addresses-count");
-
     const addressForm = document.getElementById("address-form");
     const addressMessage = document.getElementById("address-message");
     const addAddressBtn = document.getElementById("add-address-btn");
     const cancelAddressBtn = document.getElementById("cancel-address-btn");
     const saveAddressBtn = document.getElementById("save-address-btn");
     const addressesGrid = document.getElementById("addresses-grid");
+    const ordersTableBody = document.getElementById("orders-table-body");
 
     let currentUser = null;
     let currentOrders = [];
@@ -1117,7 +1153,7 @@
 
     function setAccountMessage(message, type = "error") {
       if (!accountMessage) return;
-      accountMessage.textContent = message;
+      accountMessage.textContent = message || "";
       accountMessage.className = "account-message";
       if (message) {
         accountMessage.classList.add(type === "success" ? "is-success" : "is-error");
@@ -1126,7 +1162,7 @@
 
     function setAddressMessage(message, type = "error") {
       if (!addressMessage) return;
-      addressMessage.textContent = message;
+      addressMessage.textContent = message || "";
       addressMessage.className = "account-message";
       if (message) {
         addressMessage.classList.add(type === "success" ? "is-success" : "is-error");
@@ -1164,7 +1200,8 @@
 
     function resetFormFromUser() {
       if (!currentUser) return;
-      fillAccountName(currentUser.fullname || "");
+      fillAccountName(currentUser.full_name || "");
+
       const emailInput = document.getElementById("account-email");
       const phoneInput = document.getElementById("phone");
 
@@ -1228,7 +1265,10 @@
       const safeOrders = Array.isArray(orders) ? orders : [];
       const safeAddresses = Array.isArray(addresses) ? addresses : [];
       const count = safeOrders.length;
-      const total = safeOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+      const total = safeOrders.reduce(
+        (sum, order) => sum + Number(order.total_amount || 0),
+        0
+      );
 
       if (ordersCountEl) ordersCountEl.textContent = count.toLocaleString("fa-IR");
       if (totalSpentEl) totalSpentEl.textContent = formatPrice(total);
@@ -1249,7 +1289,8 @@
         const data = await response.json();
 
         if (!response.ok || !data?.success) {
-          tbody.innerHTML = '<tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>';
+          tbody.innerHTML =
+            '<tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>';
           updateDashboardStats([], currentAddresses);
           return;
         }
@@ -1259,28 +1300,59 @@
         updateDashboardStats(orders, currentAddresses);
 
         if (!orders.length) {
-          tbody.innerHTML = '<tr><td colspan="5">هنوز سفارشی ثبت نشده است.</td></tr>';
+          tbody.innerHTML =
+            '<tr><td colspan="5">هنوز سفارشی ثبت نشده است.</td></tr>';
           return;
         }
 
-        tbody.innerHTML = orders.map((order) => `
+        tbody.innerHTML = orders
+          .map(
+            (order) => `
           <tr>
             <td class="table-number">${escapeHtml(order.order_number || order.id || "-")}</td>
             <td class="table-number">${formatDate(order.created_at)}</td>
-            <td><span class="${orderStatusClass(order.status)}">${escapeHtml(order.status || "-")}</span></td>
+            <td>
+              <span class="${orderStatusClass(order.status)}">
+                ${escapeHtml(order.status || "-")}
+              </span>
+            </td>
             <td class="table-number">${formatPrice(order.total_amount)}</td>
-            <td><a href="#" class="btn btn-secondary">مشاهده</a></td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-view-order="${escapeHtml(order.order_number || order.id || "-")}"
+              >
+                مشاهده
+              </button>
+            </td>
           </tr>
-        `).join("");
+        `
+          )
+          .join("");
       } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>';
+        tbody.innerHTML =
+          '<tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>';
         updateDashboardStats([], currentAddresses);
       }
     }
 
+    // کلیک روی دکمه مشاهده سفارش و رفتن به invoice.html
+    if (ordersTableBody) {
+      ordersTableBody.addEventListener("click", (event) => {
+        const viewBtn = event.target.closest("[data-view-order]");
+        if (!viewBtn) return;
+
+        const orderNumber = viewBtn.getAttribute("data-view-order");
+        if (!orderNumber) return;
+
+        window.location.href = `/invoice.html?order=${encodeURIComponent(orderNumber)}`;
+      });
+    }
+
     function resetAddressForm() {
       document.getElementById("address-id").value = "";
-      document.getElementById("address-full-name").value = currentUser?.fullname || "";
+      document.getElementById("address-full-name").value = currentUser?.full_name || "";
       document.getElementById("address-phone").value = currentUser?.phone || "";
       document.getElementById("address-type").value = "shipping";
       document.getElementById("address-postal-code").value = "";
@@ -1322,9 +1394,13 @@
       return {
         id: document.getElementById("address-id").value.trim(),
         full_name: document.getElementById("address-full-name").value.trim(),
-        phone: toEnglishDigits(document.getElementById("address-phone").value).replace(/\s+/g, ""),
+        phone: toEnglishDigits(
+          document.getElementById("address-phone").value
+        ).replace(/\s+/g, ""),
         type: document.getElementById("address-type").value,
-        postal_code: toEnglishDigits(document.getElementById("address-postal-code").value).replace(/\s+/g, ""),
+        postal_code: toEnglishDigits(
+          document.getElementById("address-postal-code").value
+        ).replace(/\s+/g, ""),
         state: document.getElementById("address-state").value.trim(),
         city: document.getElementById("address-city").value.trim(),
         address_line: document.getElementById("address-line").value.trim(),
@@ -1333,7 +1409,15 @@
     }
 
     function validateAddressForm(data) {
-      if (!data.full_name || !data.phone || !data.type || !data.postal_code || !data.state || !data.city || !data.address_line) {
+      if (
+        !data.full_name ||
+        !data.phone ||
+        !data.type ||
+        !data.postal_code ||
+        !data.state ||
+        !data.city ||
+        !data.address_line
+      ) {
         setAddressMessage("لطفاً همه فیلدهای آدرس را کامل کن.", "error");
         return false;
       }
@@ -1352,7 +1436,8 @@
     }
 
     function renderAddressCard(address) {
-      const typeLabel = address.type === "billing" ? "آدرس صورتحساب" : "آدرس ارسال";
+      const typeLabel =
+        address.type === "billing" ? "آدرس صورتحساب" : "آدرس ارسال";
       const isDefault = Number(address.is_default) === 1;
 
       return `
@@ -1368,9 +1453,15 @@
             ${escapeHtml(address.city || "-")} - ${escapeHtml(address.state || "-")}
           </p>
           <div class="address-actions">
-            <button type="button" class="btn btn-secondary" data-edit-address="${escapeHtml(address.id)}">ویرایش</button>
-            <button type="button" class="btn btn-secondary" data-default-address="${escapeHtml(address.id)}">پیش‌فرض</button>
-            <button type="button" class="btn btn-secondary" data-delete-address="${escapeHtml(address.id)}">حذف</button>
+            <button type="button" class="btn btn-secondary" data-edit-address="${escapeHtml(
+              address.id
+            )}">ویرایش</button>
+            <button type="button" class="btn btn-secondary" data-default-address="${escapeHtml(
+              address.id
+            )}">پیش‌فرض</button>
+            <button type="button" class="btn btn-secondary" data-delete-address="${escapeHtml(
+              address.id
+            )}">حذف</button>
           </div>
         </div>
       `;
@@ -1459,19 +1550,25 @@
     }
 
     async function deleteAddress(addressId) {
-      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}`, {
-        method: "DELETE",
-        credentials: "same-origin"
-      });
+      const response = await fetch(
+        `/api/account/addresses/${encodeURIComponent(addressId)}`,
+        {
+          method: "DELETE",
+          credentials: "same-origin"
+        }
+      );
 
       return response.json();
     }
 
     async function makeAddressDefault(addressId) {
-      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}/default`, {
-        method: "POST",
-        credentials: "same-origin"
-      });
+      const response = await fetch(
+        `/api/account/addresses/${encodeURIComponent(addressId)}/default`,
+        {
+          method: "POST",
+          credentials: "same-origin"
+        }
+      );
 
       return response.json();
     }
@@ -1509,7 +1606,10 @@
           const result = await saveAddress(data);
 
           if (!result?.success) {
-            setAddressMessage(result?.error || "ذخیره آدرس با خطا مواجه شد.", "error");
+            setAddressMessage(
+              result?.error || "ذخیره آدرس با خطا مواجه شد.",
+              "error"
+            );
             saveAddressBtn.disabled = false;
             return;
           }
@@ -1533,7 +1633,9 @@
 
         if (editBtn) {
           const addressId = editBtn.getAttribute("data-edit-address");
-          const address = currentAddresses.find((item) => String(item.id) === String(addressId));
+          const address = currentAddresses.find(
+            (item) => String(item.id) === String(addressId)
+          );
           if (address) openAddressForm(address);
           return;
         }
@@ -1545,7 +1647,10 @@
           try {
             const result = await deleteAddress(addressId);
             if (!result?.success) {
-              setAddressMessage(result?.error || "حذف آدرس با خطا مواجه شد.", "error");
+              setAddressMessage(
+                result?.error || "حذف آدرس با خطا مواجه شد.",
+                "error"
+              );
               return;
             }
 
@@ -1563,7 +1668,10 @@
           try {
             const result = await makeAddressDefault(addressId);
             if (!result?.success) {
-              setAddressMessage(result?.error || "تغییر آدرس پیش‌فرض با خطا مواجه شد.", "error");
+              setAddressMessage(
+                result?.error || "تغییر آدرس پیش‌فرض با خطا مواجه شد.",
+                "error"
+              );
               return;
             }
 
@@ -1583,17 +1691,26 @@
 
         if (!window.Auth) return;
 
-        const firstName = document.getElementById("first-name")?.value || "";
-        const lastName = document.getElementById("last-name")?.value || "";
-        const email = document.getElementById("account-email")?.value || "";
-        const phone = document.getElementById("phone")?.value || "";
-        const password = document.getElementById("password")?.value || "";
-        const passwordConfirm = document.getElementById("password-confirm")?.value || "";
+        const firstName =
+          document.getElementById("first-name")?.value || "";
+        const lastName =
+          document.getElementById("last-name")?.value || "";
+        const email =
+          document.getElementById("account-email")?.value || "";
+        const phone =
+          document.getElementById("phone")?.value || "";
+        const password =
+          document.getElementById("password")?.value || "";
+        const passwordConfirm =
+          document.getElementById("password-confirm")?.value || "";
 
-        const fullname = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim();
+        const full_name = [firstName.trim(), lastName.trim()]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
 
         const result = await window.Auth.updateProfile({
-          fullname,
+          full_name,
           email,
           phone,
           password,
@@ -1601,7 +1718,10 @@
         });
 
         if (!result.ok || !result.data?.success) {
-          setAccountMessage(result.data?.error || "ذخیره اطلاعات حساب با خطا مواجه شد.", "error");
+          setAccountMessage(
+            result.data?.error || "ذخیره اطلاعات حساب با خطا مواجه شد.",
+            "error"
+          );
           return;
         }
 
@@ -1642,7 +1762,7 @@
         phoneSelector: "[data-user-phone]"
       });
 
-      fillAccountName(currentUser.fullname || "");
+      fillAccountName(currentUser.full_name || "");
       resetFormFromUser();
       resetAddressForm();
 
