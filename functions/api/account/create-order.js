@@ -5,18 +5,32 @@ function getCookie(cookieString, key) {
   return target ? target.slice(key.length + 1) : null;
 }
 
-async function getCurrentUserId(context) {
+async function getCurrentUser(context) {
   const cookieString = context.request.headers.get("Cookie") || "";
   const sessionId = getCookie(cookieString, "session_id");
 
   if (!sessionId) return null;
 
-  const session = await context.env.DB
-    .prepare("SELECT user_id FROM sessions WHERE id = ?")
+  return await context.env.DB
+    .prepare(`
+      SELECT
+        id,
+        full_name,
+        email,
+        phone,
+        role,
+        COALESCE(wallet_balance, 0) AS wallet_balance
+      FROM users
+      WHERE id = (
+        SELECT user_id
+        FROM sessions
+        WHERE id = ?
+        LIMIT 1
+      )
+      LIMIT 1
+    `)
     .bind(sessionId)
     .first();
-
-  return session?.user_id ?? null;
 }
 
 function normalizeDigits(value) {
@@ -33,10 +47,15 @@ function normalizeText(value) {
 }
 
 function normalizeNumber(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.round(value));
+  }
+
   const normalized = normalizeDigits(value).replace(/[^\d]/g, "");
   if (!normalized) return 0;
+
   const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
 }
 
 function generateOrderNumber() {
@@ -135,11 +154,23 @@ function extractItemTotalPrice(item) {
   return quantity * unitPrice;
 }
 
+async function getSetting(db, key, fallback = null) {
+  try {
+    const row = await db
+      .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1`)
+      .bind(key)
+      .first();
+    return row ? row.setting_value : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 export async function onRequestPost(context) {
   try {
-    const userId = await getCurrentUserId(context);
+    const user = await getCurrentUser(context);
 
-    if (!userId) {
+    if (!user) {
       return Response.json(
         { success: false, error: "unauthorized" },
         { status: 401 }
@@ -168,7 +199,33 @@ export async function onRequestPost(context) {
     const state = normalizeText(address.state);
 
     const shippingAmount = normalizeNumber(order.shipping_amount);
+    const subtotalAmount = normalizeNumber(order.subtotal_amount);
     const totalAmount = normalizeNumber(order.total_amount);
+
+    const requestedWalletUse = normalizeNumber(
+      order.wallet_used_amount ??
+      order.wallet_amount ??
+      body.wallet_used_amount
+    );
+
+    const balanceBefore = normalizeNumber(user.wallet_balance);
+    const maxWalletUsable = Math.min(balanceBefore, totalAmount);
+    const walletUsedAmount = Math.min(requestedWalletUse, maxWalletUsable);
+    const walletApplied = walletUsedAmount > 0 ? 1 : 0;
+
+    const finalPayableAmount = Math.max(0, totalAmount - walletUsedAmount);
+
+    const cashbackPercent = Math.max(
+      0,
+      Math.min(
+        100,
+        Number(await getSetting(context.env.DB, "cashback_percent", "0")) || 0
+      )
+    );
+
+    const cashbackAmount = finalPayableAmount > 0
+      ? Math.round((finalPayableAmount * cashbackPercent) / 100)
+      : 0;
 
     let orderNumber = generateOrderNumber();
     let existingOrder = await context.env.DB
@@ -192,7 +249,7 @@ export async function onRequestPost(context) {
         ORDER BY is_default DESC, created_at DESC
         LIMIT 1
       `)
-      .bind(userId)
+      .bind(user.id)
       .first();
 
     let addressId = null;
@@ -220,7 +277,7 @@ export async function onRequestPost(context) {
           city,
           state,
           existingShippingAddress.id,
-          userId
+          user.id
         )
         .run();
 
@@ -244,7 +301,7 @@ export async function onRequestPost(context) {
           VALUES (?, 'shipping', ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `)
         .bind(
-          userId,
+          user.id,
           fullName,
           addressLine,
           postalCode,
@@ -269,17 +326,26 @@ export async function onRequestPost(context) {
           payment_status,
           shipping_address_id,
           billing_address_id,
+          wallet_used_amount,
+          wallet_applied,
+          cashback_amount,
+          cashback_percent,
+          cashback_status,
           created_at
         )
-        VALUES (?, ?, 'pending', ?, ?, 0, 'pending', ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, 'pending', ?, ?, 0, 'pending', ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
       `)
       .bind(
-        userId,
+        user.id,
         orderNumber,
         totalAmount,
         shippingAmount,
         addressId,
-        addressId
+        addressId,
+        walletUsedAmount,
+        walletApplied,
+        cashbackAmount,
+        cashbackPercent
       )
       .run();
 
@@ -320,6 +386,52 @@ export async function onRequestPost(context) {
         .run();
     }
 
+    if (walletUsedAmount > 0) {
+      const balanceAfter = balanceBefore - walletUsedAmount;
+
+      await context.env.DB.batch([
+        context.env.DB
+          .prepare(`
+            UPDATE users
+            SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `)
+          .bind(balanceAfter, user.id),
+
+        context.env.DB
+          .prepare(`
+            INSERT INTO wallet_transactions (
+              user_id,
+              type,
+              amount,
+              balance_before,
+              balance_after,
+              status,
+              source,
+              description,
+              note,
+              order_id,
+              order_number,
+              reference_type,
+              reference_id,
+              created_at
+            )
+            VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, CURRENT_TIMESTAMP)
+          `)
+          .bind(
+            user.id,
+            -walletUsedAmount,
+            balanceBefore,
+            balanceAfter,
+            `برداشت از کیف پول برای سفارش ${orderNumber}`,
+            `استفاده از کیف پول در مرحله ثبت سفارش`,
+            orderId,
+            orderNumber,
+            String(orderId)
+          )
+      ]);
+    }
+
     return Response.json({
       success: true,
       order: {
@@ -327,8 +439,15 @@ export async function onRequestPost(context) {
         order_number: orderNumber,
         status: "pending",
         payment_status: "pending",
+        subtotal_amount: subtotalAmount,
         total_amount: totalAmount,
         shipping_amount: shippingAmount,
+        wallet_used_amount: walletUsedAmount,
+        wallet_applied: walletApplied,
+        payable_amount: finalPayableAmount,
+        cashback_amount: cashbackAmount,
+        cashback_percent: cashbackPercent,
+        cashback_status: "pending",
         shipping_address_id: addressId,
         billing_address_id: addressId,
         items_count: items.length

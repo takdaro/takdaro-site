@@ -5,14 +5,23 @@ function getCookie(cookieString, key) {
   return target ? target.slice(key.length + 1) : null;
 }
 
+function json(data, status = 200) {
+  return Response.json(data, { status });
+}
+
 async function getCurrentUserId(context) {
-  const cookieString = context.request.headers.get("Cookie") || "";
+  const cookieString = context.request.headers.get("cookie") || "";
   const sessionId = getCookie(cookieString, "session_id");
 
   if (!sessionId) return null;
 
   const session = await context.env.DB
-    .prepare("SELECT user_id FROM sessions WHERE id = ?")
+    .prepare(`
+      SELECT user_id
+      FROM sessions
+      WHERE id = ?
+      LIMIT 1
+    `)
     .bind(sessionId)
     .first();
 
@@ -24,19 +33,13 @@ export async function onRequestGet(context) {
     const userId = await getCurrentUserId(context);
 
     if (!userId) {
-      return Response.json(
-        { success: false, error: "unauthorized" },
-        { status: 401 }
-      );
+      return json({ success: false, error: "unauthorized" }, 401);
     }
 
-    const orderNumber = context.params?.order;
+    const orderNumber = decodeURIComponent(String(context.params?.order || "")).trim();
 
     if (!orderNumber) {
-      return Response.json(
-        { success: false, error: "order_number is required" },
-        { status: 400 }
-      );
+      return json({ success: false, error: "order_number_required" }, 400);
     }
 
     const order = await context.env.DB
@@ -45,48 +48,43 @@ export async function onRequestGet(context) {
           o.id,
           o.order_number,
           o.status,
-          o.total_amount,
-          o.shipping_amount,
-          o.discount_amount,
           o.payment_status,
+          o.subtotal_amount,
+          o.shipping_amount,
+          o.total_amount,
+          COALESCE(o.wallet_used_amount, 0) AS wallet_used_amount,
+          COALESCE(o.cashback_amount, 0) AS cashback_amount,
+          COALESCE(o.cashback_status, 'none') AS cashback_status,
+          o.notes,
           o.created_at,
+          o.updated_at,
 
-          o.shipping_address_id,
-          o.billing_address_id,
+          o.address_id,
 
-          sa.full_name AS shipping_full_name,
-          sa.address_line AS shipping_address_line,
-          sa.postal_code AS shipping_postal_code,
-          sa.phone AS shipping_phone,
-          sa.city AS shipping_city,
-          sa.state AS shipping_state,
-
-          ba.full_name AS billing_full_name,
-          ba.address_line AS billing_address_line,
-          ba.postal_code AS billing_postal_code,
-          ba.phone AS billing_phone,
-          ba.city AS billing_city,
-          ba.state AS billing_state
+          a.full_name AS shipping_full_name,
+          a.address_line AS shipping_address_line,
+          a.postal_code AS shipping_postal_code,
+          a.phone AS shipping_phone,
+          a.city AS shipping_city,
+          a.state AS shipping_state
         FROM orders o
-        LEFT JOIN addresses sa ON sa.id = o.shipping_address_id
-        LEFT JOIN addresses ba ON ba.id = o.billing_address_id
-        WHERE o.user_id = ? AND o.order_number = ?
+        LEFT JOIN user_addresses a ON a.id = o.address_id
+        WHERE o.user_id = ?
+          AND o.order_number = ?
         LIMIT 1
       `)
       .bind(userId, orderNumber)
       .first();
 
     if (!order) {
-      return Response.json(
-        { success: false, error: "order_not_found" },
-        { status: 404 }
-      );
+      return json({ success: false, error: "order_not_found" }, 404);
     }
 
     const itemsResult = await context.env.DB
       .prepare(`
         SELECT
           id,
+          product_id,
           product_name,
           quantity,
           unit_price,
@@ -100,43 +98,50 @@ export async function onRequestGet(context) {
       .all();
 
     const items = Array.isArray(itemsResult?.results)
-      ? itemsResult.results
+      ? itemsResult.results.map((item) => ({
+          id: Number(item.id || 0),
+          product_id: item.product_id ?? null,
+          product_name: item.product_name || "",
+          quantity: Number(item.quantity || 0),
+          unit_price: Number(item.unit_price || 0),
+          total_price: Number(item.total_price || 0),
+          created_at: item.created_at || null
+        }))
       : [];
 
-    return Response.json({
+    return json({
       success: true,
       order: {
-        id: order.id,
-        order_number: order.order_number,
-        status: order.status,
-        total_amount: order.total_amount,
-        shipping_amount: order.shipping_amount,
-        discount_amount: order.discount_amount,
-        payment_status: order.payment_status,
-        created_at: order.created_at,
+        id: Number(order.id || 0),
+        order_number: order.order_number || "",
+        status: order.status || "pending",
+        payment_status: order.payment_status || "pending",
+        subtotal_amount: Number(order.subtotal_amount || 0),
+        shipping_amount: Number(order.shipping_amount || 0),
+        total_amount: Number(order.total_amount || 0),
+        wallet_used_amount: Number(order.wallet_used_amount || 0),
+        cashback_amount: Number(order.cashback_amount || 0),
+        cashback_status: order.cashback_status || "none",
+        notes: order.notes || "",
+        created_at: order.created_at || null,
+        updated_at: order.updated_at || null,
         items,
-        shipping_address: order.shipping_address_id ? {
-          full_name: order.shipping_full_name,
-          address_line: order.shipping_address_line,
-          postal_code: order.shipping_postal_code,
-          phone: order.shipping_phone,
-          city: order.shipping_city,
-          state: order.shipping_state
-        } : null,
-        billing_address: order.billing_address_id ? {
-          full_name: order.billing_full_name,
-          address_line: order.billing_address_line,
-          postal_code: order.billing_postal_code,
-          phone: order.billing_phone,
-          city: order.billing_city,
-          state: order.billing_state
-        } : null
+        shipping_address: order.address_id
+          ? {
+              full_name: order.shipping_full_name || "",
+              address_line: order.shipping_address_line || "",
+              postal_code: order.shipping_postal_code || "",
+              phone: order.shipping_phone || "",
+              city: order.shipping_city || "",
+              state: order.shipping_state || ""
+            }
+          : null
       }
     });
   } catch (error) {
-    return Response.json(
+    return json(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }
