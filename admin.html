@@ -382,21 +382,21 @@
                     <label for="orders-status">وضعیت سفارش</label>
                     <select id="orders-status">
                       <option value="">همه</option>
-                      <option value="pending">pending</option>
-                      <option value="processing">processing</option>
-                      <option value="shipped">shipped</option>
-                      <option value="completed">completed</option>
-                      <option value="cancelled">cancelled</option>
+                      <option value="pending">در انتظار</option>
+                      <option value="processing">در حال پردازش</option>
+                      <option value="shipped">ارسال شده</option>
+                      <option value="completed">تکمیل شده</option>
+                      <option value="cancelled">لغو شده</option>
                     </select>
                   </div>
                   <div class="form-field">
                     <label for="orders-payment-status">وضعیت پرداخت</label>
                     <select id="orders-payment-status">
                       <option value="">همه</option>
-                      <option value="pending">pending</option>
-                      <option value="paid">paid</option>
-                      <option value="completed">completed</option>
-                      <option value="failed">failed</option>
+                      <option value="pending">در انتظار پرداخت</option>
+                      <option value="paid">پرداخت شده</option>
+                      <option value="completed">تسویه شده</option>
+                      <option value="failed">ناموفق</option>
                     </select>
                   </div>
                   <div class="form-field" style="justify-content:flex-end;">
@@ -436,9 +436,9 @@
                     <label for="users-role">نقش</label>
                     <select id="users-role">
                       <option value="">همه</option>
-                      <option value="customer">customer</option>
-                      <option value="admin">admin</option>
-                      <option value="super_admin">super_admin</option>
+                      <option value="user">مشتری</option>
+                      <option value="admin">ادمین</option>
+                      <option value="super_admin">مدیر کل</option>
                     </select>
                   </div>
                   <div class="form-field" style="justify-content:flex-end;">
@@ -559,13 +559,62 @@
       return Number(value || 0).toLocaleString("fa-IR");
     }
 
+    function faRole(value) {
+      const map = {
+        user: "مشتری",
+        customer: "مشتری",
+        admin: "ادمین",
+        super_admin: "مدیر کل"
+      };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
+
+    function faOrderStatus(value) {
+      const map = {
+        pending: "در انتظار",
+        processing: "در حال پردازش",
+        shipped: "ارسال شده",
+        completed: "تکمیل شده",
+        cancelled: "لغو شده"
+      };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
+
+    function faPaymentStatus(value) {
+      const map = {
+        pending: "در انتظار پرداخت",
+        paid: "پرداخت شده",
+        completed: "تسویه شده",
+        failed: "ناموفق"
+      };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
+
+    function faWalletType(value) {
+      const map = {
+        credit: "واریز",
+        debit: "برداشت"
+      };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
+
+    function faGenericStatus(value) {
+      const v = String(value || "").toLowerCase();
+      if (["user", "customer", "admin", "super_admin"].includes(v)) return faRole(v);
+      if (["pending", "processing", "shipped", "completed", "cancelled"].includes(v)) return faOrderStatus(v);
+      if (["paid", "failed"].includes(v)) return faPaymentStatus(v);
+      if (["credit", "debit"].includes(v)) return faWalletType(v);
+      if (["success"].includes(v)) return "موفق";
+      return value || "نامشخص";
+    }
+
     function badge(value) {
       const v = String(value || "").toLowerCase();
       let cls = "status-badge status-badge--warning";
       if (["paid", "completed", "success"].includes(v)) cls = "status-badge status-badge--success";
       else if (["processing", "shipped"].includes(v)) cls = "status-badge status-badge--info";
-      else if (["cancelled", "failed"].includes(v)) cls = "status-badge status-badge--danger";
-      return `<span class="${cls}">${esc(value || "-")}</span>`;
+      else if (["cancelled", "failed", "debit"].includes(v)) cls = "status-badge status-badge--danger";
+      return `<span class="${cls}">${esc(faGenericStatus(value))}</span>`;
     }
 
     async function api(url, options = {}) {
@@ -679,18 +728,18 @@
 
         <div class="panel-actions">
           <select id="detail-status">
-            <option value="pending">pending</option>
-            <option value="processing">processing</option>
-            <option value="shipped">shipped</option>
-            <option value="completed">completed</option>
-            <option value="cancelled">cancelled</option>
+            <option value="pending">در انتظار</option>
+            <option value="processing">در حال پردازش</option>
+            <option value="shipped">ارسال شده</option>
+            <option value="completed">تکمیل شده</option>
+            <option value="cancelled">لغو شده</option>
           </select>
 
           <select id="detail-payment-status">
-            <option value="pending">pending</option>
-            <option value="paid">paid</option>
-            <option value="completed">completed</option>
-            <option value="failed">failed</option>
+            <option value="pending">در انتظار پرداخت</option>
+            <option value="paid">پرداخت شده</option>
+            <option value="completed">تسویه شده</option>
+            <option value="failed">ناموفق</option>
           </select>
 
           <button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>
@@ -805,18 +854,27 @@
           <div class="form-field">
             <label for="edit-user-role">نقش</label>
             <select id="edit-user-role">
-              <option value="customer">customer</option>
-              <option value="admin">admin</option>
-              <option value="super_admin">super_admin</option>
+              <option value="user">مشتری</option>
+              <option value="admin">ادمین</option>
+              <option value="super_admin">مدیر کل</option>
             </select>
+          </div>
+          <div class="form-field">
+            <label for="edit-user-password">رمز عبور جدید</label>
+            <input id="edit-user-password" type="password" placeholder="در صورت نیاز وارد کنید" />
+          </div>
+          <div class="form-field">
+            <label for="edit-user-password-confirm">تکرار رمز عبور جدید</label>
+            <input id="edit-user-password-confirm" type="password" placeholder="تکرار رمز عبور جدید" />
           </div>
         </div>
         <div class="panel-actions">
-          <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره</button>
+          <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
+          <button class="btn btn-secondary" type="button" id="save-user-password-btn">تغییر رمز عبور</button>
         </div>
       `;
 
-      document.getElementById("edit-user-role").value = user.role || "customer";
+      document.getElementById("edit-user-role").value = user.role || "user";
 
       document.getElementById("save-user-btn").addEventListener("click", async () => {
         const payload = {
@@ -839,6 +897,44 @@
 
         setAdminMessage("اطلاعات کاربر با موفقیت ذخیره شد.", "success");
         await loadUsers();
+      });
+
+      document.getElementById("save-user-password-btn").addEventListener("click", async () => {
+        const password = document.getElementById("edit-user-password").value;
+        const password_confirm = document.getElementById("edit-user-password-confirm").value;
+
+        if (!password || !password_confirm) {
+          setAdminMessage("برای تغییر رمز عبور، هر دو فیلد رمز را وارد کن.");
+          return;
+        }
+
+        if (password.length < 8) {
+          setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
+          return;
+        }
+
+        if (password !== password_confirm) {
+          setAdminMessage("رمز عبور جدید و تکرار آن یکسان نیست.");
+          return;
+        }
+
+        const result = await api("/api/admin/users/password", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: user.id,
+            password,
+            password_confirm
+          })
+        });
+
+        if (!result.ok || !result.data?.success) {
+          setAdminMessage(result.data?.error || "تغییر رمز عبور کاربر انجام نشد.");
+          return;
+        }
+
+        document.getElementById("edit-user-password").value = "";
+        document.getElementById("edit-user-password-confirm").value = "";
+        setAdminMessage("رمز عبور کاربر با موفقیت تغییر کرد.", "success");
       });
     }
 
@@ -872,7 +968,7 @@
           کاربر: ${esc(user.full_name)}<br>
           ایمیل: ${esc(user.email)}<br>
           شماره: ${esc(user.phone || "-")}<br>
-          نقش: ${esc(user.role || "-")}<br>
+          نقش: ${esc(faRole(user.role || "-"))}<br>
           موجودی فعلی: ${money(user.wallet_balance || 0)}
         </p>
       `;
@@ -883,8 +979,8 @@
           <div class="form-field">
             <label for="wallet-type">نوع عملیات</label>
             <select id="wallet-type">
-              <option value="credit">credit</option>
-              <option value="debit">debit</option>
+              <option value="credit">واریز</option>
+              <option value="debit">برداشت</option>
             </select>
           </div>
           <div class="form-field">

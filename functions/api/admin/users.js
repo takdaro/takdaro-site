@@ -17,8 +17,8 @@ export async function onRequestGet(context) {
     const limit = Math.min(toInt(url.searchParams.get("limit"), 20), 100);
     const offset = (page - 1) * limit;
 
-    let where = [];
-    let binds = [];
+    const where = [];
+    const binds = [];
 
     if (role) {
       where.push("u.role = ?");
@@ -98,7 +98,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    const allowedRoles = ["customer", "admin", "super_admin"];
+    const allowedRoles = ["user", "admin", "super_admin"];
     if (!allowedRoles.includes(role)) {
       return Response.json(
         { success: false, error: "invalid role" },
