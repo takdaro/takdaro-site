@@ -100,6 +100,21 @@
     window.location.href = url;
   }
 
+  function getRedirectParam() {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect") || "";
+    if (!redirect.startsWith("/")) return null;
+    return redirect;
+  }
+
+  function buildLoginRedirect(targetPath = null) {
+    const currentPath =
+      targetPath ||
+      window.location.pathname + window.location.search + window.location.hash;
+
+    return `/login.html?redirect=${encodeURIComponent(currentPath)}`;
+  }
+
   function bindRegisterForm(options = {}) {
     const form = document.querySelector(options.formSelector || "#register-form");
     if (!form) return;
@@ -128,11 +143,12 @@
 
         setMessage(messageBox, "Account created successfully.", "success");
 
-        if (options.redirectAfterSuccess) {
-          setTimeout(() => {
-            redirectTo(options.redirectAfterSuccess, true);
-          }, 700);
-        }
+        const redirectTarget = getRedirectParam();
+        const fallbackRedirect = options.redirectAfterSuccess || "/account.html";
+
+        setTimeout(() => {
+          redirectTo(redirectTarget || fallbackRedirect, true);
+        }, 700);
       } catch (error) {
         setMessage(messageBox, String(error?.message || error || "Registration failed."));
       } finally {
@@ -166,7 +182,9 @@
         }
 
         setMessage(messageBox, "Login successful.", "success");
-        redirectTo(options.redirectAfterSuccess || "/account.html", true);
+
+        const redirectTarget = getRedirectParam();
+        redirectTo(redirectTarget || options.redirectAfterSuccess || "/account.html", true);
       } catch (error) {
         setMessage(messageBox, String(error?.message || error || "Login failed."));
       } finally {
@@ -194,7 +212,8 @@
     const result = await getCurrentUser();
 
     if (!result.ok || !result.data?.success || !result.data?.user) {
-      redirectTo(options.redirectTo || "/login.html", true);
+      const loginUrl = buildLoginRedirect(options.redirectPath);
+      redirectTo(loginUrl, true);
       return null;
     }
 
@@ -210,6 +229,23 @@
     }
 
     return null;
+  }
+
+  async function protectPage(options = {}) {
+    const publicPaths = options.publicPaths || [
+      "/",
+      "/index.html",
+      "/login.html",
+      "/register.html"
+    ];
+
+    const currentPath = window.location.pathname;
+
+    if (publicPaths.includes(currentPath)) {
+      return null;
+    }
+
+    return requireAuth();
   }
 
   function fillUserFields(user, options = {}) {
@@ -266,6 +302,7 @@
     bindLogoutButton,
     requireAuth,
     redirectIfAuthenticated,
+    protectPage,
     fillUserFields,
     setMessage
   };

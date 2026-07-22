@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -49,6 +49,12 @@
   <script src="./price-loader.js"></script>
   <script src="/assets/js/cart.js"></script>
   <script src="/assets/js/app.js"></script>
+  <script>
+  document.addEventListener("DOMContentLoaded", async function () {
+    if (!window.Auth) return;
+    await window.Auth.protectPage();
+  });
+</script>
 </body>
 </html>
 
