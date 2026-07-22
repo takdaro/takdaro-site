@@ -584,7 +584,23 @@
 
     function formatDate(value) {
       if (!value) return "-";
-      return escapeHtml(value);
+
+      try {
+        const normalized = String(value).trim().replace(" ", "T");
+        const date = new Date(normalized);
+
+        if (Number.isNaN(date.getTime())) {
+          return escapeHtml(String(value));
+        }
+
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        }).format(date);
+      } catch (error) {
+        return escapeHtml(String(value));
+      }
     }
 
     function translateOrderStatus(status) {

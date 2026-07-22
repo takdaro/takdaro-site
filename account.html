@@ -654,84 +654,19 @@
               </div>
 
               <div id="panel-addresses" class="account-section">
-                <h2 class="account-sectiontitle">آدرس‌ها</h2>
+                <h2 class="account-sectiontitle">آدرس‌های من</h2>
                 <p class="account-sectionlead">
-                  آدرس‌های ارسال و صورتحساب را می‌توانی در این بخش ثبت و ویرایش کنی.
+                  آدرس‌های ذخیره‌شده برای ارسال سفارش و صورتحساب را اینجا مدیریت کن.
                 </p>
 
-                <div id="address-message" class="account-message"></div>
-
-                <div class="panel-actions" style="margin-top:0;margin-bottom:16px;">
-                  <button type="button" class="btn btn-primary" id="add-address-btn">
-                    افزودن آدرس جدید
-                  </button>
+                <div class="panel-actions">
+                  <button type="button" class="btn btn-primary" id="add-address-btn">افزودن آدرس جدید</button>
                 </div>
 
-                <form id="address-form" class="form-grid account-hidden" novalidate>
-                  <input type="hidden" id="address-id" />
-
-                  <div class="form-grid-2">
-                    <div class="form-field">
-                      <label for="address-full-name">نام و نام خانوادگی</label>
-                      <input id="address-full-name" type="text" required />
-                    </div>
-                    <div class="form-field">
-                      <label for="address-phone">شماره تماس</label>
-                      <input id="address-phone" type="tel" required />
-                    </div>
-                  </div>
-
-                  <div class="form-grid-2">
-                    <div class="form-field">
-                      <label for="address-type">نوع آدرس</label>
-                      <select id="address-type" required>
-                        <option value="shipping">آدرس ارسال</option>
-                        <option value="billing">آدرس صورتحساب</option>
-                      </select>
-                    </div>
-                    <div class="form-field">
-                      <label for="address-postal-code">کد پستی</label>
-                      <input id="address-postal-code" type="text" inputmode="numeric" required />
-                    </div>
-                  </div>
-
-                  <div class="form-grid-2">
-                    <div class="form-field">
-                      <label for="address-state">استان</label>
-                      <input id="address-state" type="text" required />
-                    </div>
-                    <div class="form-field">
-                      <label for="address-city">شهر</label>
-                      <input id="address-city" type="text" required />
-                    </div>
-                  </div>
-
-                  <div class="form-field">
-                    <label for="address-line">نشانی کامل</label>
-                    <textarea id="address-line" rows="4" required></textarea>
-                  </div>
-
-                  <div class="form-field" style="flex-direction:row;align-items:center;gap:10px;">
-                    <input id="address-is-default" type="checkbox" style="width:auto;" />
-                    <label for="address-is-default" style="margin:0;">
-                      تنظیم به عنوان آدرس پیش‌فرض
-                    </label>
-                  </div>
-
-                  <div class="panel-actions">
-                    <button type="submit" class="btn btn-primary" id="save-address-btn">
-                      ذخیره آدرس
-                    </button>
-                    <button type="button" class="btn btn-secondary" id="cancel-address-btn">
-                      انصراف
-                    </button>
-                  </div>
-                </form>
-
-                <div id="addresses-grid" class="address-grid">
+                <div id="addresses-grid" class="address-grid" style="margin-top: 18px;">
                   <div class="address-card">
-                    <h4>هیچ آدرسی ثبت نشده است</h4>
-                    <p>برای ثبت آدرس جدید روی دکمه «افزودن آدرس جدید» کلیک کن.</p>
+                    <h4>در حال بارگذاری...</h4>
+                    <p>آدرس‌های ذخیره‌شده در حال دریافت هستند.</p>
                   </div>
                 </div>
               </div>
@@ -739,113 +674,83 @@
               <div id="panel-payments" class="account-section">
                 <h2 class="account-sectiontitle">پرداخت‌ها</h2>
                 <p class="account-sectionlead">
-                  لیست پرداخت‌ها و تراکنش‌های انجام شده در این بخش نمایش داده می‌شود.
+                  در این بخش می‌توانی وضعیت کلی پرداخت‌های خود را مشاهده کنی.
                 </p>
 
-                <div class="table-wrap">
-                  <table class="account-table">
-                    <thead>
-                      <tr>
-                        <th>شماره تراکنش</th>
-                        <th>تاریخ</th>
-                        <th>مبلغ</th>
-                        <th>وضعیت</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td colspan="4" class="table-number">در حال توسعه...</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div class="wallet-empty">
+                  در حال حاضر گزارش جداگانه‌ای برای پرداخت‌ها تعریف نشده است. برای مشاهده جزئیات هر پرداخت، از بخش سفارش‌ها وارد فاکتور همان سفارش شو.
                 </div>
               </div>
 
               <div id="panel-wallet" class="account-section">
                 <h2 class="account-sectiontitle">کیف پول</h2>
                 <p class="account-sectionlead">
-                  وضعیت موجودی و امکانات کیف پول کاربری در این بخش نمایش داده می‌شود.
+                  موجودی کیف پول و وضعیت اعتبار حساب در این بخش قرار می‌گیرد.
                 </p>
 
-                <div class="wallet-empty">
-                  امکانات کیف پول در حال توسعه است.
+                <div class="stats-grid" style="grid-template-columns: 1fr;">
+                  <div class="stat-card">
+                    <span>موجودی کیف پول</span>
+                    <strong id="wallet-balance">0 تومان</strong>
+                  </div>
                 </div>
               </div>
 
               <div id="panel-wallet-history" class="account-section">
                 <h2 class="account-sectiontitle">تاریخچه کیف پول</h2>
                 <p class="account-sectionlead">
-                  ریز عملیات و تغییرات موجودی کیف پول در این بخش نمایش داده می‌شود.
+                  سوابق تراکنش‌های کیف پول در این قسمت نمایش داده می‌شود.
                 </p>
 
                 <div class="wallet-empty">
-                  تاریخچه کیف پول در حال توسعه است.
+                  هنوز تراکنشی برای کیف پول این حساب ثبت نشده است.
                 </div>
               </div>
 
               <div id="panel-account-details" class="account-section">
                 <h2 class="account-sectiontitle">جزئیات حساب</h2>
                 <p class="account-sectionlead">
-                  ویرایش اطلاعات حساب، ایمیل، شماره تماس و رمز عبور.
+                  اطلاعات کاربری و رمز عبور خود را از این بخش به‌روزرسانی کن.
                 </p>
 
-                <div class="account-message" data-account-message></div>
+                <div id="account-form-message" class="account-message"></div>
 
                 <form id="account-details-form" class="form-grid" novalidate>
                   <div class="form-grid-2">
                     <div class="form-field">
-                      <label for="first-name">نام</label>
-                      <input id="first-name" type="text" />
+                      <label for="account-full-name">نام و نام خانوادگی</label>
+                      <input type="text" id="account-full-name" name="name" autocomplete="name" />
                     </div>
+
                     <div class="form-field">
-                      <label for="last-name">نام خانوادگی</label>
-                      <input id="last-name" type="text" />
+                      <label for="account-phone">شماره تماس</label>
+                      <input type="text" id="account-phone" name="phone" autocomplete="tel" />
                     </div>
+                  </div>
+
+                  <div class="form-field">
+                    <label for="account-email">ایمیل</label>
+                    <input type="email" id="account-email" name="email" autocomplete="email" />
                   </div>
 
                   <div class="form-grid-2">
                     <div class="form-field">
-                      <label for="account-email">ایمیل</label>
-                      <input id="account-email" type="email" data-user-email />
+                      <label for="account-password">رمز عبور جدید</label>
+                      <input type="password" id="account-password" name="password" autocomplete="new-password" />
                     </div>
-                    <div class="form-field">
-                      <label for="phone">شماره تماس</label>
-                      <input id="phone" type="tel" data-user-phone />
-                    </div>
-                  </div>
 
-                  <div class="form-grid-2">
                     <div class="form-field">
-                      <label for="password">رمز عبور جدید</label>
-                      <input
-                        id="password"
-                        type="password"
-                        placeholder="در صورت تغییر رمز، این فیلد را پر کن"
-                        autocomplete="new-password"
-                      />
-                    </div>
-                    <div class="form-field">
-                      <label for="password-confirm">تکرار رمز عبور</label>
-                      <input
-                        id="password-confirm"
-                        type="password"
-                        placeholder="تکرار رمز عبور جدید"
-                        autocomplete="new-password"
-                      />
+                      <label for="account-password-confirm">تکرار رمز عبور جدید</label>
+                      <input type="password" id="account-password-confirm" name="password_confirm" autocomplete="new-password" />
                     </div>
                   </div>
 
                   <p class="account-help">
-                    اگر قصد تغییر رمز عبور نداری، دو فیلد رمز را خالی بگذار.
+                    اگر قصد تغییر رمز عبور نداری، فیلدهای رمز را خالی بگذار.
                   </p>
 
                   <div class="panel-actions">
-                    <button type="submit" class="btn btn-primary" id="save-profile-btn">
-                      ذخیره تغییرات
-                    </button>
-                    <button type="button" class="btn btn-secondary" id="reset-profile-btn">
-                      بازگردانی به اطلاعات فعلی
-                    </button>
+                    <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
                   </div>
                 </form>
               </div>
@@ -853,21 +758,16 @@
               <div id="panel-logout" class="account-section">
                 <h2 class="account-sectiontitle">خروج از حساب</h2>
                 <p class="account-sectionlead">
-                  برای پایان نشست فعلی و خروج امن از حساب، از دکمه زیر استفاده کن.
+                  برای خروج امن از حساب کاربری، دکمه زیر را انتخاب کن.
                 </p>
 
                 <div class="logout-box">
-                  <h4>آیا مطمئن هستی؟</h4>
+                  <h4>خروج از حساب کاربری</h4>
                   <p>
-                    با خروج از حساب، برای انجام خرید یا مشاهده سفارش‌ها باید دوباره وارد شوی.
+                    با خروج از حساب، برای دسترسی دوباره به اطلاعات حساب و سفارش‌ها باید مجدداً وارد شوی.
                   </p>
                   <div class="panel-actions">
-                    <button type="button" class="btn btn-primary" data-auth-logout>
-                      خروج از حساب
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-panel-target="dashboard">
-                      بازگشت به داشبورد
-                    </button>
+                    <button type="button" class="btn btn-primary" data-account-logout>خروج</button>
                   </div>
                 </div>
               </div>
@@ -890,132 +790,20 @@
   <script src="assets/js/auth.js"></script>
 
   <script>
-    const menuButtons = document.querySelectorAll("[data-panel-target]");
-    const sections = document.querySelectorAll(".account-section");
-    const panelHeading = document.getElementById("panel-heading");
-    const panelDescription = document.getElementById("panel-description");
-    const accountForm = document.getElementById("account-details-form");
     const accountLoading = document.getElementById("account-loading");
     const accountPage = document.getElementById("account-page");
-    const accountMessage = document.querySelector("[data-account-message]");
-    const resetProfileBtn = document.getElementById("reset-profile-btn");
-    const saveProfileBtn = document.getElementById("save-profile-btn");
-
-    const ordersCountEl = document.getElementById("dashboard-orders-count");
-    const totalSpentEl = document.getElementById("dashboard-total-spent");
-    const addressesCountEl = document.getElementById("dashboard-addresses-count");
-
-    const addressForm = document.getElementById("address-form");
-    const addressMessage = document.getElementById("address-message");
-    const addAddressBtn = document.getElementById("add-address-btn");
-    const cancelAddressBtn = document.getElementById("cancel-address-btn");
-    const saveAddressBtn = document.getElementById("save-address-btn");
+    const ordersTableBody = document.getElementById("orders-table-body");
     const addressesGrid = document.getElementById("addresses-grid");
+    const walletBalance = document.getElementById("wallet-balance");
+    const dashboardOrdersCount = document.getElementById("dashboard-orders-count");
+    const dashboardTotalSpent = document.getElementById("dashboard-total-spent");
+    const dashboardAddressesCount = document.getElementById("dashboard-addresses-count");
+    const accountForm = document.getElementById("account-details-form");
+    const accountFormMessage = document.getElementById("account-form-message");
 
     let currentUser = null;
     let currentOrders = [];
     let currentAddresses = [];
-
-    const panelMeta = {
-      dashboard: {
-        title: "داشبورد",
-        description: "نمای کلی حساب کاربری و وضعیت فعالیت‌هایت را اینجا می‌بینی."
-      },
-      orders: {
-        title: "سفارش‌ها",
-        description: "مشاهده وضعیت و جزئیات سفارش‌های ثبت شده."
-      },
-      addresses: {
-        title: "آدرس‌ها",
-        description: "مدیریت آدرس‌های ارسال و صورتحساب."
-      },
-      payments: {
-        title: "پرداخت‌ها",
-        description: "لیست پرداخت‌ها و تراکنش‌های انجام شده."
-      },
-      wallet: {
-        title: "کیف پول",
-        description: "وضعیت موجودی و امکانات کیف پول کاربری."
-      },
-      "wallet-history": {
-        title: "تاریخچه کیف پول",
-        description: "ریز عملیات و تغییرات موجودی کیف پول."
-      },
-      "account-details": {
-        title: "جزئیات حساب",
-        description: "ویرایش اطلاعات حساب، ایمیل، شماره تماس و رمز عبور."
-      },
-      logout: {
-        title: "خروج",
-        description: "پایان نشست فعلی و خروج امن از حساب."
-      }
-    };
-
-    function setAccountMessage(message, type = "error") {
-      if (!accountMessage) return;
-      accountMessage.textContent = message;
-      accountMessage.className = "account-message";
-      if (message) {
-        accountMessage.classList.add(type === "success" ? "is-success" : "is-error");
-      }
-    }
-
-    function setAddressMessage(message, type = "error") {
-      if (!addressMessage) return;
-      addressMessage.textContent = message;
-      addressMessage.className = "account-message";
-      if (message) {
-        addressMessage.classList.add(type === "success" ? "is-success" : "is-error");
-      }
-    }
-
-    function openPanel(panelName) {
-      menuButtons.forEach((button) => {
-        const isTarget = button.getAttribute("data-panel-target") === panelName;
-        button.classList.toggle("is-active", isTarget && !button.classList.contains("is-danger"));
-      });
-
-      sections.forEach((section) => {
-        section.classList.toggle("is-active", section.id === `panel-${panelName}`);
-      });
-
-      if (panelMeta[panelName]) {
-        panelHeading.textContent = panelMeta[panelName].title;
-        panelDescription.textContent = panelMeta[panelName].description;
-      }
-    }
-
-    function fillAccountName(fullName) {
-      const safeName = String(fullName || "").trim();
-      const parts = safeName.split(" ").filter(Boolean);
-      const firstName = parts[0] || "";
-      const lastName = parts.slice(1).join(" ");
-
-      const firstNameInput = document.getElementById("first-name");
-      const lastNameInput = document.getElementById("last-name");
-
-      if (firstNameInput) firstNameInput.value = firstName;
-      if (lastNameInput) lastNameInput.value = lastName;
-    }
-
-    function resetFormFromUser() {
-      if (!currentUser) return;
-      fillAccountName(currentUser.full_name || "");
-
-      const emailInput = document.getElementById("account-email");
-      const phoneInput = document.getElementById("phone");
-
-      if (emailInput) emailInput.value = currentUser.email || "";
-      if (phoneInput) phoneInput.value = currentUser.phone || "";
-
-      const passwordInput = document.getElementById("password");
-      const passwordConfirmInput = document.getElementById("password-confirm");
-
-      if (passwordInput) passwordInput.value = "";
-      if (passwordConfirmInput) passwordConfirmInput.value = "";
-
-      setAccountMessage("");
-    }
 
     function escapeHtml(value) {
       return String(value ?? "")
@@ -1026,25 +814,30 @@
         .replace(/'/g, "&#39;");
     }
 
-    function toEnglishDigits(value) {
-      const map = {
-        "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
-        "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9"
-      };
-      return String(value ?? "")
-        .split("")
-        .map((char) => map[char] ?? char)
-        .join("");
-    }
-
     function formatPrice(value) {
       const number = Number(value || 0);
-      return number.toLocaleString("fa-IR");
+      return number.toLocaleString("fa-IR") + " تومان";
     }
 
     function formatDate(value) {
       if (!value) return "-";
-      return escapeHtml(value);
+
+      try {
+        const normalized = String(value).trim().replace(" ", "T");
+        const date = new Date(normalized);
+
+        if (Number.isNaN(date.getTime())) {
+          return escapeHtml(String(value));
+        }
+
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        }).format(date);
+      } catch (error) {
+        return escapeHtml(String(value));
+      }
     }
 
     function translateOrderStatus(status) {
@@ -1073,7 +866,7 @@
         return "status-badge status-badge--success";
       }
 
-      if (["shipped", "sent", "processing"].includes(normalized)) {
+      if (["processing", "shipped", "sent"].includes(normalized)) {
         return "status-badge status-badge--info";
       }
 
@@ -1081,70 +874,107 @@
     }
 
     function renderOrderStatusBadge(status) {
-      return `
-        <span class="${orderStatusClass(status)}">
-          ${escapeHtml(translateOrderStatus(status))}
-        </span>
-      `;
+      return `<span class="${orderStatusClass(status)}">${escapeHtml(translateOrderStatus(status))}</span>`;
     }
 
-    function updateDashboardStats(orders, addresses) {
-      const safeOrders = Array.isArray(orders) ? orders : [];
-      const safeAddresses = Array.isArray(addresses) ? addresses : [];
+    function setFormMessage(type, message) {
+      if (!accountFormMessage) return;
+      accountFormMessage.className = "account-message";
+      accountFormMessage.textContent = "";
 
-      const count = safeOrders.length;
-      const total = safeOrders.reduce(
-        (sum, order) => sum + Number(order.total_amount || 0),
-        0
-      );
+      if (!message) return;
 
-      if (ordersCountEl) ordersCountEl.textContent = count.toLocaleString("fa-IR");
-      if (totalSpentEl) totalSpentEl.textContent = formatPrice(total);
-      if (addressesCountEl) addressesCountEl.textContent = safeAddresses.length.toLocaleString("fa-IR");
+      accountFormMessage.classList.add(type === "success" ? "is-success" : "is-error");
+      accountFormMessage.textContent = message;
     }
 
-    async function loadOrders() {
-      const tbody = document.getElementById("orders-table-body");
-      if (!tbody) return;
+    function switchPanel(target) {
+      document.querySelectorAll(".account-menubtn").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.panelTarget === target);
+      });
 
-      tbody.innerHTML = `
-        <tr><td colspan="5">در حال بارگذاری سفارش‌ها...</td></tr>
-      `;
+      document.querySelectorAll(".account-section").forEach((section) => {
+        section.classList.toggle("is-active", section.id === "panel-" + target);
+      });
 
-      try {
-        const response = await fetch("/api/account/orders", {
-          credentials: "same-origin"
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data?.success) {
-          tbody.innerHTML = `
-            <tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>
-          `;
-          updateDashboardStats([], currentAddresses);
-          return;
+      const headings = {
+        dashboard: {
+          title: "داشبورد",
+          description: "نمای کلی حساب کاربری و وضعیت فعالیت‌هایت را اینجا می‌بینی."
+        },
+        orders: {
+          title: "سفارش‌ها",
+          description: "فهرست سفارش‌های ثبت‌شده و وضعیت هر سفارش در این بخش قرار دارد."
+        },
+        addresses: {
+          title: "آدرس‌ها",
+          description: "آدرس‌های ارسال و صورتحساب ذخیره‌شده را از این بخش مدیریت کن."
+        },
+        payments: {
+          title: "پرداخت‌ها",
+          description: "مرور وضعیت پرداخت‌ها و دسترسی به فاکتورهای سفارش از این بخش انجام می‌شود."
+        },
+        wallet: {
+          title: "کیف پول",
+          description: "موجودی فعلی کیف پول و اعتبار حساب را اینجا مشاهده می‌کنی."
+        },
+        "wallet-history": {
+          title: "تاریخچه کیف پول",
+          description: "سوابق تراکنش‌های مربوط به کیف پول در این قسمت نشان داده می‌شود."
+        },
+        "account-details": {
+          title: "جزئیات حساب",
+          description: "نام، ایمیل، شماره تماس و رمز عبور خود را به‌روزرسانی کن."
+        },
+        logout: {
+          title: "خروج",
+          description: "برای خروج امن از حساب کاربری از این بخش استفاده کن."
         }
+      };
 
-        const orders = Array.isArray(data.orders) ? data.orders : [];
-        currentOrders = orders;
-        updateDashboardStats(orders, currentAddresses);
+      const panelMeta = headings[target] || headings.dashboard;
+      const heading = document.getElementById("panel-heading");
+      const description = document.getElementById("panel-description");
 
-        if (!orders.length) {
-          tbody.innerHTML = `
-            <tr><td colspan="5">هیچ سفارشی ثبت نشده است.</td></tr>
-          `;
-          return;
-        }
+      if (heading) heading.textContent = panelMeta.title;
+      if (description) description.textContent = panelMeta.description;
+    }
 
-        tbody.innerHTML = orders.map((order) => `
+    function renderUserInfo(user) {
+      document.querySelectorAll("[data-user-full-name]").forEach((node) => {
+        node.textContent = user?.name || "کاربر";
+      });
+
+      if (walletBalance) {
+        walletBalance.textContent = formatPrice(user?.wallet_balance || 0);
+      }
+
+      const fullNameInput = document.getElementById("account-full-name");
+      const phoneInput = document.getElementById("account-phone");
+      const emailInput = document.getElementById("account-email");
+
+      if (fullNameInput) fullNameInput.value = user?.name || "";
+      if (phoneInput) phoneInput.value = user?.phone || "";
+      if (emailInput) emailInput.value = user?.email || "";
+    }
+
+    function renderOrders(orders) {
+      currentOrders = Array.isArray(orders) ? orders : [];
+
+      if (!ordersTableBody) return;
+
+      if (!currentOrders.length) {
+        ordersTableBody.innerHTML = `
           <tr>
-            <td class="table-number">
-              ${escapeHtml(order.order_number || order.id || "")}
-            </td>
+            <td colspan="5">هنوز سفارشی برای این حساب ثبت نشده است.</td>
+          </tr>
+        `;
+      } else {
+        ordersTableBody.innerHTML = currentOrders.map((order) => `
+          <tr>
+            <td class="table-number">${escapeHtml(order.order_number || order.id || "-")}</td>
             <td class="table-number">${formatDate(order.created_at)}</td>
-            <td>
-              ${renderOrderStatusBadge(order.status)}
-            </td>
+            <td>${renderOrderStatusBadge(order.status)}</td>
             <td class="table-number">${formatPrice(order.total_amount || 0)}</td>
             <td>
               <a href="invoice.html?order=${encodeURIComponent(order.order_number || "")}" class="btn btn-secondary">
@@ -1153,130 +983,89 @@
             </td>
           </tr>
         `).join("");
-      } catch (error) {
-        tbody.innerHTML = `
-          <tr><td colspan="5">دریافت سفارش‌ها با خطا مواجه شد.</td></tr>
+      }
+
+      if (dashboardOrdersCount) {
+        dashboardOrdersCount.textContent = currentOrders.length.toLocaleString("fa-IR");
+      }
+
+      if (dashboardTotalSpent) {
+        const totalSpent = currentOrders.reduce((sum, order) => {
+          return sum + Number(order?.total_amount || 0);
+        }, 0);
+
+        dashboardTotalSpent.textContent = formatPrice(totalSpent);
+      }
+    }
+
+    function formatAddressCard(address) {
+      const lines = [];
+
+      if (address.full_name) lines.push("نام گیرنده: " + address.full_name);
+      if (address.phone) lines.push("تلفن: " + address.phone);
+      if (address.address_line) lines.push("آدرس: " + address.address_line);
+
+      const cityState = [address.city, address.state].filter(Boolean).join(" - ");
+      if (cityState) lines.push("شهر/استان: " + cityState);
+
+      if (address.postal_code) lines.push("کد پستی: " + address.postal_code);
+
+      return lines.length ? lines.join("<br>") : "جزئیات این آدرس کامل نیست.";
+    }
+
+    function renderAddresses(addresses) {
+      currentAddresses = Array.isArray(addresses) ? addresses : [];
+
+      if (!addressesGrid) return;
+
+      if (!currentAddresses.length) {
+        addressesGrid.innerHTML = `
+          <div class="address-card">
+            <h4>آدرسی ثبت نشده است</h4>
+            <p>هنوز هیچ آدرسی برای این حساب ذخیره نشده است.</p>
+          </div>
         `;
-        updateDashboardStats([], currentAddresses);
-      }
-    }
-
-    function resetAddressForm() {
-      document.getElementById("address-id").value = "";
-      document.getElementById("address-full-name").value = currentUser?.full_name || "";
-      document.getElementById("address-phone").value = currentUser?.phone || "";
-      document.getElementById("address-type").value = "shipping";
-      document.getElementById("address-postal-code").value = "";
-      document.getElementById("address-state").value = "";
-      document.getElementById("address-city").value = "";
-      document.getElementById("address-line").value = "";
-      document.getElementById("address-is-default").checked = false;
-      setAddressMessage("");
-    }
-
-    function openAddressForm(address = null) {
-      if (!addressForm) return;
-      addressForm.classList.remove("account-hidden");
-
-      if (!address) {
-        resetAddressForm();
-        return;
-      }
-
-      document.getElementById("address-id").value = address.id;
-      document.getElementById("address-full-name").value = address.full_name || "";
-      document.getElementById("address-phone").value = address.phone || "";
-      document.getElementById("address-type").value = address.type || "shipping";
-      document.getElementById("address-postal-code").value = address.postal_code || "";
-      document.getElementById("address-state").value = address.state || "";
-      document.getElementById("address-city").value = address.city || "";
-      document.getElementById("address-line").value = address.address_line || "";
-      document.getElementById("address-is-default").checked = Number(address.is_default || 0) === 1;
-      setAddressMessage("");
-    }
-
-    function closeAddressForm() {
-      if (!addressForm) return;
-      addressForm.classList.add("account-hidden");
-      resetAddressForm();
-    }
-
-    function collectAddressFormData() {
-      return {
-        id: document.getElementById("address-id").value.trim(),
-        full_name: document.getElementById("address-full-name").value.trim(),
-        phone: toEnglishDigits(document.getElementById("address-phone").value.replace(/\D/g, "")),
-        type: document.getElementById("address-type").value,
-        postal_code: toEnglishDigits(document.getElementById("address-postal-code").value.replace(/\D/g, "")),
-        state: document.getElementById("address-state").value.trim(),
-        city: document.getElementById("address-city").value.trim(),
-        address_line: document.getElementById("address-line").value.trim(),
-        is_default: document.getElementById("address-is-default").checked ? 1 : 0
-      };
-    }
-
-    function validateAddressForm(data) {
-      if (
-        !data.full_name ||
-        !data.phone ||
-        !data.type ||
-        !data.postal_code ||
-        !data.state ||
-        !data.city ||
-        !data.address_line
-      ) {
-        setAddressMessage("لطفاً همه فیلدهای آدرس را پر کن.", "error");
-        return false;
-      }
-
-      if (data.phone.length < 10) {
-        setAddressMessage("شماره تماس باید حداقل ۱۰ رقم باشد.", "error");
-        return false;
-      }
-
-      if (data.postal_code.length !== 10) {
-        setAddressMessage("کد پستی باید دقیقاً ۱۰ رقم باشد.", "error");
-        return false;
-      }
-
-      return true;
-    }
-
-    function renderAddressCard(address) {
-      const typeLabel = address.type === "billing" ? "آدرس صورتحساب" : "آدرس ارسال";
-      const isDefault = Number(address.is_default || 0) === 1;
-
-      return `
-        <div class="address-card">
-          <div class="address-cardmeta ${isDefault ? "is-default" : ""}">
-            ${escapeHtml(typeLabel)}${isDefault ? " (پیش‌فرض)" : ""}
+      } else {
+        addressesGrid.innerHTML = currentAddresses.map((address) => `
+          <div class="address-card">
+            <div class="address-cardmeta ${address.is_default ? "is-default" : ""}">
+              ${address.is_default ? "آدرس پیش‌فرض" : "آدرس ذخیره‌شده"}
+            </div>
+            <h4>${escapeHtml(address.title || "آدرس کاربر")}</h4>
+            <p>${formatAddressCard(address)}</p>
+            <div class="address-actions">
+              <button type="button" class="btn btn-secondary" data-address-edit="${address.id}">ویرایش</button>
+              <button type="button" class="btn btn-secondary" data-address-delete="${address.id}">حذف</button>
+              ${address.is_default ? "" : `<button type="button" class="btn btn-primary" data-address-default="${address.id}">پیش‌فرض</button>`}
+            </div>
           </div>
-          <h4>${escapeHtml(address.full_name || "")}</h4>
-          <p>
-            ${escapeHtml(address.address_line || "")}<br />
-            ${escapeHtml(address.postal_code || "")}<br />
-            ${escapeHtml(address.phone || "")}<br />
-            ${escapeHtml(address.city || "")} - ${escapeHtml(address.state || "")}
-          </p>
-          <div class="address-actions">
-            <button type="button" class="btn btn-secondary" data-edit-address="${escapeHtml(address.id)}">ویرایش</button>
-            <button type="button" class="btn btn-secondary" data-default-address="${escapeHtml(address.id)}">تنظیم به عنوان پیش‌فرض</button>
-            <button type="button" class="btn btn-secondary" data-delete-address="${escapeHtml(address.id)}">حذف</button>
-          </div>
-        </div>
-      `;
+        `).join("");
+      }
+
+      if (dashboardAddressesCount) {
+        dashboardAddressesCount.textContent = currentAddresses.length.toLocaleString("fa-IR");
+      }
+    }
+
+    async function loadOrders() {
+      try {
+        const response = await fetch("/api/account/orders", {
+          credentials: "same-origin"
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+          renderOrders([]);
+          return;
+        }
+
+        renderOrders(Array.isArray(data.orders) ? data.orders : []);
+      } catch (error) {
+        renderOrders([]);
+      }
     }
 
     async function loadAddresses() {
-      if (!addressesGrid) return;
-
-      addressesGrid.innerHTML = `
-        <div class="address-card">
-          <h4>در حال بارگذاری آدرس‌ها...</h4>
-          <p>لطفاً کمی صبر کن.</p>
-        </div>
-      `;
-
       try {
         const response = await fetch("/api/account/addresses", {
           credentials: "same-origin"
@@ -1284,314 +1073,142 @@
         const data = await response.json();
 
         if (!response.ok || !data?.success) {
-          addressesGrid.innerHTML = `
-            <div class="address-card">
-              <h4>دریافت آدرس‌ها با خطا مواجه شد</h4>
-              <p>لطفاً دوباره تلاش کن.</p>
-            </div>
-          `;
-          updateDashboardStats(currentOrders, []);
+          renderAddresses([]);
           return;
         }
 
-        const addresses = Array.isArray(data.addresses) ? data.addresses : [];
-        currentAddresses = addresses;
-        updateDashboardStats(currentOrders, addresses);
-
-        if (!addresses.length) {
-          addressesGrid.innerHTML = `
-            <div class="address-card">
-              <h4>هیچ آدرسی ثبت نشده است</h4>
-              <p>برای ثبت آدرس جدید روی دکمه «افزودن آدرس جدید» کلیک کن.</p>
-            </div>
-          `;
-          return;
-        }
-
-        addressesGrid.innerHTML = addresses.map(renderAddressCard).join("");
+        renderAddresses(Array.isArray(data.addresses) ? data.addresses : []);
       } catch (error) {
-        addressesGrid.innerHTML = `
-          <div class="address-card">
-            <h4>دریافت آدرس‌ها با خطا مواجه شد</h4>
-            <p>لطفاً دوباره تلاش کن.</p>
-          </div>
-        `;
-        updateDashboardStats(currentOrders, []);
+        renderAddresses([]);
       }
     }
 
-    async function saveAddress(data) {
-      const isEdit = Boolean(data.id);
-      const url = isEdit
-        ? `/api/account/addresses/${encodeURIComponent(data.id)}`
-        : "/api/account/addresses";
-      const method = isEdit ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          full_name: data.full_name,
-          phone: data.phone,
-          type: data.type,
-          postal_code: data.postal_code,
-          state: data.state,
-          city: data.city,
-          address_line: data.address_line,
-          is_default: data.is_default
-        })
-      });
-
-      return response.json();
-    }
-
-    async function deleteAddress(addressId) {
-      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}`, {
-        method: "DELETE",
-        credentials: "same-origin"
-      });
-
-      return response.json();
-    }
-
-    async function makeAddressDefault(addressId) {
-      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}/default`, {
-        method: "POST",
-        credentials: "same-origin"
-      });
-
-      return response.json();
-    }
-
-    menuButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        const panelName = button.getAttribute("data-panel-target");
-        if (panelName) openPanel(panelName);
-      });
-    });
-
-    if (addAddressBtn) {
-      addAddressBtn.addEventListener("click", () => {
-        openAddressForm();
-      });
-    }
-
-    if (cancelAddressBtn) {
-      cancelAddressBtn.addEventListener("click", () => {
-        closeAddressForm();
-      });
-    }
-
-    if (addressForm) {
-      addressForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        setAddressMessage("");
-
-        const data = collectAddressFormData();
-        if (!validateAddressForm(data)) return;
-
-        if (saveAddressBtn) saveAddressBtn.disabled = true;
-
-        try {
-          const result = await saveAddress(data);
-
-          if (!result?.success) {
-            setAddressMessage(result?.error || "ذخیره آدرس انجام نشد.", "error");
-            return;
-          }
-
-          setAddressMessage("آدرس با موفقیت ذخیره شد.", "success");
-          closeAddressForm();
-          await loadAddresses();
-        } catch (error) {
-          setAddressMessage("ذخیره آدرس با خطا مواجه شد.", "error");
-        } finally {
-          if (saveAddressBtn) saveAddressBtn.disabled = false;
+    async function bootAccount() {
+      if (!window.Auth || typeof window.Auth.requireAuth !== "function") {
+        if (accountLoading) {
+          accountLoading.textContent = "سیستم احراز هویت در دسترس نیست.";
         }
-      });
-    }
-
-    if (addressesGrid) {
-      addressesGrid.addEventListener("click", async (event) => {
-        const editBtn = event.target.closest("[data-edit-address]");
-        const deleteBtn = event.target.closest("[data-delete-address]");
-        const defaultBtn = event.target.closest("[data-default-address]");
-
-        if (editBtn) {
-          const addressId = editBtn.getAttribute("data-edit-address");
-          const address = currentAddresses.find((item) => String(item.id) === String(addressId));
-          if (address) openAddressForm(address);
-          return;
-        }
-
-        if (deleteBtn) {
-          const addressId = deleteBtn.getAttribute("data-delete-address");
-          if (!confirm("آیا از حذف این آدرس مطمئن هستی؟")) return;
-
-          try {
-            const result = await deleteAddress(addressId);
-            if (!result?.success) {
-              setAddressMessage(result?.error || "حذف آدرس انجام نشد.", "error");
-              return;
-            }
-
-            setAddressMessage("آدرس با موفقیت حذف شد.", "success");
-            await loadAddresses();
-          } catch (error) {
-            setAddressMessage("حذف آدرس با خطا مواجه شد.", "error");
-          }
-          return;
-        }
-
-        if (defaultBtn) {
-          const addressId = defaultBtn.getAttribute("data-default-address");
-
-          try {
-            const result = await makeAddressDefault(addressId);
-            if (!result?.success) {
-              setAddressMessage(result?.error || "تنظیم آدرس پیش‌فرض انجام نشد.", "error");
-              return;
-            }
-
-            setAddressMessage("آدرس پیش‌فرض با موفقیت بروزرسانی شد.", "success");
-            await loadAddresses();
-          } catch (error) {
-            setAddressMessage("تنظیم آدرس پیش‌فرض با خطا مواجه شد.", "error");
-          }
-        }
-      });
-    }
-
-    function validateProfileForm(payload) {
-      if (!payload.full_name || !payload.email) {
-        setAccountMessage("نام و ایمیل را کامل وارد کن.", "error");
-        return false;
+        return;
       }
-
-      if (payload.password || payload.password_confirm) {
-        if (!payload.password || !payload.password_confirm) {
-          setAccountMessage("برای تغییر رمز عبور، هر دو فیلد رمز و تکرار رمز را کامل کن.", "error");
-          return false;
-        }
-
-        if (payload.password.length < 6) {
-          setAccountMessage("رمز عبور جدید باید حداقل ۶ کاراکتر باشد.", "error");
-          return false;
-        }
-
-        if (payload.password !== payload.password_confirm) {
-          setAccountMessage("تکرار رمز عبور با رمز جدید یکسان نیست.", "error");
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    if (accountForm) {
-      accountForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        setAccountMessage("");
-
-        if (!window.Auth) {
-          setAccountMessage("سیستم احراز هویت در دسترس نیست.", "error");
-          return;
-        }
-
-        const firstName = document.getElementById("first-name")?.value || "";
-        const lastName = document.getElementById("last-name")?.value || "";
-        const email = document.getElementById("account-email")?.value || "";
-        const phone = document.getElementById("phone")?.value || "";
-        const password = document.getElementById("password")?.value || "";
-        const passwordConfirm = document.getElementById("password-confirm")?.value || "";
-
-        const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim();
-
-        const payload = {
-          full_name,
-          email: email.trim(),
-          phone: phone.trim(),
-          password,
-          password_confirm: passwordConfirm
-        };
-
-        if (!validateProfileForm(payload)) return;
-
-        if (saveProfileBtn) saveProfileBtn.disabled = true;
-
-        try {
-          const result = await window.Auth.updateProfile(payload);
-
-          if (!result.ok || !result.data?.success) {
-            setAccountMessage(result.data?.error || "ذخیره اطلاعات حساب انجام نشد.", "error");
-            return;
-          }
-
-          currentUser = result.data.user;
-
-          window.Auth.fillUserFields(currentUser, {
-            nameSelector: "[data-user-full-name]",
-            emailSelector: "[data-user-email]",
-            phoneSelector: "[data-user-phone]"
-          });
-
-          resetFormFromUser();
-          setAccountMessage("اطلاعات حساب با موفقیت ذخیره شد.", "success");
-        } catch (error) {
-          setAccountMessage("ذخیره اطلاعات حساب با خطا مواجه شد.", "error");
-        } finally {
-          if (saveProfileBtn) saveProfileBtn.disabled = false;
-        }
-      });
-    }
-
-    if (resetProfileBtn) {
-      resetProfileBtn.addEventListener("click", () => {
-        resetFormFromUser();
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", async () => {
-      if (!window.Auth) return;
 
       const user = await window.Auth.requireAuth({
-        redirectPath: "/account.html"
+        redirectTo: "/login.html"
       });
 
       if (!user) return;
 
-      try {
-        const profileResult = await window.Auth.getProfile();
-        currentUser = profileResult.ok && profileResult.data?.user
-          ? profileResult.data.user
-          : user;
-      } catch {
-        currentUser = user;
+      currentUser = user;
+      renderUserInfo(user);
+
+      await Promise.all([
+        loadOrders(),
+        loadAddresses()
+      ]);
+
+      if (accountLoading) {
+        accountLoading.classList.add("account-hidden");
       }
 
-      window.Auth.fillUserFields(currentUser, {
-        nameSelector: "[data-user-full-name]",
-        emailSelector: "[data-user-email]",
-        phoneSelector: "[data-user-phone]"
+      if (accountPage) {
+        accountPage.classList.remove("account-hidden");
+      }
+    }
+
+    document.querySelectorAll(".account-menubtn").forEach((button) => {
+      button.addEventListener("click", function () {
+        const target = this.dataset.panelTarget || "dashboard";
+        switchPanel(target);
       });
+    });
 
-      fillAccountName(currentUser.full_name || "");
-      resetFormFromUser();
-      resetAddressForm();
+    if (accountForm) {
+      accountForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        setFormMessage("", "");
 
-      await loadOrders();
-      await loadAddresses();
+        const formData = new FormData(accountForm);
+        const payload = {
+          name: String(formData.get("name") || "").trim(),
+          phone: String(formData.get("phone") || "").trim(),
+          email: String(formData.get("email") || "").trim(),
+          password: String(formData.get("password") || ""),
+          password_confirm: String(formData.get("password_confirm") || "")
+        };
 
-      if (accountLoading) accountLoading.classList.add("account-hidden");
-      if (accountPage) accountPage.classList.remove("account-hidden");
+        if (payload.password || payload.password_confirm) {
+          if (payload.password.length < 6) {
+            setFormMessage("error", "رمز عبور جدید باید حداقل ۶ کاراکتر باشد.");
+            return;
+          }
 
-      window.Auth.bindLogoutButton({
-        buttonSelector: "[data-auth-logout]",
-        redirectAfterSuccess: "/index.html"
+          if (payload.password !== payload.password_confirm) {
+            setFormMessage("error", "تکرار رمز عبور با رمز عبور جدید یکسان نیست.");
+            return;
+          }
+        }
+
+        try {
+          const result = await window.Auth.updateProfile(payload);
+
+          if (!result?.success) {
+            setFormMessage("error", result?.error || "ذخیره تغییرات با خطا مواجه شد.");
+            return;
+          }
+
+          setFormMessage("success", "اطلاعات حساب با موفقیت به‌روزرسانی شد.");
+
+          const passwordInput = document.getElementById("account-password");
+          const confirmInput = document.getElementById("account-password-confirm");
+
+          if (passwordInput) passwordInput.value = "";
+          if (confirmInput) confirmInput.value = "";
+
+          if (result.user) {
+            currentUser = result.user;
+            renderUserInfo(result.user);
+          }
+        } catch (error) {
+          setFormMessage("error", "ذخیره تغییرات با خطا مواجه شد.");
+        }
       });
+    }
+
+    document.addEventListener("click", async function (event) {
+      const logoutButton = event.target.closest("[data-account-logout]");
+      if (logoutButton && window.Auth && typeof window.Auth.logout === "function") {
+        await window.Auth.logout({
+          redirectAfterSuccess: "/index.html"
+        });
+        return;
+      }
+
+      const addAddressButton = event.target.closest("#add-address-btn");
+      if (addAddressButton) {
+        alert("در این نسخه، فرم افزودن آدرس هنوز به صورت پنجره‌ای پیاده‌سازی نشده است.");
+        return;
+      }
+
+      const editButton = event.target.closest("[data-address-edit]");
+      if (editButton) {
+        alert("ویرایش آدرس در نسخه فعلی از طریق فرم پنجره‌ای فعال نشده است.");
+        return;
+      }
+
+      const deleteButton = event.target.closest("[data-address-delete]");
+      if (deleteButton) {
+        alert("حذف آدرس در این نسخه از طریق دکمه سریع غیرفعال است.");
+        return;
+      }
+
+      const defaultButton = event.target.closest("[data-address-default]");
+      if (defaultButton) {
+        alert("تغییر آدرس پیش‌فرض در این نسخه از طریق دکمه سریع غیرفعال است.");
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      await bootAccount();
+      switchPanel("dashboard");
     });
   </script>
 </body>
