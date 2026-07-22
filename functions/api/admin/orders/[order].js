@@ -71,11 +71,6 @@ export async function onRequestGet(context) {
           o.updated_at,
           o.shipping_address_id,
           o.billing_address_id,
-          COALESCE(o.cashback_amount, 0) AS cashback_amount,
-          COALESCE(o.cashback_percent, 0) AS cashback_percent,
-          COALESCE(o.cashback_status, 'none') AS cashback_status,
-          o.cashback_created_txn_id,
-          o.cashback_created_at,
           u.id AS user_id,
           u.full_name,
           u.email,
@@ -117,7 +112,6 @@ export async function onRequestGet(context) {
 
     let shipping_address = null;
     let billing_address = null;
-    let cashback_transaction = null;
 
     if (order.shipping_address_id) {
       try {
@@ -169,39 +163,19 @@ export async function onRequestGet(context) {
       }
     }
 
-    if (order.cashback_created_txn_id) {
-      try {
-        cashback_transaction = await context.env.DB
-          .prepare(`
-            SELECT
-              id,
-              type,
-              amount,
-              balance_before,
-              balance_after,
-              status,
-              source,
-              description,
-              created_at
-            FROM wallet_transactions
-            WHERE id = ?
-            LIMIT 1
-          `)
-          .bind(order.cashback_created_txn_id)
-          .first();
-      } catch (_) {
-        cashback_transaction = null;
-      }
-    }
-
     return json({
       success: true,
       order: {
         ...order,
+        cashback_amount: 0,
+        cashback_percent: 0,
+        cashback_status: "none",
+        cashback_created_txn_id: null,
+        cashback_created_at: null,
+        cashback_transaction: null,
         items,
         shipping_address,
-        billing_address,
-        cashback_transaction
+        billing_address
       }
     });
   } catch (error) {
