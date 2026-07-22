@@ -434,6 +434,13 @@
       border: 1px solid #fecaca;
     }
 
+    .account-help {
+      margin-top: -6px;
+      color: #64748b;
+      font-size: 0.88rem;
+      line-height: 1.9;
+    }
+
     .account-hidden {
       display: none !important;
     }
@@ -447,7 +454,6 @@
     @media (max-width: 768px) {
       .stats-grid,
       .quick-grid,
-      .info-grid,
       .address-grid,
       .form-grid-2 {
         grid-template-columns: 1fr;
@@ -785,7 +791,7 @@
 
                 <div class="account-message" data-account-message></div>
 
-                <form id="account-details-form" class="form-grid">
+                <form id="account-details-form" class="form-grid" novalidate>
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="first-name">نام</label>
@@ -811,16 +817,30 @@
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="password">رمز عبور جدید</label>
-                      <input id="password" type="password" placeholder="در صورت تغییر رمز، این فیلد را پر کن" />
+                      <input
+                        id="password"
+                        type="password"
+                        placeholder="در صورت تغییر رمز، این فیلد را پر کن"
+                        autocomplete="new-password"
+                      />
                     </div>
                     <div class="form-field">
                       <label for="password-confirm">تکرار رمز عبور</label>
-                      <input id="password-confirm" type="password" placeholder="تکرار رمز عبور جدید" />
+                      <input
+                        id="password-confirm"
+                        type="password"
+                        placeholder="تکرار رمز عبور جدید"
+                        autocomplete="new-password"
+                      />
                     </div>
                   </div>
 
+                  <p class="account-help">
+                    اگر قصد تغییر رمز عبور نداری، دو فیلد رمز را خالی بگذار.
+                  </p>
+
                   <div class="panel-actions">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="save-profile-btn">
                       ذخیره تغییرات
                     </button>
                     <button type="button" class="btn btn-secondary" id="reset-profile-btn">
@@ -879,6 +899,7 @@
     const accountPage = document.getElementById("account-page");
     const accountMessage = document.querySelector("[data-account-message]");
     const resetProfileBtn = document.getElementById("reset-profile-btn");
+    const saveProfileBtn = document.getElementById("save-profile-btn");
 
     const ordersCountEl = document.getElementById("dashboard-orders-count");
     const totalSpentEl = document.getElementById("dashboard-total-spent");
@@ -1248,8 +1269,8 @@
         if (!response.ok || !data?.success) {
           addressesGrid.innerHTML = `
             <div class="address-card">
-              <h4>خطا در دریافت آدرس‌ها</h4>
-              <p>لطفاً بعداً دوباره تلاش کن.</p>
+              <h4>دریافت آدرس‌ها با خطا مواجه شد</h4>
+              <p>لطفاً دوباره تلاش کن.</p>
             </div>
           `;
           updateDashboardStats(currentOrders, []);
@@ -1274,8 +1295,8 @@
       } catch (error) {
         addressesGrid.innerHTML = `
           <div class="address-card">
-            <h4>خطا در دریافت آدرس‌ها</h4>
-            <p>لطفاً بعداً دوباره تلاش کن.</p>
+            <h4>دریافت آدرس‌ها با خطا مواجه شد</h4>
+            <p>لطفاً دوباره تلاش کن.</p>
           </div>
         `;
         updateDashboardStats(currentOrders, []);
@@ -1292,7 +1313,9 @@
       const response = await fetch(url, {
         method,
         credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           full_name: data.full_name,
           phone: data.phone,
@@ -1309,24 +1332,20 @@
     }
 
     async function deleteAddress(addressId) {
-      const response = await fetch(
-        `/api/account/addresses/${encodeURIComponent(addressId)}`,
-        {
-          method: "DELETE",
-          credentials: "same-origin"
-        }
-      );
+      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}`, {
+        method: "DELETE",
+        credentials: "same-origin"
+      });
+
       return response.json();
     }
 
     async function makeAddressDefault(addressId) {
-      const response = await fetch(
-        `/api/account/addresses/${encodeURIComponent(addressId)}/default`,
-        {
-          method: "POST",
-          credentials: "same-origin"
-        }
-      );
+      const response = await fetch(`/api/account/addresses/${encodeURIComponent(addressId)}/default`, {
+        method: "POST",
+        credentials: "same-origin"
+      });
+
       return response.json();
     }
 
@@ -1338,11 +1357,15 @@
     });
 
     if (addAddressBtn) {
-      addAddressBtn.addEventListener("click", () => openAddressForm());
+      addAddressBtn.addEventListener("click", () => {
+        openAddressForm();
+      });
     }
 
     if (cancelAddressBtn) {
-      cancelAddressBtn.addEventListener("click", () => closeAddressForm());
+      cancelAddressBtn.addEventListener("click", () => {
+        closeAddressForm();
+      });
     }
 
     if (addressForm) {
@@ -1353,13 +1376,13 @@
         const data = collectAddressFormData();
         if (!validateAddressForm(data)) return;
 
-        saveAddressBtn.disabled = true;
+        if (saveAddressBtn) saveAddressBtn.disabled = true;
 
         try {
           const result = await saveAddress(data);
+
           if (!result?.success) {
-            setAddressMessage(result?.error || "ذخیره آدرس با خطا مواجه شد.", "error");
-            saveAddressBtn.disabled = false;
+            setAddressMessage(result?.error || "ذخیره آدرس انجام نشد.", "error");
             return;
           }
 
@@ -1369,7 +1392,7 @@
         } catch (error) {
           setAddressMessage("ذخیره آدرس با خطا مواجه شد.", "error");
         } finally {
-          saveAddressBtn.disabled = false;
+          if (saveAddressBtn) saveAddressBtn.disabled = false;
         }
       });
     }
@@ -1382,9 +1405,7 @@
 
         if (editBtn) {
           const addressId = editBtn.getAttribute("data-edit-address");
-          const address = currentAddresses.find(
-            (item) => String(item.id) === String(addressId)
-          );
+          const address = currentAddresses.find((item) => String(item.id) === String(addressId));
           if (address) openAddressForm(address);
           return;
         }
@@ -1396,9 +1417,10 @@
           try {
             const result = await deleteAddress(addressId);
             if (!result?.success) {
-              setAddressMessage(result?.error || "حذف آدرس با خطا مواجه شد.", "error");
+              setAddressMessage(result?.error || "حذف آدرس انجام نشد.", "error");
               return;
             }
+
             setAddressMessage("آدرس با موفقیت حذف شد.", "success");
             await loadAddresses();
           } catch (error) {
@@ -1409,19 +1431,47 @@
 
         if (defaultBtn) {
           const addressId = defaultBtn.getAttribute("data-default-address");
+
           try {
             const result = await makeAddressDefault(addressId);
             if (!result?.success) {
-              setAddressMessage(result?.error || "تنظیم آدرس پیش‌فرض با خطا مواجه شد.", "error");
+              setAddressMessage(result?.error || "تنظیم آدرس پیش‌فرض انجام نشد.", "error");
               return;
             }
-            setAddressMessage("آدرس پیش‌فرض با موفقیت تنظیم شد.", "success");
+
+            setAddressMessage("آدرس پیش‌فرض با موفقیت بروزرسانی شد.", "success");
             await loadAddresses();
           } catch (error) {
             setAddressMessage("تنظیم آدرس پیش‌فرض با خطا مواجه شد.", "error");
           }
         }
       });
+    }
+
+    function validateProfileForm(payload) {
+      if (!payload.full_name || !payload.email) {
+        setAccountMessage("نام و ایمیل را کامل وارد کن.", "error");
+        return false;
+      }
+
+      if (payload.password || payload.password_confirm) {
+        if (!payload.password || !payload.password_confirm) {
+          setAccountMessage("برای تغییر رمز عبور، هر دو فیلد رمز و تکرار رمز را کامل کن.", "error");
+          return false;
+        }
+
+        if (payload.password.length < 6) {
+          setAccountMessage("رمز عبور جدید باید حداقل ۶ کاراکتر باشد.", "error");
+          return false;
+        }
+
+        if (payload.password !== payload.password_confirm) {
+          setAccountMessage("تکرار رمز عبور با رمز جدید یکسان نیست.", "error");
+          return false;
+        }
+      }
+
+      return true;
     }
 
     if (accountForm) {
@@ -1443,45 +1493,69 @@
 
         const full_name = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim();
 
-        const result = await window.Auth.updateProfile(
+        const payload = {
           full_name,
-          email,
-          phone,
+          email: email.trim(),
+          phone: phone.trim(),
           password,
-          passwordConfirm
-        );
+          password_confirm: passwordConfirm
+        };
 
-        if (!result.ok || !result.data?.success) {
-          setAccountMessage(result.data?.error || "ذخیره اطلاعات با خطا مواجه شد.", "error");
+        if (!validateProfileForm(payload)) {
           return;
         }
 
-        currentUser = result.data.user;
-        window.Auth.fillUserFields(currentUser, {
-          nameSelector: "[data-user-full-name]",
-          emailSelector: "[data-user-email]",
-          phoneSelector: "[data-user-phone]"
-        });
+        if (saveProfileBtn) saveProfileBtn.disabled = true;
 
-        setAccountMessage("اطلاعات حساب با موفقیت به‌روزرسانی شد.", "success");
-        resetFormFromUser();
+        try {
+          const result = await window.Auth.updateProfile(payload);
+
+          if (!result.ok || !result.data?.success) {
+            setAccountMessage(result.data?.error || "ذخیره اطلاعات حساب انجام نشد.", "error");
+            return;
+          }
+
+          currentUser = result.data.user;
+
+          window.Auth.fillUserFields(currentUser, {
+            nameSelector: "[data-user-full-name]",
+            emailSelector: "[data-user-email]",
+            phoneSelector: "[data-user-phone]"
+          });
+
+          resetFormFromUser();
+          setAccountMessage("اطلاعات حساب با موفقیت ذخیره شد.", "success");
+        } catch (error) {
+          setAccountMessage("ذخیره اطلاعات حساب با خطا مواجه شد.", "error");
+        } finally {
+          if (saveProfileBtn) saveProfileBtn.disabled = false;
+        }
       });
     }
 
     if (resetProfileBtn) {
-      resetProfileBtn.addEventListener("click", () => resetFormFromUser());
+      resetProfileBtn.addEventListener("click", () => {
+        resetFormFromUser();
+      });
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
       if (!window.Auth) return;
 
       const user = await window.Auth.requireAuth({
-        redirectTo: "/login.html"
+        redirectPath: "/account.html"
       });
+
       if (!user) return;
 
-      const profileResult = await window.Auth.getProfile();
-      currentUser = profileResult.data?.user || user;
+      try {
+        const profileResult = await window.Auth.getProfile();
+        currentUser = profileResult.ok && profileResult.data?.user
+          ? profileResult.data.user
+          : user;
+      } catch {
+        currentUser = user;
+      }
 
       window.Auth.fillUserFields(currentUser, {
         nameSelector: "[data-user-full-name]",
@@ -1501,7 +1575,7 @@
 
       window.Auth.bindLogoutButton({
         buttonSelector: "[data-auth-logout]",
-        redirectAfterSuccess: "/login.html"
+        redirectAfterSuccess: "/index.html"
       });
     });
   </script>
