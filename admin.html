@@ -559,6 +559,27 @@
       return Number(value || 0).toLocaleString("fa-IR");
     }
 
+    function formatDate(value) {
+      if (!value) return "-";
+
+      try {
+        const normalized = String(value).trim().replace(" ", "T");
+        const date = new Date(normalized);
+
+        if (Number.isNaN(date.getTime())) {
+          return esc(String(value));
+        }
+
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        }).format(date);
+      } catch (error) {
+        return esc(String(value));
+      }
+    }
+
     function faRole(value) {
       const map = {
         user: "مشتری",
@@ -602,7 +623,7 @@
       const v = String(value || "").toLowerCase();
       if (["user", "customer", "admin", "super_admin"].includes(v)) return faRole(v);
       if (["pending", "processing", "shipped", "completed", "cancelled"].includes(v)) return faOrderStatus(v);
-      if (["paid", "failed"].includes(v)) return faPaymentStatus(v);
+      if (["paid", "failed", "completed"].includes(v)) return faPaymentStatus(v);
       if (["credit", "debit"].includes(v)) return faWalletType(v);
       if (["success"].includes(v)) return "موفق";
       return value || "نامشخص";
@@ -625,6 +646,36 @@
       });
       const data = await response.json();
       return { ok: response.ok, data };
+    }
+
+    async function deleteOrder(orderNumber) {
+      if (!orderNumber) {
+        setAdminMessage("شماره سفارش معتبر نیست.");
+        return false;
+      }
+
+      const firstConfirm = window.confirm(`آیا از حذف سفارش ${orderNumber} مطمئن هستی؟`);
+      if (!firstConfirm) return false;
+
+      const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست. حذف انجام شود؟");
+      if (!secondConfirm) return false;
+
+      const result = await api("/api/admin/orders", {
+        method: "DELETE",
+        body: JSON.stringify({ order_number: orderNumber })
+      });
+
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "حذف سفارش انجام نشد.");
+        return false;
+      }
+
+      setAdminMessage("سفارش با موفقیت حذف شد.", "success");
+      document.getElementById("order-detail").classList.add("admin-hidden");
+      document.getElementById("order-detail").innerHTML = "";
+      await loadOrders();
+      await loadDashboard();
+      return true;
     }
 
     async function loadDashboard() {
@@ -650,7 +701,7 @@
           <td>${esc(user.full_name)}</td>
           <td>${esc(user.email)}</td>
           <td>${badge(user.role)}</td>
-          <td class="table-number">${esc(user.created_at)}</td>
+          <td class="table-number">${formatDate(user.created_at)}</td>
         </tr>
       `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
 
@@ -660,7 +711,7 @@
           <td>${badge(order.status)}</td>
           <td>${badge(order.payment_status)}</td>
           <td class="table-number">${money(order.total_amount)}</td>
-          <td class="table-number">${esc(order.created_at)}</td>
+          <td class="table-number">${formatDate(order.created_at)}</td>
         </tr>
       `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
     }
@@ -692,9 +743,12 @@
           <td>${badge(order.status)}</td>
           <td>${badge(order.payment_status)}</td>
           <td class="table-number">${money(order.total_amount)}</td>
-          <td class="table-number">${esc(order.created_at)}</td>
+          <td class="table-number">${formatDate(order.created_at)}</td>
           <td>
-            <button class="btn btn-secondary" type="button" data-view-order="${esc(order.order_number)}">جزئیات</button>
+            <div class="panel-actions" style="margin-top:0;">
+              <button class="btn btn-secondary" type="button" data-view-order="${esc(order.order_number)}">جزئیات</button>
+              <button class="btn btn-secondary" type="button" data-delete-order="${esc(order.order_number)}">حذف</button>
+            </div>
           </td>
         </tr>
       `).join("") || `<tr><td colspan="8">سفارشی پیدا نشد.</td></tr>`;
@@ -720,10 +774,10 @@
           کاربر: ${esc(order.full_name)}<br>
           ایمیل: ${esc(order.email)}<br>
           شماره: ${esc(order.phone || "-")}<br>
-          وضعیت: ${esc(order.status)}<br>
-          پرداخت: ${esc(order.payment_status)}<br>
+          وضعیت: ${esc(faOrderStatus(order.status))}<br>
+          پرداخت: ${esc(faPaymentStatus(order.payment_status))}<br>
           مبلغ: ${money(order.total_amount)}<br>
-          تاریخ: ${esc(order.created_at)}
+          تاریخ: ${formatDate(order.created_at)}
         </p>
 
         <div class="panel-actions">
@@ -743,6 +797,7 @@
           </select>
 
           <button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>
+          <button class="btn btn-secondary" type="button" id="delete-order-detail-btn">حذف سفارش</button>
         </div>
 
         <div class="table-wrap" style="margin-top:16px;">
@@ -797,6 +852,10 @@
         setAdminMessage("وضعیت سفارش با موفقیت ذخیره شد.", "success");
         await loadOrders();
         await loadOrderDetail(order.order_number);
+      });
+
+      document.getElementById("delete-order-detail-btn").addEventListener("click", async () => {
+        await deleteOrder(order.order_number);
       });
     }
 
@@ -1025,7 +1084,7 @@
                       <td class="table-number">${money(tx.balance_after)}</td>
                       <td>${badge(tx.status)}</td>
                       <td>${esc(tx.note || "-")}</td>
-                      <td class="table-number">${esc(tx.created_at)}</td>
+                      <td class="table-number">${formatDate(tx.created_at)}</td>
                     </tr>
                   `).join("")
                   : `<tr><td colspan="8">تراکنشی ثبت نشده است.</td></tr>`
@@ -1079,9 +1138,16 @@
     document.getElementById("wallet-load-btn").addEventListener("click", loadWalletUser);
 
     document.getElementById("orders-body").addEventListener("click", async (event) => {
-      const btn = event.target.closest("[data-view-order]");
-      if (!btn) return;
-      await loadOrderDetail(btn.getAttribute("data-view-order"));
+      const viewBtn = event.target.closest("[data-view-order]");
+      if (viewBtn) {
+        await loadOrderDetail(viewBtn.getAttribute("data-view-order"));
+        return;
+      }
+
+      const deleteBtn = event.target.closest("[data-delete-order]");
+      if (deleteBtn) {
+        await deleteOrder(deleteBtn.getAttribute("data-delete-order"));
+      }
     });
 
     document.getElementById("users-body").addEventListener("click", (event) => {
