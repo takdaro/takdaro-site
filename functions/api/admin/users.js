@@ -177,3 +177,125 @@ export async function onRequestPost(context) {
     );
   }
 }
+
+export async function onRequestDelete(context) {
+  try {
+    const adminCheck = await requireAdmin(context);
+    if (!adminCheck.ok) return adminCheck.response;
+
+    const body = await context.request.json();
+    const user_id = Number(body.user_id || 0);
+
+    if (!user_id) {
+      return Response.json(
+        { success: false, error: "user_id required" },
+        { status: 400 }
+      );
+    }
+
+    const targetUser = await context.env.DB
+      .prepare(`
+        SELECT id, full_name, email, role, wallet_balance
+        FROM users
+        WHERE id = ?
+      `)
+      .bind(user_id)
+      .first();
+
+    if (!targetUser) {
+      return Response.json(
+        { success: false, error: "user not found" },
+        { status: 404 }
+      );
+    }
+
+    if (Number(targetUser.id) === Number(adminCheck.user.id)) {
+      return Response.json(
+        { success: false, error: "cannot delete current admin user" },
+        { status: 403 }
+      );
+    }
+
+    if (
+      String(targetUser.role || "") === "super_admin" &&
+      String(adminCheck.user.role || "") !== "super_admin"
+    ) {
+      return Response.json(
+        { success: false, error: "cannot delete super admin" },
+        { status: 403 }
+      );
+    }
+
+    const orderIdsResult = await context.env.DB
+      .prepare(`SELECT id FROM orders WHERE user_id = ?`)
+      .bind(user_id)
+      .all();
+
+    const orderIds = (orderIdsResult?.results || []).map((row) => Number(row.id)).filter(Boolean);
+
+    const statements = [];
+
+    for (const orderId of orderIds) {
+      statements.push(
+        context.env.DB
+          .prepare(`DELETE FROM order_items WHERE order_id = ?`)
+          .bind(orderId)
+      );
+    }
+
+    statements.push(
+      context.env.DB
+        .prepare(`DELETE FROM orders WHERE user_id = ?`)
+        .bind(user_id)
+    );
+
+    statements.push(
+      context.env.DB
+        .prepare(`DELETE FROM wallet_transactions WHERE user_id = ?`)
+        .bind(user_id)
+    );
+
+    statements.push(
+      context.env.DB
+        .prepare(`DELETE FROM addresses WHERE user_id = ?`)
+        .bind(user_id)
+    );
+
+    statements.push(
+      context.env.DB
+        .prepare(`DELETE FROM sessions WHERE user_id = ?`)
+        .bind(user_id)
+    );
+
+    statements.push(
+      context.env.DB
+        .prepare(`DELETE FROM users WHERE id = ?`)
+        .bind(user_id)
+    );
+
+    await context.env.DB.batch(statements);
+
+    await logAdminAction(context, {
+      admin_user_id: adminCheck.user.id,
+      action: "delete_user",
+      target_type: "user",
+      target_id: String(user_id),
+      description: `email=${targetUser.email}, role=${targetUser.role}, wallet_balance=${targetUser.wallet_balance}`
+    });
+
+    return Response.json({
+      success: true,
+      message: "user deleted successfully",
+      deleted_user: {
+        id: targetUser.id,
+        full_name: targetUser.full_name,
+        email: targetUser.email
+      }
+    });
+  } catch (error) {
+    return Response.json(
+      { success: false, error: String(error?.message || error) },
+      { status: 500 }
+    );
+  }
+}

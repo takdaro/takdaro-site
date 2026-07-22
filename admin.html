@@ -678,6 +678,39 @@
       return true;
     }
 
+    async function deleteUser(user) {
+      const userId = Number(user?.id || 0);
+      const userName = user?.full_name || `#${userId}`;
+
+      if (!userId) {
+        setAdminMessage("شناسه کاربر معتبر نیست.");
+        return false;
+      }
+
+      const firstConfirm = window.confirm(`آیا از حذف کاربر ${userName} مطمئن هستی؟`);
+      if (!firstConfirm) return false;
+
+      const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست و اطلاعات وابسته کاربر هم حذف می‌شود. حذف انجام شود؟");
+      if (!secondConfirm) return false;
+
+      const result = await api("/api/admin/users", {
+        method: "DELETE",
+        body: JSON.stringify({ user_id: userId })
+      });
+
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "حذف کاربر انجام نشد.");
+        return false;
+      }
+
+      setAdminMessage("کاربر با موفقیت حذف شد.", "success");
+      document.getElementById("user-edit-box").classList.add("admin-hidden");
+      document.getElementById("user-edit-box").innerHTML = "";
+      await loadUsers();
+      await loadDashboard();
+      return true;
+    }
+
     async function loadDashboard() {
       const result = await api("/api/admin/stats");
       if (!result.ok || !result.data?.success) {
@@ -886,7 +919,10 @@
           <td class="table-number">${money(user.wallet_balance || 0)}</td>
           <td class="table-number">${money(user.orders_count || 0)}</td>
           <td>
-            <button class="btn btn-secondary" type="button" data-edit-user='${esc(JSON.stringify(user))}'>ویرایش</button>
+            <div class="panel-actions" style="margin-top:0;">
+              <button class="btn btn-secondary" type="button" data-edit-user='${esc(JSON.stringify(user))}'>ویرایش</button>
+              <button class="btn btn-secondary" type="button" data-delete-user='${esc(JSON.stringify(user))}'>حذف</button>
+            </div>
           </td>
         </tr>
       `).join("") || `<tr><td colspan="8">کاربری پیدا نشد.</td></tr>`;
@@ -930,6 +966,7 @@
         <div class="panel-actions">
           <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
           <button class="btn btn-secondary" type="button" id="save-user-password-btn">تغییر رمز عبور</button>
+          <button class="btn btn-secondary" type="button" id="delete-user-btn">حذف کاربر</button>
         </div>
       `;
 
@@ -994,6 +1031,10 @@
         document.getElementById("edit-user-password").value = "";
         document.getElementById("edit-user-password-confirm").value = "";
         setAdminMessage("رمز عبور کاربر با موفقیت تغییر کرد.", "success");
+      });
+
+      document.getElementById("delete-user-btn").addEventListener("click", async () => {
+        await deleteUser(user);
       });
     }
 
@@ -1150,11 +1191,19 @@
       }
     });
 
-    document.getElementById("users-body").addEventListener("click", (event) => {
-      const btn = event.target.closest("[data-edit-user]");
-      if (!btn) return;
-      const user = JSON.parse(btn.getAttribute("data-edit-user"));
-      openUserEdit(user);
+    document.getElementById("users-body").addEventListener("click", async (event) => {
+      const editBtn = event.target.closest("[data-edit-user]");
+      if (editBtn) {
+        const user = JSON.parse(editBtn.getAttribute("data-edit-user"));
+        openUserEdit(user);
+        return;
+      }
+
+      const deleteBtn = event.target.closest("[data-delete-user]");
+      if (deleteBtn) {
+        const user = JSON.parse(deleteBtn.getAttribute("data-delete-user"));
+        await deleteUser(user);
+      }
     });
 
     document.addEventListener("DOMContentLoaded", async () => {
