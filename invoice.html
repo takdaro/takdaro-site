@@ -686,34 +686,37 @@
 
         if (items.length) {
           itemsBody.innerHTML = items.map((item, index) => {
-            const unitPrice = Number(
-              item.unit_price ??
-              item.price ??
-              0
-            );
+            const unitPrice = Number(item.unit_price ?? item.price ?? 0);
 
-            const rowTotal = Number(
-              item.total_price ??
+            const savedRowTotal = Number(
               item.row_total ??
+              item.total_price ??
               item.line_total ??
               0
             );
 
-            let qty = Number(
-              item.quantity ??
+            let qtyFromFields = Number(
               item.qty ??
+              item.quantity ??
               item.count ??
               item.amount ??
               0
             );
 
-            if ((!qty || qty < 1) && unitPrice > 0 && rowTotal > 0) {
-              qty = Math.round(rowTotal / unitPrice);
+            let qty = qtyFromFields;
+
+            if (savedRowTotal > 0 && unitPrice > 0) {
+              const derivedQty = savedRowTotal / unitPrice;
+              if (Number.isFinite(derivedQty) && derivedQty >= 1) {
+                qty = Math.round(derivedQty);
+              }
             }
 
             if (!qty || qty < 1) {
               qty = 1;
             }
+
+            const finalRowTotal = savedRowTotal > 0 ? savedRowTotal : (unitPrice * qty);
 
             return `
               <tr>
@@ -721,7 +724,7 @@
                 <td>${escapeHtml(item.product_name || item.name || "-")}</td>
                 <td class="table-number">${qty.toLocaleString("fa-IR")}</td>
                 <td class="table-number">${formatPrice(unitPrice)}</td>
-                <td class="table-number">${formatPrice(rowTotal || (unitPrice * qty))}</td>
+                <td class="table-number">${formatPrice(finalRowTotal)}</td>
               </tr>
             `;
           }).join("");
