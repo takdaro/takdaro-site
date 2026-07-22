@@ -318,10 +318,20 @@
 
     .wallet-toolbar {
       display: grid;
-      grid-template-columns: 1.3fr 0.9fr 0.9fr 0.7fr;
+      grid-template-columns: 1.2fr 0.8fr 0.8fr 0.7fr;
       gap: 14px;
       align-items: end;
       margin-bottom: 18px;
+    }
+
+    .wallet-empty {
+      border: 1px dashed rgba(15, 23, 42, 0.12);
+      border-radius: 20px;
+      background: #f8fafc;
+      padding: 28px 20px;
+      text-align: center;
+      color: #64748b;
+      line-height: 2;
     }
 
     .wallet-overview {
@@ -354,7 +364,6 @@
       height: 180px;
       border-radius: 50%;
       background: rgba(255,255,255,0.08);
-      filter: blur(4px);
     }
 
     .wallet-hero-top {
@@ -459,11 +468,18 @@
       gap: 16px;
     }
 
-    .wallet-user-card {
+    .wallet-user-card,
+    .wallet-adjust-card,
+    .wallet-history-card,
+    .wallet-settings-card {
       border: 1px solid rgba(15, 23, 42, 0.06);
       border-radius: 22px;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      background: #fff;
       padding: 20px;
+    }
+
+    .wallet-user-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }
 
     .wallet-user-head {
@@ -519,15 +535,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .wallet-adjust-card,
-    .wallet-history-card,
-    .wallet-settings-card {
-      border: 1px solid rgba(15, 23, 42, 0.06);
-      border-radius: 22px;
-      background: #fff;
-      padding: 20px;
-    }
-
     .wallet-card-head {
       display: flex;
       justify-content: space-between;
@@ -555,16 +562,6 @@
       grid-template-columns: 1fr 180px 180px;
       gap: 12px;
       margin-bottom: 16px;
-    }
-
-    .wallet-empty {
-      border: 1px dashed rgba(15, 23, 42, 0.12);
-      border-radius: 20px;
-      background: #f8fafc;
-      padding: 28px 20px;
-      text-align: center;
-      color: #64748b;
-      line-height: 2;
     }
 
     .wallet-type-chip {
@@ -619,9 +616,9 @@
       .filters-grid.filters-grid-2,
       .filters-grid.filters-grid-3,
       .wallet-toolbar,
-      .wallet-history-tools,
       .wallet-overview,
-      .wallet-grid {
+      .wallet-grid,
+      .wallet-history-tools {
         grid-template-columns: 1fr 1fr;
       }
     }
@@ -632,9 +629,9 @@
       .filters-grid.filters-grid-2,
       .filters-grid.filters-grid-3,
       .wallet-toolbar,
-      .wallet-history-tools,
       .wallet-overview,
       .wallet-grid,
+      .wallet-history-tools,
       .wallet-summary-grid {
         grid-template-columns: 1fr;
       }
@@ -873,24 +870,23 @@
                       <input id="wallet-user-id" type="number" min="1" placeholder="مثلاً 1" />
                     </div>
                     <div class="form-field">
-                      <label for="wallet-quick-type">نوع پیش‌فرض عملیات</label>
+                      <label for="wallet-quick-type">نوع سریع</label>
                       <select id="wallet-quick-type">
+                        <option value="">همه نوع‌ها</option>
                         <option value="credit">واریز</option>
                         <option value="debit">برداشت</option>
                         <option value="cashback">کش‌بک</option>
-                        <option value="adjustment">تعدیل</option>
                         <option value="refund">بازگشت وجه</option>
+                        <option value="adjustment">تعدیل</option>
                       </select>
                     </div>
                     <div class="form-field">
-                      <label for="wallet-history-filter">فیلتر تاریخچه</label>
-                      <select id="wallet-history-filter">
-                        <option value="">همه تراکنش‌ها</option>
-                        <option value="credit">واریز</option>
-                        <option value="debit">برداشت</option>
-                        <option value="cashback">کش‌بک</option>
-                        <option value="adjustment">تعدیل</option>
-                        <option value="refund">بازگشت وجه</option>
+                      <label for="wallet-limit">تعداد تراکنش</label>
+                      <select id="wallet-limit">
+                        <option value="20">20</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
                       </select>
                     </div>
                     <div class="form-field" style="justify-content:flex-end;">
@@ -900,7 +896,7 @@
                   </div>
 
                   <div id="wallet-empty-state" class="wallet-empty">
-                    برای مشاهده کیف پول کاربر، شناسه کاربر را وارد کن و روی «بارگذاری کیف پول» بزن.
+                    برای مشاهده و مدیریت کیف پول، شناسه کاربر را وارد کن و روی «بارگذاری کیف پول» بزن.
                   </div>
 
                   <div id="wallet-content" class="admin-hidden">
@@ -967,7 +963,7 @@
       dashboard: { title: "داشبورد", description: "نمای کلی وضعیت فروشگاه و آخرین فعالیت‌ها." },
       orders: { title: "سفارش‌ها", description: "مدیریت و بررسی همه سفارش‌های ثبت شده." },
       users: { title: "کاربران", description: "مدیریت کاربران، نقش‌ها و اطلاعات حساب." },
-      wallet: { title: "کیف پول", description: "مدیریت موجودی، تراکنش‌ها و نمای حرفه‌ای کیف پول کاربران." },
+      wallet: { title: "کیف پول", description: "مدیریت حرفه‌ای موجودی، تراکنش‌ها و تنظیمات کش‌بک کاربران." },
       logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
     };
 
@@ -1059,8 +1055,8 @@
         credit: "واریز",
         debit: "برداشت",
         cashback: "کش‌بک",
-        adjustment: "تعدیل",
-        refund: "بازگشت وجه"
+        refund: "بازگشت وجه",
+        adjustment: "تعدیل"
       };
       return map[String(value || "").toLowerCase()] || "نامشخص";
     }
@@ -1070,7 +1066,7 @@
       if (["user", "customer", "admin", "super_admin"].includes(v)) return faRole(v);
       if (["pending", "processing", "shipped", "completed", "cancelled"].includes(v)) return faOrderStatus(v);
       if (["paid", "failed", "completed"].includes(v)) return faPaymentStatus(v);
-      if (["credit", "debit", "cashback", "adjustment", "refund"].includes(v)) return faWalletType(v);
+      if (["credit", "debit", "cashback", "refund", "adjustment"].includes(v)) return faWalletType(v);
       if (["success"].includes(v)) return "موفق";
       return value || "نامشخص";
     }
@@ -1084,14 +1080,13 @@
       return `<span class="${cls}">${esc(faGenericStatus(value))}</span>`;
     }
 
-    function walletTypeChip(value) {
-      const v = String(value || "").toLowerCase();
+    function walletTypeChip(type) {
+      const v = String(type || "").toLowerCase();
       let cls = "wallet-type-chip wallet-type-chip--adjustment";
-      if (["credit"].includes(v)) cls = "wallet-type-chip wallet-type-chip--credit";
-      if (["cashback"].includes(v)) cls = "wallet-type-chip wallet-type-chip--cashback";
-      if (["refund"].includes(v)) cls = "wallet-type-chip wallet-type-chip--refund";
-      if (["debit"].includes(v)) cls = "wallet-type-chip wallet-type-chip--debit";
-      return `<span class="${cls}">${esc(faWalletType(value))}</span>`;
+      if (["credit", "cashback", "refund"].includes(v)) cls = `wallet-type-chip wallet-type-chip--${v}`;
+      else if (v === "debit") cls = "wallet-type-chip wallet-type-chip--debit";
+      else if (v === "adjustment") cls = "wallet-type-chip wallet-type-chip--adjustment";
+      return `<span class="${cls}">${esc(faWalletType(type))}</span>`;
     }
 
     async function api(url, options = {}) {
@@ -1515,16 +1510,17 @@
           </div>
           <div class="form-field">
             <label for="edit-user-password">رمز عبور جدید</label>
-            <input id="edit-user-password" type="password" placeholder="در صورت نیاز وارد کنید" />
+            <input id="edit-user-password" type="password" placeholder="اختیاری" />
           </div>
           <div class="form-field">
-            <label for="edit-user-password-confirm">تکرار رمز عبور جدید</label>
-            <input id="edit-user-password-confirm" type="password" placeholder="تکرار رمز عبور جدید" />
+            <label for="edit-user-password-confirm">تکرار رمز عبور</label>
+            <input id="edit-user-password-confirm" type="password" placeholder="تکرار رمز عبور" />
           </div>
         </div>
+
         <div class="panel-actions">
           <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
-          <button class="btn btn-secondary" type="button" id="save-user-password-btn">تغییر رمز عبور</button>
+          <button class="btn btn-secondary" type="button" id="save-user-password-btn">ذخیره رمز عبور</button>
           <button class="btn btn-secondary" type="button" id="delete-user-btn">حذف کاربر</button>
           <button class="btn btn-secondary" type="button" id="close-user-edit-btn">بستن</button>
         </div>
@@ -1547,7 +1543,7 @@
         });
 
         if (!result.ok || !result.data?.success) {
-          setAdminMessage(result.data?.error || "ذخیره کاربر انجام نشد.");
+          setAdminMessage(result.data?.error || "ذخیره اطلاعات کاربر انجام نشد.");
           return;
         }
 
@@ -1561,7 +1557,7 @@
         const password_confirm = document.getElementById("edit-user-password-confirm").value;
 
         if (!password || !password_confirm) {
-          setAdminMessage("برای تغییر رمز عبور، هر دو فیلد رمز را وارد کن.");
+          setAdminMessage("رمز عبور و تکرار آن را وارد کن.");
           return;
         }
 
@@ -1571,7 +1567,7 @@
         }
 
         if (password !== password_confirm) {
-          setAdminMessage("رمز عبور جدید و تکرار آن یکسان نیست.");
+          setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
           return;
         }
 
@@ -1585,13 +1581,13 @@
         });
 
         if (!result.ok || !result.data?.success) {
-          setAdminMessage(result.data?.error || "تغییر رمز عبور کاربر انجام نشد.");
+          setAdminMessage(result.data?.error || "ذخیره رمز عبور انجام نشد.");
           return;
         }
 
         document.getElementById("edit-user-password").value = "";
         document.getElementById("edit-user-password-confirm").value = "";
-        setAdminMessage("رمز عبور کاربر با موفقیت تغییر کرد.", "success");
+        setAdminMessage("رمز عبور کاربر با موفقیت به‌روزرسانی شد.", "success");
       });
 
       document.getElementById("delete-user-btn").addEventListener("click", async () => {
@@ -1601,135 +1597,116 @@
       document.getElementById("close-user-edit-btn").addEventListener("click", closeUserEditBox);
     }
 
-    function getWalletStats(transactions) {
-      const txs = Array.isArray(transactions) ? transactions : [];
-      return txs.reduce((acc, tx) => {
-        const type = String(tx?.type || "").toLowerCase();
-        const amount = Number(tx?.amount || 0);
-        acc.count += 1;
-        if (["credit", "cashback", "refund"].includes(type)) acc.credit += amount;
-        if (["debit"].includes(type)) acc.debit += amount;
-        if (["cashback"].includes(type)) acc.cashback += amount;
-        if (["adjustment"].includes(type)) acc.adjustment += amount;
-        return acc;
-      }, {
-        count: 0,
-        credit: 0,
-        debit: 0,
-        cashback: 0,
-        adjustment: 0
+    function getWalletSummary(transactions = []) {
+      const summary = {
+        total_credit: 0,
+        total_debit: 0,
+        credit_count: 0,
+        debit_count: 0
+      };
+
+      transactions.forEach((tx) => {
+        const amount = Number(tx.amount || 0);
+        if (amount > 0) {
+          summary.total_credit += amount;
+          summary.credit_count += 1;
+        } else if (amount < 0) {
+          summary.total_debit += Math.abs(amount);
+          summary.debit_count += 1;
+        }
       });
+
+      return summary;
     }
 
-    function filterWalletTransactions(transactions) {
-      const filterType = document.getElementById("wallet-history-filter").value.trim();
-      const txs = Array.isArray(transactions) ? transactions : [];
-      if (!filterType) return txs;
-      return txs.filter((tx) => String(tx?.type || "").toLowerCase() === filterType);
-    }
-
-    function renderWalletEmpty() {
-      walletContent.classList.add("admin-hidden");
-      walletEmptyState.classList.remove("admin-hidden");
-      currentWalletPayload = null;
-    }
-
-    function renderWallet(payload) {
-      currentWalletPayload = payload;
-
-      const user = payload.user || {};
-      const txs = payload.transactions || [];
-      const stats = getWalletStats(txs);
-      const filteredTxs = filterWalletTransactions(txs);
-      const latestTx = txs[0] || txs[txs.length - 1] || null;
-
-      walletEmptyState.classList.add("admin-hidden");
-      walletContent.classList.remove("admin-hidden");
-
+    function renderWalletHero(user, transactions) {
+      const lastTx = transactions[0];
       walletHeroCard.innerHTML = `
         <div class="wallet-hero-top">
           <div>
             <div class="wallet-hero-kicker">کیف پول کاربر</div>
-            <h4 style="margin:14px 0 0;font-size:1.2rem;">${esc(user.full_name || "کاربر بدون نام")}</h4>
-            <p style="margin:8px 0 0;color:rgba(255,255,255,0.78);font-size:0.9rem;">${esc(user.email || "-")}</p>
+            <h3 style="margin:14px 0 0;font-size:1.2rem;">${esc(user.full_name || "کاربر بدون نام")}</h3>
+            <p style="margin:8px 0 0;color:rgba(255,255,255,0.78);line-height:1.9;">${esc(user.email || "-")}</p>
           </div>
           <div>${badge(user.role || "user")}</div>
         </div>
+
         <div class="wallet-balance">
           <span>موجودی فعلی</span>
           <strong>${money(user.wallet_balance || 0)} تومان</strong>
         </div>
+
         <div class="wallet-meta-line">
-          <div class="wallet-meta-pill">شناسه: ${esc(user.id || "-")}</div>
+          <div class="wallet-meta-pill">شناسه کاربر: ${esc(user.id)}</div>
           <div class="wallet-meta-pill">شماره: ${esc(user.phone || "-")}</div>
-          <div class="wallet-meta-pill">آخرین تراکنش: ${latestTx ? formatDate(latestTx.created_at) : "-"}</div>
+          <div class="wallet-meta-pill">آخرین تراکنش: ${lastTx ? formatDate(lastTx.created_at) : "-"}</div>
         </div>
       `;
+    }
 
+    function renderWalletSummary(user, transactions) {
+      const summary = getWalletSummary(transactions);
       walletSummaryCards.innerHTML = `
         <div class="wallet-mini-card">
-          <span>تعداد تراکنش‌ها</span>
-          <strong>${money(stats.count)}</strong>
-          <small>همه عملیات ثبت‌شده در این کیف پول</small>
-        </div>
-        <div class="wallet-mini-card">
-          <span>جمع واریزها</span>
-          <strong>${money(stats.credit)} تومان</strong>
-          <small>شامل واریز، کش‌بک و بازگشت وجه</small>
+          <span>جمع واریزی‌ها</span>
+          <strong>${money(summary.total_credit)} تومان</strong>
+          <small>${money(summary.credit_count)} تراکنش مثبت</small>
         </div>
         <div class="wallet-mini-card">
           <span>جمع برداشت‌ها</span>
-          <strong>${money(stats.debit)} تومان</strong>
-          <small>برداشت‌های مستقیم از کیف پول</small>
+          <strong>${money(summary.total_debit)} تومان</strong>
+          <small>${money(summary.debit_count)} تراکنش منفی</small>
         </div>
         <div class="wallet-mini-card">
-          <span>کش‌بک ثبت‌شده</span>
-          <strong>${money(stats.cashback)} تومان</strong>
-          <small>تجمیع تراکنش‌های نوع cashback</small>
+          <span>تعداد تراکنش‌ها</span>
+          <strong>${money(transactions.length)}</strong>
+          <small>براساس لیست بارگذاری‌شده</small>
+        </div>
+        <div class="wallet-mini-card">
+          <span>موجودی ثبت‌شده</span>
+          <strong>${money(user.wallet_balance || 0)} تومان</strong>
+          <small>خوانده‌شده از جدول users</small>
         </div>
       `;
+    }
 
+    function renderWalletUser(user) {
       walletUserBox.innerHTML = `
-        <div class="wallet-card-head">
+        <div class="wallet-user-head">
           <div>
-            <h4>پروفایل کیف پول</h4>
-            <p>نمای سریع از اطلاعات حساب کاربر و وضعیت فعلی کیف پول.</p>
+            <h4 class="wallet-user-name">${esc(user.full_name || "-")}</h4>
+            <p class="wallet-user-email">${esc(user.email || "-")}</p>
           </div>
-          <div class="wallet-inline-actions">
-            <button class="btn btn-secondary" type="button" id="wallet-copy-email-btn">کپی ایمیل</button>
-            <button class="btn btn-secondary" type="button" id="wallet-reload-btn">بارگذاری مجدد</button>
-          </div>
+          <div>${badge(user.role || "user")}</div>
         </div>
 
         <div class="wallet-user-list">
           <div class="wallet-user-row">
-            <span>نام کامل</span>
-            <strong>${esc(user.full_name || "-")}</strong>
-          </div>
-          <div class="wallet-user-row">
-            <span>ایمیل</span>
-            <strong>${esc(user.email || "-")}</strong>
+            <span>شناسه کاربر</span>
+            <strong>${esc(user.id)}</strong>
           </div>
           <div class="wallet-user-row">
             <span>شماره تماس</span>
             <strong>${esc(user.phone || "-")}</strong>
           </div>
           <div class="wallet-user-row">
-            <span>نقش کاربری</span>
-            <strong>${esc(faRole(user.role || "user"))}</strong>
-          </div>
-          <div class="wallet-user-row">
             <span>موجودی فعلی</span>
             <strong>${money(user.wallet_balance || 0)} تومان</strong>
           </div>
+          <div class="wallet-user-row">
+            <span>نقش حساب</span>
+            <strong>${esc(faRole(user.role || "user"))}</strong>
+          </div>
         </div>
       `;
+    }
 
+    function renderWalletAdjust(user) {
       walletAdjustBox.innerHTML = `
         <div class="wallet-card-head">
           <div>
-            <h4>مدیریت موجودی</h4>
-            <p>واریز، برداشت یا تعدیل دستی برای این کیف پول ثبت کن.</p>
+            <h4>ثبت عملیات کیف پول</h4>
+            <p>واریز، برداشت، کش‌بک، بازگشت وجه یا تعدیل را برای این کاربر ثبت کن.</p>
           </div>
         </div>
 
@@ -1740,156 +1717,48 @@
               <option value="credit">واریز</option>
               <option value="debit">برداشت</option>
               <option value="cashback">کش‌بک</option>
-              <option value="adjustment">تعدیل</option>
               <option value="refund">بازگشت وجه</option>
+              <option value="adjustment">تعدیل</option>
             </select>
           </div>
           <div class="form-field">
             <label for="wallet-amount">مبلغ</label>
-            <input id="wallet-amount" type="number" min="1" placeholder="مثلاً 500000" />
+            <input id="wallet-amount" type="number" min="1" placeholder="مثلاً 50000" />
           </div>
           <div class="form-field">
-            <label for="wallet-reference">مرجع</label>
-            <input id="wallet-reference" type="text" placeholder="مثلاً order_1001" />
+            <label for="wallet-reference-id">شناسه مرجع</label>
+            <input id="wallet-reference-id" type="text" placeholder="اختیاری" />
           </div>
         </div>
 
         <div class="filters-grid filters-grid-2">
           <div class="form-field">
-            <label for="wallet-note">یادداشت مدیریتی</label>
-            <textarea id="wallet-note" rows="3" placeholder="توضیح عملیات را بنویس"></textarea>
-          </div>
-          <div class="form-field">
-            <label for="wallet-reference-type">نوع مرجع</label>
+            <label for="wallet-reference-type">منبع ثبت</label>
             <select id="wallet-reference-type">
-              <option value="admin">admin</option>
-              <option value="order">order</option>
-              <option value="refund">refund</option>
-              <option value="cashback">cashback</option>
-              <option value="manual">manual</option>
-            </select>
-          </div>
-        </div>
-
-        <p class="admin-help">برای عملیات دستی، نوع تراکنش، مبلغ و در صورت نیاز توضیح یا مرجع ثبت کن.</p>
-
-        <div class="panel-actions">
-          <button class="btn btn-primary" type="button" id="wallet-save-btn">ثبت عملیات</button>
-          <button class="btn btn-secondary" type="button" id="wallet-fill-credit-btn">واریز سریع</button>
-          <button class="btn btn-secondary" type="button" id="wallet-fill-debit-btn">برداشت سریع</button>
-        </div>
-      `;
-
-      walletSettingsBox.innerHTML = `
-        <div class="wallet-card-head">
-          <div>
-            <h4>نمای تنظیمات کیف پول</h4>
-            <p>این بخش برای حس TeraWallet-style طراحی شده و وضعیت فعلی کاربر را خلاصه می‌کند.</p>
-          </div>
-        </div>
-
-        <div class="filters-grid filters-grid-3">
-          <div class="wallet-mini-card" style="min-height:auto;">
-            <span>وضعیت کیف پول</span>
-            <strong>${Number(user.wallet_balance || 0) > 0 ? "فعال و دارای موجودی" : "بدون موجودی"}</strong>
-            <small>بر اساس موجودی فعلی کاربر</small>
-          </div>
-          <div class="wallet-mini-card" style="min-height:auto;">
-            <span>آخرین نوع تراکنش</span>
-            <strong>${latestTx ? esc(faWalletType(latestTx.type)) : "-"}</strong>
-            <small>${latestTx ? formatDate(latestTx.created_at) : "تراکنشی ثبت نشده است"}</small>
-          </div>
-          <div class="wallet-mini-card" style="min-height:auto;">
-            <span>مانده پس از آخرین تغییر</span>
-            <strong>${latestTx ? money(latestTx.balance_after || user.wallet_balance || 0) : money(user.wallet_balance || 0)} تومان</strong>
-            <small>آخرین snapshot ثبت‌شده در ledger</small>
-          </div>
-        </div>
-      `;
-
-      walletHistoryBox.innerHTML = `
-        <div class="wallet-card-head">
-          <div>
-            <h4>تاریخچه تراکنش‌ها</h4>
-            <p>لیست کامل تراکنش‌های این کاربر با مانده قبل و بعد از هر عملیات.</p>
-          </div>
-        </div>
-
-        <div class="wallet-history-tools">
-          <div class="form-field">
-            <label for="wallet-history-search">جستجو در یادداشت</label>
-            <input id="wallet-history-search" type="text" placeholder="جستجو بر اساس note یا reference" />
-          </div>
-          <div class="form-field">
-            <label for="wallet-history-type-clone">نوع تراکنش</label>
-            <select id="wallet-history-type-clone">
-              <option value="">همه</option>
-              <option value="credit">واریز</option>
-              <option value="debit">برداشت</option>
+              <option value="admin">ادمین</option>
+              <option value="order">سفارش</option>
               <option value="cashback">کش‌بک</option>
-              <option value="adjustment">تعدیل</option>
               <option value="refund">بازگشت وجه</option>
             </select>
           </div>
-          <div class="form-field" style="justify-content:flex-end;">
-            <label style="opacity:0;">اقدام</label>
-            <button class="btn btn-secondary" type="button" id="wallet-apply-history-filter-btn">اعمال فیلتر</button>
+          <div class="form-field">
+            <label for="wallet-note">یادداشت</label>
+            <input id="wallet-note" type="text" placeholder="توضیح کوتاه برای ثبت تراکنش" />
           </div>
         </div>
 
-        <div class="table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>شناسه</th>
-                <th>نوع</th>
-                <th>مبلغ</th>
-                <th>قبل</th>
-                <th>بعد</th>
-                <th>وضعیت</th>
-                <th>مرجع</th>
-                <th>یادداشت</th>
-                <th>تاریخ</th>
-              </tr>
-            </thead>
-            <tbody id="wallet-history-body">
-              ${renderWalletRows(filteredTxs)}
-            </tbody>
-          </table>
+        <div class="wallet-inline-actions">
+          <button class="btn btn-primary" type="button" id="wallet-save-btn">ثبت عملیات</button>
+          <button class="btn btn-secondary" type="button" id="wallet-refresh-btn">به‌روزرسانی</button>
         </div>
       `;
-
-      const mainTypeSelect = document.getElementById("wallet-type");
-      const quickType = document.getElementById("wallet-quick-type");
-      if (mainTypeSelect && quickType) {
-        mainTypeSelect.value = quickType.value || "credit";
-      }
-
-      document.getElementById("wallet-copy-email-btn").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(String(user.email || ""));
-          setAdminMessage("ایمیل کاربر کپی شد.", "success");
-        } catch (error) {
-          setAdminMessage("کپی ایمیل انجام نشد.");
-        }
-      });
-
-      document.getElementById("wallet-reload-btn").addEventListener("click", loadWalletUser);
-
-      document.getElementById("wallet-fill-credit-btn").addEventListener("click", () => {
-        document.getElementById("wallet-type").value = "credit";
-      });
-
-      document.getElementById("wallet-fill-debit-btn").addEventListener("click", () => {
-        document.getElementById("wallet-type").value = "debit";
-      });
 
       document.getElementById("wallet-save-btn").addEventListener("click", async () => {
         const type = document.getElementById("wallet-type").value;
         const amount = Number(document.getElementById("wallet-amount").value || 0);
         const note = document.getElementById("wallet-note").value.trim();
-        const reference = document.getElementById("wallet-reference").value.trim();
-        const reference_type = document.getElementById("wallet-reference-type").value.trim() || "admin";
+        const reference_type = document.getElementById("wallet-reference-type").value.trim();
+        const reference_id = document.getElementById("wallet-reference-id").value.trim();
 
         if (!amount || amount <= 0) {
           setAdminMessage("مبلغ معتبر وارد کن.");
@@ -1903,8 +1772,8 @@
             type,
             amount,
             note,
-            reference,
-            reference_type
+            reference_type,
+            reference_id
           })
         });
 
@@ -1919,80 +1788,201 @@
         await loadUsers();
       });
 
-      document.getElementById("wallet-apply-history-filter-btn").addEventListener("click", applyWalletHistoryFilters);
-      document.getElementById("wallet-history-type-clone").value = document.getElementById("wallet-history-filter").value || "";
+      document.getElementById("wallet-refresh-btn").addEventListener("click", async () => {
+        await loadWalletUser();
+      });
     }
 
-    function renderWalletRows(txs) {
-      if (!txs.length) {
-        return `<tr><td colspan="9">تراکنشی با این فیلتر پیدا نشد.</td></tr>`;
-      }
+    function renderWalletSettings(settings = {}) {
+      const cashbackStatuses = Array.isArray(settings.cashback_statuses)
+        ? settings.cashback_statuses
+        : ["completed", "processing"];
 
-      return txs.map((tx) => `
-        <tr>
-          <td class="table-number">${esc(tx.id)}</td>
-          <td>${walletTypeChip(tx.type)}</td>
-          <td class="table-number">${money(tx.amount)}</td>
-          <td class="table-number">${money(tx.balance_before)}</td>
-          <td class="table-number">${money(tx.balance_after)}</td>
-          <td>${badge(tx.status)}</td>
-          <td>${esc(tx.reference || tx.reference_type || "-")}</td>
-          <td><div class="wallet-note">${esc(tx.note || "-")}</div></td>
-          <td class="table-number">${formatDate(tx.created_at)}</td>
-        </tr>
-      `).join("");
-    }
+      walletSettingsBox.innerHTML = `
+        <div class="wallet-card-head">
+          <div>
+            <h4>تنظیمات کش‌بک</h4>
+            <p>درصد کش‌بک و وضعیت‌های مجاز سفارش برای ثبت خودکار را تعیین کن.</p>
+          </div>
+        </div>
 
-    function applyWalletHistoryFilters() {
-      if (!currentWalletPayload) return;
+        <div class="filters-grid filters-grid-2">
+          <div class="form-field">
+            <label for="cashback-percent">درصد کش‌بک</label>
+            <input id="cashback-percent" type="number" min="0" max="100" value="${esc(settings.cashback_percent ?? 0)}" />
+          </div>
+          <div class="form-field">
+            <label for="cashback-statuses">وضعیت‌های مجاز</label>
+            <input id="cashback-statuses" type="text" value="${esc(cashbackStatuses.join(", "))}" placeholder="completed, processing" />
+          </div>
+        </div>
 
-      const typeClone = document.getElementById("wallet-history-type-clone");
-      const globalType = document.getElementById("wallet-history-filter");
-      const search = document.getElementById("wallet-history-search").value.trim().toLowerCase();
+        <div class="wallet-inline-actions">
+          <button class="btn btn-primary" type="button" id="wallet-save-settings-btn">ذخیره تنظیمات</button>
+        </div>
+      `;
 
-      if (typeClone && globalType) {
-        globalType.value = typeClone.value;
-      }
+      document.getElementById("wallet-save-settings-btn").addEventListener("click", async () => {
+        const cashback_percent = Number(document.getElementById("cashback-percent").value || 0);
+        const cashback_statuses = document.getElementById("cashback-statuses").value
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
 
-      let txs = filterWalletTransactions(currentWalletPayload.transactions || []);
-      if (search) {
-        txs = txs.filter((tx) => {
-          const haystack = [
-            tx.note,
-            tx.reference,
-            tx.reference_type,
-            tx.status,
-            tx.type
-          ].join(" ").toLowerCase();
-          return haystack.includes(search);
+        const result = await api("/api/admin/wallet", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "save_settings",
+            cashback_percent,
+            cashback_statuses
+          })
         });
-      }
 
-      const tbody = document.getElementById("wallet-history-body");
-      if (tbody) {
-        tbody.innerHTML = renderWalletRows(txs);
-      }
+        if (!result.ok || !result.data?.success) {
+          setAdminMessage(result.data?.error || "ذخیره تنظیمات کش‌بک انجام نشد.");
+          return;
+        }
+
+        setAdminMessage("تنظیمات کش‌بک با موفقیت ذخیره شد.", "success");
+        currentWalletPayload = {
+          ...(currentWalletPayload || {}),
+          settings: result.data.settings || {}
+        };
+        renderWalletSettings(result.data.settings || {});
+      });
+    }
+
+    function renderWalletHistory(transactions = []) {
+      const filterType = document.getElementById("wallet-quick-type")?.value || "";
+      const filtered = filterType
+        ? transactions.filter((tx) => String(tx.type || "").toLowerCase() === filterType)
+        : transactions;
+
+      walletHistoryBox.innerHTML = `
+        <div class="wallet-card-head">
+          <div>
+            <h4>تاریخچه تراکنش‌ها</h4>
+            <p>تمام ثبت‌های اخیر کیف پول کاربر همراه با وضعیت، مانده قبل و بعد، و توضیحات.</p>
+          </div>
+        </div>
+
+        <div class="wallet-history-tools">
+          <div class="form-field">
+            <label for="wallet-history-search">جستجو در یادداشت</label>
+            <input id="wallet-history-search" type="text" placeholder="یادداشت یا نوع تراکنش" />
+          </div>
+          <div class="form-field">
+            <label>تراکنش‌های نمایشی</label>
+            <input type="text" value="${money(filtered.length)} مورد" disabled />
+          </div>
+          <div class="form-field">
+            <label>آخرین به‌روزرسانی</label>
+            <input type="text" value="${filtered[0] ? formatDate(filtered[0].created_at) : "-"}" disabled />
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>شناسه</th>
+                <th>نوع</th>
+                <th>مبلغ</th>
+                <th>قبل</th>
+                <th>بعد</th>
+                <th>وضعیت</th>
+                <th>منبع</th>
+                <th>یادداشت</th>
+                <th>تاریخ</th>
+              </tr>
+            </thead>
+            <tbody id="wallet-history-body">
+              ${
+                filtered.length
+                  ? filtered.map((tx) => `
+                    <tr>
+                      <td class="table-number">${esc(tx.id)}</td>
+                      <td>${walletTypeChip(tx.type)}</td>
+                      <td class="table-number">${money(tx.amount)}</td>
+                      <td class="table-number">${money(tx.balance_before)}</td>
+                      <td class="table-number">${money(tx.balance_after)}</td>
+                      <td>${badge(tx.status)}</td>
+                      <td>${esc(tx.reference_type || tx.source || "-")}</td>
+                      <td class="wallet-note">${esc(tx.note || "-")}</td>
+                      <td class="table-number">${formatDate(tx.created_at)}</td>
+                    </tr>
+                  `).join("")
+                  : `<tr><td colspan="9">تراکنشی ثبت نشده است.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      const searchInput = document.getElementById("wallet-history-search");
+      const body = document.getElementById("wallet-history-body");
+
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.trim().toLowerCase();
+        const list = filtered.filter((tx) => {
+          const hay = [
+            tx.type,
+            tx.note,
+            tx.reference_type,
+            tx.source
+          ].map((v) => String(v || "").toLowerCase()).join(" ");
+          return !q || hay.includes(q);
+        });
+
+        body.innerHTML = list.length
+          ? list.map((tx) => `
+              <tr>
+                <td class="table-number">${esc(tx.id)}</td>
+                <td>${walletTypeChip(tx.type)}</td>
+                <td class="table-number">${money(tx.amount)}</td>
+                <td class="table-number">${money(tx.balance_before)}</td>
+                <td class="table-number">${money(tx.balance_after)}</td>
+                <td>${badge(tx.status)}</td>
+                <td>${esc(tx.reference_type || tx.source || "-")}</td>
+                <td class="wallet-note">${esc(tx.note || "-")}</td>
+                <td class="table-number">${formatDate(tx.created_at)}</td>
+              </tr>
+            `).join("")
+          : `<tr><td colspan="9">نتیجه‌ای پیدا نشد.</td></tr>`;
+      });
     }
 
     async function loadWalletUser() {
       const userId = Number(document.getElementById("wallet-user-id").value || 0);
+      const limit = Number(document.getElementById("wallet-limit").value || 50);
+
       if (!userId) {
         setAdminMessage("شناسه کاربر را وارد کن.");
-        renderWalletEmpty();
         return;
       }
 
-      const result = await api(`/api/admin/wallet?user_id=${encodeURIComponent(userId)}`);
+      const result = await api(`/api/admin/wallet?user_id=${encodeURIComponent(userId)}&limit=${encodeURIComponent(limit)}`);
       if (!result.ok || !result.data?.success) {
         setAdminMessage(result.data?.error || "دریافت کیف پول انجام نشد.");
-        renderWalletEmpty();
+        walletContent.classList.add("admin-hidden");
+        walletEmptyState.classList.remove("admin-hidden");
         return;
       }
 
-      renderWallet({
-        user: result.data.user || {},
-        transactions: result.data.transactions || []
-      });
+      const payload = result.data || {};
+      const user = payload.user || {};
+      const txs = payload.transactions || [];
+      currentWalletPayload = payload;
+
+      walletEmptyState.classList.add("admin-hidden");
+      walletContent.classList.remove("admin-hidden");
+
+      renderWalletHero(user, txs);
+      renderWalletSummary(user, txs);
+      renderWalletUser(user);
+      renderWalletAdjust(user);
+      renderWalletSettings(payload.settings || {});
+      renderWalletHistory(txs);
     }
 
     adminPanels.forEach((btn) => {
@@ -2009,15 +1999,12 @@
     document.getElementById("orders-filter-btn").addEventListener("click", loadOrders);
     document.getElementById("users-filter-btn").addEventListener("click", loadUsers);
     document.getElementById("wallet-load-btn").addEventListener("click", loadWalletUser);
-    document.getElementById("show-create-user-btn").addEventListener("click", openUserCreate);
-    document.getElementById("wallet-history-filter").addEventListener("change", () => {
-      if (currentWalletPayload) renderWallet(currentWalletPayload);
-    });
-
     document.getElementById("wallet-quick-type").addEventListener("change", () => {
-      const target = document.getElementById("wallet-type");
-      if (target) target.value = document.getElementById("wallet-quick-type").value;
+      if (currentWalletPayload?.transactions) {
+        renderWalletHistory(currentWalletPayload.transactions);
+      }
     });
+    document.getElementById("show-create-user-btn").addEventListener("click", openUserCreate);
 
     document.getElementById("orders-body").addEventListener("click", async (event) => {
       const viewBtn = event.target.closest("[data-view-order]");
