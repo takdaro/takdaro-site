@@ -23,12 +23,12 @@ async function ensureWalletTables(db) {
       balance_before INTEGER NOT NULL DEFAULT 0,
       balance_after INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'completed',
-      source TEXT,
-      description TEXT,
-      order_id INTEGER,
-      order_number TEXT,
-      admin_user_id INTEGER,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      reference_type TEXT,
+      reference_id TEXT,
+      note TEXT,
+      created_by_user_id INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      source TEXT
     )
   `).run();
 
@@ -61,6 +61,19 @@ async function setSetting(db, key, value) {
     `)
     .bind(key, String(value))
     .run();
+}
+
+function normalizeWalletType(value) {
+  const type = normalizeText(value).toLowerCase();
+
+  if (type === "manual_credit") return "credit";
+  if (type === "manual_debit") return "debit";
+
+  if (["credit", "debit", "cashback", "refund", "adjustment"].includes(type)) {
+    return type;
+  }
+
+  return "";
 }
 
 export async function onRequestGet(context) {
@@ -98,8 +111,19 @@ export async function onRequestGet(context) {
       const txns = await context.env.DB
         .prepare(`
           SELECT
-            id, user_id, type, amount, balance_before, balance_after, status,
-            source, description, order_id, order_number, admin_user_id, created_at
+            id,
+            user_id,
+            type,
+            amount,
+            balance_before,
+            balance_after,
+            status,
+            source,
+            note,
+            reference_type,
+            reference_id,
+            created_by_user_id,
+            created_at
           FROM wallet_transactions
           WHERE user_id = ?
           ORDER BY id DESC
@@ -122,10 +146,21 @@ export async function onRequestGet(context) {
     const latest = await context.env.DB
       .prepare(`
         SELECT
-          wt.id, wt.user_id, wt.type, wt.amount, wt.balance_before, wt.balance_after,
-          wt.status, wt.source, wt.description, wt.order_id, wt.order_number,
-          wt.admin_user_id, wt.created_at,
-          u.full_name, u.email
+          wt.id,
+          wt.user_id,
+          wt.type,
+          wt.amount,
+          wt.balance_before,
+          wt.balance_after,
+          wt.status,
+          wt.source,
+          wt.note,
+          wt.reference_type,
+          wt.reference_id,
+          wt.created_by_user_id,
+          wt.created_at,
+          u.full_name,
+          u.email
         FROM wallet_transactions wt
         JOIN users u ON u.id = wt.user_id
         ORDER BY wt.id DESC
@@ -185,19 +220,25 @@ export async function onRequestPost(context) {
 
     const userId = Number(body.user_id || 0);
     const amount = toMoney(body.amount);
-    const type = normalizeText(body.type || "manual_credit").toLowerCase();
-    const description = normalizeText(body.description);
+    const type = normalizeWalletType(body.type || "credit");
+    const note = normalizeText(body.note || body.description);
+    const referenceType = normalizeText(body.reference_type || body.source || "admin").toLowerCase();
+    const referenceId = normalizeText(body.reference_id || body.reference);
 
     if (!userId || amount <= 0) {
       return json({ success: false, error: "user_id and amount required" }, 400);
     }
 
-    if (!["manual_credit", "manual_debit"].includes(type)) {
+    if (!type) {
       return json({ success: false, error: "invalid type" }, 400);
     }
 
     const user = await context.env.DB
-      .prepare(`SELECT id, full_name, email, COALESCE(wallet_balance, 0) AS wallet_balance FROM users WHERE id = ?`)
+      .prepare(`
+        SELECT id, full_name, email, COALESCE(wallet_balance, 0) AS wallet_balance
+        FROM users
+        WHERE id = ?
+      `)
       .bind(userId)
       .first();
 
@@ -206,7 +247,7 @@ export async function onRequestPost(context) {
     }
 
     const balanceBefore = Number(user.wallet_balance || 0);
-    const signedAmount = type === "manual_debit" ? -amount : amount;
+    const signedAmount = ["debit"].includes(type) ? -amount : amount;
     const balanceAfter = balanceBefore + signedAmount;
 
     if (balanceAfter < 0) {
@@ -215,30 +256,58 @@ export async function onRequestPost(context) {
 
     await context.env.DB.batch([
       context.env.DB
-        .prepare(`UPDATE users SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+        .prepare(`
+          UPDATE users
+          SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `)
         .bind(balanceAfter, userId),
+
       context.env.DB
         .prepare(`
           INSERT INTO wallet_transactions (
-            user_id, type, amount, balance_before, balance_after,
-            status, source, description, admin_user_id, created_at
+            user_id,
+            type,
+            amount,
+            balance_before,
+            balance_after,
+            status,
+            source,
+            note,
+            reference_type,
+            reference_id,
+            created_by_user_id,
+            created_at
           )
-          VALUES (?, ?, ?, ?, ?, 'completed', 'admin', ?, ?, CURRENT_TIMESTAMP)
+          VALUES (?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         `)
-        .bind(userId, type, signedAmount, balanceBefore, balanceAfter, description || null, adminCheck.user.id)
+        .bind(
+          userId,
+          type,
+          signedAmount,
+          balanceBefore,
+          balanceAfter,
+          referenceType || "admin",
+          note || null,
+          referenceType || "admin",
+          referenceId || null,
+          adminCheck.user.id
+        )
     ]);
 
     await logAdminAction(context, {
       admin_user_id: adminCheck.user.id,
-      action: type,
+      action: `wallet_${type}`,
       target_type: "wallet",
       target_id: String(userId),
-      description: `amount=${signedAmount}, balance_after=${balanceAfter}`
+      description: `amount=${signedAmount}, balance_after=${balanceAfter}, reference_type=${referenceType || "admin"}`
     });
 
     return json({
       success: true,
       user_id: userId,
+      type,
+      amount: signedAmount,
       balance_before: balanceBefore,
       balance_after: balanceAfter
     });
