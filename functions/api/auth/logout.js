@@ -20,9 +20,12 @@ export async function onRequestPost(context) {
         .run();
     }
 
-    const response = Response.json({ success: true });
+    const response = Response.json({
+      success: true,
+      message: "logged_out"
+    });
 
-    response.headers.set(
+    response.headers.append(
       "Set-Cookie",
       "session_id=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
     );
@@ -37,3 +40,4 @@ export async function onRequestPost(context) {
       { status: 500 }
     );
   }
+}
