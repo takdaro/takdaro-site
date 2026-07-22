@@ -1,17 +1,14 @@
 function getCookie(cookieString, key) {
   if (!cookieString) return null;
-
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   if (!target) return null;
-
   return target.slice(key.length + 1);
 }
 
 async function getCurrentUserId(context) {
   const cookieString = context.request.headers.get("Cookie") || "";
   const sessionId = getCookie(cookieString, "session_id");
-
   if (!sessionId) return null;
 
   const session = await context.env.DB
@@ -35,34 +32,26 @@ export async function onRequestGet(context) {
     const userId = await getCurrentUserId(context);
 
     if (!userId) {
-      return Response.json(
-        { success: false, error: "unauthorized" },
-        { status: 401 }
-      );
+      return Response.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
     const user = await context.env.DB
-      .prepare("SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?")
+      .prepare(`
+        SELECT id, full_name, email, phone, created_at, updated_at
+        FROM users
+        WHERE id = ?
+      `)
       .bind(userId)
       .first();
 
     if (!user) {
-      return Response.json(
-        { success: false, error: "user not found" },
-        { status: 404 }
-      );
+      return Response.json({ success: false, error: "user not found" }, { status: 404 });
     }
 
-    return Response.json({
-      success: true,
-      user
-    });
+    return Response.json({ success: true, user });
   } catch (error) {
     return Response.json(
-      {
-        success: false,
-        error: String(error?.message || error)
-      },
+      { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
   }
@@ -73,15 +62,12 @@ export async function onRequestPost(context) {
     const userId = await getCurrentUserId(context);
 
     if (!userId) {
-      return Response.json(
-        { success: false, error: "unauthorized" },
-        { status: 401 }
-      );
+      return Response.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
     const body = await context.request.json();
 
-    const full_name = String(body.full_name || "").trim();
+    const full_name = String(body.full_name ?? body.name ?? "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
     const password = String(body.password || "");
@@ -126,35 +112,37 @@ export async function onRequestPost(context) {
       const password_hash = await sha256(password);
 
       await context.env.DB
-        .prepare(
-          "UPDATE users SET full_name = ?, email = ?, phone = ?, password_hash = ? WHERE id = ?"
-        )
+        .prepare(`
+          UPDATE users
+          SET full_name = ?, email = ?, phone = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `)
         .bind(full_name, email, phone || null, password_hash, userId)
         .run();
     } else {
       await context.env.DB
-        .prepare(
-          "UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?"
-        )
+        .prepare(`
+          UPDATE users
+          SET full_name = ?, email = ?, phone = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `)
         .bind(full_name, email, phone || null, userId)
         .run();
     }
 
     const user = await context.env.DB
-      .prepare("SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?")
+      .prepare(`
+        SELECT id, full_name, email, phone, created_at, updated_at
+        FROM users
+        WHERE id = ?
+      `)
       .bind(userId)
       .first();
 
-    return Response.json({
-      success: true,
-      user
-    });
+    return Response.json({ success: true, user });
   } catch (error) {
     return Response.json(
-      {
-        success: false,
-        error: String(error?.message || error)
-      },
+      { success: false, error: String(error?.message || error) },
       { status: 500 }
     );
   }

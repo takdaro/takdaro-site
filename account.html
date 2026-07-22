@@ -224,28 +224,33 @@
       background: #fff;
     }
 
-    .account-table {
+    .account-table,
+    .wallet-history-table {
       width: 100%;
       min-width: 720px;
       border-collapse: collapse;
     }
 
     .account-table th,
-    .account-table td {
+    .account-table td,
+    .wallet-history-table th,
+    .wallet-history-table td {
       padding: 16px 14px;
       text-align: right;
       border-bottom: 1px solid rgba(15, 23, 42, 0.06);
       vertical-align: middle;
     }
 
-    .account-table th {
+    .account-table th,
+    .wallet-history-table th {
       background: #f8fafc;
       color: #334155;
       font-size: 0.92rem;
       white-space: nowrap;
     }
 
-    .account-table tr:last-child td {
+    .account-table tr:last-child td,
+    .wallet-history-table tr:last-child td {
       border-bottom: none;
     }
 
@@ -268,7 +273,23 @@
 
     .status-badge--success { background: #ecfdf5; color: #047857; }
     .status-badge--warning { background: #fff7ed; color: #c2410c; }
-    .status-badge--info    { background: #eff6ff; color: #1d4ed8; }
+    .status-badge--info { background: #eff6ff; color: #1d4ed8; }
+
+    .wallet-type-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .wallet-type-badge--cashback { background: #ecfdf5; color: #047857; }
+    .wallet-type-badge--credit { background: #eff6ff; color: #1d4ed8; }
+    .wallet-type-badge--debit { background: #fef2f2; color: #b91c1c; }
 
     .address-grid {
       display: grid;
@@ -702,8 +723,10 @@
                   سوابق تراکنش‌های کیف پول در این قسمت نمایش داده می‌شود.
                 </p>
 
-                <div class="wallet-empty">
-                  هنوز تراکنشی برای کیف پول این حساب ثبت نشده است.
+                <div id="wallet-history-content">
+                  <div class="wallet-empty">
+                    در حال بارگذاری تراکنش‌های کیف پول...
+                  </div>
                 </div>
               </div>
 
@@ -719,7 +742,7 @@
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="account-full-name">نام و نام خانوادگی</label>
-                      <input type="text" id="account-full-name" name="name" autocomplete="name" />
+                      <input type="text" id="account-full-name" name="full_name" autocomplete="name" />
                     </div>
 
                     <div class="form-field">
@@ -819,6 +842,12 @@
       return number.toLocaleString("fa-IR") + " تومان";
     }
 
+    function formatSignedPrice(value) {
+      const number = Number(value || 0);
+      const sign = number > 0 ? "+" : "";
+      return sign + number.toLocaleString("fa-IR") + " تومان";
+    }
+
     function formatDate(value) {
       if (!value) return "-";
 
@@ -875,6 +904,27 @@
 
     function renderOrderStatusBadge(status) {
       return `<span class="${orderStatusClass(status)}">${escapeHtml(translateOrderStatus(status))}</span>`;
+    }
+
+    function translateWalletType(type) {
+      const value = String(type || "").trim().toLowerCase();
+      const map = {
+        cashback: "کش‌بک",
+        manual_credit: "شارژ دستی",
+        manual_debit: "کسر دستی"
+      };
+      return map[value] || (type ? String(type) : "-");
+    }
+
+    function walletTypeClass(type) {
+      const value = String(type || "").trim().toLowerCase();
+      if (value === "manual_debit") {
+        return "wallet-type-badge wallet-type-badge--debit";
+      }
+      if (value === "manual_credit") {
+        return "wallet-type-badge wallet-type-badge--credit";
+      }
+      return "wallet-type-badge wallet-type-badge--cashback";
     }
 
     function setFormMessage(type, message) {
@@ -941,8 +991,10 @@
     }
 
     function renderUserInfo(user) {
+      const fullName = user?.full_name || user?.name || "کاربر";
+
       document.querySelectorAll("[data-user-full-name]").forEach((node) => {
-        node.textContent = user?.name || "کاربر";
+        node.textContent = fullName;
       });
 
       if (walletBalance) {
@@ -953,7 +1005,7 @@
       const phoneInput = document.getElementById("account-phone");
       const emailInput = document.getElementById("account-email");
 
-      if (fullNameInput) fullNameInput.value = user?.name || "";
+      if (fullNameInput) fullNameInput.value = fullName;
       if (phoneInput) phoneInput.value = user?.phone || "";
       if (emailInput) emailInput.value = user?.email || "";
     }
@@ -1031,7 +1083,7 @@
             <div class="address-cardmeta ${address.is_default ? "is-default" : ""}">
               ${address.is_default ? "آدرس پیش‌فرض" : "آدرس ذخیره‌شده"}
             </div>
-            <h4>${escapeHtml(address.title || "آدرس کاربر")}</h4>
+            <h4>${escapeHtml(address.title || address.type === "billing" ? "آدرس صورتحساب" : "آدرس کاربر")}</h4>
             <p>${formatAddressCard(address)}</p>
             <div class="address-actions">
               <button type="button" class="btn btn-secondary" data-address-edit="${address.id}">ویرایش</button>
@@ -1045,6 +1097,51 @@
       if (dashboardAddressesCount) {
         dashboardAddressesCount.textContent = currentAddresses.length.toLocaleString("fa-IR");
       }
+    }
+
+    function renderWalletHistory(transactions) {
+      const container = document.getElementById("wallet-history-content");
+      if (!container) return;
+
+      const items = Array.isArray(transactions) ? transactions : [];
+
+      if (!items.length) {
+        container.innerHTML = `
+          <div class="wallet-empty">
+            هنوز تراکنشی برای کیف پول این حساب ثبت نشده است.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-wrap">
+          <table class="wallet-history-table">
+            <thead>
+              <tr>
+                <th>تاریخ</th>
+                <th>نوع</th>
+                <th>مبلغ</th>
+                <th>مانده بعد از تراکنش</th>
+                <th>مرجع</th>
+                <th>توضیحات</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((item) => `
+                <tr>
+                  <td class="table-number">${formatDate(item.created_at)}</td>
+                  <td><span class="${walletTypeClass(item.type)}">${escapeHtml(translateWalletType(item.type))}</span></td>
+                  <td class="table-number">${formatSignedPrice(item.amount)}</td>
+                  <td class="table-number">${formatPrice(item.balance_after || 0)}</td>
+                  <td class="table-number">${escapeHtml(item.order_number || "-")}</td>
+                  <td>${escapeHtml(item.description || "-")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
     }
 
     async function loadOrders() {
@@ -1083,6 +1180,28 @@
       }
     }
 
+    async function loadWalletHistory() {
+      try {
+        const response = await fetch("/api/account/wallet", {
+          credentials: "same-origin"
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+          renderWalletHistory([]);
+          return;
+        }
+
+        if (walletBalance) {
+          walletBalance.textContent = formatPrice(data.wallet_balance || 0);
+        }
+
+        renderWalletHistory(Array.isArray(data.transactions) ? data.transactions : []);
+      } catch (error) {
+        renderWalletHistory([]);
+      }
+    }
+
     async function bootAccount() {
       if (!window.Auth || typeof window.Auth.requireAuth !== "function") {
         if (accountLoading) {
@@ -1102,7 +1221,8 @@
 
       await Promise.all([
         loadOrders(),
-        loadAddresses()
+        loadAddresses(),
+        loadWalletHistory()
       ]);
 
       if (accountLoading) {
@@ -1128,7 +1248,7 @@
 
         const formData = new FormData(accountForm);
         const payload = {
-          name: String(formData.get("name") || "").trim(),
+          full_name: String(formData.get("full_name") || "").trim(),
           phone: String(formData.get("phone") || "").trim(),
           email: String(formData.get("email") || "").trim(),
           password: String(formData.get("password") || ""),
@@ -1164,8 +1284,11 @@
           if (confirmInput) confirmInput.value = "";
 
           if (result.user) {
-            currentUser = result.user;
-            renderUserInfo(result.user);
+            currentUser = {
+              ...currentUser,
+              ...result.user
+            };
+            renderUserInfo(currentUser);
           }
         } catch (error) {
           setFormMessage("error", "ذخیره تغییرات با خطا مواجه شد.");

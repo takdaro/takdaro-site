@@ -1,6 +1,19 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
 
-async function ensureWalletTransactionsTable(db) {
+function json(data, status = 200) {
+  return Response.json(data, { status });
+}
+
+function toMoney(value) {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+function normalizeText(value) {
+  return String(value || "").trim();
+}
+
+async function ensureWalletTables(db) {
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS wallet_transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -10,13 +23,44 @@ async function ensureWalletTransactionsTable(db) {
       balance_before INTEGER NOT NULL DEFAULT 0,
       balance_after INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'completed',
-      reference_type TEXT,
-      reference_id TEXT,
-      note TEXT,
-      created_by_user_id INTEGER,
+      source TEXT,
+      description TEXT,
+      order_id INTEGER,
+      order_number TEXT,
+      admin_user_id INTEGER,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      setting_key TEXT NOT NULL UNIQUE,
+      setting_value TEXT,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+}
+
+async function getSetting(db, key, fallback = null) {
+  const row = await db
+    .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1`)
+    .bind(key)
+    .first();
+  return row ? row.setting_value : fallback;
+}
+
+async function setSetting(db, key, value) {
+  await db
+    .prepare(`
+      INSERT INTO app_settings (setting_key, setting_value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(setting_key) DO UPDATE SET
+        setting_value = excluded.setting_value,
+        updated_at = CURRENT_TIMESTAMP
+    `)
+    .bind(key, String(value))
+    .run();
 }
 
 export async function onRequestGet(context) {
@@ -24,66 +68,82 @@ export async function onRequestGet(context) {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
 
-    await ensureWalletTransactionsTable(context.env.DB);
+    await ensureWalletTables(context.env.DB);
 
     const url = new URL(context.request.url);
     const userId = Number(url.searchParams.get("user_id") || 0);
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 200);
 
-    if (!userId) {
-      return Response.json(
-        { success: false, error: "user_id required" },
-        { status: 400 }
-      );
+    const cashbackPercent = Number(await getSetting(context.env.DB, "cashback_percent", "0")) || 0;
+    const cashbackStatuses = String(await getSetting(context.env.DB, "cashback_statuses", "completed,processing"))
+      .split(",")
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (userId > 0) {
+      const user = await context.env.DB
+        .prepare(`
+          SELECT id, full_name, email, phone, role, COALESCE(wallet_balance, 0) AS wallet_balance
+          FROM users
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(userId)
+        .first();
+
+      if (!user) {
+        return json({ success: false, error: "user not found" }, 404);
+      }
+
+      const txns = await context.env.DB
+        .prepare(`
+          SELECT
+            id, user_id, type, amount, balance_before, balance_after, status,
+            source, description, order_id, order_number, admin_user_id, created_at
+          FROM wallet_transactions
+          WHERE user_id = ?
+          ORDER BY id DESC
+          LIMIT ?
+        `)
+        .bind(userId, limit)
+        .all();
+
+      return json({
+        success: true,
+        settings: {
+          cashback_percent: cashbackPercent,
+          cashback_statuses: cashbackStatuses
+        },
+        user,
+        transactions: txns.results || []
+      });
     }
 
-    const user = await context.env.DB
-      .prepare(`
-        SELECT id, full_name, email, phone, role, COALESCE(wallet_balance, 0) AS wallet_balance
-        FROM users
-        WHERE id = ?
-      `)
-      .bind(userId)
-      .first();
-
-    if (!user) {
-      return Response.json(
-        { success: false, error: "user not found" },
-        { status: 404 }
-      );
-    }
-
-    const txs = await context.env.DB
+    const latest = await context.env.DB
       .prepare(`
         SELECT
-          id,
-          type,
-          amount,
-          balance_before,
-          balance_after,
-          status,
-          reference_type,
-          reference_id,
-          note,
-          created_by_user_id,
-          created_at
-        FROM wallet_transactions
-        WHERE user_id = ?
-        ORDER BY id DESC
-        LIMIT 100
+          wt.id, wt.user_id, wt.type, wt.amount, wt.balance_before, wt.balance_after,
+          wt.status, wt.source, wt.description, wt.order_id, wt.order_number,
+          wt.admin_user_id, wt.created_at,
+          u.full_name, u.email
+        FROM wallet_transactions wt
+        JOIN users u ON u.id = wt.user_id
+        ORDER BY wt.id DESC
+        LIMIT ?
       `)
-      .bind(userId)
+      .bind(limit)
       .all();
 
-    return Response.json({
+    return json({
       success: true,
-      user,
-      transactions: txs.results || []
+      settings: {
+        cashback_percent: cashbackPercent,
+        cashback_statuses: cashbackStatuses
+      },
+      transactions: latest.results || []
     });
   } catch (error) {
-    return Response.json(
-      { success: false, error: String(error?.message || error) },
-      { status: 500 }
-    );
+    return json({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 
@@ -92,129 +152,97 @@ export async function onRequestPost(context) {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
 
-    await ensureWalletTransactionsTable(context.env.DB);
+    await ensureWalletTables(context.env.DB);
 
     const body = await context.request.json();
-    const user_id = Number(body.user_id || 0);
-    const type = String(body.type || "").trim().toLowerCase();
-    const amount = Number(body.amount || 0);
-    const note = String(body.note || "").trim();
-    const reference_type = String(body.reference_type || "admin").trim();
-    const reference_id = String(body.reference_id || "").trim();
+    const action = normalizeText(body.action);
 
-    if (!user_id || !["credit", "debit"].includes(type) || !Number.isFinite(amount) || amount <= 0) {
-      return Response.json(
-        { success: false, error: "invalid wallet payload" },
-        { status: 400 }
-      );
+    if (action === "save_settings") {
+      const cashbackPercent = Math.max(0, Math.min(Number(body.cashback_percent || 0), 100));
+      const cashbackStatuses = Array.isArray(body.cashback_statuses)
+        ? body.cashback_statuses.map((s) => normalizeText(s).toLowerCase()).filter(Boolean)
+        : ["completed", "processing"];
+
+      await setSetting(context.env.DB, "cashback_percent", String(cashbackPercent));
+      await setSetting(context.env.DB, "cashback_statuses", cashbackStatuses.join(","));
+
+      await logAdminAction(context, {
+        admin_user_id: adminCheck.user.id,
+        action: "wallet_save_settings",
+        target_type: "wallet_settings",
+        target_id: "cashback",
+        description: `cashback_percent=${cashbackPercent}, statuses=${cashbackStatuses.join(",")}`
+      });
+
+      return json({
+        success: true,
+        settings: {
+          cashback_percent: cashbackPercent,
+          cashback_statuses: cashbackStatuses
+        }
+      });
+    }
+
+    const userId = Number(body.user_id || 0);
+    const amount = toMoney(body.amount);
+    const type = normalizeText(body.type || "manual_credit").toLowerCase();
+    const description = normalizeText(body.description);
+
+    if (!userId || amount <= 0) {
+      return json({ success: false, error: "user_id and amount required" }, 400);
+    }
+
+    if (!["manual_credit", "manual_debit"].includes(type)) {
+      return json({ success: false, error: "invalid type" }, 400);
     }
 
     const user = await context.env.DB
-      .prepare(`SELECT id, wallet_balance FROM users WHERE id = ?`)
-      .bind(user_id)
+      .prepare(`SELECT id, full_name, email, COALESCE(wallet_balance, 0) AS wallet_balance FROM users WHERE id = ?`)
+      .bind(userId)
       .first();
 
     if (!user) {
-      return Response.json(
-        { success: false, error: "user not found" },
-        { status: 404 }
-      );
+      return json({ success: false, error: "user not found" }, 404);
     }
 
-    const before = Number(user.wallet_balance || 0);
-    const delta = type === "credit" ? amount : -amount;
-    const after = before + delta;
+    const balanceBefore = Number(user.wallet_balance || 0);
+    const signedAmount = type === "manual_debit" ? -amount : amount;
+    const balanceAfter = balanceBefore + signedAmount;
 
-    if (after < 0) {
-      return Response.json(
-        { success: false, error: "insufficient wallet balance" },
-        { status: 400 }
-      );
+    if (balanceAfter < 0) {
+      return json({ success: false, error: "insufficient wallet balance" }, 400);
     }
 
     await context.env.DB.batch([
-      context.env.DB.prepare(`
-        UPDATE users
-        SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).bind(after, user_id),
-
-      context.env.DB.prepare(`
-        INSERT INTO wallet_transactions
-        (
-          user_id,
-          type,
-          amount,
-          balance_before,
-          balance_after,
-          status,
-          reference_type,
-          reference_id,
-          note,
-          created_by_user_id
-        )
-        VALUES (?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?)
-      `).bind(
-        user_id,
-        type,
-        amount,
-        before,
-        after,
-        reference_type || "admin",
-        reference_id || null,
-        note || null,
-        adminCheck.user.id
-      )
+      context.env.DB
+        .prepare(`UPDATE users SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+        .bind(balanceAfter, userId),
+      context.env.DB
+        .prepare(`
+          INSERT INTO wallet_transactions (
+            user_id, type, amount, balance_before, balance_after,
+            status, source, description, admin_user_id, created_at
+          )
+          VALUES (?, ?, ?, ?, ?, 'completed', 'admin', ?, ?, CURRENT_TIMESTAMP)
+        `)
+        .bind(userId, type, signedAmount, balanceBefore, balanceAfter, description || null, adminCheck.user.id)
     ]);
 
     await logAdminAction(context, {
       admin_user_id: adminCheck.user.id,
-      action: type === "credit" ? "wallet_credit" : "wallet_debit",
-      target_type: "user",
-      target_id: String(user_id),
-      description: `${type} ${amount}${note ? ` | ${note}` : ""}`
+      action: type,
+      target_type: "wallet",
+      target_id: String(userId),
+      description: `amount=${signedAmount}, balance_after=${balanceAfter}`
     });
 
-    const updated = await context.env.DB
-      .prepare(`
-        SELECT id, full_name, email, phone, role, COALESCE(wallet_balance, 0) AS wallet_balance
-        FROM users
-        WHERE id = ?
-      `)
-      .bind(user_id)
-      .first();
-
-    const latestTx = await context.env.DB
-      .prepare(`
-        SELECT
-          id,
-          type,
-          amount,
-          balance_before,
-          balance_after,
-          status,
-          reference_type,
-          reference_id,
-          note,
-          created_by_user_id,
-          created_at
-        FROM wallet_transactions
-        WHERE user_id = ?
-        ORDER BY id DESC
-        LIMIT 1
-      `)
-      .bind(user_id)
-      .first();
-
-    return Response.json({
+    return json({
       success: true,
-      user: updated,
-      transaction: latestTx
+      user_id: userId,
+      balance_before: balanceBefore,
+      balance_after: balanceAfter
     });
   } catch (error) {
-    return Response.json(
-      { success: false, error: String(error?.message || error) },
-      { status: 500 }
-    );
+    return json({ success: false, error: String(error?.message || error) }, 500);
   }
 }

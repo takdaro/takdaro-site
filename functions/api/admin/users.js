@@ -68,6 +68,13 @@ export async function onRequestGet(context) {
     const limit = Math.min(toInt(url.searchParams.get("limit"), 20), 100);
     const offset = (page - 1) * limit;
 
+    if (role && !isAllowedRole(role)) {
+      return Response.json(
+        { success: false, error: "invalid role" },
+        { status: 400 }
+      );
+    }
+
     const where = [];
     const binds = [];
 
@@ -375,12 +382,9 @@ export async function onRequestDelete(context) {
       );
     }
 
-    if (
-      String(targetUser.role || "") === "super_admin" &&
-      String(adminCheck.user.role || "") !== "super_admin"
-    ) {
+    if (!canEditTarget(adminCheck.user.role, targetUser.role, targetUser.role)) {
       return Response.json(
-        { success: false, error: "cannot delete super admin" },
+        { success: false, error: "cannot delete this user" },
         { status: 403 }
       );
     }
@@ -475,4 +479,4 @@ export async function onRequestDelete(context) {
       { status: 500 }
     );
   }
-} 
+}
