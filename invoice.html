@@ -238,14 +238,14 @@
     }
 
     @page {
-      size: A4 portrait;
+      size: A5 portrait;
       margin: 0;
     }
 
     @media print {
       html, body {
-        width: 210mm !important;
-        height: 297mm !important;
+        width: 148mm !important;
+        height: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
@@ -256,8 +256,8 @@
 
       body {
         color: #000 !important;
-        font-size: 10px !important;
-        line-height: 1.25 !important;
+        font-size: 8px !important;
+        line-height: 1.15 !important;
       }
 
       #site-header,
@@ -279,17 +279,17 @@
       }
 
       .invoice-page {
-        width: 210mm !important;
-        height: 297mm !important;
-        max-width: 210mm !important;
+        width: 148mm !important;
+        height: 210mm !important;
+        max-width: 148mm !important;
         margin: 0 !important;
-        padding: 10mm !important;
+        padding: 6mm !important;
         overflow: hidden !important;
         box-sizing: border-box !important;
       }
 
       .invoice-page > * {
-        transform: scale(0.93);
+        transform: scale(0.82);
         transform-origin: top center;
       }
 
@@ -315,7 +315,7 @@
       .invoice-section h2,
       .invoice-address-card h3 {
         margin: 0 0 4px !important;
-        font-size: 11px !important;
+        font-size: 10px !important;
         line-height: 1.2 !important;
       }
 
@@ -323,8 +323,8 @@
       .invoice-section p,
       .invoice-address-card p {
         margin: 0 !important;
-        font-size: 9px !important;
-        line-height: 1.35 !important;
+        font-size: 8px !important;
+        line-height: 1.3 !important;
         color: #222 !important;
       }
 
@@ -343,7 +343,7 @@
 
       .invoice-meta-item span,
       .summary-card span {
-        font-size: 8px !important;
+        font-size: 7px !important;
         margin-bottom: 2px !important;
       }
 
@@ -351,13 +351,13 @@
       .summary-card strong,
       #summary-payment-status,
       .status-badge {
-        font-size: 9px !important;
+        font-size: 8px !important;
         line-height: 1.2 !important;
       }
 
       .status-badge {
-        min-height: 18px !important;
-        padding: 0 6px !important;
+        min-height: 16px !important;
+        padding: 0 5px !important;
       }
 
       .invoice-summary,
@@ -380,9 +380,9 @@
 
       .invoice-table th,
       .invoice-table td {
-        padding: 4px 3px !important;
-        font-size: 8px !important;
-        line-height: 1.15 !important;
+        padding: 3px 2px !important;
+        font-size: 7px !important;
+        line-height: 1.1 !important;
         white-space: normal !important;
         word-break: break-word !important;
       }
@@ -403,11 +403,6 @@
 
       .table-number {
         white-space: nowrap !important;
-      }
-
-      .invoice-summary__total {
-        background: #111827 !important;
-        color: #fff !important;
       }
     }
   </style>
@@ -493,6 +488,10 @@
                 <strong id="summary-discount">0 تومان</strong>
               </div>
               <div class="summary-card">
+                <span>هزینه ارسال</span>
+                <strong id="summary-shipping">0 تومان</strong>
+              </div>
+              <div class="summary-card">
                 <span>مبلغ پرداختی</span>
                 <strong id="summary-paid">0 تومان</strong>
               </div>
@@ -558,6 +557,7 @@
     const summarySection = document.getElementById("invoice-summary-section");
     const summaryTotal = document.getElementById("summary-total");
     const summaryDiscount = document.getElementById("summary-discount");
+    const summaryShipping = document.getElementById("summary-shipping");
     const summaryPaid = document.getElementById("summary-paid");
     const summaryPaymentStatus = document.getElementById("summary-payment-status");
 
@@ -711,10 +711,12 @@
 
         const totalAmount = Number(order.total_amount || 0);
         const discountAmount = Number(order.discount_amount || 0);
+        const shippingAmount = Number(order.shipping_amount || 0);
         const paidAmount = Number(order.paid_amount || totalAmount);
 
         summaryTotal.textContent = formatPrice(totalAmount);
         summaryDiscount.textContent = formatPrice(discountAmount);
+        summaryShipping.textContent = formatPrice(shippingAmount);
         summaryPaid.textContent = formatPrice(paidAmount);
         summaryPaymentStatus.textContent = String(order.payment_status || order.status || "-");
 

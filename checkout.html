@@ -597,7 +597,7 @@
           postal_code: toEnglishDigits(formData.postalCode).replace(/\D/g, ""),
           phone: toEnglishDigits(formData.phone).replace(/\D/g, ""),
           city: formData.city,
-          state: formData.province
+          state: formData.provinceLabel
         },
         order: {
           items: normalizedItems,
@@ -630,7 +630,7 @@
 
       let totalQty = 0;
       let subtotal = 0;
-      let hasNumericPrice = false;
+      let hasNumericPrice = true;
 
       invoiceItemsBody.innerHTML = items.map(({ product, qty }) => {
         const rawPrice = getRawPrice(product);
@@ -638,9 +638,10 @@
         const rowTotal = unitPrice !== null ? unitPrice * qty : null;
         totalQty += qty;
 
-        if (rowTotal !== null) {
+        if (unitPrice === null) {
+          hasNumericPrice = false;
+        } else {
           subtotal += rowTotal;
-          hasNumericPrice = true;
         }
 
         const imageSrc = product.images && product.images.length
@@ -673,7 +674,7 @@
     }
 
     function validateForm(data) {
-      if (!data.firstName || !data.lastName || !data.province || !data.city || !data.postalCode || !data.phone || !data.address) {
+      if (!data.firstName || !data.lastName || !data.province || !data.provinceLabel || !data.city || !data.postalCode || !data.phone || !data.address) {
         setCheckoutMessage("لطفاً تمام اطلاعات خریدار را کامل وارد کنید.", "error");
         return false;
       }
@@ -754,13 +755,15 @@
           return;
         }
 
+        const provinceValue = provinceSelect ? provinceSelect.value : "";
         const shippingFee = getSelectedShippingFee();
         const shippingLabel = getSelectedShippingLabel();
 
         const formData = {
           firstName: document.getElementById("first-name").value.trim(),
           lastName: document.getElementById("last-name").value.trim(),
-          province: shippingLabel,
+          province: provinceValue,
+          provinceLabel: shippingLabel,
           city: document.getElementById("city").value.trim(),
           postalCode: document.getElementById("postal-code").value.trim(),
           phone: document.getElementById("phone").value.trim(),
@@ -774,7 +777,7 @@
 
         let totalQty = 0;
         let subtotal = 0;
-        let hasNumericPrice = false;
+        let hasNumericPrice = true;
 
         const orderLines = items.map(({ product, qty }, index) => {
           totalQty += qty;
@@ -783,9 +786,10 @@
           const unitPrice = parsePrice(rawPrice);
           const rowTotal = unitPrice !== null ? unitPrice * qty : null;
 
-          if (rowTotal !== null) {
+          if (unitPrice === null) {
+            hasNumericPrice = false;
+          } else {
             subtotal += rowTotal;
-            hasNumericPrice = true;
           }
 
           return `${index + 1}. ${product.name}
@@ -829,13 +833,13 @@ ${orderLines}
 
 جمع تعداد: ${formatNumber(totalQty)}
 جمع جزء: ${hasNumericPrice ? `${formatNumber(subtotal)} تومان` : "تماس بگیرید"}
-استان / محدوده ارسال: ${shippingLabel}
+استان / محدوده ارسال: ${formData.provinceLabel}
 هزینه بسته‌بندی و ارسال: ${shippingFee ? `${formatNumber(shippingFee)} تومان` : "-"}
 جمع کل: ${grandTotal !== null ? `${formatNumber(grandTotal)} تومان` : "تماس بگیرید"}
 
 مشخصات خریدار:
 نام و نام خانوادگی: ${formData.firstName} ${formData.lastName}
-استان: ${formData.province}
+استان: ${formData.provinceLabel}
 شهر: ${formData.city}
 آدرس دقیق: ${formData.address}
 کد پستی: ${formData.postalCode}
