@@ -125,7 +125,7 @@
             throw new Error("logout-failed");
           }
 
-          window.location.href = `${getBasePath()}login.html`;
+          window.location.replace(`${getBasePath()}index.html`);
         } catch (error) {
           button.disabled = false;
           button.textContent = originalText;

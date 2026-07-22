@@ -144,7 +144,7 @@
         setMessage(messageBox, "Account created successfully.", "success");
 
         const redirectTarget = getRedirectParam();
-        const fallbackRedirect = options.redirectAfterSuccess || "/account.html";
+        const fallbackRedirect = options.redirectAfterSuccess || "/products.html";
 
         setTimeout(() => {
           redirectTo(redirectTarget || fallbackRedirect, true);
@@ -184,7 +184,7 @@
         setMessage(messageBox, "Login successful.", "success");
 
         const redirectTarget = getRedirectParam();
-        redirectTo(redirectTarget || options.redirectAfterSuccess || "/account.html", true);
+        redirectTo(redirectTarget || options.redirectAfterSuccess || "/products.html", true);
       } catch (error) {
         setMessage(messageBox, String(error?.message || error || "Login failed."));
       } finally {
@@ -204,7 +204,7 @@
         await logout();
       } catch {}
 
-      redirectTo(options.redirectAfterSuccess || "/login.html", true);
+      redirectTo(options.redirectAfterSuccess || "/index.html", true);
     });
   }
 
@@ -224,7 +224,7 @@
     const result = await getCurrentUser();
 
     if (result.ok && result.data?.success && result.data?.user) {
-      redirectTo(options.redirectTo || "/account.html", true);
+      redirectTo(options.redirectTo || "/products.html", true);
       return result.data.user;
     }
 
