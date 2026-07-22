@@ -64,11 +64,84 @@
     });
   }
 
+  async function updateHeaderAuthState() {
+    const guestLinks = document.querySelectorAll("[data-auth-guest]");
+    const userLinks = document.querySelectorAll("[data-auth-user]");
+
+    try {
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json"
+        }
+      });
+
+      const data = await response.json().catch(() => null);
+      const isLoggedIn = Boolean(response.ok && data?.success && data?.user);
+
+      guestLinks.forEach((node) => {
+        node.hidden = isLoggedIn;
+      });
+
+      userLinks.forEach((node) => {
+        node.hidden = !isLoggedIn;
+      });
+    } catch (error) {
+      guestLinks.forEach((node) => {
+        node.hidden = false;
+      });
+
+      userLinks.forEach((node) => {
+        node.hidden = true;
+      });
+    }
+  }
+
+  function setupLogoutAction() {
+    const logoutButtons = document.querySelectorAll("[data-logout-trigger]");
+
+    logoutButtons.forEach((button) => {
+      if (button.dataset.bound === "true") return;
+      button.dataset.bound = "true";
+
+      button.addEventListener("click", async function () {
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = "در حال خروج...";
+
+        try {
+          const response = await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              Accept: "application/json"
+            }
+          });
+
+          const data = await response.json().catch(() => null);
+
+          if (!response.ok || !data?.success) {
+            throw new Error("logout-failed");
+          }
+
+          window.location.href = `${getBasePath()}login.html`;
+        } catch (error) {
+          button.disabled = false;
+          button.textContent = originalText;
+          alert("خروج از حساب انجام نشد. دوباره تلاش کنید.");
+        }
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", async function () {
     const base = getBasePath();
 
     await loadPartial("site-header", `${base}components/header.html`);
     setupMobileMenu();
+    setupLogoutAction();
+    await updateHeaderAuthState();
 
     await loadPartial("site-footer", `${base}components/footer.html`);
     await loadPartial("site-cart", `${base}components/cart-drawer.html`);
@@ -76,4 +149,3 @@
     document.dispatchEvent(new CustomEvent("layout:loaded"));
   });
 })();
-

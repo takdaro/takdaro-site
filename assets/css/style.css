@@ -1641,3 +1641,18 @@ select:focus-visible {
     display: none;
   }
 }
+
+.nav-logout-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  line-height: inherit;
+}
+
+.nav-logout-btn:hover {
+  opacity: 0.8;
+}

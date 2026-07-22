@@ -31,7 +31,18 @@
       <a href="{{BASE}}about.html">درباره ما</a>
       <a href="{{BASE}}contact.html">تماس با ما</a>
       <a href="{{BASE}}account.html">حساب کاربری</a>
-      <a href="{{BASE}}login.html">ورود/ثبت نام</a>
+
+      <a href="{{BASE}}login.html" data-auth-guest>ورود/ثبت نام</a>
+
+      <button
+        type="button"
+        class="nav-logout-btn"
+        data-auth-user
+        data-logout-trigger
+        hidden
+      >
+        خروج از سایت
+      </button>
     </nav>
   </div>
 </header>
