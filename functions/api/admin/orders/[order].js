@@ -69,6 +69,7 @@ async function getOrderByNumber(db, orderNumber) {
       u.email,
       u.phone,
       a.full_name AS address_full_name,
+      a.phone AS address_phone,
       a.address_line,
       a.postal_code,
       a.city,
@@ -96,6 +97,35 @@ async function getOrderItems(db, orderId) {
   `).bind(orderId).all();
 
   return Array.isArray(result?.results) ? result.results : [];
+}
+
+function buildShippingAddress(order) {
+  return {
+    full_name: order?.address_full_name || order?.full_name || "",
+    address_line: order?.address_line || "",
+    postal_code: order?.postal_code || "",
+    city: order?.city || "",
+    state: order?.state || "",
+    phone: order?.address_phone || order?.phone || ""
+  };
+}
+
+function buildOrderPayload(order, items = []) {
+  return {
+    ...order,
+    subtotal_amount: normalizeNumber(order?.subtotal_amount),
+    shipping_amount: normalizeNumber(order?.shipping_amount),
+    total_amount: normalizeNumber(order?.total_amount),
+    wallet_used_amount: normalizeNumber(order?.wallet_used_amount),
+    cashback_amount: normalizeNumber(order?.cashback_amount),
+    shipping_address: buildShippingAddress(order),
+    items: Array.isArray(items) ? items.map((item) => ({
+      ...item,
+      quantity: normalizeNumber(item?.quantity),
+      unit_price: normalizeNumber(item?.unit_price),
+      total_price: normalizeNumber(item?.total_price)
+    })) : []
+  };
 }
 
 async function hasCompletedCashbackTx(db, userId, orderId) {
@@ -388,23 +418,7 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
       success: true,
       message: "order_updated",
       cashback_result: cashbackResult,
-      order: {
-        ...finalOrder,
-        subtotal_amount: normalizeNumber(finalOrder.subtotal_amount),
-        shipping_amount: normalizeNumber(finalOrder.shipping_amount),
-        total_amount: normalizeNumber(finalOrder.total_amount),
-        wallet_used_amount: normalizeNumber(finalOrder.wallet_used_amount),
-        cashback_amount: normalizeNumber(finalOrder.cashback_amount),
-        address: {
-          full_name: finalOrder.address_full_name || finalOrder.full_name || "",
-          address_line: finalOrder.address_line || "",
-          postal_code: finalOrder.postal_code || "",
-          city: finalOrder.city || "",
-          state: finalOrder.state || "",
-          phone: finalOrder.phone || ""
-        },
-        items
-      }
+      order: buildOrderPayload(finalOrder, items)
     }
   };
 }
@@ -433,23 +447,7 @@ export async function onRequestGet(context) {
 
     return json({
       success: true,
-      order: {
-        ...order,
-        subtotal_amount: normalizeNumber(order.subtotal_amount),
-        shipping_amount: normalizeNumber(order.shipping_amount),
-        total_amount: normalizeNumber(order.total_amount),
-        wallet_used_amount: normalizeNumber(order.wallet_used_amount),
-        cashback_amount: normalizeNumber(order.cashback_amount),
-        address: {
-          full_name: order.address_full_name || order.full_name || "",
-          address_line: order.address_line || "",
-          postal_code: order.postal_code || "",
-          city: order.city || "",
-          state: order.state || "",
-          phone: order.phone || ""
-        },
-        items
-      }
+      order: buildOrderPayload(order, items)
     });
   } catch (error) {
     return json({ success: false, error: String(error?.message || error) }, 500);
