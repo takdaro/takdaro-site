@@ -375,6 +375,82 @@ async function hasWalletUseTransaction(db, userId, orderId) {
   return !!row;
 }
 
+async function insertOrderRecord(db, payload) {
+  try {
+    return await db.prepare(`
+      INSERT INTO orders (
+        user_id,
+        order_number,
+        address_id,
+        status,
+        payment_status,
+        subtotal_amount,
+        shipping_amount,
+        total_amount,
+        wallet_used_amount,
+        payable_amount,
+        cashback_amount,
+        cashback_status,
+        notes,
+        created_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).bind(
+      payload.user_id,
+      payload.order_number,
+      payload.address_id,
+      payload.subtotal_amount,
+      payload.shipping_amount,
+      payload.total_amount,
+      payload.wallet_used_amount,
+      payload.payable_amount,
+      payload.cashback_amount,
+      payload.cashback_status,
+      payload.notes
+    ).run();
+  } catch (error) {
+    const message = String(error?.message || error || "");
+    const ignorable =
+      message.includes("has no column named payable_amount") ||
+      message.includes("table orders has no column named payable_amount") ||
+      message.includes("no such column: payable_amount");
+
+    if (!ignorable) throw error;
+
+    return await db.prepare(`
+      INSERT INTO orders (
+        user_id,
+        order_number,
+        address_id,
+        status,
+        payment_status,
+        subtotal_amount,
+        shipping_amount,
+        total_amount,
+        wallet_used_amount,
+        cashback_amount,
+        cashback_status,
+        notes,
+        created_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).bind(
+      payload.user_id,
+      payload.order_number,
+      payload.address_id,
+      payload.subtotal_amount,
+      payload.shipping_amount,
+      payload.total_amount,
+      payload.wallet_used_amount,
+      payload.cashback_amount,
+      payload.cashback_status,
+      payload.notes
+    ).run();
+  }
+}
+
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
@@ -445,36 +521,19 @@ export async function onRequestPost(context) {
     const savedAddress = await createOrUpdateAddress(context, user, address);
     const orderNumber = await generateUniqueOrderNumber(context.env.DB);
 
-    const orderInsert = await context.env.DB.prepare(`
-      INSERT INTO orders (
-        user_id,
-        order_number,
-        address_id,
-        status,
-        payment_status,
-        subtotal_amount,
-        shipping_amount,
-        total_amount,
-        wallet_used_amount,
-        cashback_amount,
-        cashback_status,
-        notes,
-        created_at,
-        updated_at
-      )
-      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).bind(
-      user.id,
-      orderNumber,
-      savedAddress.id,
-      subtotalAmount,
-      shippingAmount,
-      totalAmount,
-      walletUsedAmount,
-      cashbackAmount,
-      cashbackAmount > 0 ? "pending" : "none",
-      normalizeText(order.notes || body.notes)
-    ).run();
+    const orderInsert = await insertOrderRecord(context.env.DB, {
+      user_id: user.id,
+      order_number: orderNumber,
+      address_id: savedAddress.id,
+      subtotal_amount: subtotalAmount,
+      shipping_amount: shippingAmount,
+      total_amount: totalAmount,
+      wallet_used_amount: walletUsedAmount,
+      payable_amount: payableAmount,
+      cashback_amount: cashbackAmount,
+      cashback_status: cashbackAmount > 0 ? "pending" : "none",
+      notes: normalizeText(order.notes || body.notes)
+    });
 
     const orderId = orderInsert.meta?.last_row_id ?? null;
 
@@ -559,8 +618,8 @@ export async function onRequestPost(context) {
       order: {
         id: orderId,
         order_number: orderNumber,
-        status: "pending",
-        payment_status: "pending",
+        status: 'pending',
+        payment_status: 'pending',
         address_id: savedAddress.id,
         address: {
           full_name: savedAddress.full_name,
@@ -578,7 +637,7 @@ export async function onRequestPost(context) {
         cashback_percent: cashbackPercent,
         cashback_base: cashbackBase,
         cashback_amount: cashbackAmount,
-        cashback_status: cashbackAmount > 0 ? "pending" : "none",
+        cashback_status: cashbackAmount > 0 ? 'pending' : 'none',
         items_count: normalizedItems.length
       }
     });
