@@ -33,86 +33,86 @@ async function getCurrentUser(request, env) {
   `).bind(sessionId).first();
 }
 
-function normalizeSettingsRows(rows) {
-  const list = Array.isArray(rows?.results) ? rows.results : [];
-  const settingsMap = {};
+function normalizeStatuses(rawValue) {
+  if (!rawValue) return ["completed"];
 
-  for (const row of list) {
-    settingsMap[String(row?.key || "").trim()] = row?.value;
-  }
-
-  let cashbackPercent = Number(settingsMap.cashback_percent || 0);
-  if (!Number.isFinite(cashbackPercent) || cashbackPercent < 0) {
-    cashbackPercent = 0;
-  }
-
-  let cashbackStatuses = ["completed"];
-  const rawStatuses = settingsMap.cashback_statuses;
-
-  if (rawStatuses) {
-    try {
-      const parsed = JSON.parse(rawStatuses);
-      if (Array.isArray(parsed)) {
-        cashbackStatuses = parsed
-          .map((item) => String(item || "").trim().toLowerCase())
-          .filter(Boolean);
-      } else {
-        cashbackStatuses = String(rawStatuses)
-          .split(",")
-          .map((item) => item.trim().toLowerCase())
-          .filter(Boolean);
-      }
-    } catch (_) {
-      cashbackStatuses = String(rawStatuses)
-        .split(",")
-        .map((item) => item.trim().toLowerCase())
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (Array.isArray(parsed)) {
+      const list = parsed
+        .map((item) => String(item || "").trim().toLowerCase())
         .filter(Boolean);
+      return list.length ? list : ["completed"];
     }
-  }
+  } catch (_) {}
 
-  if (!cashbackStatuses.length) {
-    cashbackStatuses = ["completed"];
-  }
+  const list = String(rawValue)
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
 
-  return {
-    cashback_percent: cashbackPercent,
-    cashback_statuses: cashbackStatuses
-  };
-}
-
-async function readSettingsFromTable(env, tableName) {
-  const rows = await env.DB.prepare(`
-    SELECT key, value
-    FROM ${tableName}
-    WHERE key IN ('cashback_percent', 'cashback_statuses')
-  `).all();
-
-  return normalizeSettingsRows(rows);
+  return list.length ? list : ["completed"];
 }
 
 async function getWalletSettings(env) {
-  try {
-    return await readSettingsFromTable(env, "site_settings");
-  } catch (error) {
-    const message = String(error?.message || error || "");
-    if (!message.includes("no such table")) {
-      throw error;
-    }
-  }
-
-  try {
-    return await readSettingsFromTable(env, "app_settings");
-  } catch (error) {
-    const message = String(error?.message || error || "");
-    if (!message.includes("no such table")) {
-      throw error;
-    }
-  }
-
-  return {
+  const defaults = {
     cashback_percent: 0,
     cashback_statuses: ["completed"]
   };
+
+  const attempts = [
+    {
+      table: "site_settings",
+      keyColumn: "key",
+      valueColumn: "value"
+    },
+    {
+      table: "app_settings",
+      keyColumn: "key",
+      valueColumn: "value"
+    }
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const rows = await env.DB.prepare(`
+        SELECT ${attempt.keyColumn} AS setting_key, ${attempt.valueColumn} AS setting_value
+        FROM ${attempt.table}
+        WHERE ${attempt.keyColumn} IN ('cashback_percent', 'cashback_statuses')
+      `).all();
+
+      const results = Array.isArray(rows?.results) ? rows.results : [];
+      if (!results.length) {
+        return defaults;
+      }
+
+      const map = {};
+      for (const row of results) {
+        map[String(row?.setting_key || "").trim()] = row?.setting_value;
+      }
+
+      let cashbackPercent = Number(map.cashback_percent || 0);
+      if (!Number.isFinite(cashbackPercent) || cashbackPercent < 0) {
+        cashbackPercent = 0;
+      }
+
+      return {
+        cashback_percent: cashbackPercent,
+        cashback_statuses: normalizeStatuses(map.cashback_statuses)
+      };
+    } catch (error) {
+      const message = String(error?.message || error || "");
+      const ignorable =
+        message.includes("no such table") ||
+        message.includes("no such column");
+
+      if (!ignorable) {
+        throw error;
+      }
+    }
+  }
+
+  return defaults;
 }
 
 export async function onRequestGet(context) {
@@ -132,15 +132,11 @@ export async function onRequestGet(context) {
           balance_before,
           balance_after,
           status,
-          source,
-          description,
-          note,
-          order_id,
-          order_number,
           reference_type,
           reference_id,
-          created_at,
-          updated_at
+          note,
+          created_by_user_id,
+          created_at
         FROM wallet_transactions
         WHERE user_id = ?
         ORDER BY id DESC
@@ -157,15 +153,11 @@ export async function onRequestGet(context) {
           balance_before: Number(tx.balance_before || 0),
           balance_after: Number(tx.balance_after || 0),
           status: tx.status || "",
-          source: tx.source || "",
-          description: tx.description || "",
-          note: tx.note || "",
-          order_id: tx.order_id ? Number(tx.order_id) : null,
-          order_number: tx.order_number || "",
           reference_type: tx.reference_type || "",
           reference_id: tx.reference_id || "",
-          created_at: tx.created_at || null,
-          updated_at: tx.updated_at || null
+          note: tx.note || "",
+          created_by_user_id: tx.created_by_user_id ? Number(tx.created_by_user_id) : null,
+          created_at: tx.created_at || null
         }))
       : [];
 
@@ -176,7 +168,7 @@ export async function onRequestGet(context) {
         full_name: user.full_name || "",
         email: user.email || "",
         phone: user.phone || "",
-        role: user.role || "user",
+        role: user.role || "customer",
         wallet_balance: Number(user.wallet_balance || 0)
       },
       wallet_balance: Number(user.wallet_balance || 0),
