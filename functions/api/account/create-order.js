@@ -5,32 +5,33 @@ function getCookie(cookieString, key) {
   return target ? target.slice(key.length + 1) : null;
 }
 
+function json(data, status = 200) {
+  return Response.json(data, { status });
+}
+
 async function getCurrentUser(context) {
-  const cookieString = context.request.headers.get("Cookie") || "";
+  const cookieString = context.request.headers.get("cookie") || "";
   const sessionId = getCookie(cookieString, "session_id");
 
   if (!sessionId) return null;
 
-  return await context.env.DB
-    .prepare(`
-      SELECT
-        id,
-        full_name,
-        email,
-        phone,
-        role,
-        COALESCE(wallet_balance, 0) AS wallet_balance
-      FROM users
-      WHERE id = (
-        SELECT user_id
-        FROM sessions
-        WHERE id = ?
-        LIMIT 1
-      )
+  return await context.env.DB.prepare(`
+    SELECT
+      id,
+      full_name,
+      email,
+      phone,
+      role,
+      COALESCE(wallet_balance, 0) AS wallet_balance
+    FROM users
+    WHERE id = (
+      SELECT user_id
+      FROM sessions
+      WHERE id = ?
       LIMIT 1
-    `)
-    .bind(sessionId)
-    .first();
+    )
+    LIMIT 1
+  `).bind(sessionId).first();
 }
 
 function normalizeDigits(value) {
@@ -71,9 +72,7 @@ function generateOrderNumber() {
 }
 
 function validatePayload(body) {
-  if (!body || typeof body !== "object") {
-    return "payload-invalid";
-  }
+  if (!body || typeof body !== "object") return "payload-invalid";
 
   const address = body.address || {};
   const order = body.order || {};
@@ -154,15 +153,33 @@ function extractItemTotalPrice(item) {
   return quantity * unitPrice;
 }
 
-async function getSetting(db, key, fallback = null) {
+function extractProductId(item) {
+  const raw = item?.product_id ?? item?.product?.id ?? null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+async function getCashbackSettings(db) {
   try {
-    const row = await db
-      .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1`)
-      .bind(key)
-      .first();
-    return row ? row.setting_value : fallback;
+    const row = await db.prepare(`
+      SELECT cashback_percent, cashback_statuses
+      FROM wallet_settings
+      WHERE id = 1
+      LIMIT 1
+    `).first();
+
+    return {
+      cashbackPercent: Math.max(0, Math.min(100, Number(row?.cashback_percent || 0))),
+      cashbackStatuses: String(row?.cashback_statuses || "completed")
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean)
+    };
   } catch (_) {
-    return fallback;
+    return {
+      cashbackPercent: 0,
+      cashbackStatuses: ["completed"]
+    };
   }
 }
 
@@ -171,30 +188,24 @@ export async function onRequestPost(context) {
     const user = await getCurrentUser(context);
 
     if (!user) {
-      return Response.json(
-        { success: false, error: "unauthorized" },
-        { status: 401 }
-      );
+      return json({ success: false, error: "unauthorized" }, 401);
     }
 
-    const body = await context.request.json();
+    const body = await context.request.json().catch(() => null);
     const validationError = validatePayload(body);
 
     if (validationError) {
-      return Response.json(
-        { success: false, error: validationError },
-        { status: 400 }
-      );
+      return json({ success: false, error: validationError }, 400);
     }
 
     const address = body.address || {};
     const order = body.order || {};
     const items = Array.isArray(order.items) ? order.items : [];
 
-    const fullName = normalizeText(address.full_name);
+    const fullName = normalizeText(address.full_name) || normalizeText(user.full_name);
     const addressLine = normalizeText(address.address_line);
     const postalCode = normalizeDigits(address.postal_code).replace(/[^\d]/g, "");
-    const phone = normalizeDigits(address.phone).replace(/[^\d]/g, "");
+    const phone = normalizeDigits(address.phone || user.phone).replace(/[^\d]/g, "");
     const city = normalizeText(address.city);
     const state = normalizeText(address.state);
 
@@ -211,252 +222,224 @@ export async function onRequestPost(context) {
     const balanceBefore = normalizeNumber(user.wallet_balance);
     const maxWalletUsable = Math.min(balanceBefore, totalAmount);
     const walletUsedAmount = Math.min(requestedWalletUse, maxWalletUsable);
-    const walletApplied = walletUsedAmount > 0 ? 1 : 0;
+    const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
 
-    const finalPayableAmount = Math.max(0, totalAmount - walletUsedAmount);
-
-    const cashbackPercent = Math.max(
-      0,
-      Math.min(
-        100,
-        Number(await getSetting(context.env.DB, "cashback_percent", "0")) || 0
-      )
-    );
-
-    const cashbackAmount = finalPayableAmount > 0
-      ? Math.round((finalPayableAmount * cashbackPercent) / 100)
+    const { cashbackPercent } = await getCashbackSettings(context.env.DB);
+    const cashbackAmount = payableAmount > 0
+      ? Math.round((payableAmount * cashbackPercent) / 100)
       : 0;
 
     let orderNumber = generateOrderNumber();
     let existingOrder = await context.env.DB
-      .prepare("SELECT id FROM orders WHERE order_number = ?")
+      .prepare(`SELECT id FROM orders WHERE order_number = ? LIMIT 1`)
       .bind(orderNumber)
       .first();
 
     while (existingOrder) {
       orderNumber = generateOrderNumber();
       existingOrder = await context.env.DB
-        .prepare("SELECT id FROM orders WHERE order_number = ?")
+        .prepare(`SELECT id FROM orders WHERE order_number = ? LIMIT 1`)
         .bind(orderNumber)
         .first();
     }
 
-    const existingShippingAddress = await context.env.DB
-      .prepare(`
-        SELECT id
-        FROM addresses
-        WHERE user_id = ? AND type = 'shipping'
-        ORDER BY is_default DESC, created_at DESC
-        LIMIT 1
-      `)
-      .bind(user.id)
-      .first();
+    const existingAddress = await context.env.DB.prepare(`
+      SELECT id
+      FROM user_addresses
+      WHERE user_id = ?
+      ORDER BY is_default DESC, id DESC
+      LIMIT 1
+    `).bind(user.id).first();
 
     let addressId = null;
 
-    if (existingShippingAddress?.id) {
-      await context.env.DB
-        .prepare(`
-          UPDATE addresses
-          SET
-            full_name = ?,
-            address_line = ?,
-            postal_code = ?,
-            phone = ?,
-            city = ?,
-            state = ?,
-            is_default = 1,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = ? AND user_id = ?
-        `)
-        .bind(
-          fullName,
-          addressLine,
-          postalCode,
+    if (existingAddress?.id) {
+      await context.env.DB.prepare(`
+        UPDATE user_addresses
+        SET
+          type = 'shipping',
+          full_name = ?,
+          address_line = ?,
+          postal_code = ?,
+          phone = ?,
+          city = ?,
+          state = ?,
+          is_default = 1,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?
+      `).bind(
+        fullName,
+        addressLine,
+        postalCode,
+        phone,
+        city,
+        state,
+        existingAddress.id,
+        user.id
+      ).run();
+
+      addressId = existingAddress.id;
+    } else {
+      const addressInsert = await context.env.DB.prepare(`
+        INSERT INTO user_addresses (
+          user_id,
+          type,
+          full_name,
+          address_line,
+          postal_code,
           phone,
           city,
           state,
-          existingShippingAddress.id,
-          user.id
+          is_default,
+          created_at,
+          updated_at
         )
-        .run();
-
-      addressId = existingShippingAddress.id;
-    } else {
-      const addressInsert = await context.env.DB
-        .prepare(`
-          INSERT INTO addresses (
-            user_id,
-            type,
-            full_name,
-            address_line,
-            postal_code,
-            phone,
-            city,
-            state,
-            is_default,
-            created_at,
-            updated_at
-          )
-          VALUES (?, 'shipping', ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `)
-        .bind(
-          user.id,
-          fullName,
-          addressLine,
-          postalCode,
-          phone,
-          city,
-          state
-        )
-        .run();
+        VALUES (?, 'shipping', ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `).bind(
+        user.id,
+        fullName,
+        addressLine,
+        postalCode,
+        phone,
+        city,
+        state
+      ).run();
 
       addressId = addressInsert.meta?.last_row_id ?? null;
     }
 
-    const orderInsert = await context.env.DB
-      .prepare(`
-        INSERT INTO orders (
-          user_id,
-          order_number,
-          status,
-          total_amount,
-          shipping_amount,
-          discount_amount,
-          payment_status,
-          shipping_address_id,
-          billing_address_id,
-          wallet_used_amount,
-          wallet_applied,
-          cashback_amount,
-          cashback_percent,
-          cashback_status,
-          created_at
-        )
-        VALUES (?, ?, 'pending', ?, ?, 0, 'pending', ?, ?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
-      `)
-      .bind(
-        user.id,
-        orderNumber,
-        totalAmount,
-        shippingAmount,
-        addressId,
-        addressId,
-        walletUsedAmount,
-        walletApplied,
-        cashbackAmount,
-        cashbackPercent
+    const orderInsert = await context.env.DB.prepare(`
+      INSERT INTO orders (
+        user_id,
+        order_number,
+        address_id,
+        status,
+        payment_status,
+        subtotal_amount,
+        shipping_amount,
+        total_amount,
+        wallet_used_amount,
+        cashback_amount,
+        cashback_status,
+        notes,
+        created_at,
+        updated_at
       )
-      .run();
+      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, 'pending', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).bind(
+      user.id,
+      orderNumber,
+      addressId,
+      subtotalAmount,
+      shippingAmount,
+      totalAmount,
+      walletUsedAmount,
+      cashbackAmount,
+      normalizeText(order.notes || body.notes)
+    ).run();
 
     const orderId = orderInsert.meta?.last_row_id ?? null;
 
     if (!orderId) {
-      return Response.json(
-        { success: false, error: "order-create-failed" },
-        { status: 500 }
-      );
+      return json({ success: false, error: "order-create-failed" }, 500);
     }
 
     for (const item of items) {
+      const productId = extractProductId(item);
       const productName = extractItemName(item);
       const quantity = extractItemQuantity(item);
       const unitPrice = extractItemUnitPrice(item);
       const totalPrice = extractItemTotalPrice(item);
 
-      await context.env.DB
-        .prepare(`
-          INSERT INTO order_items (
-            order_id,
-            product_name,
-            quantity,
-            unit_price,
-            total_price,
-            created_at
-          )
-          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `)
-        .bind(
-          orderId,
-          productName,
+      await context.env.DB.prepare(`
+        INSERT INTO order_items (
+          order_id,
+          product_id,
+          product_name,
           quantity,
-          unitPrice,
-          totalPrice
+          unit_price,
+          total_price,
+          created_at,
+          updated_at
         )
-        .run();
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `).bind(
+        orderId,
+        productId,
+        productName,
+        quantity,
+        unitPrice,
+        totalPrice
+      ).run();
     }
 
     if (walletUsedAmount > 0) {
-      const balanceAfter = balanceBefore - walletUsedAmount;
+      const balanceAfter = Math.max(0, balanceBefore - walletUsedAmount);
 
       await context.env.DB.batch([
-        context.env.DB
-          .prepare(`
-            UPDATE users
-            SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-          `)
-          .bind(balanceAfter, user.id),
+        context.env.DB.prepare(`
+          UPDATE users
+          SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(balanceAfter, user.id),
 
-        context.env.DB
-          .prepare(`
-            INSERT INTO wallet_transactions (
-              user_id,
-              type,
-              amount,
-              balance_before,
-              balance_after,
-              status,
-              source,
-              description,
-              note,
-              order_id,
-              order_number,
-              reference_type,
-              reference_id,
-              created_at
-            )
-            VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, CURRENT_TIMESTAMP)
-          `)
-          .bind(
-            user.id,
-            -walletUsedAmount,
-            balanceBefore,
-            balanceAfter,
-            `برداشت از کیف پول برای سفارش ${orderNumber}`,
-            `استفاده از کیف پول در مرحله ثبت سفارش`,
-            orderId,
-            orderNumber,
-            String(orderId)
+        context.env.DB.prepare(`
+          INSERT INTO wallet_transactions (
+            user_id,
+            type,
+            amount,
+            balance_before,
+            balance_after,
+            status,
+            source,
+            description,
+            note,
+            order_id,
+            order_number,
+            reference_type,
+            reference_id,
+            created_by_user_id,
+            created_at,
+            updated_at
           )
+          VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `).bind(
+          user.id,
+          walletUsedAmount,
+          balanceBefore,
+          balanceAfter,
+          `برداشت کیف پول برای سفارش ${orderNumber}`,
+          `استفاده از کیف پول در ثبت سفارش`,
+          orderId,
+          orderNumber,
+          String(orderId),
+          user.id
+        )
       ]);
     }
 
-    return Response.json({
+    return json({
       success: true,
       order: {
         id: orderId,
         order_number: orderNumber,
         status: "pending",
         payment_status: "pending",
+        address_id: addressId,
         subtotal_amount: subtotalAmount,
-        total_amount: totalAmount,
         shipping_amount: shippingAmount,
+        total_amount: totalAmount,
         wallet_used_amount: walletUsedAmount,
-        wallet_applied: walletApplied,
-        payable_amount: finalPayableAmount,
+        payable_amount: payableAmount,
         cashback_amount: cashbackAmount,
-        cashback_percent: cashbackPercent,
         cashback_status: "pending",
-        shipping_address_id: addressId,
-        billing_address_id: addressId,
         items_count: items.length
       }
     });
   } catch (error) {
-    return Response.json(
+    return json(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }

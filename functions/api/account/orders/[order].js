@@ -49,16 +49,15 @@ export async function onRequestGet(context) {
           o.order_number,
           o.status,
           o.payment_status,
-          o.subtotal_amount,
-          o.shipping_amount,
-          o.total_amount,
+          COALESCE(o.subtotal_amount, 0) AS subtotal_amount,
+          COALESCE(o.shipping_amount, 0) AS shipping_amount,
+          COALESCE(o.total_amount, 0) AS total_amount,
           COALESCE(o.wallet_used_amount, 0) AS wallet_used_amount,
           COALESCE(o.cashback_amount, 0) AS cashback_amount,
           COALESCE(o.cashback_status, 'none') AS cashback_status,
-          o.notes,
+          COALESCE(o.notes, '') AS notes,
           o.created_at,
           o.updated_at,
-
           o.address_id,
 
           a.full_name AS shipping_full_name,
@@ -89,7 +88,8 @@ export async function onRequestGet(context) {
           quantity,
           unit_price,
           total_price,
-          created_at
+          created_at,
+          updated_at
         FROM order_items
         WHERE order_id = ?
         ORDER BY id ASC
@@ -100,12 +100,13 @@ export async function onRequestGet(context) {
     const items = Array.isArray(itemsResult?.results)
       ? itemsResult.results.map((item) => ({
           id: Number(item.id || 0),
-          product_id: item.product_id ?? null,
+          product_id: item.product_id == null ? null : Number(item.product_id || 0),
           product_name: item.product_name || "",
           quantity: Number(item.quantity || 0),
           unit_price: Number(item.unit_price || 0),
           total_price: Number(item.total_price || 0),
-          created_at: item.created_at || null
+          created_at: item.created_at || null,
+          updated_at: item.updated_at || null
         }))
       : [];
 
@@ -125,6 +126,7 @@ export async function onRequestGet(context) {
         notes: order.notes || "",
         created_at: order.created_at || null,
         updated_at: order.updated_at || null,
+        items_count: items.length,
         items,
         shipping_address: order.address_id
           ? {
