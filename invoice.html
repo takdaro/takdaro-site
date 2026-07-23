@@ -480,19 +480,27 @@
 
             <div class="invoice-summary">
               <div class="summary-card">
-                <span>جمع کل سفارش</span>
-                <strong id="summary-total">0 تومان</strong>
+                <span>جمع جزء</span>
+                <strong id="summary-subtotal">0 تومان</strong>
               </div>
               <div class="summary-card">
-                <span>تخفیف</span>
-                <strong id="summary-discount">0 تومان</strong>
+                <span>کسر از کیف پول</span>
+                <strong id="summary-wallet-used">0 تومان</strong>
               </div>
               <div class="summary-card">
                 <span>هزینه ارسال</span>
                 <strong id="summary-shipping">0 تومان</strong>
               </div>
               <div class="summary-card">
-                <span>مبلغ پرداختی</span>
+                <span>بازگشت به کیف پول</span>
+                <strong id="summary-cashback">0 تومان</strong>
+              </div>
+              <div class="summary-card">
+                <span>جمع کل قبل از کیف پول</span>
+                <strong id="summary-total">0 تومان</strong>
+              </div>
+              <div class="summary-card">
+                <span>مبلغ قابل پرداخت</span>
                 <strong id="summary-paid">0 تومان</strong>
               </div>
               <div class="summary-card">
@@ -514,8 +522,8 @@
           </div>
 
           <div class="invoice-section" id="invoice-addresses-section" style="display: none;">
-            <h2>آدرس‌ها</h2>
-            <p>آدرس ارسال و آدرس صورتحساب مرتبط با این سفارش.</p>
+            <h2>آدرس سفارش</h2>
+            <p>آدرس ثبت‌شده برای این سفارش.</p>
 
             <div class="invoice-addresses">
               <div class="invoice-address-card" id="shipping-address-card">
@@ -557,9 +565,11 @@
     const itemsBody = document.getElementById("invoice-items-body");
 
     const summarySection = document.getElementById("invoice-summary-section");
-    const summaryTotal = document.getElementById("summary-total");
-    const summaryDiscount = document.getElementById("summary-discount");
+    const summarySubtotal = document.getElementById("summary-subtotal");
+    const summaryWalletUsed = document.getElementById("summary-wallet-used");
     const summaryShipping = document.getElementById("summary-shipping");
+    const summaryCashback = document.getElementById("summary-cashback");
+    const summaryTotal = document.getElementById("summary-total");
     const summaryPaid = document.getElementById("summary-paid");
     const summaryPaymentStatus = document.getElementById("summary-payment-status");
 
@@ -750,36 +760,16 @@
         if (items.length) {
           itemsBody.innerHTML = items.map((item, index) => {
             const unitPrice = Number(item.unit_price ?? item.price ?? 0);
-
-            const savedRowTotal = Number(
-              item.row_total ??
+            const qty = Math.max(
+              1,
+              Number(item.quantity ?? item.qty ?? item.count ?? item.amount ?? 1)
+            );
+            const finalRowTotal = Number(
               item.total_price ??
+              item.row_total ??
               item.line_total ??
-              0
+              (unitPrice * qty)
             );
-
-            let qtyFromFields = Number(
-              item.qty ??
-              item.quantity ??
-              item.count ??
-              item.amount ??
-              0
-            );
-
-            let qty = qtyFromFields;
-
-            if (savedRowTotal > 0 && unitPrice > 0) {
-              const derivedQty = savedRowTotal / unitPrice;
-              if (Number.isFinite(derivedQty) && derivedQty >= 1) {
-                qty = Math.round(derivedQty);
-              }
-            }
-
-            if (!qty || qty < 1) {
-              qty = 1;
-            }
-
-            const finalRowTotal = savedRowTotal > 0 ? savedRowTotal : (unitPrice * qty);
 
             return `
               <tr>
@@ -798,23 +788,27 @@
 
         summarySection.style.display = "block";
 
-        const totalAmount = Number(order.total_amount || 0);
-        const discountAmount = Number(order.discount_amount || 0);
+        const subtotalAmount = Number(order.subtotal_amount || 0);
         const shippingAmount = Number(order.shipping_amount || 0);
-        const paidAmount = Number(order.paid_amount || totalAmount);
+        const walletUsedAmount = Number(order.wallet_used_amount || 0);
+        const cashbackAmount = Number(order.cashback_amount || 0);
+        const totalAmount = Number(order.total_amount || 0);
+        const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
 
-        summaryTotal.textContent = formatPrice(totalAmount);
-        summaryDiscount.textContent = formatPrice(discountAmount);
+        summarySubtotal.textContent = formatPrice(subtotalAmount);
+        summaryWalletUsed.textContent = formatPrice(walletUsedAmount);
         summaryShipping.textContent = formatPrice(shippingAmount);
-        summaryPaid.textContent = formatPrice(paidAmount);
+        summaryCashback.textContent = formatPrice(cashbackAmount);
+        summaryTotal.textContent = formatPrice(totalAmount);
+        summaryPaid.textContent = formatPrice(payableAmount);
         summaryPaymentStatus.innerHTML = renderStatusBadge(
           order.payment_status || order.status,
           translatePaymentStatus
         );
 
         addressesSection.style.display = "block";
-        shippingAddressText.textContent = formatAddress(order.shipping_address);
-        billingAddressText.textContent = formatAddress(order.billing_address || order.shipping_address);
+        shippingAddressText.textContent = formatAddress(order.address || order.shipping_address);
+        billingAddressText.textContent = formatAddress(order.billing_address || order.address || order.shipping_address);
       } catch (error) {
         setError("دریافت فاکتور با خطا مواجه شد.");
         headerText.textContent = "لطفاً بعداً دوباره تلاش کن.";

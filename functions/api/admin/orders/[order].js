@@ -133,12 +133,14 @@ async function applyCashbackIfNeeded(db, order, actorUserId) {
   const cashbackAmount = Math.max(0, Math.round(normalizeNumber(order?.cashback_amount)));
 
   if (!orderId || !userId || cashbackAmount <= 0) {
-    await db.prepare(`
-      UPDATE orders
-      SET cashback_status = 'none',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).bind(orderId).run();
+    if (orderId) {
+      await db.prepare(`
+        UPDATE orders
+        SET cashback_status = 'none',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(orderId).run();
+    }
 
     return { applied: false, reason: "no_cashback" };
   }
@@ -342,7 +344,7 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
     return { ok: false, response: json({ success: false, error: "invalid_order_status" }, 400) };
   }
 
-  if (nextPaymentStatus && !allowedPaymentStatuses.includes(nextPaymentStatuses)) {
+  if (nextPaymentStatus && !allowedPaymentStatuses.includes(nextPaymentStatus)) {
     return { ok: false, response: json({ success: false, error: "invalid_payment_status" }, 400) };
   }
 
@@ -393,6 +395,14 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
         total_amount: normalizeNumber(finalOrder.total_amount),
         wallet_used_amount: normalizeNumber(finalOrder.wallet_used_amount),
         cashback_amount: normalizeNumber(finalOrder.cashback_amount),
+        address: {
+          full_name: finalOrder.address_full_name || finalOrder.full_name || "",
+          address_line: finalOrder.address_line || "",
+          postal_code: finalOrder.postal_code || "",
+          city: finalOrder.city || "",
+          state: finalOrder.state || "",
+          phone: finalOrder.phone || ""
+        },
         items
       }
     }
@@ -430,6 +440,14 @@ export async function onRequestGet(context) {
         total_amount: normalizeNumber(order.total_amount),
         wallet_used_amount: normalizeNumber(order.wallet_used_amount),
         cashback_amount: normalizeNumber(order.cashback_amount),
+        address: {
+          full_name: order.address_full_name || order.full_name || "",
+          address_line: order.address_line || "",
+          postal_code: order.postal_code || "",
+          city: order.city || "",
+          state: order.state || "",
+          phone: order.phone || ""
+        },
         items
       }
     });

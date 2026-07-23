@@ -735,29 +735,20 @@
         }
 
         if (walletResponse.ok && walletData?.success) {
-          walletState.balance = Number(walletData.wallet_balance || walletData.user?.wallet_balance || 0);
+          walletState.balance = Number(
+            walletData.wallet_balance ??
+            walletData.user?.wallet_balance ??
+            0
+          );
+
+          walletState.cashbackPercent = Number(
+            walletData.cashback_percent ??
+            walletData.settings?.cashback_percent ??
+            walletData.wallet?.cashback_percent ??
+            0
+          );
         } else {
           walletState.balance = 0;
-        }
-
-        try {
-          const settingsResponse = await fetch("/api/admin/wallet", {
-            credentials: "same-origin"
-          });
-
-          let settingsData = null;
-          try {
-            settingsData = await settingsResponse.json();
-          } catch (_) {
-            settingsData = null;
-          }
-
-          if (settingsResponse.ok && settingsData?.success) {
-            walletState.cashbackPercent = Number(settingsData.settings?.cashback_percent || 0);
-          } else {
-            walletState.cashbackPercent = 0;
-          }
-        } catch (_) {
           walletState.cashbackPercent = 0;
         }
 
@@ -848,6 +839,8 @@
 
       const totalAmount = subtotal + shippingFee;
       const walletUsedAmount = getWalletAppliedAmount(totalAmount);
+      const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
+      const cashbackAmount = getCashbackAmount(payableAmount);
 
       return {
         address: {
@@ -864,7 +857,8 @@
           subtotal_amount: subtotal,
           shipping_amount: shippingFee,
           total_amount: totalAmount,
-          wallet_used_amount: walletUsedAmount
+          wallet_used_amount: walletUsedAmount,
+          cashback_amount: cashbackAmount
         }
       };
     }
@@ -1056,7 +1050,7 @@
           const payload = buildOrderPayload(items, formData);
           const walletUsedAmount = Number(payload?.order?.wallet_used_amount || 0);
           const payableAmount = Math.max(0, Number(payload?.order?.total_amount || 0) - walletUsedAmount);
-          const cashbackAmount = getCashbackAmount(payableAmount);
+          const cashbackAmount = Number(payload?.order?.cashback_amount || 0);
 
           const response = await fetch("/api/account/create-order", {
             method: "POST",

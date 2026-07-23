@@ -161,33 +161,53 @@ function extractProductId(item) {
 
 async function getCashbackSettings(db) {
   try {
-    const row = await db.prepare(`
-      SELECT cashback_percent, cashback_statuses
-      FROM wallet_settings
-      ORDER BY id DESC
-      LIMIT 1
-    `).first();
+    const settingsRows = await db.prepare(`
+      SELECT key, value
+      FROM site_settings
+      WHERE key IN ('cashback_percent', 'cashback_statuses')
+    `).all();
 
-    return {
-      cashbackPercent: Math.max(0, Math.min(100, Number(row?.cashback_percent || 0))),
-      cashbackStatuses: (() => {
-        const raw = String(row?.cashback_statuses || "").trim();
-        if (!raw) return ["completed"];
+    const settingsList = Array.isArray(settingsRows?.results) ? settingsRows.results : [];
+    const settingsMap = {};
 
-        try {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            return parsed
-              .map((item) => String(item).trim().toLowerCase())
-              .filter(Boolean);
-          }
-        } catch (_) {}
+    for (const row of settingsList) {
+      settingsMap[String(row?.key || "").trim()] = row?.value;
+    }
 
-        return raw
+    let cashbackPercent = Math.max(0, Math.min(100, Number(settingsMap.cashback_percent || 0)));
+    if (!Number.isFinite(cashbackPercent)) cashbackPercent = 0;
+
+    const rawStatuses = String(settingsMap.cashback_statuses || "").trim();
+    let cashbackStatuses = ["completed"];
+
+    if (rawStatuses) {
+      try {
+        const parsed = JSON.parse(rawStatuses);
+        if (Array.isArray(parsed)) {
+          cashbackStatuses = parsed
+            .map((item) => String(item || "").trim().toLowerCase())
+            .filter(Boolean);
+        } else {
+          cashbackStatuses = rawStatuses
+            .split(",")
+            .map((item) => item.trim().toLowerCase())
+            .filter(Boolean);
+        }
+      } catch (_) {
+        cashbackStatuses = rawStatuses
           .split(",")
           .map((item) => item.trim().toLowerCase())
           .filter(Boolean);
-      })()
+      }
+    }
+
+    if (!cashbackStatuses.length) {
+      cashbackStatuses = ["completed"];
+    }
+
+    return {
+      cashbackPercent,
+      cashbackStatuses
     };
   } catch (_) {
     return {
@@ -249,6 +269,13 @@ async function createOrUpdateAddress(context, user, address) {
     };
   }
 
+  await context.env.DB.prepare(`
+    UPDATE user_addresses
+    SET is_default = 0,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ?
+  `).bind(user.id).run();
+
   const addressInsert = await context.env.DB.prepare(`
     INSERT INTO user_addresses (
       user_id,
@@ -307,6 +334,21 @@ async function generateUniqueOrderNumber(db) {
   return orderNumber;
 }
 
+async function hasWalletUseTransaction(db, userId, orderId) {
+  const row = await db.prepare(`
+    SELECT id
+    FROM wallet_transactions
+    WHERE user_id = ?
+      AND order_id = ?
+      AND type = 'debit'
+      AND source = 'checkout'
+      AND status = 'completed'
+    LIMIT 1
+  `).bind(userId, orderId).first();
+
+  return !!row;
+}
+
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
@@ -327,8 +369,34 @@ export async function onRequestPost(context) {
     const items = Array.isArray(order.items) ? order.items : [];
 
     const shippingAmount = normalizeNumber(order.shipping_amount);
-    const subtotalAmount = normalizeNumber(order.subtotal_amount);
-    const totalAmount = normalizeNumber(order.total_amount);
+    const submittedSubtotalAmount = normalizeNumber(order.subtotal_amount);
+    const submittedTotalAmount = normalizeNumber(order.total_amount);
+
+    let recalculatedSubtotal = 0;
+    const normalizedItems = items.map((item) => {
+      const productId = extractProductId(item);
+      const productName = extractItemName(item);
+      const quantity = extractItemQuantity(item);
+      const unitPrice = extractItemUnitPrice(item);
+      const totalPrice = extractItemTotalPrice(item);
+
+      recalculatedSubtotal += totalPrice;
+
+      return {
+        product_id: productId,
+        product_name: productName,
+        quantity,
+        unit_price: unitPrice,
+        total_price: totalPrice
+      };
+    });
+
+    const subtotalAmount = recalculatedSubtotal > 0 ? recalculatedSubtotal : submittedSubtotalAmount;
+    const totalAmount = subtotalAmount + shippingAmount;
+
+    if (submittedTotalAmount > 0 && totalAmount !== submittedTotalAmount) {
+      return json({ success: false, error: "total-mismatch" }, 400);
+    }
 
     const requestedWalletUse = normalizeNumber(
       order.wallet_used_amount ??
@@ -343,8 +411,7 @@ export async function onRequestPost(context) {
 
     const { cashbackPercent } = await getCashbackSettings(context.env.DB);
 
-    // کش‌بک بهتر است روی مبلغ کالا حساب شود، نه مبلغ باقی‌مانده بعد از مصرف کیف پول
-    const cashbackBase = subtotalAmount > 0 ? subtotalAmount : totalAmount;
+    const cashbackBase = payableAmount;
     const cashbackAmount = cashbackBase > 0
       ? Math.round((cashbackBase * cashbackPercent) / 100)
       : 0;
@@ -389,13 +456,7 @@ export async function onRequestPost(context) {
       return json({ success: false, error: "order-create-failed" }, 500);
     }
 
-    for (const item of items) {
-      const productId = extractProductId(item);
-      const productName = extractItemName(item);
-      const quantity = extractItemQuantity(item);
-      const unitPrice = extractItemUnitPrice(item);
-      const totalPrice = extractItemTotalPrice(item);
-
+    for (const item of normalizedItems) {
       await context.env.DB.prepare(`
         INSERT INTO order_items (
           order_id,
@@ -410,57 +471,61 @@ export async function onRequestPost(context) {
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `).bind(
         orderId,
-        productId,
-        productName,
-        quantity,
-        unitPrice,
-        totalPrice
+        item.product_id,
+        item.product_name,
+        item.quantity,
+        item.unit_price,
+        item.total_price
       ).run();
     }
 
     if (walletUsedAmount > 0) {
-      const balanceAfter = Math.max(0, balanceBefore - walletUsedAmount);
+      const alreadyHasWalletTx = await hasWalletUseTransaction(context.env.DB, user.id, orderId);
 
-      await context.env.DB.batch([
-        context.env.DB.prepare(`
-          UPDATE users
-          SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).bind(balanceAfter, user.id),
+      if (!alreadyHasWalletTx) {
+        const balanceAfter = Math.max(0, balanceBefore - walletUsedAmount);
 
-        context.env.DB.prepare(`
-          INSERT INTO wallet_transactions (
-            user_id,
-            type,
-            amount,
-            balance_before,
-            balance_after,
-            status,
-            source,
-            description,
-            note,
-            order_id,
-            order_number,
-            reference_type,
-            reference_id,
-            created_by_user_id,
-            created_at,
-            updated_at
+        await context.env.DB.batch([
+          context.env.DB.prepare(`
+            UPDATE users
+            SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).bind(balanceAfter, user.id),
+
+          context.env.DB.prepare(`
+            INSERT INTO wallet_transactions (
+              user_id,
+              type,
+              amount,
+              balance_before,
+              balance_after,
+              status,
+              source,
+              description,
+              note,
+              order_id,
+              order_number,
+              reference_type,
+              reference_id,
+              created_by_user_id,
+              created_at,
+              updated_at
+            )
+            VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          `).bind(
+            user.id,
+            walletUsedAmount,
+            balanceBefore,
+            balanceAfter,
+            `برداشت کیف پول برای سفارش ${orderNumber}`,
+            `استفاده از کیف پول در ثبت سفارش`,
+            orderId,
+            orderNumber,
+            String(orderId),
+            user.id
           )
-          VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `).bind(
-          user.id,
-          walletUsedAmount,
-          balanceBefore,
-          balanceAfter,
-          `برداشت کیف پول برای سفارش ${orderNumber}`,
-          `استفاده از کیف پول در ثبت سفارش`,
-          orderId,
-          orderNumber,
-          String(orderId),
-          user.id
-        )
-      ]);
+        ]);
+      }
     }
 
     return json({
@@ -488,7 +553,7 @@ export async function onRequestPost(context) {
         cashback_base: cashbackBase,
         cashback_amount: cashbackAmount,
         cashback_status: cashbackAmount > 0 ? "pending" : "none",
-        items_count: items.length
+        items_count: normalizedItems.length
       }
     });
   } catch (error) {
