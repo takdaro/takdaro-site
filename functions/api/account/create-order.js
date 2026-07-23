@@ -437,7 +437,7 @@ export async function onRequestPost(context) {
 
     const { cashbackPercent } = await getCashbackSettings(context.env.DB);
 
-    const cashbackBase = payableAmount;
+    const cashbackBase = totalAmount;
     const cashbackAmount = cashbackBase > 0
       ? Math.round((cashbackBase * cashbackPercent) / 100)
       : 0;
