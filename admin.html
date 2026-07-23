@@ -907,8 +907,8 @@
                         <th>وضعیت</th>
                         <th>پرداخت</th>
                         <th>مبلغ فاکتور</th>
-                        <th>برداشت از کیف پول</th>
-                        <th>مانده پرداخت</th>
+                        <th>میزان برداشت</th>
+                        <th>مانده بعد از برداشت</th>
                         <th>تاریخ</th>
                         <th>اقدام</th>
                       </tr>
@@ -1495,8 +1495,8 @@
           پرداخت: ${esc(faPaymentStatus(order.payment_status))}<br>
           مبلغ فاکتور: ${money(totalAmount)} تومان<br>
           مبلغ ارسال: ${money(shippingAmount)} تومان<br>
-          برداشت از کیف پول: ${money(walletUsedAmount)} تومان<br>
-          مانده قابل پرداخت: ${money(payableAmount)} تومان<br>
+          میزان برداشت از کیف پول: ${money(walletUsedAmount)} تومان<br>
+          مانده بعد از برداشت: ${money(payableAmount)} تومان<br>
           کش‌بک: ${money(cashbackAmount)} تومان<br>
           وضعیت کش‌بک: ${esc(order.cashback_status || "-")}<br>
           تاریخ: ${formatDate(order.created_at)}
