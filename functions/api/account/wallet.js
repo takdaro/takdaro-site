@@ -62,12 +62,12 @@ async function getWalletSettings(env) {
 
   const attempts = [
     {
-      table: "site_settings",
-      keyColumn: "key",
-      valueColumn: "value"
+      table: "app_settings",
+      keyColumn: "setting_key",
+      valueColumn: "setting_value"
     },
     {
-      table: "app_settings",
+      table: "site_settings",
       keyColumn: "key",
       valueColumn: "value"
     }
@@ -82,9 +82,7 @@ async function getWalletSettings(env) {
       `).all();
 
       const results = Array.isArray(rows?.results) ? rows.results : [];
-      if (!results.length) {
-        return defaults;
-      }
+      if (!results.length) continue;
 
       const map = {};
       for (const row of results) {
