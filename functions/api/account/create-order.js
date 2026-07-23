@@ -159,62 +159,88 @@ function extractProductId(item) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-async function getCashbackSettings(db) {
+function normalizeStatuses(rawValue) {
+  if (!rawValue) return ["completed"];
+
   try {
-    const settingsRows = await db.prepare(`
-      SELECT key, value
-      FROM site_settings
-      WHERE key IN ('cashback_percent', 'cashback_statuses')
-    `).all();
-
-    const settingsList = Array.isArray(settingsRows?.results) ? settingsRows.results : [];
-    const settingsMap = {};
-
-    for (const row of settingsList) {
-      settingsMap[String(row?.key || "").trim()] = row?.value;
+    const parsed = JSON.parse(rawValue);
+    if (Array.isArray(parsed)) {
+      const list = parsed
+        .map((item) => String(item || "").trim().toLowerCase())
+        .filter(Boolean);
+      return list.length ? list : ["completed"];
     }
+  } catch (_) {}
 
-    let cashbackPercent = Math.max(0, Math.min(100, Number(settingsMap.cashback_percent || 0)));
-    if (!Number.isFinite(cashbackPercent)) cashbackPercent = 0;
+  const list = String(rawValue)
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
 
-    const rawStatuses = String(settingsMap.cashback_statuses || "").trim();
-    let cashbackStatuses = ["completed"];
+  return list.length ? list : ["completed"];
+}
 
-    if (rawStatuses) {
-      try {
-        const parsed = JSON.parse(rawStatuses);
-        if (Array.isArray(parsed)) {
-          cashbackStatuses = parsed
-            .map((item) => String(item || "").trim().toLowerCase())
-            .filter(Boolean);
-        } else {
-          cashbackStatuses = rawStatuses
-            .split(",")
-            .map((item) => item.trim().toLowerCase())
-            .filter(Boolean);
-        }
-      } catch (_) {
-        cashbackStatuses = rawStatuses
-          .split(",")
-          .map((item) => item.trim().toLowerCase())
-          .filter(Boolean);
+async function getCashbackSettings(db) {
+  const defaults = {
+    cashbackPercent: 0,
+    cashbackStatuses: ["completed"]
+  };
+
+  const attempts = [
+    {
+      table: "app_settings",
+      keyColumn: "setting_key",
+      valueColumn: "setting_value"
+    },
+    {
+      table: "site_settings",
+      keyColumn: "key",
+      valueColumn: "value"
+    }
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const rows = await db.prepare(`
+        SELECT ${attempt.keyColumn} AS setting_key, ${attempt.valueColumn} AS setting_value
+        FROM ${attempt.table}
+        WHERE ${attempt.keyColumn} IN ('cashback_percent', 'cashback_statuses')
+      `).all();
+
+      const results = Array.isArray(rows?.results) ? rows.results : [];
+      if (!results.length) continue;
+
+      const settingsMap = {};
+      for (const row of results) {
+        settingsMap[String(row?.setting_key || "").trim()] = row?.setting_value;
+      }
+
+      let cashbackPercent = Math.max(
+        0,
+        Math.min(100, Number(settingsMap.cashback_percent || 0))
+      );
+
+      if (!Number.isFinite(cashbackPercent)) cashbackPercent = 0;
+
+      const cashbackStatuses = normalizeStatuses(settingsMap.cashback_statuses);
+
+      return {
+        cashbackPercent,
+        cashbackStatuses
+      };
+    } catch (error) {
+      const message = String(error?.message || error || "");
+      const ignorable =
+        message.includes("no such table") ||
+        message.includes("no such column");
+
+      if (!ignorable) {
+        throw error;
       }
     }
-
-    if (!cashbackStatuses.length) {
-      cashbackStatuses = ["completed"];
-    }
-
-    return {
-      cashbackPercent,
-      cashbackStatuses
-    };
-  } catch (_) {
-    return {
-      cashbackPercent: 0,
-      cashbackStatuses: ["completed"]
-    };
   }
+
+  return defaults;
 }
 
 async function createOrUpdateAddress(context, user, address) {
