@@ -567,6 +567,8 @@
     let currentUser = null;
 
     let walletState = {
+      loaded: false,
+      available: false,
       balance: 0,
       cashbackPercent: 0
     };
@@ -615,14 +617,14 @@
     }
 
     function parsePrice(rawPrice) {
-      if (typeof rawPrice === "number") return rawPrice;
-      if (!rawPrice) return null;
+      if (typeof rawPrice === "number" && Number.isFinite(rawPrice)) return Math.max(0, Math.round(rawPrice));
+      if (rawPrice === null || rawPrice === undefined || rawPrice === "") return null;
 
       const normalized = toEnglishDigits(String(rawPrice)).replace(/[^\d]/g, "");
       if (!normalized) return null;
 
       const amount = Number(normalized);
-      return Number.isFinite(amount) ? amount : null;
+      return Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : null;
     }
 
     function formatPrice(rawPrice) {
@@ -654,7 +656,7 @@
       }
       try {
         localStorage.removeItem("takdaro_cart");
-      } catch (error) {}
+      } catch (_) {}
     }
 
     function splitFullName(fullName) {
@@ -697,26 +699,93 @@
       return { totalQty, subtotal, shippingFee, total, hasNumericPrice };
     }
 
-    function getRequestedWalletAmount() {
+    function getMaxWalletUsable(totalAmount) {
+      if (!walletState.available || totalAmount === null) return 0;
+      return Math.max(0, Math.min(Number(walletState.balance || 0), Number(totalAmount || 0)));
+    }
+
+    function getRequestedWalletAmount(totalAmount = getCartPricing().total) {
+      if (!walletState.available) return 0;
       if (!walletUseToggle || !walletUseToggle.checked || !walletUseAmountInput) return 0;
-      const amount = parsePrice(walletUseAmountInput.value);
-      return amount === null ? 0 : amount;
+
+      const maxUsable = getMaxWalletUsable(totalAmount);
+      const raw = String(walletUseAmountInput.value || "").trim();
+
+      if (!raw) {
+        return maxUsable;
+      }
+
+      const amount = parsePrice(raw);
+      if (amount === null) return 0;
+
+      return Math.max(0, Math.min(amount, maxUsable));
     }
 
     function getWalletAppliedAmount(totalAmount) {
       if (totalAmount === null) return 0;
-      const requested = getRequestedWalletAmount();
-      const balance = Number(walletState.balance || 0);
-      return Math.max(0, Math.min(requested, balance, totalAmount));
+      return getRequestedWalletAmount(totalAmount);
     }
 
     function getCashbackAmount(payableAmount) {
       const percent = Number(walletState.cashbackPercent || 0);
       if (!payableAmount || payableAmount <= 0 || percent <= 0) return 0;
-      return Math.round((payableAmount * percent) / 100);
+      return Math.max(0, Math.round((payableAmount * percent) / 100));
+    }
+
+    function resetWalletState() {
+      walletState.loaded = false;
+      walletState.available = false;
+      walletState.balance = 0;
+      walletState.cashbackPercent = 0;
+    }
+
+    function applyWalletState(payload) {
+      const balanceCandidates = [
+        payload?.wallet_balance,
+        payload?.user?.wallet_balance,
+        payload?.wallet?.balance,
+        payload?.balance
+      ];
+
+      const cashbackCandidates = [
+        payload?.cashback_percent,
+        payload?.settings?.cashback_percent,
+        payload?.wallet?.cashback_percent
+      ];
+
+      let resolvedBalance = null;
+      for (const candidate of balanceCandidates) {
+        const parsed = parsePrice(candidate);
+        if (parsed !== null) {
+          resolvedBalance = parsed;
+          break;
+        }
+      }
+
+      let resolvedCashback = 0;
+      for (const candidate of cashbackCandidates) {
+        const parsed = Number(candidate);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          resolvedCashback = parsed;
+          break;
+        }
+      }
+
+      if (resolvedBalance === null) {
+        resetWalletState();
+        return false;
+      }
+
+      walletState.loaded = true;
+      walletState.available = true;
+      walletState.balance = resolvedBalance;
+      walletState.cashbackPercent = Math.max(0, resolvedCashback);
+      return true;
     }
 
     async function loadWalletData() {
+      resetWalletState();
+
       if (!window.Auth) {
         updateWalletUi();
         return;
@@ -724,7 +793,11 @@
 
       try {
         const walletResponse = await fetch("/api/account/wallet", {
-          credentials: "same-origin"
+          method: "GET",
+          credentials: "same-origin",
+          headers: {
+            "Accept": "application/json"
+          }
         });
 
         let walletData = null;
@@ -734,54 +807,59 @@
           walletData = null;
         }
 
-        if (walletResponse.ok && walletData?.success) {
-          walletState.balance = Number(
-            walletData.wallet_balance ??
-            walletData.user?.wallet_balance ??
-            0
-          );
-
-          walletState.cashbackPercent = Number(
-            walletData.cashback_percent ??
-            walletData.settings?.cashback_percent ??
-            walletData.wallet?.cashback_percent ??
-            0
-          );
-        } else {
-          walletState.balance = 0;
-          walletState.cashbackPercent = 0;
+        if (!walletResponse.ok || !walletData?.success) {
+          updateWalletUi();
+          return;
         }
 
-        if (walletBox) walletBox.hidden = false;
-        if (walletBalanceEl) walletBalanceEl.textContent = `${formatNumber(walletState.balance)} تومان`;
-
-        const pricing = getCartPricing();
-        const maxUsable = pricing.total !== null ? Math.min(walletState.balance, pricing.total) : 0;
-
-        if (walletUseAmountInput) {
-          walletUseAmountInput.max = String(maxUsable);
-          if (!walletUseAmountInput.value && maxUsable > 0) {
-            walletUseAmountInput.value = String(maxUsable);
-          }
-        }
-
+        applyWalletState(walletData);
         updateWalletUi();
       } catch (_) {
-        walletState.balance = 0;
-        walletState.cashbackPercent = 0;
-        if (walletBalanceEl) walletBalanceEl.textContent = "0 تومان";
+        resetWalletState();
         updateWalletUi();
       }
     }
 
     function updateWalletUi() {
       const pricing = getCartPricing();
+      const walletVisible = walletState.available && pricing.total !== null;
+
+      if (walletBox) {
+        walletBox.hidden = !walletVisible;
+      }
+
+      if (!walletVisible) {
+        if (walletUseFields) walletUseFields.hidden = true;
+        if (walletDiscountRow) walletDiscountRow.hidden = true;
+        if (cashbackRow) cashbackRow.hidden = true;
+        if (walletBalanceEl) walletBalanceEl.textContent = "0 تومان";
+        if (summaryWalletUsed) summaryWalletUsed.textContent = "0 تومان";
+        if (summaryCashback) summaryCashback.textContent = "0 تومان";
+        if (walletHelpText) {
+          walletHelpText.textContent = "اطلاعات کیف پول در حال حاضر در دسترس نیست.";
+        }
+        if (summaryTotal) {
+          summaryTotal.textContent =
+            pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
+        }
+        return;
+      }
+
+      const maxUsable = getMaxWalletUsable(pricing.total);
       const walletUsed = getWalletAppliedAmount(pricing.total);
-      const payableAmount = pricing.total !== null ? Math.max(0, pricing.total - walletUsed) : null;
-      const cashbackAmount = payableAmount !== null ? getCashbackAmount(payableAmount) : 0;
+      const payableAmount = Math.max(0, pricing.total - walletUsed);
+      const cashbackAmount = getCashbackAmount(payableAmount);
+
+      if (walletBalanceEl) {
+        walletBalanceEl.textContent = `${formatNumber(walletState.balance)} تومان`;
+      }
 
       if (walletUseFields) {
         walletUseFields.hidden = !(walletUseToggle && walletUseToggle.checked);
+      }
+
+      if (walletUseAmountInput) {
+        walletUseAmountInput.max = String(maxUsable);
       }
 
       if (walletDiscountRow) {
@@ -801,20 +879,12 @@
       }
 
       if (summaryTotal) {
-        summaryTotal.textContent =
-          payableAmount !== null ? `${formatNumber(payableAmount)} تومان` : "تماس بگیرید";
+        summaryTotal.textContent = `${formatNumber(payableAmount)} تومان`;
       }
 
       if (walletHelpText) {
-        const maxUsable = pricing.total !== null ? Math.min(walletState.balance, pricing.total) : 0;
         walletHelpText.textContent =
           `حداکثر مبلغ قابل استفاده: ${formatNumber(maxUsable)} تومان — درصد بازگشت فعلی: ${formatNumber(walletState.cashbackPercent)}٪`;
-      }
-
-      if (walletUseAmountInput) {
-        const pricingNow = getCartPricing();
-        const maxAllowed = pricingNow.total !== null ? Math.min(walletState.balance, pricingNow.total) : 0;
-        walletUseAmountInput.max = String(maxAllowed);
       }
     }
 
@@ -857,6 +927,8 @@
           subtotal_amount: subtotal,
           shipping_amount: shippingFee,
           total_amount: totalAmount,
+          payable_amount: payableAmount,
+          use_wallet: walletUsedAmount > 0,
           wallet_used_amount: walletUsedAmount,
           cashback_amount: cashbackAmount
         }
@@ -916,6 +988,13 @@
       summaryQty.textContent = formatNumber(pricing.totalQty);
       summarySubtotal.textContent = pricing.hasNumericPrice ? `${formatNumber(pricing.subtotal)} تومان` : "تماس بگیرید";
 
+      if (!walletState.available) {
+        if (summaryTotal) {
+          summaryTotal.textContent =
+            pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
+        }
+      }
+
       updateWalletUi();
     }
 
@@ -963,7 +1042,13 @@
         const addressesResponse = await fetch("/api/account/addresses", {
           credentials: "same-origin"
         });
-        const addressesData = await addressesResponse.json();
+
+        let addressesData = null;
+        try {
+          addressesData = await addressesResponse.json();
+        } catch (_) {
+          addressesData = null;
+        }
 
         if (!addressesResponse.ok || !addressesData?.success) return;
 
@@ -987,7 +1072,7 @@
         if (addressInput && !addressInput.value) addressInput.value = shippingAddress.address_line || "";
 
         renderCheckout();
-      } catch (error) {}
+      } catch (_) {}
     }
 
     if (checkoutForm) {
@@ -1048,20 +1133,18 @@
 
         try {
           const payload = buildOrderPayload(items, formData);
-          const walletUsedAmount = Number(payload?.order?.wallet_used_amount || 0);
-          const payableAmount = Math.max(0, Number(payload?.order?.total_amount || 0) - walletUsedAmount);
-          const cashbackAmount = Number(payload?.order?.cashback_amount || 0);
 
           const response = await fetch("/api/account/create-order", {
             method: "POST",
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              "Accept": "application/json"
             },
             credentials: "same-origin",
             body: JSON.stringify(payload)
           });
 
-          const data = await response.json();
+          const data = await response.json().catch(() => null);
 
           if (!response.ok || !data?.success) {
             setCheckoutMessage(data?.error || "ثبت سفارش با مشکل مواجه شد.", "error");
@@ -1069,7 +1152,11 @@
             return;
           }
 
-          const orderNumber = data.order?.order_number || "-";
+          const createdOrder = data.order || {};
+          const orderNumber = createdOrder.order_number || "-";
+          const walletUsedAmount = Number(createdOrder.wallet_used_amount || 0);
+          const payableAmount = Number(createdOrder.payable_amount || 0);
+          const cashbackAmount = Number(createdOrder.cashback_amount || 0);
 
           const message =
 `سلام وقت بخیر
@@ -1100,6 +1187,7 @@ ${orderLines}
           clearCart();
           if (walletUseToggle) walletUseToggle.checked = false;
           if (walletUseAmountInput) walletUseAmountInput.value = "";
+          resetWalletState();
           renderCheckout();
           await loadWalletData();
 
@@ -1107,7 +1195,7 @@ ${orderLines}
 
           const whatsappUrl = `https://wa.me/989214147070?text=${encodeURIComponent(message)}`;
           window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-        } catch (error) {
+        } catch (_) {
           setCheckoutMessage("ثبت سفارش با خطا مواجه شد.", "error");
         } finally {
           submitOrderBtn.disabled = false;
@@ -1122,14 +1210,23 @@ ${orderLines}
     }
 
     if (walletUseToggle) {
-      walletUseToggle.addEventListener("change", updateWalletUi);
+      walletUseToggle.addEventListener("change", function () {
+        const pricing = getCartPricing();
+        const maxUsable = getMaxWalletUsable(pricing.total);
+
+        if (walletUseToggle.checked && walletUseAmountInput && !String(walletUseAmountInput.value || "").trim() && maxUsable > 0) {
+          walletUseAmountInput.value = String(maxUsable);
+        }
+
+        updateWalletUi();
+      });
     }
 
     if (walletUseAmountInput) {
       walletUseAmountInput.addEventListener("input", updateWalletUi);
       walletUseAmountInput.addEventListener("blur", function () {
         const pricing = getCartPricing();
-        const maxUsable = pricing.total !== null ? Math.min(walletState.balance, pricing.total) : 0;
+        const maxUsable = getMaxWalletUsable(pricing.total);
         const current = parsePrice(walletUseAmountInput.value) || 0;
         walletUseAmountInput.value = String(Math.max(0, Math.min(current, maxUsable)));
         updateWalletUi();
