@@ -386,8 +386,11 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
     return { ok: false, response: json({ success: false, error: "order_not_found" }, 404) };
   }
 
-  const finalStatus = nextStatus || String(currentOrder.status || "pending").toLowerCase();
-  const finalPaymentStatus = nextPaymentStatus || String(currentOrder.payment_status || "pending").toLowerCase();
+  const oldStatus = String(currentOrder.status || "pending").toLowerCase();
+  const oldPaymentStatus = String(currentOrder.payment_status || "pending").toLowerCase();
+
+  const finalStatus = nextStatus || oldStatus;
+  const finalPaymentStatus = nextPaymentStatus || oldPaymentStatus;
 
   await db.prepare(`
     UPDATE orders
@@ -403,12 +406,12 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
   let cashbackResult = null;
 
   const shouldApplyCashback =
-    finalStatus === "completed" ||
-    finalPaymentStatus === "paid" ||
-    finalPaymentStatus === "completed";
+    oldStatus !== "completed" &&
+    finalStatus === "completed";
 
   const shouldReverseCashback =
-    !shouldApplyCashback &&
+    oldStatus === "completed" &&
+    finalStatus !== "completed" &&
     String(updatedOrder.cashback_status || "").toLowerCase() === "completed";
 
   if (shouldApplyCashback) {
