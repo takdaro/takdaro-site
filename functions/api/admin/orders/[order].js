@@ -119,12 +119,14 @@ function buildOrderPayload(order, items = []) {
     wallet_used_amount: normalizeNumber(order?.wallet_used_amount),
     cashback_amount: normalizeNumber(order?.cashback_amount),
     shipping_address: buildShippingAddress(order),
-    items: Array.isArray(items) ? items.map((item) => ({
-      ...item,
-      quantity: normalizeNumber(item?.quantity),
-      unit_price: normalizeNumber(item?.unit_price),
-      total_price: normalizeNumber(item?.total_price)
-    })) : []
+    items: Array.isArray(items)
+      ? items.map((item) => ({
+          ...item,
+          quantity: normalizeNumber(item?.quantity),
+          unit_price: normalizeNumber(item?.unit_price),
+          total_price: normalizeNumber(item?.total_price)
+        }))
+      : []
   };
 }
 
@@ -400,12 +402,18 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
 
   let cashbackResult = null;
 
-  if (finalStatus === "completed") {
+  const shouldApplyCashback =
+    finalStatus === "completed" ||
+    finalPaymentStatus === "paid" ||
+    finalPaymentStatus === "completed";
+
+  const shouldReverseCashback =
+    !shouldApplyCashback &&
+    String(updatedOrder.cashback_status || "").toLowerCase() === "completed";
+
+  if (shouldApplyCashback) {
     cashbackResult = await applyCashbackIfNeeded(db, updatedOrder, actorUserId);
-  } else if (
-    ["pending", "processing", "shipped", "cancelled"].includes(finalStatus) &&
-    String(updatedOrder.cashback_status || "").toLowerCase() === "completed"
-  ) {
+  } else if (shouldReverseCashback) {
     cashbackResult = await reverseCashbackIfNeeded(db, updatedOrder, actorUserId);
   }
 
