@@ -235,7 +235,7 @@
 
     .admin-table {
       width: 100%;
-      min-width: 960px;
+      min-width: 1100px;
       border-collapse: collapse;
     }
 
@@ -760,7 +760,7 @@
       }
 
       .admin-table {
-        min-width: 760px;
+        min-width: 900px;
       }
     }
   </style>
@@ -906,7 +906,9 @@
                         <th>ایمیل</th>
                         <th>وضعیت</th>
                         <th>پرداخت</th>
-                        <th>مبلغ</th>
+                        <th>مبلغ فاکتور</th>
+                        <th>برداشت از کیف پول</th>
+                        <th>مانده پرداخت</th>
                         <th>تاریخ</th>
                         <th>اقدام</th>
                       </tr>
@@ -1423,28 +1425,40 @@
       const tbody = document.getElementById("orders-body");
 
       if (!result.ok || !result.data?.success) {
-        tbody.innerHTML = `<tr><td colspan="8">دریافت سفارش‌ها انجام نشد.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10">دریافت سفارش‌ها انجام نشد.</td></tr>`;
         return;
       }
 
-      const orders = result.data.orders || [];
-      tbody.innerHTML = orders.map((order) => `
-        <tr>
-          <td class="table-number">${esc(order.order_number)}</td>
-          <td>${esc(order.full_name || "-")}</td>
-          <td>${esc(order.email || "-")}</td>
-          <td>${badge(order.status)}</td>
-          <td>${badge(order.payment_status)}</td>
-          <td class="table-number">${money(order.total_amount)}</td>
-          <td class="table-number">${formatDate(order.created_at)}</td>
-          <td>
-            <div class="panel-actions" style="margin-top:0;">
-              <button class="btn btn-secondary" type="button" data-view-order="${esc(order.order_number)}">جزئیات</button>
-              <button class="btn btn-secondary" type="button" data-delete-order="${esc(order.order_number)}">حذف</button>
-            </div>
-          </td>
-        </tr>
-      `).join("") || `<tr><td colspan="8">سفارشی پیدا نشد.</td></tr>`;
+      const orders = Array.isArray(result.data.orders) ? result.data.orders : [];
+
+      tbody.innerHTML = orders.map((order) => {
+        const totalAmount = Number(order.total_amount || 0);
+        const walletUsedAmount = Number(order.wallet_used_amount || 0);
+        const payableAmount =
+          order.payable_amount != null
+            ? Number(order.payable_amount || 0)
+            : Math.max(0, totalAmount - walletUsedAmount);
+
+        return `
+          <tr>
+            <td class="table-number">${esc(order.order_number)}</td>
+            <td>${esc(order.full_name || "-")}</td>
+            <td>${esc(order.email || "-")}</td>
+            <td>${badge(order.status)}</td>
+            <td>${badge(order.payment_status)}</td>
+            <td class="table-number">${money(totalAmount)}</td>
+            <td class="table-number">${money(walletUsedAmount)}</td>
+            <td class="table-number">${money(payableAmount)}</td>
+            <td class="table-number">${formatDate(order.created_at)}</td>
+            <td>
+              <div class="panel-actions" style="margin-top:0;">
+                <button class="btn btn-secondary" type="button" data-view-order="${esc(order.order_number)}">جزئیات</button>
+                <button class="btn btn-secondary" type="button" data-delete-order="${esc(order.order_number)}">حذف</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("") || `<tr><td colspan="10">سفارشی پیدا نشد.</td></tr>`;
     }
 
     async function loadOrderDetail(orderNumber) {
@@ -1458,8 +1472,17 @@
       }
 
       const order = result.data.order || {};
-      const items = order.items || [];
+      const items = Array.isArray(order.items) ? order.items : [];
       const address = order.shipping_address || null;
+
+      const totalAmount = Number(order.total_amount || 0);
+      const shippingAmount = Number(order.shipping_amount || 0);
+      const walletUsedAmount = Number(order.wallet_used_amount || 0);
+      const payableAmount =
+        order.payable_amount != null
+          ? Number(order.payable_amount || 0)
+          : Math.max(0, totalAmount - walletUsedAmount);
+      const cashbackAmount = Number(order.cashback_amount || 0);
 
       box.classList.remove("admin-hidden");
       box.innerHTML = `
@@ -1470,10 +1493,11 @@
           شماره: ${esc(order.phone || "-")}<br>
           وضعیت: ${esc(faOrderStatus(order.status))}<br>
           پرداخت: ${esc(faPaymentStatus(order.payment_status))}<br>
-          مبلغ کل: ${money(order.total_amount)} تومان<br>
-          مبلغ ارسال: ${money(order.shipping_amount)} تومان<br>
-          استفاده از کیف پول: ${money(order.wallet_used_amount)} تومان<br>
-          کش‌بک: ${money(order.cashback_amount)} تومان<br>
+          مبلغ فاکتور: ${money(totalAmount)} تومان<br>
+          مبلغ ارسال: ${money(shippingAmount)} تومان<br>
+          برداشت از کیف پول: ${money(walletUsedAmount)} تومان<br>
+          مانده قابل پرداخت: ${money(payableAmount)} تومان<br>
+          کش‌بک: ${money(cashbackAmount)} تومان<br>
           وضعیت کش‌بک: ${esc(order.cashback_status || "-")}<br>
           تاریخ: ${formatDate(order.created_at)}
         </p>
@@ -1527,7 +1551,7 @@
                 items.length
                   ? items.map((item) => `
                     <tr>
-                      <td>${esc(item.product_name)}</td>
+                      <td>${esc(item.product_name || "-")}</td>
                       <td class="table-number">${esc(item.quantity)}</td>
                       <td class="table-number">${money(item.unit_price)}</td>
                       <td class="table-number">${money(item.total_price)}</td>
