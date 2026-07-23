@@ -736,7 +736,8 @@
 
       .panel-actions .btn,
       .users-toolbar .btn,
-      .wallet-inline-actions .btn {
+      .wallet-inline-actions .btn,
+      .panel-actions select {
         width: 100%;
       }
 
@@ -1417,7 +1418,8 @@
       if (status) params.set("status", status);
       if (payment_status) params.set("payment_status", payment_status);
 
-      const result = await api(`/api/admin/orders?${params.toString()}`);
+      const query = params.toString();
+      const result = await api(`/api/admin/orders${query ? `?${query}` : ""}`);
       const tbody = document.getElementById("orders-body");
 
       if (!result.ok || !result.data?.success) {
@@ -1455,21 +1457,40 @@
         return;
       }
 
-      const order = result.data.order;
+      const order = result.data.order || {};
       const items = order.items || [];
+      const address = order.shipping_address || null;
 
       box.classList.remove("admin-hidden");
       box.innerHTML = `
-        <h4>جزئیات سفارش ${esc(order.order_number)}</h4>
+        <h4>جزئیات سفارش ${esc(order.order_number || "-")}</h4>
         <p>
-          کاربر: ${esc(order.full_name)}<br>
-          ایمیل: ${esc(order.email)}<br>
+          کاربر: ${esc(order.full_name || "-")}<br>
+          ایمیل: ${esc(order.email || "-")}<br>
           شماره: ${esc(order.phone || "-")}<br>
           وضعیت: ${esc(faOrderStatus(order.status))}<br>
           پرداخت: ${esc(faPaymentStatus(order.payment_status))}<br>
-          مبلغ: ${money(order.total_amount)}<br>
+          مبلغ کل: ${money(order.total_amount)} تومان<br>
+          مبلغ ارسال: ${money(order.shipping_amount)} تومان<br>
+          استفاده از کیف پول: ${money(order.wallet_used_amount)} تومان<br>
+          کش‌بک: ${money(order.cashback_amount)} تومان<br>
+          وضعیت کش‌بک: ${esc(order.cashback_status || "-")}<br>
           تاریخ: ${formatDate(order.created_at)}
         </p>
+
+        ${address ? `
+          <div class="detail-card" style="margin-top:16px;">
+            <h4>آدرس ارسال</h4>
+            <p>
+              نام: ${esc(address.full_name || "-")}<br>
+              موبایل: ${esc(address.phone || "-")}<br>
+              آدرس: ${esc(address.address_line || "-")}<br>
+              شهر: ${esc(address.city || "-")}<br>
+              استان: ${esc(address.state || "-")}<br>
+              کد پستی: ${esc(address.postal_code || "-")}
+            </p>
+          </div>
+        ` : ""}
 
         <div class="panel-actions">
           <select id="detail-status">
@@ -1526,10 +1547,9 @@
         const status = document.getElementById("detail-status").value;
         const payment_status = document.getElementById("detail-payment-status").value;
 
-        const saveResult = await api("/api/admin/orders", {
+        const saveResult = await api(`/api/admin/orders/${encodeURIComponent(order.order_number)}`, {
           method: "POST",
           body: JSON.stringify({
-            order_number: order.order_number,
             status,
             payment_status
           })
@@ -1540,9 +1560,15 @@
           return;
         }
 
-        setAdminMessage("وضعیت سفارش با موفقیت ذخیره شد.", "success");
+        const cashbackMessage = saveResult.data?.cashback_result?.applied
+          ? " کش‌بک هم اعمال شد."
+          : "";
+
+        setAdminMessage(`وضعیت سفارش با موفقیت ذخیره شد.${cashbackMessage}`, "success");
         await loadOrders();
         await loadOrderDetail(order.order_number);
+        await loadDashboard();
+        await loadUsers();
       });
 
       document.getElementById("delete-order-detail-btn").addEventListener("click", async () => {
@@ -1558,7 +1584,8 @@
       if (search) params.set("search", search);
       if (role) params.set("role", role);
 
-      const result = await api(`/api/admin/users?${params.toString()}`);
+      const query = params.toString();
+      const result = await api(`/api/admin/users${query ? `?${query}` : ""}`);
       const tbody = document.getElementById("users-body");
 
       if (!result.ok || !result.data?.success) {
@@ -1621,7 +1648,6 @@
             <input id="edit-user-password-confirm" type="password" placeholder="تکرار رمز عبور" />
           </div>
         </div>
-
         <div class="panel-actions">
           <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
           <button class="btn btn-secondary" type="button" id="save-user-password-btn">ذخیره رمز عبور</button>
@@ -1710,8 +1736,15 @@
       };
 
       transactions.forEach((tx) => {
+        const type = String(tx.type || "").toLowerCase();
         const amount = Number(tx.amount || 0);
-        if (amount > 0) {
+        if (["debit"].includes(type)) {
+          summary.total_debit += Math.abs(amount);
+          summary.debit_count += 1;
+        } else if (["credit", "cashback", "refund", "adjustment"].includes(type)) {
+          summary.total_credit += Math.abs(amount);
+          summary.credit_count += 1;
+        } else if (amount > 0) {
           summary.total_credit += amount;
           summary.credit_count += 1;
         } else if (amount < 0) {
@@ -2148,6 +2181,7 @@
       });
 
       await loadDashboard();
+
       window.Auth.bindLogoutButton({
         buttonSelector: "[data-auth-logout]",
         redirectAfterSuccess: "/index.html"
