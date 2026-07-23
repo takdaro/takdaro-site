@@ -370,7 +370,15 @@ export async function onRequestGet(context) {
         o.order_number,
         o.status,
         o.payment_status,
-        o.total_amount,
+        COALESCE(o.subtotal_amount, 0) AS subtotal_amount,
+        COALESCE(o.shipping_amount, 0) AS shipping_amount,
+        COALESCE(o.total_amount, 0) AS total_amount,
+        COALESCE(o.wallet_used_amount, 0) AS wallet_used_amount,
+        COALESCE(o.cashback_amount, 0) AS cashback_amount,
+        COALESCE(
+          MAX(0, COALESCE(o.total_amount, 0) - COALESCE(o.wallet_used_amount, 0)),
+          0
+        ) AS payable_amount,
         o.created_at,
         u.full_name,
         u.email
@@ -381,7 +389,22 @@ export async function onRequestGet(context) {
       LIMIT 300
     `).bind(...bindings).all();
 
-    const orders = Array.isArray(result?.results) ? result.results : [];
+    const orders = (Array.isArray(result?.results) ? result.results : []).map((order) => ({
+      ...order,
+      subtotal_amount: normalizeNumber(order.subtotal_amount),
+      shipping_amount: normalizeNumber(order.shipping_amount),
+      total_amount: normalizeNumber(order.total_amount),
+      wallet_used_amount: normalizeNumber(order.wallet_used_amount),
+      cashback_amount: normalizeNumber(order.cashback_amount),
+      payable_amount: Math.max(
+        0,
+        normalizeNumber(
+          order.payable_amount != null
+            ? order.payable_amount
+            : normalizeNumber(order.total_amount) - normalizeNumber(order.wallet_used_amount)
+        )
+      )
+    }));
 
     return json({ success: true, orders });
   } catch (error) {
@@ -450,6 +473,10 @@ export async function onRequestPost(context) {
 
     const finalOrder = await getOrderByNumber(context.env.DB, orderNumber);
     const items = await getOrderItems(context.env.DB, finalOrder.id);
+    const payableAmount = Math.max(
+      0,
+      normalizeNumber(finalOrder.total_amount) - normalizeNumber(finalOrder.wallet_used_amount)
+    );
 
     return json({
       success: true,
@@ -462,6 +489,7 @@ export async function onRequestPost(context) {
         total_amount: normalizeNumber(finalOrder.total_amount),
         wallet_used_amount: normalizeNumber(finalOrder.wallet_used_amount),
         cashback_amount: normalizeNumber(finalOrder.cashback_amount),
+        payable_amount: payableAmount,
         items
       }
     });
