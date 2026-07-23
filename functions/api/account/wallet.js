@@ -33,18 +33,12 @@ async function getCurrentUser(request, env) {
   `).bind(sessionId).first();
 }
 
-async function getWalletSettings(env) {
-  const rows = await env.DB.prepare(`
-    SELECT key, value
-    FROM site_settings
-    WHERE key IN ('cashback_percent', 'cashback_statuses')
-  `).all();
-
+function normalizeSettingsRows(rows) {
   const list = Array.isArray(rows?.results) ? rows.results : [];
-
   const settingsMap = {};
+
   for (const row of list) {
-    settingsMap[String(row.key || "").trim()] = row.value;
+    settingsMap[String(row?.key || "").trim()] = row?.value;
   }
 
   let cashbackPercent = Number(settingsMap.cashback_percent || 0);
@@ -83,6 +77,41 @@ async function getWalletSettings(env) {
   return {
     cashback_percent: cashbackPercent,
     cashback_statuses: cashbackStatuses
+  };
+}
+
+async function readSettingsFromTable(env, tableName) {
+  const rows = await env.DB.prepare(`
+    SELECT key, value
+    FROM ${tableName}
+    WHERE key IN ('cashback_percent', 'cashback_statuses')
+  `).all();
+
+  return normalizeSettingsRows(rows);
+}
+
+async function getWalletSettings(env) {
+  try {
+    return await readSettingsFromTable(env, "site_settings");
+  } catch (error) {
+    const message = String(error?.message || error || "");
+    if (!message.includes("no such table")) {
+      throw error;
+    }
+  }
+
+  try {
+    return await readSettingsFromTable(env, "app_settings");
+  } catch (error) {
+    const message = String(error?.message || error || "");
+    if (!message.includes("no such table")) {
+      throw error;
+    }
+  }
+
+  return {
+    cashback_percent: 0,
+    cashback_statuses: ["completed"]
   };
 }
 
