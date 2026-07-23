@@ -1,164 +1,438 @@
-(function () {
-  const products = Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
-  const params = new URLSearchParams(window.location.search);
+(() => {
+  const els = {
+    form: document.getElementById("checkout-form"),
+    message: document.getElementById("checkout-message"),
+    submitBtn: document.getElementById("checkout-submit-btn"),
 
-  const productSlug = params.get("product");
-  const qtyParam = parseInt(params.get("qty"), 10);
+    fullName: document.getElementById("checkout-full-name"),
+    phone: document.getElementById("checkout-phone"),
+    postalCode: document.getElementById("checkout-postal-code"),
+    addressLine: document.getElementById("checkout-address-line"),
+    city: document.getElementById("checkout-city"),
+    state: document.getElementById("checkout-state"),
+    notes: document.getElementById("checkout-notes"),
 
-  const quantityFromUrl = Number.isFinite(qtyParam) && qtyParam > 0 ? qtyParam : 1;
-  const product = products.find((item) => item.slug === productSlug);
+    walletToggle: document.getElementById("checkout-use-wallet"),
+    walletHint: document.getElementById("checkout-wallet-hint"),
 
-  const emptyState = document.getElementById("checkout-empty");
-  const content = document.getElementById("checkout-content");
+    itemsBox: document.getElementById("checkout-items"),
+    subtotalBox: document.getElementById("checkout-subtotal"),
+    shippingBox: document.getElementById("checkout-shipping"),
+    totalBox: document.getElementById("checkout-total"),
+    walletUsedBox: document.getElementById("checkout-wallet-used"),
+    payableBox: document.getElementById("checkout-payable"),
+    cashbackBox: document.getElementById("checkout-cashback"),
 
-  const productImage = document.getElementById("checkout-product-image");
-  const productCategory = document.getElementById("checkout-product-category");
-  const productName = document.getElementById("checkout-product-name");
-  const productDescription = document.getElementById("checkout-product-description");
-  const productPrice = document.getElementById("checkout-product-price");
-  const productStock = document.getElementById("checkout-product-stock");
+    orderResult: document.getElementById("checkout-order-result")
+  };
 
-  const invoiceProductName = document.getElementById("invoice-product-name");
-  const invoiceQuantity = document.getElementById("invoice-quantity");
-  const invoiceStock = document.getElementById("invoice-stock");
-  const invoicePrice = document.getElementById("invoice-price");
+  const state = {
+    user: null,
+    cartItems: [],
+    walletBalance: 0,
+    shippingAmount: 0,
+    useWallet: false,
+    summary: {
+      subtotal: 0,
+      total: 0,
+      walletUsed: 0,
+      payable: 0,
+      cashbackPreview: 0
+    }
+  };
 
-  const form = document.getElementById("checkout-form");
-  const quantityInput = document.getElementById("customer-quantity");
+  function esc(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
-  function getProductPriceLabel(product) {
-    if (!product) return "";
-    return (
-      product.priceLabel ||
-      product.displayPrice ||
-      product.salePrice ||
-      product.price ||
-      ""
+  function normalizeDigits(value) {
+    const map = {
+      "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
+      "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9"
+    };
+    return String(value ?? "").replace(/[۰-۹]/g, (digit) => map[digit]);
+  }
+
+  function normalizeText(value) {
+    return String(value ?? "").trim();
+  }
+
+  function normalizeNumber(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(0, Math.round(value));
+    }
+    const normalized = normalizeDigits(value).replace(/[^\d]/g, "");
+    if (!normalized) return 0;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
+  }
+
+  function money(value) {
+    return Number(value || 0).toLocaleString("fa-IR");
+  }
+
+  function setMessage(message, type = "error") {
+    if (!els.message) return;
+    els.message.textContent = message || "";
+    els.message.className = "checkout-message";
+    if (message) {
+      els.message.classList.add(type === "success" ? "is-success" : "is-error");
+    }
+  }
+
+  async function api(url, options = {}) {
+    const response = await fetch(url, {
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      },
+      ...options
+    });
+
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (_) {
+      data = { success: false, error: "invalid_json_response" };
+    }
+
+    return { ok: response.ok, data };
+  }
+
+  function getStoredCart() {
+    try {
+      if (window.Cart?.getItems) {
+        const items = window.Cart.getItems();
+        return Array.isArray(items) ? items : [];
+      }
+    } catch (_) {}
+
+    try {
+      const raw =
+        localStorage.getItem("cart") ||
+        sessionStorage.getItem("cart") ||
+        "[]";
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function getUnitPrice(item) {
+    const direct = normalizeNumber(item?.unit_price);
+    if (direct > 0) return direct;
+
+    const price = normalizeNumber(item?.price);
+    if (price > 0) return price;
+
+    const productPrice = normalizeNumber(item?.product?.price);
+    if (productPrice > 0) return productPrice;
+
+    const total = normalizeNumber(item?.total_price ?? item?.total);
+    const quantity = getQuantity(item);
+    return quantity > 0 ? Math.round(total / quantity) : 0;
+  }
+
+  function getQuantity(item) {
+    const quantity = normalizeNumber(
+      item?.qty ??
+      item?.quantity ??
+      item?.count ??
+      item?.amount
     );
+    return quantity > 0 ? quantity : 1;
   }
 
-  function normalizeQuantity(value) {
-    const parsed = parseInt(value, 10);
-    if (!Number.isFinite(parsed) || parsed < 1) return 1;
-    return parsed;
+  function getRowTotal(item) {
+    const direct = normalizeNumber(
+      item?.row_total ??
+      item?.total_price ??
+      item?.line_total ??
+      item?.total
+    );
+    if (direct > 0) return direct;
+
+    return getUnitPrice(item) * getQuantity(item);
   }
 
-  function extractNumericPrice(priceLabel) {
-    if (!priceLabel) return 0;
-    const normalized = String(priceLabel).replace(/[^\d]/g, "");
-    return normalized ? Number(normalized) : 0;
+  function normalizeCartItems(items) {
+    return (Array.isArray(items) ? items : [])
+      .map((item) => {
+        const quantity = getQuantity(item);
+        const unitPrice = getUnitPrice(item);
+        const totalPrice = getRowTotal(item);
+        return {
+          product_id: item?.product_id ?? item?.id ?? item?.product?.id ?? null,
+          product_name:
+            normalizeText(
+              item?.product_name ||
+              item?.name ||
+              item?.title ||
+              item?.product?.name
+            ) || "محصول",
+          quantity,
+          unit_price: unitPrice,
+          total_price: totalPrice
+        };
+      })
+      .filter((item) => item.quantity > 0 && item.unit_price >= 0);
   }
 
-  function formatPrice(value) {
-    if (!value || Number.isNaN(value)) return "تماس بگیرید";
-    return `${value.toLocaleString("fa-IR")} تومان`;
+  function calculateSummary() {
+    const subtotal = state.cartItems.reduce((sum, item) => sum + normalizeNumber(item.total_price), 0);
+    const shipping = normalizeNumber(state.shippingAmount);
+    const total = subtotal + shipping;
+
+    const walletUsed = state.useWallet
+      ? Math.min(normalizeNumber(state.walletBalance), total)
+      : 0;
+
+    const payable = Math.max(0, total - walletUsed);
+
+    state.summary = {
+      subtotal,
+      shipping,
+      total,
+      walletUsed,
+      payable,
+      cashbackPreview: 0
+    };
   }
 
-  function updateInvoiceQty(value) {
-    const normalized = normalizeQuantity(value);
-    const unitPriceLabel = getProductPriceLabel(product);
-    const unitPriceValue = extractNumericPrice(unitPriceLabel);
-    const totalPrice = unitPriceValue * normalized;
+  function renderItems() {
+    if (!els.itemsBox) return;
 
-    invoiceQuantity.textContent = `${normalized} عدد`;
-    quantityInput.value = normalized;
-
-    if (invoicePrice) {
-      invoicePrice.textContent = unitPriceLabel || "تماس بگیرید";
+    if (!state.cartItems.length) {
+      els.itemsBox.innerHTML = `<div class="checkout-empty">سبد خرید شما خالی است.</div>`;
+      return;
     }
 
-    const invoiceTotal = document.getElementById("invoice-total");
-    if (invoiceTotal) {
-      invoiceTotal.textContent = unitPriceValue ? formatPrice(totalPrice) : "تماس بگیرید";
+    els.itemsBox.innerHTML = state.cartItems.map((item) => `
+      <div class="checkout-item">
+        <div class="checkout-item__meta">
+          <strong>${esc(item.product_name)}</strong>
+          <span>${money(item.unit_price)} × ${money(item.quantity)}</span>
+        </div>
+        <div class="checkout-item__price">${money(item.total_price)} تومان</div>
+      </div>
+    `).join("");
+  }
+
+  function renderSummary() {
+    calculateSummary();
+
+    if (els.subtotalBox) els.subtotalBox.textContent = `${money(state.summary.subtotal)} تومان`;
+    if (els.shippingBox) els.shippingBox.textContent = `${money(state.summary.shipping)} تومان`;
+    if (els.totalBox) els.totalBox.textContent = `${money(state.summary.total)} تومان`;
+    if (els.walletUsedBox) els.walletUsedBox.textContent = `${money(state.summary.walletUsed)} تومان`;
+    if (els.payableBox) els.payableBox.textContent = `${money(state.summary.payable)} تومان`;
+    if (els.cashbackBox) els.cashbackBox.textContent = `${money(state.summary.cashbackPreview)} تومان`;
+
+    if (els.walletHint) {
+      els.walletHint.textContent = state.walletBalance > 0
+        ? `موجودی کیف پول شما: ${money(state.walletBalance)} تومان`
+        : "موجودی کیف پول شما صفر است.";
     }
   }
 
-  if (!product) {
-    emptyState.hidden = false;
-    content.hidden = true;
-  } else {
-    emptyState.hidden = true;
-    content.hidden = false;
+  function fillUser(user) {
+    if (!user) return;
 
-    const imageSrc = Array.isArray(product.images) && product.images.length
-      ? `./${product.images[0]}`
-      : "/assets/images/placeholder.png";
-
-    const priceLabel = getProductPriceLabel(product);
-
-    productImage.src = imageSrc;
-    productImage.alt = product.name || "";
-
-    productCategory.textContent = product.category || "";
-    productName.textContent = product.name || "-";
-    productDescription.textContent = product.description || product.shortDescription || "-";
-    productPrice.textContent = priceLabel || "تماس بگیرید";
-    productStock.textContent = product.stockLabel || (product.inStock ? "موجود" : "ناموجود");
-
-    invoiceProductName.textContent = product.name || "-";
-    invoiceStock.textContent = product.stockLabel || (product.inStock ? "موجود" : "ناموجود");
-    invoicePrice.textContent = priceLabel || "تماس بگیرید";
-
-    updateInvoiceQty(quantityFromUrl);
+    if (els.fullName && !els.fullName.value) {
+      els.fullName.value = user.full_name || "";
+    }
+    if (els.phone && !els.phone.value) {
+      els.phone.value = user.phone || "";
+    }
   }
 
-  if (quantityInput) {
-    quantityInput.addEventListener("input", function () {
-      updateInvoiceQty(this.value);
-    });
-
-    quantityInput.addEventListener("blur", function () {
-      updateInvoiceQty(this.value);
-    });
+  function getAddressPayload() {
+    return {
+      full_name: normalizeText(els.fullName?.value),
+      phone: normalizeDigits(els.phone?.value).replace(/[^\d]/g, ""),
+      postal_code: normalizeDigits(els.postalCode?.value).replace(/[^\d]/g, ""),
+      address_line: normalizeText(els.addressLine?.value),
+      city: normalizeText(els.city?.value),
+      state: normalizeText(els.state?.value)
+    };
   }
 
-  if (form) {
-    form.addEventListener("submit", function (event) {
-      event.preventDefault();
+  function validateAddress(address) {
+    if (!address.full_name) return "نام و نام خانوادگی را وارد کنید.";
+    if (!address.phone) return "شماره موبایل را وارد کنید.";
+    if (!address.address_line) return "آدرس را وارد کنید.";
+    if (!address.city) return "شهر را وارد کنید.";
+    if (!address.state) return "استان را وارد کنید.";
+    return null;
+  }
 
-      if (!product) {
-        alert("لطفاً ابتدا یک محصول انتخاب کنید.");
+  async function loadViewer() {
+    if (window.Auth?.getCurrentUser) {
+      try {
+        const user = await window.Auth.getCurrentUser();
+        if (user) {
+          state.user = user;
+          state.walletBalance = normalizeNumber(user.wallet_balance);
+          fillUser(user);
+        }
+      } catch (_) {}
+    }
+
+    if (!state.user) {
+      const result = await api("/api/me");
+      if (result.ok && result.data?.user) {
+        state.user = result.data.user;
+        state.walletBalance = normalizeNumber(result.data.user.wallet_balance);
+        fillUser(result.data.user);
+      }
+    }
+  }
+
+  async function loadWalletFresh() {
+    if (!state.user?.id) return;
+
+    const result = await api(`/api/admin/wallet?userId=${encodeURIComponent(state.user.id)}&limit=1`);
+    if (result.ok && result.data?.user) {
+      state.walletBalance = normalizeNumber(result.data.user.wallet_balance);
+    }
+  }
+
+  function setSubmitting(isSubmitting) {
+    if (!els.submitBtn) return;
+    els.submitBtn.disabled = !!isSubmitting;
+    els.submitBtn.textContent = isSubmitting ? "در حال ثبت سفارش..." : "ثبت سفارش";
+  }
+
+  function renderOrderResult(order) {
+    if (!els.orderResult) return;
+
+    els.orderResult.innerHTML = `
+      <div class="checkout-result-card">
+        <h3>سفارش شما ثبت شد</h3>
+        <p>شماره سفارش: <strong>${esc(order.order_number)}</strong></p>
+        <p>مبلغ کل: <strong>${money(order.total_amount)} تومان</strong></p>
+        <p>استفاده از کیف پول: <strong>${money(order.wallet_used_amount)} تومان</strong></p>
+        <p>مبلغ قابل پرداخت: <strong>${money(order.payable_amount)} تومان</strong></p>
+        <p>کش‌بک این سفارش: <strong>${money(order.cashback_amount)} تومان</strong></p>
+      </div>
+    `;
+  }
+
+  async function submitOrder(event) {
+    event.preventDefault();
+    setMessage("");
+
+    if (!state.cartItems.length) {
+      setMessage("سبد خرید شما خالی است.");
+      return;
+    }
+
+    const address = getAddressPayload();
+    const addressError = validateAddress(address);
+    if (addressError) {
+      setMessage(addressError);
+      return;
+    }
+
+    calculateSummary();
+
+    const payload = {
+      address,
+      order: {
+        items: state.cartItems,
+        subtotal_amount: state.summary.subtotal,
+        shipping_amount: state.summary.shipping,
+        total_amount: state.summary.total,
+        wallet_used_amount: state.summary.walletUsed,
+        notes: normalizeText(els.notes?.value)
+      }
+    };
+
+    setSubmitting(true);
+
+    try {
+      const result = await api("/api/orders", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      if (!result.ok || !result.data?.success || !result.data?.order) {
+        setMessage(result.data?.error || "ثبت سفارش انجام نشد.");
         return;
       }
 
-      if (product.inStock === false) {
-        alert("این محصول ناموجود است و امکان ثبت سفارش ندارد.");
-        return;
+      const createdOrder = result.data.order;
+
+      if (els.cashbackBox) {
+        els.cashbackBox.textContent = `${money(createdOrder.cashback_amount)} تومان`;
+      }
+      if (els.walletUsedBox) {
+        els.walletUsedBox.textContent = `${money(createdOrder.wallet_used_amount)} تومان`;
+      }
+      if (els.payableBox) {
+        els.payableBox.textContent = `${money(createdOrder.payable_amount)} تومان`;
       }
 
-      const customerName = document.getElementById("customer-name").value.trim();
-      const customerPhone = document.getElementById("customer-phone").value.trim();
-      const customerCity = document.getElementById("customer-city").value.trim();
-      const customerAddress = document.getElementById("customer-address").value.trim();
-      const quantity = normalizeQuantity(quantityInput.value);
-      const priceLabel = getProductPriceLabel(product);
-      const totalValue = extractNumericPrice(priceLabel) * quantity;
+      renderOrderResult(createdOrder);
+      setMessage("سفارش با موفقیت ثبت شد.", "success");
 
-      if (!customerName || !customerPhone) {
-        alert("لطفاً نام و شماره تماس را وارد کنید.");
-        return;
+      try {
+        if (window.Cart?.clear) {
+          window.Cart.clear();
+        } else {
+          localStorage.removeItem("cart");
+          sessionStorage.removeItem("cart");
+        }
+      } catch (_) {}
+
+      state.cartItems = [];
+      state.walletBalance = Math.max(0, state.walletBalance - normalizeNumber(createdOrder.wallet_used_amount));
+
+      renderItems();
+      renderSummary();
+
+      if (els.form) {
+        els.form.reset();
       }
 
-      const messageLines = [
-        "سلام، وقت بخیر",
-        "برای ثبت سفارش از سایت تک تجارت پیام می‌دهم.",
-        "",
-        `محصول: ${product.name}`,
-        `تعداد: ${quantity}`,
-        `وضعیت: ${product.stockLabel || (product.inStock ? "موجود" : "ناموجود")}`,
-        `قیمت واحد: ${priceLabel || "تماس بگیرید"}`,
-        `قیمت کل: ${totalValue ? formatPrice(totalValue) : "تماس بگیرید"}`,
-        "",
-        `نام مشتری: ${customerName}`,
-        `شماره تماس: ${customerPhone}`,
-        `شهر: ${customerCity || "-"}`,
-        `آدرس / توضیحات: ${customerAddress || "-"}`
-      ];
-
-      const message = encodeURIComponent(messageLines.join("\n"));
-      const whatsappUrl = `https://wa.me/989214147070?text=${message}`;
-
-      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-    });
+      if (state.user) {
+        fillUser(state.user);
+      }
+    } catch (error) {
+      setMessage(String(error?.message || error || "خطا در ثبت سفارش"));
+    } finally {
+      setSubmitting(false);
+    }
   }
+
+  async function init() {
+    await loadViewer();
+
+    state.cartItems = normalizeCartItems(getStoredCart());
+    state.shippingAmount = 0;
+    state.useWallet = !!els.walletToggle?.checked;
+
+    renderItems();
+    renderSummary();
+
+    if (els.walletToggle) {
+      els.walletToggle.addEventListener("change", () => {
+        state.useWallet = !!els.walletToggle.checked;
+        renderSummary();
+      });
+    }
+
+    if (els.form) {
+      els.form.addEventListener("submit", submitOrder);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
 })();
