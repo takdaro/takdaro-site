@@ -5,18 +5,53 @@
     return window.PRODUCTS;
   }
 
-  function createProductCard(product) {
-    const imageSrc =
-      Array.isArray(product.images) && product.images.length
-        ? `./${product.images[0]}`
-        : "./assets/images/placeholder.png";
+  function normalizeImageSrc(product) {
+    if (Array.isArray(product.images) && product.images.length) {
+      const firstImage = String(product.images[0] || "").trim();
+      if (!firstImage) return "./assets/images/placeholder.png";
+      if (firstImage.startsWith("http://") || firstImage.startsWith("https://")) {
+        return firstImage;
+      }
+      if (firstImage.startsWith("/")) {
+        return `.${firstImage}`;
+      }
+      return `./${firstImage.replace(/^\.?\//, "")}`;
+    }
 
-    const pageUrl = product.pageUrl ? `./${product.pageUrl}` : "#";
-    const title = product.name || "بدون نام";
-    const category = product.category || "محصول";
-    const shortDescription = product.shortDescription || "";
-    const priceLabel = product.priceLabel || "تماس بگیرید";
-    const stockLabel = product.stockLabel || (product.inStock ? "موجود" : "ناموجود");
+    return "./assets/images/placeholder.png";
+  }
+
+  function normalizePageUrl(product) {
+    const rawPageUrl = String(product.pageUrl || "").trim();
+    if (!rawPageUrl) return "#";
+    if (rawPageUrl.startsWith("http://") || rawPageUrl.startsWith("https://")) {
+      return rawPageUrl;
+    }
+    if (rawPageUrl.startsWith("/")) {
+      return `.${rawPageUrl}`;
+    }
+    return `./${rawPageUrl.replace(/^\.?\//, "")}`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function createProductCard(product) {
+    const imageSrc = normalizeImageSrc(product);
+    const pageUrl = normalizePageUrl(product);
+    const title = escapeHtml(product.name || "بدون نام");
+    const category = escapeHtml(product.category || "محصول");
+    const shortDescription = escapeHtml(product.shortDescription || "");
+    const priceLabel = escapeHtml(product.priceLabel || product.displayPrice || "تماس بگیرید");
+    const stockLabel = escapeHtml(
+      product.stockLabel || (product.inStock ? "موجود" : "ناموجود")
+    );
     const stockClass = product.inStock ? "in-stock" : "out-of-stock";
 
     return `
@@ -52,6 +87,18 @@
     `;
   }
 
+  function renderEmptyState(message) {
+    const grid = document.getElementById("products-grid");
+    if (!grid) return;
+
+    grid.innerHTML = `
+      <div class="empty-products">
+        <h3>محصولی برای نمایش پیدا نشد.</h3>
+        <p>${escapeHtml(message || "اطلاعات محصولات در دسترس نیست.")}</p>
+      </div>
+    `;
+  }
+
   function renderProducts() {
     const grid = document.getElementById("products-grid");
     if (!grid) return;
@@ -59,21 +106,36 @@
     const products = getProducts();
 
     if (!products.length) {
-      grid.innerHTML = `
-        <div class="empty-products">
-          <h3>محصولی برای نمایش پیدا نشد.</h3>
-          <p>فایل products.js را بررسی کنید.</p>
-        </div>
-      `;
+      renderEmptyState("اطلاعات محصولات هنوز بارگذاری نشده یا خالی است.");
       return;
     }
 
     grid.innerHTML = products.map(createProductCard).join("");
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", renderProducts);
-  } else {
+  function handleProductsReady(event) {
+    const products = event?.detail?.products;
+    if (!Array.isArray(products) || !products.length) {
+      renderEmptyState("داده‌ای از API دریافت نشد.");
+      return;
+    }
+
     renderProducts();
+  }
+
+  function boot() {
+    if (window.PRODUCTS_READY === true && getProducts().length) {
+      renderProducts();
+    } else {
+      renderEmptyState("در حال بارگذاری محصولات...");
+    }
+
+    document.addEventListener("products:ready", handleProductsReady);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
   }
 })();

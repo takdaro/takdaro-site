@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>محصولات | تک تجارت</title>
-  <meta name="description" content="لیست محصولات تک تجارت، واردکننده و تامین‌کننده داروهای جهانی." />
+  <meta
+    name="description"
+    content="لیست محصولات تک تجارت، واردکننده و تامین‌کننده داروهای جهانی."
+  />
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
 <body>
@@ -43,13 +46,11 @@
   <div id="site-footer"></div>
   <div id="site-cart"></div>
 
-  <script src="/assets/js/layout.js"></script>
-  <script src="/assets/js/products.js"></script>
-  <script src="./price-overrides.js"></script>
-  <script src="./price-loader.js"></script>
-  <script src="/assets/js/cart.js"></script>
-  <script src="/assets/js/app.js"></script>
-  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/layout.js" defer></script>
+  <script src="/assets/js/products-api-loader.js" defer></script>
+  <script src="/assets/js/cart.js" defer></script>
+  <script src="/assets/js/app.js" defer></script>
+  <script src="/assets/js/auth.js" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", async function () {
       if (!window.Auth) return;
