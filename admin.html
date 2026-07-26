@@ -763,6 +763,20 @@
         min-width: 900px;
       }
     }
+  
+    /* Products manager */
+    .products-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+    .product-image-thumb { width:58px; height:58px; border-radius:12px; object-fit:cover; border:1px solid rgba(15,23,42,.1); background:#f8fafc; }
+    .product-empty-image { width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:#f8fafc; color:#94a3b8; border:1px dashed rgba(15,23,42,.16); }
+    .product-gallery-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-top:14px; }
+    .product-gallery-item { position:relative; padding:10px; border:1px solid rgba(15,23,42,.1); border-radius:16px; background:#fff; }
+    .product-gallery-item img { width:100%; height:140px; object-fit:cover; border-radius:11px; background:#f8fafc; display:block; }
+    .product-gallery-item .form-field { margin-top:9px; gap:5px; }
+    .product-gallery-item .form-field input { padding:10px 11px; border-radius:11px; }
+    .product-gallery-actions { display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
+    .product-gallery-actions label { display:flex; align-items:center; gap:5px; color:#475569; font-size:.82rem; font-weight:700; cursor:pointer; }
+    .product-file-help { color:#64748b; font-size:.83rem; line-height:1.8; margin:0; }
+
   </style>
 </head>
 <body>
@@ -804,6 +818,7 @@
                 <button class="admin-menu-btn" type="button" data-admin-panel="orders">سفارش‌ها</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="users">کاربران</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="wallet">کیف پول</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="products">محصولات</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="logout">خروج</button>
               </nav>
             </div>
@@ -969,6 +984,27 @@
                 <div id="user-edit-box" class="detail-card admin-hidden"></div>
               </div>
 
+              <div id="admin-panel-products" class="admin-section">
+                <div class="products-toolbar">
+                  <div>
+                    <h4 style="margin:0;color:#0f172a">مدیریت محصولات</h4>
+                    <p class="admin-help">افزودن، ویرایش، حذف و مدیریت گالری تصاویر محصولات.</p>
+                  </div>
+                  <button class="btn btn-primary" type="button" id="show-create-product-btn">افزودن محصول جدید</button>
+                </div>
+                <div class="filters-grid">
+                  <div class="form-field"><label for="products-search">جست‌وجو</label><input id="products-search" type="text" placeholder="نام، slug یا دسته‌بندی" /></div>
+                  <div class="form-field"><label for="products-category">دسته‌بندی</label><select id="products-category"><option value="">همه دسته‌بندی‌ها</option></select></div>
+                  <div class="form-field"><label for="products-status">وضعیت</label><select id="products-status"><option value="">همه وضعیت‌ها</option><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="private">خصوصی</option></select></div>
+                  <div class="form-field" style="justify-content:flex-end"><label style="opacity:0">فیلتر</label><button class="btn btn-primary" type="button" id="products-filter-btn">اعمال فیلتر</button></div>
+                </div>
+                <div id="product-create-box" class="detail-card admin-hidden"></div>
+                <div class="table-wrap">
+                  <table class="admin-table"><thead><tr><th>تصویر</th><th>شناسه</th><th>نام محصول</th><th>دسته‌بندی</th><th>قیمت</th><th>موجودی</th><th>وضعیت</th><th>به‌روزرسانی</th><th>اقدام</th></tr></thead><tbody id="products-body"></tbody></table>
+                </div>
+                <div id="product-edit-box" class="detail-card admin-hidden"></div>
+              </div>
+
               <div id="admin-panel-wallet" class="admin-section">
                 <div class="wallet-shell">
                   <div class="wallet-toolbar">
@@ -1054,6 +1090,8 @@
     const adminMessage = document.getElementById("admin-message");
     const userCreateBox = document.getElementById("user-create-box");
     const userEditBox = document.getElementById("user-edit-box");
+    const productCreateBox = document.getElementById("product-create-box");
+    const productEditBox = document.getElementById("product-edit-box");
 
     const walletContent = document.getElementById("wallet-content");
     const walletEmptyState = document.getElementById("wallet-empty-state");
@@ -1071,6 +1109,7 @@
       orders: { title: "سفارش‌ها", description: "مدیریت و بررسی همه سفارش‌های ثبت شده." },
       users: { title: "کاربران", description: "مدیریت کاربران، نقش‌ها و اطلاعات حساب." },
       wallet: { title: "کیف پول", description: "مدیریت حرفه‌ای موجودی، تراکنش‌ها و تنظیمات کش‌بک کاربران." },
+      products: { title: "محصولات", description: "مدیریت محصولات، قیمت، موجودی، انتشار و گالری تصاویر." },
       logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
     };
 
@@ -1095,6 +1134,7 @@
         adminHeading.textContent = panelMeta[panel].title;
         adminDescription.textContent = panelMeta[panel].description;
       }
+      if (panel === "products") loadProducts();
     }
 
     function esc(value) {
@@ -2113,6 +2153,113 @@
       });
     }
 
+
+    function faProductStatus(value) {
+      const map = { published: "منتشرشده", draft: "پیش‌نویس", private: "خصوصی" };
+      return map[String(value || "").toLowerCase()] || "پیش‌نویس";
+    }
+
+    function productStatusBadge(value) {
+      const v = String(value || "draft").toLowerCase();
+      const cls = v === "published" ? "status-badge status-badge--success" : v === "private" ? "status-badge status-badge--danger" : "status-badge status-badge--warning";
+      return `<span class="${cls}">${esc(faProductStatus(v))}</span>`;
+    }
+
+    function closeProductCreateBox() { productCreateBox.classList.add("admin-hidden"); productCreateBox.innerHTML = ""; }
+    function closeProductEditBox() { productEditBox.classList.add("admin-hidden"); productEditBox.innerHTML = ""; }
+
+    function productFormHtml(product = {}) {
+      const images = Array.isArray(product.images) ? product.images : [];
+      const imageRows = images.map((image, index) => productGalleryHtml(image, index)).join("");
+      return `
+        <h4>${product.id ? `ویرایش محصول #${esc(product.id)}` : "افزودن محصول جدید"}</h4>
+        <div class="filters-grid filters-grid-3">
+          <div class="form-field"><label>نام محصول *</label><input data-product-field="name" type="text" value="${esc(product.name || "")}" placeholder="نام محصول" /></div>
+          <div class="form-field"><label>Slug انگلیسی *</label><input data-product-field="slug" type="text" value="${esc(product.slug || "")}" placeholder="مثلاً tb-500" /></div>
+          <div class="form-field"><label>دسته‌بندی</label><input data-product-field="category" type="text" value="${esc(product.category || "")}" placeholder="مثلاً پپتاید" /></div>
+          <div class="form-field"><label>قیمت (تومان)</label><input data-product-field="price" type="text" inputmode="numeric" value="${product.price ?? ""}" placeholder="مثلاً 2500000" /></div>
+          <div class="form-field"><label>برچسب قیمت</label><input data-product-field="price_label" type="text" value="${esc(product.price_label || "تماس بگیرید")}" /></div>
+          <div class="form-field"><label>تعداد موجودی</label><input data-product-field="stock_quantity" type="number" min="0" value="${Number(product.stock_quantity || 0)}" /></div>
+          <div class="form-field"><label>برچسب موجودی</label><input data-product-field="stock_label" type="text" value="${esc(product.stock_label || "")}" placeholder="موجود / ناموجود" /></div>
+          <div class="form-field"><label>وضعیت انتشار</label><select data-product-field="status"><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="private">خصوصی</option></select></div>
+          <div class="form-field"><label>آدرس صفحه محصول</label><input data-product-field="page_url" type="text" value="${esc(product.page_url || "")}" placeholder="products/example.html" /></div>
+        </div>
+        <div class="filters-grid filters-grid-2">
+          <div class="form-field"><label><input data-product-field="show_price" type="checkbox" ${product.show_price ? "checked" : ""} /> نمایش قیمت به مشتری</label></div>
+          <div class="form-field"><label><input data-product-field="in_stock" type="checkbox" ${product.in_stock ? "checked" : ""} /> محصول موجود است</label></div>
+        </div>
+        <div class="form-field"><label>توضیح کوتاه</label><textarea data-product-field="short_description" rows="3" placeholder="توضیح کوتاه برای محصول">${esc(product.short_description || "")}</textarea></div>
+        <div class="form-field"><label>توضیحات کامل</label><textarea data-product-field="description" rows="7" placeholder="توضیحات کامل محصول">${esc(product.description || "")}</textarea></div>
+        <div class="detail-card" style="margin-top:16px;background:#f8fafc">
+          <div class="products-toolbar"><div><h4 style="margin:0">گالری تصاویر</h4><p class="product-file-help">برای تصویر جدید، مسیر آن را وارد کن؛ مثل: /assets/images/tb-500/1.png. انتخاب فایل فقط پیش‌نمایش محلی است و فایل را روی سرور آپلود نمی‌کند.</p></div><button class="btn btn-secondary" type="button" data-add-product-image>افزودن مسیر تصویر</button></div>
+          <div class="form-field"><label>انتخاب تصویر از رایانه (پیش‌نمایش)</label><input data-product-local-files type="file" accept="image/*" multiple /></div>
+          <div class="product-gallery-list" data-product-gallery>${imageRows}</div>
+        </div>
+        <div class="panel-actions"><button class="btn btn-primary" type="button" data-save-product>${product.id ? "ذخیره تغییرات" : "ثبت محصول"}</button>${product.id ? `<button class="btn btn-secondary" type="button" data-delete-current-product="${esc(product.id)}">حذف محصول</button>` : ""}<button class="btn btn-secondary" type="button" data-close-product-form>بستن</button></div>
+      `;
+    }
+
+    function productGalleryHtml(image = {}, index = 0) {
+      const url = image.image_url || image.imageUrl || "";
+      const alt = image.alt_text || image.altText || "";
+      const primary = image.is_primary === true || image.is_primary === 1 || index === 0;
+      return `<div class="product-gallery-item" data-gallery-item><img data-gallery-preview src="${esc(url)}" alt="${esc(alt)}" onerror="this.style.display='none'" /><div class="form-field"><label>مسیر تصویر</label><input data-gallery-url type="text" value="${esc(url)}" placeholder="/assets/images/..." /></div><div class="form-field"><label>متن جایگزین</label><input data-gallery-alt type="text" value="${esc(alt)}" placeholder="نام تصویر" /></div><div class="product-gallery-actions"><label><input data-gallery-primary type="radio" name="product-primary-image" ${primary ? "checked" : ""} /> تصویر اصلی</label><button class="btn btn-secondary" type="button" data-remove-product-image>حذف</button></div></div>`;
+    }
+
+    function bindProductForm(box, product = {}) {
+      const statusField = box.querySelector('[data-product-field="status"]');
+      statusField.value = product.status || "draft";
+      box.querySelector('[data-add-product-image]').addEventListener("click", () => {
+        box.querySelector('[data-product-gallery]').insertAdjacentHTML("beforeend", productGalleryHtml({}, box.querySelectorAll('[data-gallery-item]').length));
+      });
+      box.querySelector('[data-product-gallery]').addEventListener("click", event => {
+        if (event.target.closest('[data-remove-product-image]')) event.target.closest('[data-gallery-item]').remove();
+      });
+      box.querySelector('[data-product-gallery]').addEventListener("input", event => {
+        if (event.target.matches('[data-gallery-url]')) {
+          const preview = event.target.closest('[data-gallery-item]').querySelector('[data-gallery-preview]');
+          preview.style.display = "block"; preview.src = event.target.value.trim();
+        }
+      });
+      box.querySelector('[data-product-local-files]').addEventListener("change", event => {
+        [...event.target.files].forEach(file => {
+          const reader = new FileReader();
+          reader.onload = () => box.querySelector('[data-product-gallery]').insertAdjacentHTML("beforeend", productGalleryHtml({ image_url: reader.result, alt_text: file.name }, box.querySelectorAll('[data-gallery-item]').length));
+          reader.readAsDataURL(file);
+        });
+        setAdminMessage("فایل‌ها فقط برای پیش‌نمایش اضافه شدند. پیش از ذخیره، مسیر واقعی /assets/images/... را وارد کن.");
+      });
+      box.querySelector('[data-save-product]').addEventListener("click", async () => {
+        const get = key => box.querySelector(`[data-product-field="${key}"]`);
+        const images = [...box.querySelectorAll('[data-gallery-item]')].map((item, index) => ({ image_url: item.querySelector('[data-gallery-url]').value.trim(), alt_text: item.querySelector('[data-gallery-alt]').value.trim(), sort_order: index + 1, is_primary: item.querySelector('[data-gallery-primary]').checked })).filter(image => image.image_url && !image.image_url.startsWith("data:"));
+        const payload = { name:get("name").value.trim(), slug:get("slug").value.trim(), category:get("category").value.trim(), price:get("price").value.trim(), price_label:get("price_label").value.trim(), show_price:get("show_price").checked, stock_quantity:get("stock_quantity").value, in_stock:get("in_stock").checked, stock_label:get("stock_label").value.trim(), short_description:get("short_description").value.trim(), description:get("description").value.trim(), page_url:get("page_url").value.trim(), status:get("status").value, images };
+        if (!payload.name) { setAdminMessage("نام محصول الزامی است."); return; }
+        const url = product.id ? `/api/admin/products/${encodeURIComponent(product.id)}` : "/api/admin/products";
+        const result = await api(url, { method: product.id ? "PUT" : "POST", body: JSON.stringify(payload) });
+        if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "ذخیره محصول انجام نشد."); return; }
+        setAdminMessage(result.data.message || "محصول با موفقیت ذخیره شد.", "success"); closeProductCreateBox(); closeProductEditBox(); await loadProducts();
+      });
+      box.querySelector('[data-close-product-form]').addEventListener("click", () => { closeProductCreateBox(); closeProductEditBox(); });
+      const deleteBtn = box.querySelector('[data-delete-current-product]');
+      if (deleteBtn) deleteBtn.addEventListener("click", () => deleteProduct(Number(deleteBtn.getAttribute("data-delete-current-product"))));
+    }
+
+    function openProductCreate() { closeProductEditBox(); productCreateBox.classList.remove("admin-hidden"); productCreateBox.innerHTML = productFormHtml({ show_price:true, in_stock:true, status:"draft", stock_label:"موجود", price_label:"تماس بگیرید" }); bindProductForm(productCreateBox); productCreateBox.scrollIntoView({ behavior:"smooth", block:"start" }); }
+    async function openProductEdit(id) { closeProductCreateBox(); const result = await api(`/api/admin/products/${encodeURIComponent(id)}`); if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "دریافت محصول انجام نشد."); return; } productEditBox.classList.remove("admin-hidden"); productEditBox.innerHTML = productFormHtml(result.data.product); bindProductForm(productEditBox, result.data.product); productEditBox.scrollIntoView({ behavior:"smooth", block:"start" }); }
+    async function deleteProduct(id) { if (!id) return; if (!window.confirm("آیا از حذف این محصول مطمئن هستی؟")) return; if (!window.confirm("حذف محصول و گالری تصاویر غیرقابل بازگشت است. ادامه می‌دهی؟")) return; const result = await api(`/api/admin/products/${encodeURIComponent(id)}`, { method:"DELETE" }); if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "حذف محصول انجام نشد."); return; } setAdminMessage(result.data.message || "محصول حذف شد.", "success"); closeProductCreateBox(); closeProductEditBox(); await loadProducts(); }
+    async function loadProducts() {
+      const tbody = document.getElementById("products-body");
+      if (!tbody) return;
+      const params = new URLSearchParams(); const search = document.getElementById("products-search").value.trim(); const category = document.getElementById("products-category").value; const status = document.getElementById("products-status").value;
+      if (search) params.set("search", search); if (category) params.set("category", category); if (status) params.set("status", status);
+      tbody.innerHTML = '<tr><td colspan="9">در حال دریافت محصولات...</td></tr>';
+      const result = await api(`/api/admin/products${params.toString() ? `?${params}` : ""}`);
+      if (!result.ok || !result.data?.success) { tbody.innerHTML = `<tr><td colspan="9">${esc(result.data?.error || "دریافت محصولات انجام نشد.")}</td></tr>`; return; }
+      const select = document.getElementById("products-category"); const oldCategory = select.value; select.innerHTML = '<option value="">همه دسته‌بندی‌ها</option>' + (result.data.categories || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(""); select.value = oldCategory;
+      const products = Array.isArray(result.data.products) ? result.data.products : [];
+      tbody.innerHTML = products.length ? products.map(product => { const img = product.primary_image || product.images?.[0]?.image_url || ""; return `<tr><td>${img ? `<img class="product-image-thumb" src="${esc(img)}" alt="${esc(product.name)}" onerror="this.outerHTML='<div class=product-empty-image>—</div>'" />` : '<div class="product-empty-image">—</div>'}</td><td class="table-number">${esc(product.id)}</td><td><strong>${esc(product.name)}</strong><br><small style="color:#64748b">${esc(product.slug)}</small></td><td>${esc(product.category || "—")}</td><td class="table-number">${product.show_price && product.price !== null ? `${money(product.price)} تومان` : esc(product.price_label || "تماس بگیرید")}</td><td>${Number(product.in_stock) || product.in_stock === true ? `<span class="status-badge status-badge--success">${esc(product.stock_label || "موجود")}</span><br><small>${money(product.stock_quantity || 0)} عدد</small>` : `<span class="status-badge status-badge--danger">${esc(product.stock_label || "ناموجود")}</span>`}</td><td>${productStatusBadge(product.status)}</td><td class="table-number">${formatDate(product.updated_at || product.created_at)}</td><td><div class="panel-actions" style="margin-top:0"><button class="btn btn-secondary" type="button" data-edit-product="${esc(product.id)}">ویرایش</button><button class="btn btn-secondary" type="button" data-delete-product="${esc(product.id)}">حذف</button></div></td></tr>`; }).join("") : '<tr><td colspan="9">محصولی پیدا نشد.</td></tr>';
+    }
+
     async function loadWalletUser() {
       const userId = Number(document.getElementById("wallet-user-id").value || 0);
       const limit = Number(document.getElementById("wallet-limit").value || 50);
@@ -2166,6 +2313,14 @@
       }
     });
     document.getElementById("show-create-user-btn").addEventListener("click", openUserCreate);
+    document.getElementById("show-create-product-btn").addEventListener("click", openProductCreate);
+    document.getElementById("products-filter-btn").addEventListener("click", loadProducts);
+    document.getElementById("products-body").addEventListener("click", async (event) => {
+      const editBtn = event.target.closest("[data-edit-product]");
+      if (editBtn) { await openProductEdit(Number(editBtn.getAttribute("data-edit-product"))); return; }
+      const deleteBtn = event.target.closest("[data-delete-product]");
+      if (deleteBtn) await deleteProduct(Number(deleteBtn.getAttribute("data-delete-product")));
+    });
 
     document.getElementById("orders-body").addEventListener("click", async (event) => {
       const viewBtn = event.target.closest("[data-view-order]");
