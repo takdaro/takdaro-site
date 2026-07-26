@@ -98,6 +98,30 @@
     return new Intl.NumberFormat("fa-IR").format(Number(value || 0));
   }
 
+  function formatMoney(value) {
+    const amount = parsePrice(value);
+    if (amount === null || amount <= 0) return "تماس بگیرید";
+    return `${formatNumber(amount)} تومان`;
+  }
+
+  function getProducts() {
+    return Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
+  }
+
+  function findProductByIdentifiers(productId, slug) {
+    const safeId = String(productId ?? "").trim();
+    const safeSlug = String(slug ?? "").trim();
+
+    return (
+      getProducts().find((product) => {
+        return (
+          (safeSlug && String(product?.slug || "").trim() === safeSlug) ||
+          (safeId && String(product?.id ?? "").trim() === safeId)
+        );
+      }) || null
+    );
+  }
+
   function setCheckoutMessage(message, type = "info") {
     if (!els.checkoutMessage) return;
 
@@ -121,10 +145,13 @@
         ? String(product.images[0] || "").trim()
         : "";
 
-    if (!firstImage) return "./assets/images/placeholder.png";
-    if (firstImage.startsWith("http://") || firstImage.startsWith("https://")) return firstImage;
-    if (firstImage.startsWith("/")) return `.${firstImage}`;
-    return `./${firstImage.replace(/^\.?\//, "")}`;
+    const primaryImage = String(product?.primaryImage || "").trim();
+    const resolved = primaryImage || firstImage;
+
+    if (!resolved) return "./assets/images/placeholder.png";
+    if (resolved.startsWith("http://") || resolved.startsWith("https://")) return resolved;
+    if (resolved.startsWith("/")) return `.${resolved}`;
+    return `./${resolved.replace(/^\.?\//, "")}`;
   }
 
   function getSelectedShippingFee() {
@@ -139,30 +166,27 @@
 
   function getCartItems() {
     try {
+      if (window.CartStore?.getCartDetailed) {
+        const items = window.CartStore.getCartDetailed();
+        if (Array.isArray(items)) return items;
+      }
+    } catch (_) {}
+
+    try {
       if (window.CartStore?.getItems) {
         const items = window.CartStore.getItems();
-        return Array.isArray(items) ? items : [];
+        if (Array.isArray(items)) return items;
       }
     } catch (_) {}
 
     try {
       if (window.Cart?.getItems) {
         const items = window.Cart.getItems();
-        return Array.isArray(items) ? items : [];
+        if (Array.isArray(items)) return items;
       }
     } catch (_) {}
 
-    try {
-      const raw =
-        localStorage.getItem("takdaro_cart") ||
-        localStorage.getItem("cart") ||
-        sessionStorage.getItem("cart") ||
-        "[]";
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (_) {
-      return [];
-    }
+    return [];
   }
 
   function clearCart() {
@@ -179,64 +203,43 @@
         return;
       }
     } catch (_) {}
-
-    try {
-      localStorage.removeItem("takdaro_cart");
-      localStorage.removeItem("cart");
-      sessionStorage.removeItem("cart");
-    } catch (_) {}
   }
 
   function normalizeCartItems(items) {
     return (Array.isArray(items) ? items : [])
       .map((item) => {
-        const product = item?.product || {};
+        const detailedProduct = item?.product || null;
+        const productId = item?.productId ?? item?.product_id ?? detailedProduct?.id ?? null;
+        const slug = String(item?.slug || detailedProduct?.slug || "").trim();
+        const liveProduct = findProductByIdentifiers(productId, slug);
         const quantity = Math.max(1, Number(item?.quantity ?? item?.qty ?? 1) || 1);
 
+        const product = liveProduct || detailedProduct || {};
         const unitPrice = parsePrice(
+          liveProduct?.price ??
+          detailedProduct?.price ??
           item?.unitPrice ??
           item?.unit_price ??
-          item?.price ??
-          product?.price ??
-          product?.priceLabel ??
-          product?.displayPrice ??
-          product?.salePrice
+          item?.price
         );
 
-        const totalPrice = parsePrice(
-          item?.totalPrice ??
-          item?.total_price ??
-          item?.row_total ??
-          item?.line_total
-        );
-
-        const resolvedTotal =
-          totalPrice !== null
-            ? totalPrice
-            : unitPrice !== null
-              ? unitPrice * quantity
-              : null;
+        const totalPrice = unitPrice !== null ? unitPrice * quantity : null;
 
         return {
-          productId: item?.productId ?? item?.product_id ?? product?.id ?? null,
-          slug: String(item?.slug || product?.slug || "").trim(),
+          productId: product?.id ?? productId,
+          slug: product?.slug || slug,
           quantity,
           product: {
-            id: product?.id ?? item?.productId ?? item?.product_id ?? null,
-            slug: String(product?.slug || item?.slug || "").trim(),
-            name: String(
-              product?.name ||
-              item?.product_name ||
-              item?.name ||
-              "محصول"
-            ).trim(),
-            category: String(product?.category || "").trim(),
+            id: product?.id ?? productId,
+            slug: product?.slug || slug,
+            name: product?.name || item?.name || "محصول",
+            category: product?.category || "",
             pageUrl: product?.pageUrl || "",
             images: Array.isArray(product?.images) ? product.images : [],
             primaryImage: product?.primaryImage || ""
           },
           unitPrice,
-          totalPrice: resolvedTotal
+          totalPrice
         };
       })
       .filter((item) => item.quantity > 0);
@@ -396,9 +399,9 @@
       if (els.walletUseFields) els.walletUseFields.hidden = true;
       if (els.walletDiscountRow) els.walletDiscountRow.hidden = true;
       if (els.cashbackRow) els.cashbackRow.hidden = true;
-      if (els.walletBalance) els.walletBalance.textContent = "0";
-      if (els.summaryWalletUsed) els.summaryWalletUsed.textContent = "0";
-      if (els.summaryCashback) els.summaryCashback.textContent = "0";
+      if (els.walletBalance) els.walletBalance.textContent = "0 تومان";
+      if (els.summaryWalletUsed) els.summaryWalletUsed.textContent = "0 تومان";
+      if (els.summaryCashback) els.summaryCashback.textContent = "0 تومان";
       if (els.walletHelpText) els.walletHelpText.textContent = "کیف پول برای این سفارش در دسترس نیست.";
       if (els.summaryTotal) {
         els.summaryTotal.textContent =
@@ -414,7 +417,7 @@
     const cashbackAmount = getCashbackAmount(cashbackBase);
 
     if (els.walletBalance) {
-      els.walletBalance.textContent = formatNumber(state.wallet.balance);
+      els.walletBalance.textContent = `${formatNumber(state.wallet.balance)} تومان`;
     }
 
     if (els.walletUseFields) {
@@ -430,7 +433,7 @@
     }
 
     if (els.summaryWalletUsed) {
-      els.summaryWalletUsed.textContent = formatNumber(walletUsed);
+      els.summaryWalletUsed.textContent = `${formatNumber(walletUsed)} تومان`;
     }
 
     if (els.cashbackRow) {
@@ -438,7 +441,7 @@
     }
 
     if (els.summaryCashback) {
-      els.summaryCashback.textContent = formatNumber(cashbackAmount);
+      els.summaryCashback.textContent = `${formatNumber(cashbackAmount)} تومان`;
     }
 
     if (els.summaryTotal) {
@@ -457,11 +460,11 @@
     const items = pricing.items;
 
     if (els.invoiceDate) {
-      els.invoiceDate.textContent = today.toLocaleDateString("fa-IR");
+      els.invoiceDate.textContent = `تاریخ: ${today.toLocaleDateString("fa-IR")}`;
     }
 
     if (els.invoiceItemsCount) {
-      els.invoiceItemsCount.textContent = `${formatNumber(items.length)} محصول`;
+      els.invoiceItemsCount.textContent = `اقلام: ${formatNumber(items.length)}`;
     }
 
     if (els.summaryQty) {
@@ -518,8 +521,8 @@
               </div>
             </td>
             <td class="invoice-number">${formatNumber(item.quantity)}</td>
-            <td class="invoice-number">${item.unitPrice === null ? "تماس بگیرید" : `${formatNumber(item.unitPrice)} تومان`}</td>
-            <td class="invoice-number">${item.totalPrice === null ? "تماس بگیرید" : `${formatNumber(item.totalPrice)} تومان`}</td>
+            <td class="invoice-number">${formatMoney(item.unitPrice)}</td>
+            <td class="invoice-number">${formatMoney(item.totalPrice)}</td>
           </tr>
         `;
       }).join("");
@@ -805,7 +808,17 @@
     document.addEventListener("products:ready", renderCheckout);
   }
 
+  async function waitForProductsReady() {
+    if (window.PRODUCTS_READY === true) return;
+    if (window.PRODUCTS_LOADING && typeof window.PRODUCTS_LOADING.then === "function") {
+      try {
+        await window.PRODUCTS_LOADING;
+      } catch (_) {}
+    }
+  }
+
   async function init() {
+    await waitForProductsReady();
     renderCheckout();
     await tryFillUserData();
     await loadWalletData();

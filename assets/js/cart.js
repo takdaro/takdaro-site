@@ -20,6 +20,10 @@
     return Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
   }
 
+  function hasUsableProducts() {
+    return getProducts().length > 0;
+  }
+
   function findProduct(identifier) {
     const value = String(identifier ?? "").trim();
 
@@ -48,6 +52,19 @@
     return getProductStockQty(product) >= 1;
   }
 
+  function getProductNumericPrice(product) {
+    const raw = product?.price;
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    return null;
+  }
+
+  function formatPrice(value) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount <= 0) return "تماس بگیرید";
+    return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`;
+  }
+
   function readCart() {
     if (!storageAvailable) {
       return Array.isArray(memoryCart) ? memoryCart : [];
@@ -71,15 +88,30 @@
     }
 
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(Array.isArray(cart) ? cart : []));
     } catch (error) {
       console.warn("Could not save cart in storage.", error);
     }
   }
 
+  function normalizeRawCart(cart) {
+    return (Array.isArray(cart) ? cart : [])
+      .map((item) => ({
+        productId: item?.productId ?? null,
+        slug: String(item?.slug || "").trim(),
+        quantity: normalizeQuantity(item?.quantity)
+      }))
+      .filter((item) => item.productId || item.slug);
+  }
+
   function getValidatedCart() {
+    const cart = normalizeRawCart(readCart());
     const products = getProducts();
-    const cart = readCart();
+
+    if (!hasUsableProducts()) {
+      return cart;
+    }
+
     const validItems = [];
 
     cart.forEach((item) => {
@@ -121,43 +153,59 @@
   function getCartDetails() {
     const products = getProducts();
     const cart = getValidatedCart();
+    const productsAvailable = hasUsableProducts();
 
     return cart
       .map((item) => {
         const product =
-          products.find((currentProduct) => {
-            return (
-              String(currentProduct.id) === String(item.productId) ||
-              String(currentProduct.slug) === String(item.slug)
-            );
-          }) || null;
+          productsAvailable
+            ? products.find((currentProduct) => {
+                return (
+                  String(currentProduct.id) === String(item.productId) ||
+                  String(currentProduct.slug) === String(item.slug)
+                );
+              }) || null
+            : null;
 
         if (!product) {
           return {
             ...item,
+            qty: item.quantity,
             product: {
               id: item.productId ?? null,
               slug: item.slug || "",
-              name: "محصول",
-              category: "",
-              pageUrl: "",
-              images: []
+              name: item.slug || "محصول انتخاب‌شده",
+              category: "دسته‌بندی نامشخص",
+              pageUrl: item.slug ? `/products/${encodeURIComponent(item.slug)}` : "",
+              images: [],
+              primaryImage: "",
+              price: null,
+              priceLabel: "تماس بگیرید"
             },
             unitPrice: null,
-            totalPrice: null
+            unitPriceLabel: "تماس بگیرید",
+            totalPrice: null,
+            totalPriceLabel: "تماس بگیرید"
           };
         }
 
-        const unitPrice =
-          product?.showPrice && Number(product?.price) > 0
-            ? Number(product.price)
-            : null;
+        const unitPrice = getProductNumericPrice(product);
+        const totalPrice = unitPrice === null ? null : unitPrice * item.quantity;
 
         return {
           ...item,
+          qty: item.quantity,
           product,
           unitPrice,
-          totalPrice: unitPrice === null ? null : unitPrice * item.quantity
+          unitPriceLabel:
+            unitPrice === null
+              ? product.priceLabel || "تماس بگیرید"
+              : formatPrice(unitPrice),
+          totalPrice,
+          totalPriceLabel:
+            totalPrice === null
+              ? product.priceLabel || "تماس بگیرید"
+              : formatPrice(totalPrice)
         };
       })
       .filter((item) => item && item.product);
@@ -169,8 +217,11 @@
 
   function getTotalPrice() {
     const items = getCartDetails();
-    if (items.some((item) => item.totalPrice === null)) return null;
-    return items.reduce((total, item) => total + item.totalPrice, 0);
+    const pricedItems = items.filter((item) => item.totalPrice !== null);
+
+    if (!pricedItems.length) return null;
+
+    return pricedItems.reduce((total, item) => total + item.totalPrice, 0);
   }
 
   function dispatchCartUpdated() {
@@ -186,7 +237,20 @@
   }
 
   function saveValidatedCart() {
+    const rawCart = normalizeRawCart(readCart());
+
+    if (!hasUsableProducts()) {
+      dispatchCartUpdated();
+      return rawCart;
+    }
+
     const validCart = getValidatedCart();
+
+    if (rawCart.length > 0 && validCart.length === 0) {
+      dispatchCartUpdated();
+      return rawCart;
+    }
+
     writeCart(validCart);
     dispatchCartUpdated();
     return validCart;
@@ -298,12 +362,6 @@
     });
   }
 
-  function formatPrice(value) {
-    const amount = Number(value);
-    if (!Number.isFinite(amount) || amount <= 0) return "تماس بگیرید";
-    return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`;
-  }
-
   function updateCartBadges() {
     const itemCount = getItemCount();
 
@@ -323,6 +381,7 @@
     remove: removeItem,
     clear: clearCart,
     getItems: getCartDetails,
+    getCartDetailed: getCartDetails,
     getRawItems: getValidatedCart,
     getItemCount,
     getTotalPrice,
@@ -339,6 +398,8 @@
     removeFromCart: removeItem,
     clearCart: clearCart,
     getItems: getCartDetails,
+    getCartDetailed: getCartDetails,
+    getRawItems: getValidatedCart,
     getItemCount,
     getTotalPrice,
     hasItem,
@@ -353,8 +414,11 @@
     updateCartBadges();
   });
 
-  if (window.PRODUCTS_READY === true) {
+  if (hasUsableProducts()) {
     saveValidatedCart();
+    updateCartBadges();
+  } else {
+    dispatchCartUpdated();
     updateCartBadges();
   }
 

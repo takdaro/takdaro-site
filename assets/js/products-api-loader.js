@@ -60,9 +60,13 @@
     const slug = cleanText(product?.slug);
     const stockQty = Math.max(0, Math.floor(toNumber(product?.stockQty, 0)));
     const inStock = toBoolean(product?.inStock) && stockQty > 0;
-    const showPrice = toBoolean(product?.showPrice);
+
     const numericPrice = toNumber(product?.price, 0);
-    const price = showPrice && numericPrice > 0 ? numericPrice : null;
+    const hasValidPrice = numericPrice > 0;
+
+    const price = hasValidPrice ? numericPrice : null;
+    const showPrice =
+      hasValidPrice ? true : toBoolean(product?.showPrice);
 
     const imageList = Array.isArray(product?.images)
       ? product.images.map(normalizeImagePath).filter(Boolean)
@@ -71,10 +75,10 @@
     const primaryImage = normalizeImagePath(product?.primaryImage);
     const images = Array.from(new Set([primaryImage, ...imageList].filter(Boolean)));
 
-    const priceLabel =
-      price !== null
-        ? formatPrice(price)
-        : cleanText(product?.priceLabel) || "تماس بگیرید";
+    const rawPriceLabel = cleanText(product?.priceLabel);
+    const priceLabel = hasValidPrice
+      ? formatPrice(price)
+      : rawPriceLabel || "تماس بگیرید";
 
     return {
       id: Number(product?.id) || null,
