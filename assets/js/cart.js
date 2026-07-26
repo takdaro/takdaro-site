@@ -1,6 +1,20 @@
 ﻿(function () {
   const CART_STORAGE_KEY = "takdaro_cart";
   const CART_EVENT_NAME = "cart:updated";
+  let memoryCart = [];
+
+  function canUseStorage() {
+    try {
+      const testKey = "__takdaro_storage_test__";
+      localStorage.setItem(testKey, "1");
+      localStorage.removeItem(testKey);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  const storageAvailable = canUseStorage();
 
   function getProducts() {
     return Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
@@ -9,43 +23,57 @@
   function findProduct(identifier) {
     const value = String(identifier ?? "").trim();
 
-    return getProducts().find((product) => {
-      return String(product.id) === value || product.slug === value;
-    }) || null;
+    return (
+      getProducts().find((product) => {
+        return String(product.id) === value || String(product.slug) === value;
+      }) || null
+    );
   }
 
   function normalizeQuantity(value) {
     const quantity = Number.parseInt(value, 10);
-
-    if (!Number.isFinite(quantity) || quantity < 1) {
-      return 1;
-    }
-
+    if (!Number.isFinite(quantity) || quantity < 1) return 1;
     return quantity;
   }
 
+  function getProductStockQty(product) {
+    const parsed = Number(product?.stockQty);
+    if (Number.isFinite(parsed) && parsed >= 1) return parsed;
+    return 999;
+  }
+
+  function isProductInStock(product) {
+    if (!product) return false;
+    if (product.inStock === false) return false;
+    return getProductStockQty(product) >= 1;
+  }
+
   function readCart() {
+    if (!storageAvailable) {
+      return Array.isArray(memoryCart) ? memoryCart : [];
+    }
+
     try {
       const rawCart = localStorage.getItem(CART_STORAGE_KEY);
-
-      if (!rawCart) {
-        return [];
-      }
-
+      if (!rawCart) return [];
       const parsedCart = JSON.parse(rawCart);
-
       return Array.isArray(parsedCart) ? parsedCart : [];
     } catch (error) {
-      console.warn("Could not read cart from localStorage.", error);
+      console.warn("Could not read cart from storage.", error);
       return [];
     }
   }
 
   function writeCart(cart) {
+    if (!storageAvailable) {
+      memoryCart = Array.isArray(cart) ? [...cart] : [];
+      return;
+    }
+
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     } catch (error) {
-      console.warn("Could not save cart in localStorage.", error);
+      console.warn("Could not save cart in storage.", error);
     }
   }
 
@@ -58,17 +86,26 @@
       const product = products.find((currentProduct) => {
         return (
           String(currentProduct.id) === String(item.productId) ||
-          currentProduct.slug === item.slug
+          String(currentProduct.slug) === String(item.slug)
         );
       });
 
-      if (!product || !product.inStock || product.stockQty < 1) {
+      if (!product) {
+        validItems.push({
+          productId: item.productId,
+          slug: item.slug,
+          quantity: normalizeQuantity(item.quantity)
+        });
+        return;
+      }
+
+      if (!isProductInStock(product)) {
         return;
       }
 
       const quantity = Math.min(
         normalizeQuantity(item.quantity),
-        Math.max(1, Number(product.stockQty) || 1)
+        getProductStockQty(product)
       );
 
       validItems.push({
@@ -85,40 +122,54 @@
     const products = getProducts();
     const cart = getValidatedCart();
 
-    return cart.map((item) => {
-      const product = products.find((currentProduct) => {
-        return (
-          String(currentProduct.id) === String(item.productId) ||
-          currentProduct.slug === item.slug
-        );
-      });
+    return cart
+      .map((item) => {
+        const product =
+          products.find((currentProduct) => {
+            return (
+              String(currentProduct.id) === String(item.productId) ||
+              String(currentProduct.slug) === String(item.slug)
+            );
+          }) || null;
 
-      const unitPrice = product?.showPrice && Number(product?.price) > 0
-        ? Number(product.price)
-        : null;
+        if (!product) {
+          return {
+            ...item,
+            product: {
+              id: item.productId ?? null,
+              slug: item.slug || "",
+              name: "محصول",
+              category: "",
+              pageUrl: "",
+              images: []
+            },
+            unitPrice: null,
+            totalPrice: null
+          };
+        }
 
-      return {
-        ...item,
-        product,
-        unitPrice,
-        totalPrice: unitPrice === null ? null : unitPrice * item.quantity
-      };
-    }).filter((item) => item.product);
+        const unitPrice =
+          product?.showPrice && Number(product?.price) > 0
+            ? Number(product.price)
+            : null;
+
+        return {
+          ...item,
+          product,
+          unitPrice,
+          totalPrice: unitPrice === null ? null : unitPrice * item.quantity
+        };
+      })
+      .filter((item) => item && item.product);
   }
 
   function getItemCount() {
-    return getCartDetails().reduce((total, item) => {
-      return total + item.quantity;
-    }, 0);
+    return getCartDetails().reduce((total, item) => total + item.quantity, 0);
   }
 
   function getTotalPrice() {
     const items = getCartDetails();
-
-    if (items.some((item) => item.totalPrice === null)) {
-      return null;
-    }
-
+    if (items.some((item) => item.totalPrice === null)) return null;
     return items.reduce((total, item) => total + item.totalPrice, 0);
   }
 
@@ -145,17 +196,11 @@
     const product = findProduct(identifier);
 
     if (!product) {
-      return {
-        success: false,
-        message: "محصول موردنظر پیدا نشد."
-      };
+      return { success: false, message: "محصول موردنظر پیدا نشد." };
     }
 
-    if (!product.inStock || Number(product.stockQty) < 1) {
-      return {
-        success: false,
-        message: "این محصول در حال حاضر ناموجود است."
-      };
+    if (!isProductInStock(product)) {
+      return { success: false, message: "این محصول در حال حاضر ناموجود است." };
     }
 
     const cart = getValidatedCart();
@@ -163,20 +208,20 @@
     const existingItem = cart.find((item) => {
       return (
         String(item.productId) === String(product.id) ||
-        item.slug === product.slug
+        String(item.slug) === String(product.slug)
       );
     });
 
     if (existingItem) {
       existingItem.quantity = Math.min(
         existingItem.quantity + requestedQuantity,
-        Number(product.stockQty)
+        getProductStockQty(product)
       );
     } else {
       cart.push({
         productId: product.id,
         slug: product.slug,
-        quantity: Math.min(requestedQuantity, Number(product.stockQty))
+        quantity: Math.min(requestedQuantity, getProductStockQty(product))
       });
     }
 
@@ -195,46 +240,34 @@
     const cart = getValidatedCart();
 
     if (!product) {
-      return {
-        success: false,
-        message: "محصول موردنظر پیدا نشد."
-      };
+      return { success: false, message: "محصول موردنظر پیدا نشد." };
     }
 
     const itemIndex = cart.findIndex((item) => {
       return (
         String(item.productId) === String(product.id) ||
-        item.slug === product.slug
+        String(item.slug) === String(product.slug)
       );
     });
 
     if (itemIndex === -1) {
-      return {
-        success: false,
-        message: "این محصول در سبد خرید نیست."
-      };
+      return { success: false, message: "این محصول در سبد خرید نیست." };
     }
 
     const safeQuantity = Number.parseInt(quantity, 10);
 
     if (!Number.isFinite(safeQuantity) || safeQuantity < 1) {
       cart.splice(itemIndex, 1);
-    } else if (!product.inStock || Number(product.stockQty) < 1) {
+    } else if (!isProductInStock(product)) {
       cart.splice(itemIndex, 1);
     } else {
-      cart[itemIndex].quantity = Math.min(
-        safeQuantity,
-        Number(product.stockQty)
-      );
+      cart[itemIndex].quantity = Math.min(safeQuantity, getProductStockQty(product));
     }
 
     writeCart(cart);
     dispatchCartUpdated();
 
-    return {
-      success: true,
-      cart: getCartDetails()
-    };
+    return { success: true, cart: getCartDetails() };
   }
 
   function removeItem(identifier) {
@@ -242,49 +275,32 @@
     const cart = getValidatedCart();
 
     const filteredCart = cart.filter((item) => {
-      return (
-        String(item.productId) !== value &&
-        item.slug !== value
-      );
+      return String(item.productId) !== value && String(item.slug) !== value;
     });
 
     writeCart(filteredCart);
     dispatchCartUpdated();
 
-    return {
-      success: true,
-      cart: getCartDetails()
-    };
+    return { success: true, cart: getCartDetails() };
   }
 
   function clearCart() {
     writeCart([]);
     dispatchCartUpdated();
-
-    return {
-      success: true,
-      cart: []
-    };
+    return { success: true, cart: [] };
   }
 
   function hasItem(identifier) {
     const value = String(identifier ?? "").trim();
 
     return getValidatedCart().some((item) => {
-      return (
-        String(item.productId) === value ||
-        item.slug === value
-      );
+      return String(item.productId) === value || String(item.slug) === value;
     });
   }
 
   function formatPrice(value) {
     const amount = Number(value);
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return "تماس بگیرید";
-    }
-
+    if (!Number.isFinite(amount) || amount <= 0) return "تماس بگیرید";
     return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`;
   }
 
@@ -301,13 +317,28 @@
     });
   }
 
-  window.Cart = {
+  const cartApi = {
     add: addItem,
     update: updateItemQuantity,
     remove: removeItem,
     clear: clearCart,
     getItems: getCartDetails,
     getRawItems: getValidatedCart,
+    getItemCount,
+    getTotalPrice,
+    hasItem,
+    formatPrice,
+    refresh: saveValidatedCart
+  };
+
+  window.Cart = cartApi;
+
+  window.CartStore = {
+    addToCart: addItem,
+    updateQuantity: updateItemQuantity,
+    removeFromCart: removeItem,
+    clearCart: clearCart,
+    getItems: getCartDetails,
     getItemCount,
     getTotalPrice,
     hasItem,
@@ -327,9 +358,11 @@
     updateCartBadges();
   }
 
-  window.addEventListener("storage", function (event) {
-    if (event.key === CART_STORAGE_KEY) {
-      dispatchCartUpdated();
-    }
-  });
+  if (storageAvailable) {
+    window.addEventListener("storage", function (event) {
+      if (event.key === CART_STORAGE_KEY) {
+        dispatchCartUpdated();
+      }
+    });
+  }
 })();

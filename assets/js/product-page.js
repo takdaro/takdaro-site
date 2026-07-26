@@ -1,296 +1,321 @@
 (function () {
-  function getProducts() {
-    if (typeof window === "undefined") return [];
-    if (!Array.isArray(window.PRODUCTS)) return [];
-    return window.PRODUCTS;
+  function getRoot() {
+    return document.querySelector("[data-product-root]");
   }
 
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+  function getSlug() {
+    const root = getRoot();
+    return root?.dataset?.productSlug || "";
+  }
+
+  function getProducts() {
+    return Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
+  }
+
+  function findProduct() {
+    const slug = getSlug();
+    if (!slug) return null;
+    return getProducts().find((item) => item.slug === slug) || null;
+  }
+
+  function formatNumber(value) {
+    return new Intl.NumberFormat("fa-IR").format(value);
   }
 
   function formatPrice(product) {
-    if (product?.showPrice && Number(product?.price) > 0) {
-      return `${new Intl.NumberFormat("fa-IR").format(Number(product.price))} تومان`;
+    if (!product) return "تماس بگیرید";
+    if (product.priceLabel) return product.priceLabel;
+    if (typeof product.price === "number" && Number.isFinite(product.price)) {
+      return `${formatNumber(product.price)} تومان`;
     }
-    return escapeHtml(product?.priceLabel || product?.displayPrice || "تماس بگیرید");
+    return "تماس بگیرید";
   }
 
-  function normalizeAssetPath(path) {
-    const value = String(path || "").trim();
-
-    if (!value) return "./assets/images/placeholder.png";
-    if (value.startsWith("http://") || value.startsWith("https://")) return value;
-    if (value.startsWith("/")) return `.${value}`;
-    return `./${value.replace(/^\.?\//, "")}`;
+  function getStockQty(product) {
+    return Math.max(0, Number(product?.stockQty || 0));
   }
 
-  function resolveProductSlug() {
-    const productRoot =
-      document.querySelector("[data-product-slug]") ||
-      document.querySelector("[data-product-root]") ||
-      document.querySelector("main[data-product-slug]");
-
-    const datasetSlug = productRoot?.dataset?.productSlug;
-    if (datasetSlug) {
-      return String(datasetSlug).trim().toLowerCase();
-    }
-
-    const path = String(window.location.pathname || "").trim();
-    const fileName = path.split("/").pop() || "";
-    const normalizedFileName = fileName.replace(/\.html?$/i, "");
-
-    if (normalizedFileName) {
-      return normalizedFileName.toLowerCase();
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const slugFromQuery = params.get("slug");
-    return slugFromQuery ? slugFromQuery.trim().toLowerCase() : "";
-  }
-
-  function findProductBySlug(slug) {
-    if (!slug) return null;
-
-    return (
-      getProducts().find((product) => {
-        return String(product?.slug || "").trim().toLowerCase() === slug;
-      }) || null
-    );
+  function isAvailable(product) {
+    return !!product && !!product.inStock && getStockQty(product) > 0;
   }
 
   function setText(selector, value) {
-    const element = document.querySelector(selector);
-    if (!element) return;
-    element.textContent = value ?? "";
+    document.querySelectorAll(selector).forEach((el) => {
+      el.textContent = value;
+    });
   }
 
-  function setHtml(selector, value) {
-    const element = document.querySelector(selector);
-    if (!element) return;
-    element.innerHTML = value ?? "";
-  }
-
-  function setImage(selector, src, alt) {
-    const element = document.querySelector(selector);
-    if (!element) return;
-
-    element.src = src;
-    element.alt = alt || "";
+  function normalizeImage(src) {
+    if (!src) return "";
+    if (src.startsWith("http://") || src.startsWith("https://")) return src;
+    if (src.startsWith("/")) return src;
+    return `/${String(src).replace(/^\.?\//, "")}`;
   }
 
   function renderGallery(product) {
-    const mainImage =
-      document.querySelector("[data-product-main-image]") ||
-      document.querySelector(".product-detail__main-image img") ||
-      document.querySelector(".product-main-image");
+    const mainImage = document.querySelector("[data-product-main-image]");
+    const thumbsWrap = document.querySelector("[data-product-thumbs]");
+    const images = Array.isArray(product?.images) ? product.images.filter(Boolean) : [];
 
-    const thumbsWrap =
-      document.querySelector("[data-product-thumbs]") ||
-      document.querySelector(".product-detail__thumbs") ||
-      document.querySelector(".product-gallery-thumbs");
+    if (!mainImage || !thumbsWrap || !images.length) return;
 
-    const images = Array.isArray(product?.images) && product.images.length
-      ? product.images
-      : [product?.primaryImage].filter(Boolean);
+    mainImage.src = normalizeImage(images[0]);
+    mainImage.alt = product.name || "تصویر محصول";
 
-    const normalizedImages = images
-      .map(normalizeAssetPath)
-      .filter(Boolean);
+    thumbsWrap.innerHTML = images
+      .map((img, index) => {
+        const src = normalizeImage(img);
+        const activeClass = index === 0 ? " is-active" : "";
+        return `
+          <button
+            type="button"
+            class="product-thumb${activeClass}"
+            data-image="${src}"
+            aria-label="تصویر ${index + 1} محصول ${product.name || ""}"
+          >
+            <img src="${src}" alt="" />
+          </button>
+        `;
+      })
+      .join("");
 
-    const firstImage = normalizedImages[0] || "./assets/images/placeholder.png";
-
-    if (mainImage) {
-      mainImage.src = firstImage;
-      mainImage.alt = product?.name || "تصویر محصول";
-    }
-
-    if (!thumbsWrap) return;
-
-    thumbsWrap.innerHTML = normalizedImages.map((image, index) => {
-      const activeClass = index === 0 ? " is-active" : "";
-      return `
-        <button
-          type="button"
-          class="product-thumb${activeClass}"
-          data-product-thumb="${escapeHtml(image)}"
-          aria-label="مشاهده تصویر ${index + 1}"
-        >
-          <img src="${image}" alt="${escapeHtml(product?.name || "محصول")}" loading="lazy" />
-        </button>
-      `;
-    }).join("");
-
-    thumbsWrap.querySelectorAll("[data-product-thumb]").forEach((button) => {
-      button.addEventListener("click", function () {
-        const nextImage = this.getAttribute("data-product-thumb");
-        if (mainImage && nextImage) {
-          mainImage.src = nextImage;
-        }
-
-        thumbsWrap.querySelectorAll("[data-product-thumb]").forEach((item) => {
+    thumbsWrap.querySelectorAll(".product-thumb").forEach((thumb) => {
+      thumb.addEventListener("click", () => {
+        const image = thumb.getAttribute("data-image");
+        if (!image) return;
+        mainImage.src = image;
+        thumbsWrap.querySelectorAll(".product-thumb").forEach((item) => {
           item.classList.remove("is-active");
         });
-
-        this.classList.add("is-active");
+        thumb.classList.add("is-active");
       });
-    });
-  }
-
-  function renderStock(product) {
-    const stockText = product?.stockLabel || (product?.inStock ? "موجود" : "ناموجود");
-    const stockClass = product?.inStock ? "in-stock" : "out-of-stock";
-
-    const stockTargets = document.querySelectorAll(
-      "[data-product-stock], .product-stock, .product-detail__stock"
-    );
-
-    stockTargets.forEach((element) => {
-      element.textContent = stockText;
-      element.classList.remove("in-stock", "out-of-stock");
-      element.classList.add(stockClass);
-    });
-  }
-
-  function renderPrice(product) {
-    const priceText = formatPrice(product);
-
-    document.querySelectorAll(
-      "[data-product-price], .product-price, .product-detail__price"
-    ).forEach((element) => {
-      element.textContent = priceText;
-    });
-  }
-
-  function renderMeta(product) {
-    setText("[data-product-name]", product?.name || "بدون نام");
-    setText("[data-product-category]", product?.category || "محصول");
-    setText("[data-product-short-description]", product?.shortDescription || "");
-    setText("[data-product-description]", product?.description || "");
-    setText("title", product?.name ? `${product.name} | تک تجارت` : "جزئیات محصول | تک تجارت");
-
-    const breadcrumbCurrent =
-      document.querySelector("[data-breadcrumb-current]") ||
-      document.querySelector(".breadcrumb .is-current");
-
-    if (breadcrumbCurrent) {
-      breadcrumbCurrent.textContent = product?.name || "جزئیات محصول";
-    }
-
-    const mainImage =
-      document.querySelector("[data-product-main-image]") ||
-      document.querySelector(".product-detail__main-image img") ||
-      document.querySelector(".product-main-image");
-
-    if (mainImage) {
-      setImage(
-        mainImage.tagName === "IMG" ? "[data-product-main-image], .product-detail__main-image img, .product-main-image" : "",
-        normalizeAssetPath(product?.primaryImage || product?.images?.[0]),
-        product?.name || "تصویر محصول"
-      );
-    }
-  }
-
-  function renderAddToCart(product) {
-    const buttons = document.querySelectorAll("[data-add-to-cart]");
-
-    buttons.forEach((button) => {
-      button.dataset.productId = String(product?.id ?? "");
-      button.dataset.productSlug = String(product?.slug ?? "");
-      button.disabled = !product?.inStock;
-      button.textContent = product?.inStock ? "افزودن به سبد خرید" : "ناموجود";
-
-      button.onclick = function () {
-        if (!window.Cart || typeof window.Cart.add !== "function") return;
-
-        const result = window.Cart.add(product.slug, 1);
-
-        if (result?.message) {
-          alert(result.message);
-        }
-      };
     });
   }
 
   function renderProduct(product) {
-    if (!product) {
-      renderNotFound("محصول موردنظر پیدا نشد.");
+    if (!product) return;
+
+    setText("[data-product-name]", product.name || "بدون نام");
+    setText("[data-product-category]", product.category || "محصول");
+    setText(
+      "[data-product-short-description]",
+      product.shortDescription || "مشاهده اطلاعات محصول."
+    );
+    setText(
+      "[data-product-description]",
+      product.description ||
+        product.shortDescription ||
+        "اطلاعات کامل این محصول از API بارگذاری می‌شود."
+    );
+    setText("[data-breadcrumb-current]", product.name || "محصول");
+
+    const priceEl = document.getElementById("product-price");
+    const stockEl = document.getElementById("product-stock");
+    const stockQtyEl = document.getElementById("product-stock-qty");
+    const addToCartBtn = document.getElementById("add-to-cart-btn");
+
+    if (priceEl) {
+      priceEl.textContent = formatPrice(product);
+    }
+
+    if (stockEl) {
+      const available = isAvailable(product);
+      stockEl.textContent = available ? (product.stockLabel || "موجود") : "ناموجود";
+      stockEl.classList.toggle("in-stock", available);
+      stockEl.classList.toggle("out-of-stock", !available);
+    }
+
+    if (stockQtyEl) {
+      stockQtyEl.textContent = `موجودی انبار: ${
+        getStockQty(product) > 0 ? formatNumber(getStockQty(product)) : "-"
+      }`;
+    }
+
+    if (addToCartBtn) {
+      addToCartBtn.dataset.productSlug = product.slug || getSlug();
+    }
+
+    renderGallery(product);
+    applyPurchaseState(product);
+  }
+
+  function normalizeQty(product) {
+    const quantityInput = document.getElementById("product-quantity");
+    if (!quantityInput) return 1;
+
+    const stockQty = getStockQty(product);
+    let value = parseInt(quantityInput.value, 10);
+
+    if (isNaN(value) || value < 1) value = 1;
+    if (stockQty > 0 && value > stockQty) value = stockQty;
+
+    quantityInput.value = value;
+    return value;
+  }
+
+  function applyPurchaseState(product) {
+    const addToCartBtn = document.getElementById("add-to-cart-btn");
+    const quantityInput = document.getElementById("product-quantity");
+    const increaseBtn = document.getElementById("increase-qty");
+    const decreaseBtn = document.getElementById("decrease-qty");
+
+    if (!addToCartBtn || !quantityInput) return;
+
+    const stockQty = getStockQty(product);
+    const available = isAvailable(product);
+
+    if (!available) {
+      addToCartBtn.disabled = true;
+      addToCartBtn.textContent = "ناموجود";
+      addToCartBtn.style.opacity = "0.6";
+      addToCartBtn.style.cursor = "not-allowed";
+
+      quantityInput.value = 0;
+      quantityInput.min = 0;
+      quantityInput.max = 0;
+      quantityInput.disabled = true;
+
+      if (increaseBtn) increaseBtn.disabled = true;
+      if (decreaseBtn) decreaseBtn.disabled = true;
       return;
     }
 
-    renderMeta(product);
-    renderPrice(product);
-    renderStock(product);
-    renderGallery(product);
-    renderAddToCart(product);
+    addToCartBtn.disabled = false;
+    addToCartBtn.textContent = "افزودن به سبد خرید";
+    addToCartBtn.style.opacity = "1";
+    addToCartBtn.style.cursor = "pointer";
 
-    document.querySelectorAll("[data-product-root], .product-detail, .product-page").forEach((element) => {
-      element.classList.remove("is-loading");
-      element.classList.add("is-ready");
-    });
-  }
+    quantityInput.disabled = false;
+    quantityInput.min = 1;
+    quantityInput.max = stockQty;
 
-  function renderNotFound(message) {
-    const root =
-      document.querySelector("[data-product-root]") ||
-      document.querySelector(".product-detail") ||
-      document.querySelector(".product-page") ||
-      document.querySelector("main");
-
-    if (!root) return;
-
-    root.innerHTML = `
-      <section class="empty-products">
-        <h2>محصول پیدا نشد</h2>
-        <p>${escapeHtml(message || "اطلاعات این محصول در دسترس نیست.")}</p>
-        <a href="./products.html" class="btn btn-primary">بازگشت به محصولات</a>
-      </section>
-    `;
-  }
-
-  function tryRenderProduct() {
-    const slug = resolveProductSlug();
-
-    if (!slug) {
-      renderNotFound("اسلاگ محصول از صفحه قابل تشخیص نیست.");
-      return false;
+    if (!quantityInput.value || Number(quantityInput.value) < 1) {
+      quantityInput.value = 1;
     }
 
-    const product = findProductBySlug(slug);
+    if (increaseBtn) increaseBtn.disabled = false;
+    if (decreaseBtn) decreaseBtn.disabled = false;
 
-    if (!product) {
-      return false;
-    }
-
-    renderProduct(product);
-    return true;
+    normalizeQty(product);
   }
 
-  function boot() {
-    if (window.PRODUCTS_READY === true) {
-      const ok = tryRenderProduct();
-      if (!ok) {
-        renderNotFound("محصولی با این آدرس در داده‌های فعلی پیدا نشد.");
-      }
-    } else {
-      document.addEventListener("products:ready", function onProductsReady() {
-        document.removeEventListener("products:ready", onProductsReady);
-        const ok = tryRenderProduct();
-        if (!ok) {
-          renderNotFound("محصولی با این آدرس در API پیدا نشد.");
+  function getCartApi() {
+    if (window.CartStore && typeof window.CartStore.addToCart === "function") {
+      return {
+        addToCart: window.CartStore.addToCart
+      };
+    }
+
+    if (window.Cart && typeof window.Cart.add === "function") {
+      return {
+        addToCart: window.Cart.add
+      };
+    }
+
+    return null;
+  }
+
+  function bindPurchaseEvents() {
+    const quantityInput = document.getElementById("product-quantity");
+    const increaseBtn = document.getElementById("increase-qty");
+    const decreaseBtn = document.getElementById("decrease-qty");
+    const addToCartBtn = document.getElementById("add-to-cart-btn");
+
+    if (increaseBtn) {
+      increaseBtn.addEventListener("click", () => {
+        const product = findProduct();
+        if (!isAvailable(product) || !quantityInput) return;
+
+        const current = normalizeQty(product);
+        const stockQty = getStockQty(product);
+        quantityInput.value = Math.min(current + 1, stockQty);
+        quantityInput.focus();
+      });
+    }
+
+    if (decreaseBtn) {
+      decreaseBtn.addEventListener("click", () => {
+        const product = findProduct();
+        if (!quantityInput || quantityInput.disabled) return;
+
+        const current = normalizeQty(product);
+        quantityInput.value = Math.max(1, current - 1);
+        quantityInput.focus();
+      });
+    }
+
+    if (quantityInput) {
+      quantityInput.addEventListener("input", () => {
+        const product = findProduct();
+        if (!quantityInput.disabled) normalizeQty(product);
+      });
+
+      quantityInput.addEventListener("blur", () => {
+        const product = findProduct();
+        if (!quantityInput.disabled) normalizeQty(product);
+      });
+    }
+
+    if (addToCartBtn) {
+      addToCartBtn.addEventListener("click", () => {
+        const product = findProduct();
+        const cartApi = getCartApi();
+
+        if (!isAvailable(product)) {
+          alert("این محصول ناموجود است.");
+          return;
         }
+
+        if (!cartApi) {
+          console.warn("Cart API در دسترس نیست.");
+          return;
+        }
+
+        const qty = normalizeQty(product);
+        const stockQty = getStockQty(product);
+        const slug = addToCartBtn.dataset.productSlug || getSlug();
+
+        if (qty > stockQty) {
+          alert(`حداکثر تعداد قابل سفارش ${formatNumber(stockQty)} عدد است.`);
+          if (quantityInput) quantityInput.value = stockQty;
+          return;
+        }
+
+        const result = cartApi.addToCart(slug, qty);
+
+        if (result && result.success === false && result.message) {
+          alert(result.message);
+          return;
+        }
+
+        const cartOpenBtn = document.querySelector("[data-open-cart]");
+        if (cartOpenBtn) cartOpenBtn.click();
       });
     }
   }
 
+  function renderCurrentProduct() {
+    const product = findProduct();
+    if (product) {
+      renderProduct(product);
+    }
+  }
+
+  function init() {
+    bindPurchaseEvents();
+    renderCurrentProduct();
+
+    document.addEventListener("products:ready", (event) => {
+      const readyProducts = event?.detail?.products;
+      if (Array.isArray(readyProducts)) {
+        renderCurrentProduct();
+      }
+    });
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot, { once: true });
+    document.addEventListener("DOMContentLoaded", init, { once: true });
   } else {
-    boot();
+    init();
   }
 })();

@@ -7,6 +7,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "محصولی تخصصی در دسته پپتایدها برای معرفی در کاتالوگ دیجیتال تک تجارت.",
     description: "CJC-1295 DAC یکی از محصولات تخصصی این مجموعه است که در قالبی ساختاریافته برای نمایش، بررسی و معرفی اولیه در سایت قرار گرفته است.",
@@ -27,6 +28,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "گزینه‌ای تخصصی برای معرفی در فهرست محصولات با ساختار منظم و تصاویر چندگانه.",
     description: "Examorelin به‌عنوان یکی از محصولات تخصصی سایت، برای معرفی اولیه، نمایش مشخصات و هدایت کاربر به صفحه جزئیات در کاتالوگ قرار گرفته است.",
@@ -47,6 +49,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "محصولی تخصصی با نمایش ساده و حرفه‌ای برای آشنایی سریع‌تر کاربران با تنوع محصولات.",
     description: "Follistatin در این کاتالوگ با هدف نمایش ساختاریافته، معرفی اولیه و ایجاد دسترسی سریع به اطلاعات تکمیلی محصول ارائه شده است.",
@@ -66,6 +69,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "محصولی با ساختار نمایشی مناسب برای کاتالوگ دیجیتال و ارائه اطلاعات اولیه.",
     description: "GHRP-6 یکی از محصولات قرارگرفته در فهرست تخصصی سایت است که با چیدمان منظم برای مرور سریع‌تر و دسترسی بهتر کاربران نمایش داده می‌شود.",
@@ -85,6 +89,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "برای نمایش منظم تصویر، عنوان و توضیح کوتاه در لیست محصولات طراحی شده است.",
     description: "IGF-BP3 در کاتالوگ تک تجارت به‌صورت ساختاریافته ثبت شده تا ارائه محصول، مدیریت داده و نمایش یکپارچه در صفحات مختلف ساده‌تر باشد.",
@@ -105,6 +110,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "نمونه‌ای از محصولات تخصصی سایت با کارت‌بندی خوانا و منظم.",
     description: "MGF-PEG به‌عنوان یکی از آیتم‌های کاتالوگ، با ساختار داده یکپارچه و مسیر تصویری مشخص برای استفاده در صفحه محصولات و جزئیات ثبت شده است.",
@@ -124,6 +130,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "محصولی در کاتالوگ تخصصی تک تجارت با دسترسی سریع به صفحه جزئیات.",
     description: "Myostatin در این ساختار با هدف معرفی حرفه‌ای، نمایش تصویر شاخص و ارائه مسیر ساده برای مشاهده اطلاعات کامل محصول قرار گرفته است.",
@@ -144,6 +151,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "یکی از محصولات تخصصی قابل معرفی در سایت با قالبی واضح و مناسب مرور سریع.",
     description: "TB-500 با ساختاری منسجم در داده محصولات قرار گرفته تا در لیست محصولات، صفحات جزئیات و فرآیندهای بعدی سایت به‌صورت یکپارچه استفاده شود.",
@@ -164,6 +172,7 @@ window.PRODUCTS = [
     price: null,
     priceLabel: "تماس بگیرید",
     inStock: true,
+    stockQty: 999,
     stockLabel: "موجود",
     shortDescription: "سوماتروپین 96 واحدی ساندوز Europe تحت برند Omnitrope برای معرفی در کاتالوگ تخصصی تک تجارت.",
     description: "Somatropin Sandoz به‌عنوان یکی از محصولات تخصصی هورمون رشد در این کاتالوگ ثبت شده است تا نمایش یکپارچه، معرفی اولیه و دسترسی سریع به صفحه جزئیات آن فراهم باشد.",
@@ -178,3 +187,12 @@ window.PRODUCTS = [
   }
 ];
 
+window.PRODUCTS_READY = true;
+
+document.dispatchEvent(
+  new CustomEvent("products:ready", {
+    detail: {
+      products: window.PRODUCTS
+    }
+  })
+);

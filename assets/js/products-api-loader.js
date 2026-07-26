@@ -19,7 +19,6 @@
 
   function normalizeImagePath(value) {
     const path = cleanText(value);
-
     if (!path) return "";
 
     if (
@@ -48,16 +47,12 @@
       return `/${pageUrl.replace(/^\.?\//, "")}`;
     }
 
-    return `/products/${encodeURIComponent(slug)}.html`;
+    return slug ? `/products/${encodeURIComponent(slug)}.html` : "#";
   }
 
   function formatPrice(price) {
     const amount = toNumber(price, 0);
-
-    if (amount <= 0) {
-      return "تماس بگیرید";
-    }
-
+    if (amount <= 0) return "تماس بگیرید";
     return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`;
   }
 
@@ -66,22 +61,20 @@
     const stockQty = Math.max(0, Math.floor(toNumber(product?.stockQty, 0)));
     const inStock = toBoolean(product?.inStock) && stockQty > 0;
     const showPrice = toBoolean(product?.showPrice);
-    const price = showPrice && toNumber(product?.price, 0) > 0
-      ? toNumber(product.price, 0)
-      : null;
+    const numericPrice = toNumber(product?.price, 0);
+    const price = showPrice && numericPrice > 0 ? numericPrice : null;
 
     const imageList = Array.isArray(product?.images)
       ? product.images.map(normalizeImagePath).filter(Boolean)
       : [];
 
     const primaryImage = normalizeImagePath(product?.primaryImage);
-    const images = Array.from(
-      new Set([primaryImage, ...imageList].filter(Boolean))
-    );
+    const images = Array.from(new Set([primaryImage, ...imageList].filter(Boolean)));
 
-    const priceLabel = price !== null
-      ? formatPrice(price)
-      : cleanText(product?.priceLabel) || "تماس بگیرید";
+    const priceLabel =
+      price !== null
+        ? formatPrice(price)
+        : cleanText(product?.priceLabel) || "تماس بگیرید";
 
     return {
       id: Number(product?.id) || null,
@@ -109,10 +102,9 @@
     const map = new Map();
 
     FALLBACK_PRODUCTS.forEach((product) => {
-      const slug = cleanText(product?.slug);
-
-      if (slug) {
-        map.set(slug, product);
+      const normalized = normalizeProduct(product);
+      if (normalized.slug) {
+        map.set(normalized.slug, normalized);
       }
     });
 
@@ -121,28 +113,30 @@
 
   function mergeWithFallback(apiProducts) {
     const fallbackMap = getFallbackProductMap();
-    const apiSlugs = new Set();
 
-    const mergedProducts = apiProducts
+    return apiProducts
       .map((product) => {
         const slug = cleanText(product?.slug);
-        apiSlugs.add(slug);
-
         const fallback = fallbackMap.get(slug) || {};
 
         return normalizeProduct({
           ...fallback,
           ...product,
-          images: Array.isArray(product?.images) && product.images.length
-            ? product.images
-            : fallback.images || [],
+          images:
+            Array.isArray(product?.images) && product.images.length
+              ? product.images
+              : fallback.images || [],
           primaryImage: product?.primaryImage || fallback.primaryImage || "",
           pageUrl: product?.pageUrl || fallback.pageUrl || ""
         });
       })
       .filter((product) => product.slug);
+  }
 
-    return mergedProducts;
+  function setProducts(products, source) {
+    window.PRODUCTS = Array.isArray(products) ? products : [];
+    window.PRODUCTS_READY = true;
+    window.PRODUCTS_SOURCE = source;
   }
 
   function dispatchProductsReady(source, error) {
@@ -161,9 +155,7 @@
     try {
       const response = await fetch(API_URL, {
         method: "GET",
-        headers: {
-          Accept: "application/json"
-        },
+        headers: { Accept: "application/json" },
         cache: "no-store",
         credentials: "same-origin"
       });
@@ -174,22 +166,18 @@
         throw new Error(data?.error || "دریافت اطلاعات محصولات ناموفق بود.");
       }
 
-      window.PRODUCTS = mergeWithFallback(data.products);
-      window.PRODUCTS_READY = true;
-      window.PRODUCTS_SOURCE = "api";
-
+      const mergedProducts = mergeWithFallback(data.products);
+      setProducts(mergedProducts, "api");
       dispatchProductsReady("api");
-
       return window.PRODUCTS;
     } catch (error) {
-      window.PRODUCTS = FALLBACK_PRODUCTS.map(normalizeProduct);
-      window.PRODUCTS_READY = true;
-      window.PRODUCTS_SOURCE = "fallback";
+      const fallbackProducts = FALLBACK_PRODUCTS.map(normalizeProduct).filter(
+        (product) => product.slug
+      );
 
+      setProducts(fallbackProducts, "fallback");
       console.warn("Products API is unavailable. Fallback data was used.", error);
-
       dispatchProductsReady("fallback", error);
-
       return window.PRODUCTS;
     }
   }
@@ -204,8 +192,11 @@
     }
   };
 
+  window.PRODUCTS = Array.isArray(window.PRODUCTS)
+    ? window.PRODUCTS.map(normalizeProduct).filter((product) => product.slug)
+    : [];
+
   window.PRODUCTS_READY = false;
   window.PRODUCTS_SOURCE = "";
-
   window.PRODUCTS_LOADING = loadProductsFromApi();
 })();
