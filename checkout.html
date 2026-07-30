@@ -502,12 +502,12 @@
                 </div>
 
                 <div class="checkout-actions">
-                  <button type="submit" class="btn btn-primary" id="submit-order-btn">ثبت سفارش و ارسال به واتساپ</button>
+                  <button type="submit" class="btn btn-primary" id="submit-order-btn">ثبت سفارش</button>
                   <a href="./products.html" class="btn btn-secondary">بازگشت به محصولات</a>
                 </div>
 
                 <p class="checkout-note">
-                  پس از ثبت، سفارش در سیستم ذخیره می‌شود و متن آماده سفارش نیز در واتساپ باز خواهد شد.
+                  پس از ثبت سفارش، به صفحه فاکتور هدایت می‌شوید.
                 </p>
               </form>
             </div>
@@ -1161,6 +1161,9 @@
       } catch (_) {}
     }
 
+    // =============================================
+    // ✅ بخش اصلی اصلاح‌شده - ثبت سفارش و هدایت به فاکتور
+    // =============================================
     if (checkoutForm) {
       checkoutForm.addEventListener("submit", async function (event) {
         event.preventDefault();
@@ -1192,27 +1195,6 @@
         submitOrderBtn.disabled = true;
         setCheckoutMessage("در حال ثبت سفارش...", "info");
 
-        let totalQty = 0;
-        let subtotal = 0;
-        let hasNumericPrice = true;
-
-        const orderLines = items.map(({ product, qty }, index) => {
-          totalQty += qty;
-
-          const unitPrice = getProductNumericPrice(product);
-          const rowTotal = unitPrice !== null ? unitPrice * qty : null;
-
-          if (unitPrice === null) {
-            hasNumericPrice = false;
-          } else {
-            subtotal += rowTotal;
-          }
-
-          return `${index + 1}. ${product.name}\n- تعداد: ${qty}\n- قیمت واحد: ${formatProductPrice(product)}\n- جمع واحد: ${rowTotal !== null ? `${formatNumber(rowTotal)} تومان` : "تماس بگیرید"}`;
-        }).join("\n\n");
-
-        const grandTotal = hasNumericPrice ? subtotal + shippingFee : null;
-
         try {
           const payload = buildOrderPayload(items, formData);
 
@@ -1236,50 +1218,28 @@
 
           const createdOrder = data.order || {};
           const orderNumber = createdOrder.order_number || "-";
-          const walletUsedAmount = Number(createdOrder.wallet_used_amount || 0);
-          const payableAmount = Number(createdOrder.payable_amount || 0);
-          const cashbackAmount = Number(createdOrder.cashback_amount || 0);
 
-          const message =
-`سلام وقت بخیر
-یک سفارش جدید از سایت تک تجارت ثبت شده است.
-
-شماره سفارش: ${orderNumber}
-
-جزئیات فاکتور:
-${orderLines}
-
-جمع تعداد: ${formatNumber(totalQty)}
-جمع جزء: ${hasNumericPrice ? `${formatNumber(subtotal)} تومان` : "تماس بگیرید"}
-استان / محدوده ارسال: ${formData.provinceLabel}
-هزینه بسته‌بندی و ارسال: ${shippingFee ? `${formatNumber(shippingFee)} تومان` : "-"}
-کسر از کیف پول: ${walletUsedAmount ? `${formatNumber(walletUsedAmount)} تومان` : "-"}
-مبلغ قابل پرداخت نهایی: ${formatNumber(payableAmount)} تومان
-بازگشت به کیف پول پس از پرداخت نهایی: ${cashbackAmount ? `${formatNumber(cashbackAmount)} تومان` : "-"}
-جمع کل قبل از کیف پول: ${grandTotal !== null ? `${formatNumber(grandTotal)} تومان` : "تماس بگیرید"}
-
-مشخصات خریدار:
-نام و نام خانوادگی: ${formData.firstName} ${formData.lastName}
-استان: ${formData.provinceLabel}
-شهر: ${formData.city}
-آدرس دقیق: ${formData.address}
-کد پستی: ${formData.postalCode}
-شماره تماس: ${formData.phone}`;
-
+          // ✅ پاک کردن سبد خرید
           clearCart();
+
+          // ✅ ریست کردن کیف پول
           if (walletUseToggle) walletUseToggle.checked = false;
           if (walletUseAmountInput) walletUseAmountInput.value = "";
           resetWalletState();
           renderCheckout();
           await loadWalletData();
 
-          setCheckoutMessage("سفارش با موفقیت ثبت شد. در حال انتقال به واتساپ...", "success");
+          // ✅ نمایش پیام موفقیت
+          setCheckoutMessage(`سفارش ${orderNumber} با موفقیت ثبت شد. در حال انتقال به صفحه فاکتور...`, "success");
 
-          const whatsappUrl = `https://wa.me/989214147070?text=${encodeURIComponent(message)}`;
-          window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-        } catch (_) {
+          // ✅ هدایت به صفحه فاکتور با تاخیر ۱ ثانیه
+          setTimeout(() => {
+            window.location.href = `/invoice.html?order=${encodeURIComponent(orderNumber)}`;
+          }, 1000);
+
+        } catch (error) {
+          console.error("خطا در ثبت سفارش:", error);
           setCheckoutMessage("ثبت سفارش با خطا مواجه شد.", "error");
-        } finally {
           submitOrderBtn.disabled = false;
         }
       });

@@ -688,6 +688,9 @@
     };
   }
 
+  // =============================================
+  // ✅ ثبت سفارش - بدون ارسال به واتساپ
+  // =============================================
   async function submitCheckout(event) {
     event.preventDefault();
     setCheckoutMessage("");
@@ -715,6 +718,7 @@
 
     if (els.submitOrderBtn) {
       els.submitOrderBtn.disabled = true;
+      els.submitOrderBtn.textContent = "در حال ثبت سفارش...";
     }
 
     setCheckoutMessage("در حال ثبت سفارش...", "info");
@@ -736,27 +740,40 @@
 
       if (!response.ok || !data?.success) {
         setCheckoutMessage(data?.error || "ثبت سفارش انجام نشد.", "error");
+        if (els.submitOrderBtn) {
+          els.submitOrderBtn.disabled = false;
+          els.submitOrderBtn.textContent = "ثبت سفارش";
+        }
         return;
       }
 
+      // پاک کردن سبد خرید
       clearCart();
 
+      // ریست کردن کیف پول
       if (els.walletUseToggle) els.walletUseToggle.checked = false;
       if (els.walletUseAmount) els.walletUseAmount.value = "";
-
       resetWalletState();
       renderCheckout();
-      await loadWalletData();
 
+      // دریافت شماره سفارش
       const createdOrder = data.order || {};
       const orderNumber = createdOrder.order_number || "-";
 
-      setCheckoutMessage(`سفارش با موفقیت ثبت شد. شماره سفارش: ${orderNumber}`, "success");
-    } catch (_) {
+      // نمایش پیام موفقیت
+      setCheckoutMessage(`سفارش ${orderNumber} با موفقیت ثبت شد. در حال انتقال...`, "success");
+
+      // ✅ هدایت به صفحه تشکر با تاخیر ۱ ثانیه
+      setTimeout(() => {
+        window.location.href = `/invoice.html?order=${encodeURIComponent(orderNumber)}`;
+      }, 1000);
+
+    } catch (error) {
+      console.error("خطا در ثبت سفارش:", error);
       setCheckoutMessage("خطا در ارتباط با سرور. دوباره تلاش کنید.", "error");
-    } finally {
       if (els.submitOrderBtn) {
         els.submitOrderBtn.disabled = false;
+        els.submitOrderBtn.textContent = "ثبت سفارش";
       }
     }
   }

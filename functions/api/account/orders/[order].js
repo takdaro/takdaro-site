@@ -53,6 +53,7 @@ export async function onRequestGet(context) {
           COALESCE(o.shipping_amount, 0) AS shipping_amount,
           COALESCE(o.total_amount, 0) AS total_amount,
           COALESCE(o.wallet_used_amount, 0) AS wallet_used_amount,
+          COALESCE(o.payable_amount, 0) AS payable_amount,
           COALESCE(o.cashback_amount, 0) AS cashback_amount,
           COALESCE(o.cashback_status, 'none') AS cashback_status,
           COALESCE(o.notes, '') AS notes,
@@ -110,6 +111,16 @@ export async function onRequestGet(context) {
         }))
       : [];
 
+    // ساخت آدرس
+    const shippingAddress = order.address_id ? {
+      full_name: order.shipping_full_name || "",
+      address_line: order.shipping_address_line || "",
+      postal_code: order.shipping_postal_code || "",
+      phone: order.shipping_phone || "",
+      city: order.shipping_city || "",
+      state: order.shipping_state || ""
+    } : null;
+
     return json({
       success: true,
       order: {
@@ -121,6 +132,7 @@ export async function onRequestGet(context) {
         shipping_amount: Number(order.shipping_amount || 0),
         total_amount: Number(order.total_amount || 0),
         wallet_used_amount: Number(order.wallet_used_amount || 0),
+        payable_amount: Number(order.payable_amount || 0),
         cashback_amount: Number(order.cashback_amount || 0),
         cashback_status: order.cashback_status || "none",
         notes: order.notes || "",
@@ -128,16 +140,8 @@ export async function onRequestGet(context) {
         updated_at: order.updated_at || null,
         items_count: items.length,
         items,
-        shipping_address: order.address_id
-          ? {
-              full_name: order.shipping_full_name || "",
-              address_line: order.shipping_address_line || "",
-              postal_code: order.shipping_postal_code || "",
-              phone: order.shipping_phone || "",
-              city: order.shipping_city || "",
-              state: order.shipping_state || ""
-            }
-          : null
+        shipping_address: shippingAddress,
+        address: shippingAddress // برای سازگاری با صفحه فاکتور
       }
     });
   } catch (error) {

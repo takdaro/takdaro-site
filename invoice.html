@@ -3,117 +3,214 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>فاکتور سفارش | تک تجارت</title>
-  <meta name="description" content="مشاهده فاکتور و جزئیات سفارش کاربر در تک تجارت" />
+  <title>تشکر از خرید | تک تجارت</title>
+  <meta name="description" content="صفحه تشکر از خرید و فاکتور سفارش" />
   <link rel="stylesheet" href="assets/css/style.css" />
   <style>
+    /* ============================================
+       استایل‌های اختصاصی صفحه فاکتور
+       ============================================ */
     .invoice-page {
       max-width: 960px;
       margin: 0 auto;
       padding: 24px 0 40px;
     }
 
+    /* بنر تشکر */
+    .thankyou-banner {
+      background: linear-gradient(135deg, #0f5c78 0%, #1d8f8a 100%);
+      border-radius: 24px;
+      padding: 40px 32px;
+      color: #fff;
+      margin-bottom: 28px;
+      text-align: center;
+      box-shadow: 0 18px 40px rgba(15, 92, 120, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .thankyou-banner::after {
+      content: "✓";
+      position: absolute;
+      left: -20px;
+      top: -40px;
+      font-size: 200px;
+      opacity: 0.06;
+      color: #fff;
+    }
+
+    .thankyou-banner .icon {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 12px;
+    }
+
+    .thankyou-banner h1 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      margin: 0 0 10px;
+      font-weight: 700;
+    }
+
+    .thankyou-banner p {
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 1.05rem;
+      margin: 0;
+      line-height: 1.9;
+      max-width: 600px;
+      margin-inline: auto;
+    }
+
+    .thankyou-banner .order-number-box {
+      display: inline-block;
+      margin-top: 16px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 10px 24px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    /* هدر فاکتور */
     .invoice-header {
       border-radius: 24px;
       padding: 24px;
-      background:
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%),
-        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-      border: 1px solid rgba(15, 23, 42, 0.06);
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+      background: #fff;
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
       margin-bottom: 24px;
     }
 
-    .invoice-header h1 {
-      margin: 0 0 8px;
-      font-size: 1.4rem;
-      color: #0f172a;
-    }
-
-    .invoice-header p {
-      margin: 0;
-      color: #64748b;
-      line-height: 1.9;
-    }
-
-    .invoice-meta {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+    .invoice-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       gap: 16px;
-      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .invoice-logo-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .invoice-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      object-fit: contain;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 4px;
+    }
+
+    .invoice-logo-placeholder {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #0f5c78, #1d8f8a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .invoice-title h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: var(--text);
+    }
+
+    .invoice-title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .invoice-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
     }
 
     .invoice-meta-item {
-      background: #f8fafc;
-      border-radius: 18px;
-      padding: 14px 16px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     .invoice-meta-item span {
-      display: block;
-      font-size: 0.86rem;
-      color: #64748b;
-      margin-bottom: 6px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 500;
     }
 
     .invoice-meta-item strong {
-      display: block;
-      font-size: 0.98rem;
-      color: #0f172a;
-      font-variant-numeric: tabular-nums;
+      font-size: 0.95rem;
+      color: var(--text);
+      font-weight: 700;
     }
 
-    .status-badge {
+    .invoice-meta-item .status-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 30px;
+      min-height: 28px;
       padding: 0 12px;
       border-radius: 999px;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       font-weight: 700;
-      white-space: nowrap;
+      width: fit-content;
     }
 
     .status-badge--success { background: #ecfdf5; color: #047857; }
     .status-badge--info    { background: #eff6ff; color: #1d4ed8; }
     .status-badge--warning { background: #fff7ed; color: #c2410c; }
+    .status-badge--danger  { background: #fef2f2; color: #b91c1c; }
 
+    /* بخش‌های فاکتور */
     .invoice-section {
       border-radius: 24px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       background: #fff;
       padding: 24px;
       margin-bottom: 24px;
       box-shadow: 0 12px 32px rgba(15, 23, 42, 0.04);
-      break-inside: avoid;
-      page-break-inside: avoid;
     }
 
-    .invoice-section h2 {
-      margin: 0 0 12px;
-      font-size: 1.1rem;
-      color: #0f172a;
+    .invoice-section h3 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .invoice-section p {
-      margin: 0 0 18px;
-      font-size: 0.92rem;
-      color: #64748b;
-      line-height: 1.8;
+    .invoice-section .section-desc {
+      margin: 0 0 16px;
+      font-size: 0.9rem;
+      color: var(--muted);
     }
 
+    /* جدول محصولات */
     .invoice-table-wrap {
       overflow-x: auto;
-      border-radius: 18px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
-      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--border);
     }
 
     .invoice-table {
       width: 100%;
-      min-width: 720px;
+      min-width: 600px;
       border-collapse: collapse;
     }
 
@@ -121,14 +218,15 @@
     .invoice-table td {
       padding: 12px 14px;
       text-align: right;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid var(--border);
       vertical-align: middle;
       font-size: 0.9rem;
     }
 
     .invoice-table th {
       background: #f8fafc;
-      color: #334155;
+      color: var(--text-soft);
+      font-weight: 700;
       white-space: nowrap;
     }
 
@@ -136,76 +234,161 @@
       border-bottom: none;
     }
 
-    .table-number {
+    .invoice-table .number {
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
 
-    .invoice-summary {
+    /* خلاصه فاکتور */
+    .invoice-summary-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      margin-top: 18px;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
-    .summary-card {
-      border-radius: 18px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
-      background: #f8fafc;
-      padding: 16px;
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border);
     }
 
-    .summary-card span {
-      display: block;
-      font-size: 0.86rem;
-      color: #64748b;
-      margin-bottom: 6px;
+    .summary-item:last-child {
+      border-bottom: none;
     }
 
-    .summary-card strong {
-      display: block;
-      font-size: 1rem;
-      color: #0f172a;
+    .summary-item .label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .summary-item .value {
+      font-weight: 700;
+      color: var(--text);
+      font-size: 0.95rem;
       font-variant-numeric: tabular-nums;
     }
 
-    .invoice-addresses {
+    .summary-item.total .value {
+      color: var(--primary);
+      font-size: 1.15rem;
+    }
+
+    /* اطلاعات پرداخت */
+    .payment-info-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 16px;
-      margin-top: 12px;
     }
 
-    .invoice-address-card {
-      border-radius: 18px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+    .payment-info-card {
       background: #f8fafc;
+      border-radius: 16px;
       padding: 16px;
-      break-inside: avoid;
-      page-break-inside: avoid;
+      border: 1px solid var(--border);
     }
 
-    .invoice-address-card h3 {
+    .payment-info-card .label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .payment-info-card .value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      direction: ltr;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .payment-info-card .value.fa {
+      direction: rtl;
+    }
+
+    .payment-deadline {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .payment-deadline .icon {
+      font-size: 1.3rem;
+    }
+
+    .payment-deadline .text {
+      color: #c2410c;
+      font-weight: 600;
+    }
+
+    .payment-description {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-top: 12px;
+      color: #1e40af;
+      font-size: 0.95rem;
+      line-height: 1.9;
+    }
+
+    /* آدرس */
+    .address-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .address-card {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .address-card h4 {
       margin: 0 0 8px;
-      font-size: 0.98rem;
-      color: #0f172a;
+      font-size: 0.95rem;
+      color: var(--text);
     }
 
-    .invoice-address-card p {
+    .address-card p {
       margin: 0;
       font-size: 0.9rem;
-      color: #64748b;
-      line-height: 1.8;
+      color: var(--muted);
+      line-height: 1.9;
       white-space: pre-line;
     }
 
+    /* دکمه‌ها */
     .invoice-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
       margin-top: 20px;
     }
 
+    .btn-whatsapp {
+      background: #25D366;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-whatsapp:hover {
+      background: #1da851;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
+    }
+
+    /* پیام خطا */
     .invoice-message {
       padding: 14px 16px;
       border-radius: 16px;
@@ -222,44 +405,87 @@
       border: 1px solid #fecaca;
     }
 
+    /* بارگذاری */
+    .invoice-loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .invoice-loading .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* واکنش‌گرایی */
     @media (max-width: 768px) {
-      .invoice-meta {
+      .invoice-meta-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .invoice-summary-grid {
         grid-template-columns: 1fr;
       }
 
-      .invoice-summary,
-      .invoice-addresses {
+      .payment-info-grid {
         grid-template-columns: 1fr;
       }
 
-      .invoice-page {
-        padding: 16px 0 32px;
+      .address-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .invoice-header-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .thankyou-banner {
+        padding: 28px 20px;
+      }
+
+      .invoice-section {
+        padding: 18px;
+      }
+
+      .invoice-actions .btn {
+        flex: 1;
+        min-width: 120px;
       }
     }
 
-    @page {
-      size: A5 portrait;
-      margin: 0;
+    @media (max-width: 480px) {
+      .invoice-meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .thankyou-banner h1 {
+        font-size: 1.3rem;
+      }
+
+      .invoice-table {
+        min-width: 480px;
+      }
+
+      .invoice-table th,
+      .invoice-table td {
+        padding: 8px 10px;
+        font-size: 0.82rem;
+      }
     }
 
+    /* چاپ */
     @media print {
-      html, body {
-        width: 148mm !important;
-        height: 210mm !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        background: #fff !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-
-      body {
-        color: #000 !important;
-        font-size: 8px !important;
-        line-height: 1.15 !important;
-      }
-
       #site-header,
       #site-footer,
       #site-cart,
@@ -269,140 +495,32 @@
         display: none !important;
       }
 
-      main,
-      .section,
-      .container {
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: none !important;
-        width: 100% !important;
-      }
-
-      .invoice-page {
-        width: 148mm !important;
-        height: 210mm !important;
-        max-width: 148mm !important;
-        margin: 0 !important;
-        padding: 6mm !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
-      }
-
-      .invoice-page > * {
-        transform: scale(0.82);
-        transform-origin: top center;
-      }
-
-      .invoice-header,
-      .invoice-section,
-      .invoice-meta-item,
-      .summary-card,
-      .invoice-address-card {
-        box-shadow: none !important;
+      body {
         background: #fff !important;
       }
 
+      .invoice-page {
+        max-width: 100% !important;
+        padding: 0 !important;
+      }
+
+      .invoice-section,
       .invoice-header,
-      .invoice-section {
-        border-radius: 8px !important;
-        margin-bottom: 6px !important;
-        padding: 8px !important;
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
+      .thankyou-banner {
+        box-shadow: none !important;
+        border-color: #ddd !important;
+        break-inside: avoid;
       }
 
-      .invoice-header h1,
-      .invoice-section h2,
-      .invoice-address-card h3 {
-        margin: 0 0 4px !important;
-        font-size: 10px !important;
-        line-height: 1.2 !important;
-      }
-
-      .invoice-header p,
-      .invoice-section p,
-      .invoice-address-card p {
-        margin: 0 !important;
-        font-size: 8px !important;
-        line-height: 1.3 !important;
-        color: #222 !important;
-      }
-
-      .invoice-meta {
-        grid-template-columns: 1fr !important;
-        gap: 4px !important;
-        margin-top: 8px !important;
-      }
-
-      .invoice-meta-item,
-      .summary-card,
-      .invoice-address-card {
-        padding: 6px 8px !important;
-        border-radius: 8px !important;
-      }
-
-      .invoice-meta-item span,
-      .summary-card span {
-        font-size: 7px !important;
-        margin-bottom: 2px !important;
-      }
-
-      .invoice-meta-item strong,
-      .summary-card strong,
-      #summary-payment-status,
-      .status-badge {
-        font-size: 8px !important;
-        line-height: 1.2 !important;
+      .thankyou-banner {
+        background: #0f5c78 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
 
       .status-badge {
-        min-height: 16px !important;
-        padding: 0 5px !important;
-      }
-
-      .invoice-summary,
-      .invoice-addresses {
-        grid-template-columns: 1fr !important;
-        gap: 4px !important;
-        margin-top: 6px !important;
-      }
-
-      .invoice-table-wrap {
-        overflow: hidden !important;
-        border-radius: 8px !important;
-      }
-
-      .invoice-table {
-        min-width: 0 !important;
-        width: 100% !important;
-        table-layout: fixed !important;
-      }
-
-      .invoice-table th,
-      .invoice-table td {
-        padding: 3px 2px !important;
-        font-size: 7px !important;
-        line-height: 1.1 !important;
-        white-space: normal !important;
-        word-break: break-word !important;
-      }
-
-      .invoice-table th:nth-child(1),
-      .invoice-table td:nth-child(1) { width: 8% !important; }
-
-      .invoice-table th:nth-child(2),
-      .invoice-table td:nth-child(2) { width: 38% !important; }
-
-      .invoice-table th:nth-child(3),
-      .invoice-table td:nth-child(3) { width: 14% !important; }
-
-      .invoice-table th:nth-child(4),
-      .invoice-table td:nth-child(4),
-      .invoice-table th:nth-child(5),
-      .invoice-table td:nth-child(5) { width: 20% !important; }
-
-      .table-number {
-        white-space: nowrap !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
     }
   </style>
@@ -411,130 +529,195 @@
   <div id="site-header"></div>
 
   <main>
-    <section class="hero hero-compact">
-      <div class="container">
-        <div class="hero-content">
-          <span class="hero-badge">فاکتور سفارش</span>
-          <h1>مشاهده فاکتور</h1>
-          <p>جزئیات کامل سفارش و فاکتور پرداخت را در این صفحه مشاهده می‌کنی.</p>
-        </div>
-      </div>
-    </section>
-
     <section class="section">
       <div class="container">
         <div class="invoice-page" id="invoice-root">
+
+          <!-- پیام خطا -->
           <div class="invoice-message" id="invoice-message"></div>
 
-          <div class="invoice-header" id="invoice-header">
-            <h1>فاکتور سفارش</h1>
-            <p id="invoice-header-text">
-              در حال بارگذاری اطلاعات سفارش...
-            </p>
-
-            <div class="invoice-meta" id="invoice-meta" style="display: none;">
-              <div class="invoice-meta-item">
-                <span>شماره سفارش</span>
-                <strong id="meta-order-number">-</strong>
-              </div>
-              <div class="invoice-meta-item">
-                <span>تاریخ ثبت</span>
-                <strong id="meta-created-at">-</strong>
-              </div>
-              <div class="invoice-meta-item">
-                <span>وضعیت سفارش</span>
-                <strong id="meta-status">
-                  <span class="status-badge status-badge--info">-</span>
-                </strong>
-              </div>
-            </div>
+          <!-- حالت بارگذاری -->
+          <div class="invoice-loading" id="invoice-loading">
+            <div class="spinner"></div>
+            <p>در حال بارگذاری اطلاعات سفارش...</p>
           </div>
 
-          <div class="invoice-section" id="invoice-items-section" style="display: none;">
-            <h2>اقلام سفارش</h2>
-            <p>لیست کالاهای ثبت‌شده در این سفارش.</p>
+          <!-- محتوای اصلی فاکتور (پنهان در ابتدا) -->
+          <div id="invoice-content" style="display: none;">
 
-            <div class="invoice-table-wrap">
-              <table class="invoice-table">
-                <thead>
-                  <tr>
-                    <th>ردیف</th>
-                    <th>نام کالا</th>
-                    <th>تعداد</th>
-                    <th>قیمت واحد</th>
-                    <th>مجموع</th>
-                  </tr>
-                </thead>
-                <tbody id="invoice-items-body">
-                  <tr>
-                    <td colspan="5">در حال بارگذاری اقلام...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="invoice-section" id="invoice-summary-section" style="display: none;">
-            <h2>خلاصه فاکتور</h2>
-            <p>جمع مبالغ برای این سفارش.</p>
-
-            <div class="invoice-summary">
-              <div class="summary-card">
-                <span>جمع جزء</span>
-                <strong id="summary-subtotal">0 تومان</strong>
-              </div>
-              <div class="summary-card">
-                <span>کسر از کیف پول</span>
-                <strong id="summary-wallet-used">0 تومان</strong>
-              </div>
-              <div class="summary-card">
-                <span>هزینه ارسال</span>
-                <strong id="summary-shipping">0 تومان</strong>
-              </div>
-              <div class="summary-card">
-                <span>بازگشت به کیف پول</span>
-                <strong id="summary-cashback">0 تومان</strong>
-              </div>
-              <div class="summary-card">
-                <span>جمع کل قبل از کیف پول</span>
-                <strong id="summary-total">0 تومان</strong>
-              </div>
-              <div class="summary-card">
-                <span>مبلغ قابل پرداخت</span>
-                <strong id="summary-paid">0 تومان</strong>
-              </div>
-              <div class="summary-card">
-                <span>وضعیت پرداخت</span>
-                <strong id="summary-payment-status">
-                  <span class="status-badge status-badge--info">-</span>
-                </strong>
+            <!-- بنر تشکر -->
+            <div class="thankyou-banner">
+              <span class="icon">✅</span>
+              <h1 id="thankyou-title">سپاس‌گزاریم از خرید شما!</h1>
+              <p id="thankyou-text">سفارش شما با موفقیت ثبت شد. اطلاعات فاکتور در زیر نمایش داده شده است.</p>
+              <div class="order-number-box" id="order-number-display">
+                شماره سفارش: <span id="order-number-text">-</span>
               </div>
             </div>
 
+            <!-- هدر فاکتور -->
+            <div class="invoice-header">
+              <div class="invoice-header-top">
+                <div class="invoice-logo-area">
+                  <div id="invoice-logo-container">
+                    <div class="invoice-logo-placeholder">تک</div>
+                  </div>
+                  <div class="invoice-title">
+                    <h2>فاکتور رسمی خرید</h2>
+                    <p id="invoice-company-name">تک تجارت</p>
+                  </div>
+                </div>
+                <div style="text-align: left;">
+                  <div style="font-size:0.82rem;color:var(--muted);">تاریخ چاپ</div>
+                  <div style="font-weight:700;" id="print-date"></div>
+                </div>
+              </div>
+
+              <div class="invoice-meta-grid">
+                <div class="invoice-meta-item">
+                  <span>شماره سفارش</span>
+                  <strong id="meta-order-number">-</strong>
+                </div>
+                <div class="invoice-meta-item">
+                  <span>تاریخ ثبت</span>
+                  <strong id="meta-created-at">-</strong>
+                </div>
+                <div class="invoice-meta-item">
+                  <span>وضعیت سفارش</span>
+                  <strong id="meta-status">
+                    <span class="status-badge status-badge--info">در انتظار</span>
+                  </strong>
+                </div>
+                <div class="invoice-meta-item">
+                  <span>وضعیت پرداخت</span>
+                  <strong id="meta-payment-status">
+                    <span class="status-badge status-badge--warning">در انتظار پرداخت</span>
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- اقلام سفارش -->
+            <div class="invoice-section">
+              <h3>📦 اقلام سفارش</h3>
+              <p class="section-desc">لیست کالاهای ثبت‌شده در این سفارش.</p>
+
+              <div class="invoice-table-wrap">
+                <table class="invoice-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>نام کالا</th>
+                      <th>تعداد</th>
+                      <th>قیمت واحد</th>
+                      <th>مجموع</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoice-items-body">
+                    <tr>
+                      <td colspan="5" style="text-align:center;color:var(--muted);">در حال بارگذاری اقلام...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- خلاصه فاکتور -->
+            <div class="invoice-section">
+              <h3>💰 خلاصه فاکتور</h3>
+              <p class="section-desc">جمع مبالغ این سفارش.</p>
+
+              <div class="invoice-summary-grid">
+                <div class="summary-item">
+                  <span class="label">جمع جزء</span>
+                  <span class="value" id="summary-subtotal">0 تومان</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">هزینه ارسال</span>
+                  <span class="value" id="summary-shipping">0 تومان</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">استفاده از کیف پول</span>
+                  <span class="value" id="summary-wallet-used">0 تومان</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">بازگشت به کیف پول (کش‌بک)</span>
+                  <span class="value" id="summary-cashback">0 تومان</span>
+                </div>
+                <div class="summary-item" style="border-bottom:2px solid var(--border);">
+                  <span class="label" style="font-weight:700;">جمع کل</span>
+                  <span class="value" style="font-size:1.1rem;color:var(--primary);" id="summary-total">0 تومان</span>
+                </div>
+                <div class="summary-item total">
+                  <span class="label" style="font-weight:700;font-size:1.05rem;">مبلغ قابل پرداخت</span>
+                  <span class="value" style="font-size:1.2rem;color:var(--primary);" id="summary-payable">0 تومان</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- اطلاعات پرداخت -->
+            <div class="invoice-section">
+              <h3>💳 اطلاعات پرداخت</h3>
+              <p class="section-desc">جهت تکمیل فرآیند خرید، مبلغ فاکتور را به یکی از روش‌های زیر واریز کنید.</p>
+
+              <div class="payment-info-grid" id="payment-info-grid">
+                <div class="payment-info-card">
+                  <span class="label">شماره حساب</span>
+                  <span class="value fa" id="payment-account">-</span>
+                </div>
+                <div class="payment-info-card">
+                  <span class="label">شماره کارت</span>
+                  <span class="value" id="payment-card">-</span>
+                </div>
+                <div class="payment-info-card" style="grid-column: 1 / -1;">
+                  <span class="label">شماره شبا</span>
+                  <span class="value" id="payment-sheba">-</span>
+                </div>
+              </div>
+
+              <div class="payment-deadline">
+                <span class="icon">⏰</span>
+                <span class="text">مهلت پرداخت: <strong id="payment-deadline">-</strong></span>
+              </div>
+
+              <div class="payment-description" id="payment-description">
+                لطفاً مبلغ فاکتور را به شماره کارت درج شده واریز و تصویر رسید را به شماره واتساپ پشتیبانی ارسال کنید.
+              </div>
+            </div>
+
+            <!-- آدرس -->
+            <div class="invoice-section">
+              <h3>📍 آدرس ارسال</h3>
+              <p class="section-desc">آدرس ثبت‌شده برای این سفارش.</p>
+
+              <div class="address-grid">
+                <div class="address-card">
+                  <h4>آدرس ارسال</h4>
+                  <p id="shipping-address-text">در حال بارگذاری...</p>
+                </div>
+                <div class="address-card">
+                  <h4>اطلاعات تماس</h4>
+                  <p id="contact-info-text">در حال بارگذاری...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- دکمه‌های اقدام -->
             <div class="invoice-actions">
-              <button type="button" class="btn btn-secondary" onclick="window.history.back()">
-                بازگشت
-              </button>
               <button type="button" class="btn btn-primary" id="print-invoice-btn">
-                چاپ فاکتور
+                🖨️ چاپ فاکتور
               </button>
+              <button type="button" class="btn btn-whatsapp" id="whatsapp-btn">
+                📱 ارسال به واتساپ پشتیبانی
+              </button>
+              <a href="/products.html" class="btn btn-secondary">
+                🛍️ ادامه خرید
+              </a>
+              <a href="/account.html" class="btn btn-secondary">
+                📋 مشاهده سفارشات
+              </a>
             </div>
-          </div>
 
-          <div class="invoice-section" id="invoice-addresses-section" style="display: none;">
-            <h2>آدرس سفارش</h2>
-            <p>آدرس ثبت‌شده برای این سفارش.</p>
-
-            <div class="invoice-addresses">
-              <div class="invoice-address-card" id="shipping-address-card">
-                <h3>آدرس ارسال</h3>
-                <p id="shipping-address-text">در حال بارگذاری آدرس ارسال...</p>
-              </div>
-              <div class="invoice-address-card" id="billing-address-card">
-                <h3>آدرس صورتحساب</h3>
-                <p id="billing-address-text">در حال بارگذاری آدرس صورتحساب...</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -546,282 +729,332 @@
 
   <script src="assets/js/layout.js"></script>
   <script src="assets/js/products.js"></script>
-  <script src="price-overrides.js"></script>
-  <script src="price-loader.js"></script>
   <script src="assets/js/cart.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/auth.js"></script>
 
   <script>
-    const invoiceMessage = document.getElementById("invoice-message");
-    const headerText = document.getElementById("invoice-header-text");
-    const metaBlock = document.getElementById("invoice-meta");
+    (function() {
+      'use strict';
 
-    const metaOrderNumber = document.getElementById("meta-order-number");
-    const metaCreatedAt = document.getElementById("meta-created-at");
-    const metaStatus = document.getElementById("meta-status");
+      // ============================================
+      // المان‌ها
+      // ============================================
+      const els = {
+        loading: document.getElementById('invoice-loading'),
+        content: document.getElementById('invoice-content'),
+        message: document.getElementById('invoice-message'),
 
-    const itemsSection = document.getElementById("invoice-items-section");
-    const itemsBody = document.getElementById("invoice-items-body");
+        orderNumber: document.getElementById('order-number-text'),
+        metaOrderNumber: document.getElementById('meta-order-number'),
+        metaCreatedAt: document.getElementById('meta-created-at'),
+        metaStatus: document.getElementById('meta-status'),
+        metaPaymentStatus: document.getElementById('meta-payment-status'),
 
-    const summarySection = document.getElementById("invoice-summary-section");
-    const summarySubtotal = document.getElementById("summary-subtotal");
-    const summaryWalletUsed = document.getElementById("summary-wallet-used");
-    const summaryShipping = document.getElementById("summary-shipping");
-    const summaryCashback = document.getElementById("summary-cashback");
-    const summaryTotal = document.getElementById("summary-total");
-    const summaryPaid = document.getElementById("summary-paid");
-    const summaryPaymentStatus = document.getElementById("summary-payment-status");
+        itemsBody: document.getElementById('invoice-items-body'),
 
-    const addressesSection = document.getElementById("invoice-addresses-section");
-    const shippingAddressText = document.getElementById("shipping-address-text");
-    const billingAddressText = document.getElementById("billing-address-text");
-    const printInvoiceBtn = document.getElementById("print-invoice-btn");
+        summarySubtotal: document.getElementById('summary-subtotal'),
+        summaryShipping: document.getElementById('summary-shipping'),
+        summaryWalletUsed: document.getElementById('summary-wallet-used'),
+        summaryCashback: document.getElementById('summary-cashback'),
+        summaryTotal: document.getElementById('summary-total'),
+        summaryPayable: document.getElementById('summary-payable'),
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
+        paymentAccount: document.getElementById('payment-account'),
+        paymentCard: document.getElementById('payment-card'),
+        paymentSheba: document.getElementById('payment-sheba'),
+        paymentDeadline: document.getElementById('payment-deadline'),
+        paymentDescription: document.getElementById('payment-description'),
 
-    function formatPrice(value) {
-      const number = Number(value || 0);
-      return number.toLocaleString("fa-IR") + " تومان";
-    }
+        shippingAddress: document.getElementById('shipping-address-text'),
+        contactInfo: document.getElementById('contact-info-text'),
 
-    function formatDate(value) {
-      if (!value) return "-";
+        companyName: document.getElementById('invoice-company-name'),
+        thankyouText: document.getElementById('thankyou-text'),
+        printDate: document.getElementById('print-date'),
 
-      try {
-        const normalized = String(value).trim().replace(" ", "T");
-        const date = new Date(normalized);
+        logoContainer: document.getElementById('invoice-logo-container'),
+        whatsappBtn: document.getElementById('whatsapp-btn'),
+        printBtn: document.getElementById('print-invoice-btn'),
+      };
 
-        if (Number.isNaN(date.getTime())) {
-          return escapeHtml(String(value));
+      // ============================================
+      // توابع کمکی
+      // ============================================
+      function esc(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatPrice(value) {
+        const num = Number(value || 0);
+        return num.toLocaleString('fa-IR') + ' تومان';
+      }
+
+      function formatDate(value) {
+        if (!value) return '-';
+        try {
+          const d = new Date(String(value).trim().replace(' ', 'T'));
+          if (isNaN(d.getTime())) return String(value);
+          return new Intl.DateTimeFormat('fa-IR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }).format(d);
+        } catch (_) {
+          return String(value);
         }
-
-        return new Intl.DateTimeFormat("fa-IR", {
-          year: "numeric",
-          month: "long",
-          day: "numeric"
-        }).format(date);
-      } catch (error) {
-        return escapeHtml(String(value));
-      }
     }
 
-    function translateOrderStatus(status) {
-      const normalized = String(status || "").trim().toLowerCase();
+      function getStatusBadge(status, type) {
+        const map = {
+          pending: { class: 'status-badge--warning', text: 'در انتظار' },
+          processing: { class: 'status-badge--info', text: 'در حال پردازش' },
+          shipped: { class: 'status-badge--info', text: 'ارسال شده' },
+          completed: { class: 'status-badge--success', text: 'تکمیل شده' },
+          cancelled: { class: 'status-badge--danger', text: 'لغو شده' },
+          paid: { class: 'status-badge--success', text: 'پرداخت شده' },
+          failed: { class: 'status-badge--danger', text: 'ناموفق' },
+          'in-progress': { class: 'status-badge--info', text: 'در حال بررسی' },
+        };
 
-      const map = {
-        pending: "در انتظار",
-        processing: "در حال پردازش",
-        shipped: "ارسال شده",
-        sent: "ارسال شده",
-        completed: "تکمیل شده",
-        paid: "پرداخت شده",
-        success: "موفق",
-        cancelled: "لغو شده",
-        canceled: "لغو شده",
-        failed: "ناموفق"
-      };
-
-      return map[normalized] || (status ? String(status) : "-");
-    }
-
-    function translatePaymentStatus(status) {
-      const normalized = String(status || "").trim().toLowerCase();
-
-      const map = {
-        pending: "در انتظار پرداخت",
-        unpaid: "پرداخت نشده",
-        waiting: "در انتظار پرداخت",
-        processing: "در حال بررسی",
-        paid: "پرداخت شده",
-        success: "موفق",
-        completed: "تکمیل شده",
-        failed: "ناموفق",
-        cancelled: "لغو شده",
-        canceled: "لغو شده",
-        refunded: "بازگشت وجه",
-        partial: "پرداخت جزئی"
-      };
-
-      return map[normalized] || (status ? String(status) : "-");
-    }
-
-    function statusBadgeClass(status) {
-      const normalized = String(status || "").trim().toLowerCase();
-
-      if (["completed", "paid", "success"].includes(normalized)) {
-        return "status-badge status-badge--success";
+        const key = String(status || '').toLowerCase();
+        const info = map[key] || { class: 'status-badge--warning', text: String(status || '-') };
+        return `<span class="status-badge ${info.class}">${info.text}</span>`;
       }
 
-      if (["shipped", "sent", "processing"].includes(normalized)) {
-        return "status-badge status-badge--info";
+      function formatAddress(address) {
+        if (!address || typeof address !== 'object') return 'آدرسی ثبت نشده است.';
+        const parts = [];
+        if (address.full_name) parts.push('نام: ' + address.full_name);
+        if (address.address_line) parts.push('آدرس: ' + address.address_line);
+        if (address.city || address.state) {
+          parts.push('شهر/استان: ' + [address.city, address.state].filter(Boolean).join(' - '));
+        }
+        if (address.postal_code) parts.push('کد پستی: ' + address.postal_code);
+        return parts.length ? parts.join('\n') : 'آدرسی ثبت نشده است.';
       }
 
-      return "status-badge status-badge--warning";
-    }
-
-    function renderStatusBadge(status, translator) {
-      return `<span class="${statusBadgeClass(status)}">${escapeHtml(translator(status))}</span>`;
-    }
-
-    function setError(message) {
-      if (!invoiceMessage) return;
-      invoiceMessage.textContent = message || "خطایی رخ داده است.";
-      invoiceMessage.className = "invoice-message is-error";
-    }
-
-    function formatAddress(address) {
-      if (!address || typeof address !== "object") {
-        return "آدرسی برای این بخش ثبت نشده است.";
+      function formatContact(address) {
+        if (!address || typeof address !== 'object') return 'اطلاعاتی ثبت نشده است.';
+        const parts = [];
+        if (address.phone) parts.push('📱 تلفن: ' + address.phone);
+        if (address.email) parts.push('✉️ ایمیل: ' + address.email);
+        return parts.length ? parts.join('\n') : 'اطلاعاتی ثبت نشده است.';
       }
 
-      const lines = [];
-
-      if (address.full_name) lines.push("نام: " + address.full_name);
-      if (address.phone) lines.push("تلفن: " + address.phone);
-      if (address.address_line) lines.push("آدرس: " + address.address_line);
-
-      const cityState = [address.city, address.state].filter(Boolean).join(" - ");
-      if (cityState) lines.push("شهر/استان: " + cityState);
-
-      if (address.postal_code) lines.push("کد پستی: " + address.postal_code);
-
-      return lines.length ? lines.join("\n") : "آدرسی برای این بخش ثبت نشده است.";
-    }
-
-    function enablePrintMode() {
-      document.body.classList.add("is-printing-invoice");
-    }
-
-    function disablePrintMode() {
-      document.body.classList.remove("is-printing-invoice");
-    }
-
-    function printInvoice() {
-      enablePrintMode();
-      setTimeout(() => window.print(), 80);
-    }
-
-    window.addEventListener("beforeprint", enablePrintMode);
-    window.addEventListener("afterprint", disablePrintMode);
-
-    async function loadInvoice() {
-      const params = new URLSearchParams(window.location.search);
-      const orderParam = params.get("order");
-
-      if (!orderParam) {
-        setError("شماره سفارش در آدرس صفحه پیدا نشد.");
-        headerText.textContent = "لطفاً از صفحه سفارش‌ها وارد این صفحه شو.";
-        return;
+      function setError(message) {
+        if (els.message) {
+          els.message.textContent = message || 'خطایی رخ داده است.';
+          els.message.className = 'invoice-message is-error';
+        }
+        if (els.loading) els.loading.style.display = 'none';
+        if (els.content) els.content.style.display = 'none';
       }
 
-      if (!window.Auth || typeof window.Auth.requireAuth !== "function") {
-        setError("سیستم احراز هویت در دسترس نیست.");
-        return;
+      // ============================================
+      // بارگذاری تنظیمات فاکتور
+      // ============================================
+      async function loadInvoiceSettings() {
+        try {
+          const response = await fetch('/api/admin/settings', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' }
+          });
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data?.success) return {};
+
+          const settings = data.settings || {};
+          return {
+            logo: settings.invoice_logo || '',
+            thankyouText: settings.invoice_thankyou_text || 'سپاس‌گزاریم که از تک تجارت خرید کردید. سفارش شما با موفقیت ثبت شد.',
+            account: settings.invoice_bank_account || 'بانک ملی - شماره حساب: ۱۲۳۴۵۶۷۸۹۰',
+            card: settings.invoice_card_number || '۶۰۳۷-۷۹۹۱-۵۰۵۴-۴۳۴۲',
+            sheba: settings.invoice_sheba_number || 'IR۴۵۰۱۷۰۰۰۰۰۰۰۰۱۲۳۴۵۶۷۸۹۰',
+            deadline: settings.invoice_payment_deadline || '۲۴ ساعت',
+            description: settings.invoice_payment_description || 'لطفاً مبلغ فاکتور را به شماره کارت درج شده واریز و تصویر رسید را به شماره واتساپ پشتیبانی ارسال کنید.',
+            whatsapp: settings.invoice_whatsapp_number || '۰۹۱۲۳۴۵۶۷۸۹',
+            companyName: settings.invoice_company_name || 'تک تجارت',
+            companyPhone: settings.invoice_company_phone || '۰۲۱-۱۲۳۴۵۶۷۸',
+            companyAddress: settings.invoice_company_address || 'تهران، خیابان ولیعصر، پلاک ۱۲۳',
+          };
+        } catch (_) {
+          return {};
+        }
       }
 
-      const user = await window.Auth.requireAuth({
-        redirectTo: "/login.html"
-      });
-      if (!user) return;
+      // ============================================
+      // بارگذاری اطلاعات سفارش
+      // ============================================
+      async function loadOrder(orderNumber) {
+        try {
+          const response = await fetch('/api/account/orders/' + encodeURIComponent(orderNumber), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' }
+          });
+          const data = await response.json().catch(() => null);
 
-      try {
-        const response = await fetch(
-          "/api/account/orders/" + encodeURIComponent(orderParam),
-          { credentials: "same-origin" }
-        );
-        const data = await response.json();
+          if (!response.ok || !data?.success || !data.order) {
+            setError('دریافت اطلاعات سفارش با خطا مواجه شد.');
+            return null;
+          }
 
-        if (!response.ok || !data?.success || !data.order) {
-          setError("دریافت جزئیات سفارش با خطا مواجه شد.");
-          headerText.textContent = "امکان نمایش فاکتور وجود ندارد.";
+          return data.order;
+        } catch (_) {
+          setError('خطا در ارتباط با سرور.');
+          return null;
+        }
+      }
+
+      // ============================================
+      // رندر فاکتور
+      // ============================================
+      function renderInvoice(order, settings) {
+        if (!order) {
+          setError('اطلاعات سفارش موجود نیست.');
           return;
         }
 
-        const order = data.order;
+        // شماره سفارش
+        const orderNumber = order.order_number || '-';
+        els.orderNumber.textContent = orderNumber;
+        els.metaOrderNumber.textContent = orderNumber;
 
-        metaOrderNumber.textContent = order.order_number || order.id || "-";
-        metaCreatedAt.textContent = formatDate(order.created_at);
-        metaStatus.innerHTML = renderStatusBadge(order.status, translateOrderStatus);
-        metaBlock.style.display = "grid";
+        // تاریخ
+        els.metaCreatedAt.textContent = formatDate(order.created_at);
 
-        headerText.textContent = "فاکتور سفارش انتخاب‌شده در زیر نمایش داده شده است.";
+        // وضعیت‌ها
+        els.metaStatus.innerHTML = getStatusBadge(order.status);
+        els.metaPaymentStatus.innerHTML = getStatusBadge(order.payment_status || order.status);
 
+        // اقلام
         const items = Array.isArray(order.items) ? order.items : [];
-        itemsSection.style.display = "block";
-
         if (items.length) {
-          itemsBody.innerHTML = items.map((item, index) => {
-            const unitPrice = Number(item.unit_price ?? item.price ?? 0);
-            const qty = Math.max(
-              1,
-              Number(item.quantity ?? item.qty ?? item.count ?? item.amount ?? 1)
-            );
-            const finalRowTotal = Number(
-              item.total_price ??
-              item.row_total ??
-              item.line_total ??
-              (unitPrice * qty)
-            );
-
+          els.itemsBody.innerHTML = items.map((item, index) => {
+            const unitPrice = Number(item.unit_price || 0);
+            const qty = Math.max(1, Number(item.quantity || 1));
+            const total = Number(item.total_price || (unitPrice * qty));
             return `
               <tr>
-                <td class="table-number">${(index + 1).toLocaleString("fa-IR")}</td>
-                <td>${escapeHtml(item.product_name || item.name || "-")}</td>
-                <td class="table-number">${qty.toLocaleString("fa-IR")}</td>
-                <td class="table-number">${formatPrice(unitPrice)}</td>
-                <td class="table-number">${formatPrice(finalRowTotal)}</td>
+                <td class="number">${(index + 1).toLocaleString('fa-IR')}</td>
+                <td>${esc(item.product_name || '-')}</td>
+                <td class="number">${qty.toLocaleString('fa-IR')}</td>
+                <td class="number">${formatPrice(unitPrice)}</td>
+                <td class="number">${formatPrice(total)}</td>
               </tr>
             `;
-          }).join("");
+          }).join('');
         } else {
-          itemsBody.innerHTML =
-            '<tr><td colspan="5">برای این سفارش هیچ قلم کالایی ثبت نشده است.</td></tr>';
+          els.itemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">هیچ قلم کالایی ثبت نشده است.</td></tr>';
         }
 
-        summarySection.style.display = "block";
+        // خلاصه
+        const subtotal = Number(order.subtotal_amount || 0);
+        const shipping = Number(order.shipping_amount || 0);
+        const walletUsed = Number(order.wallet_used_amount || 0);
+        const cashback = Number(order.cashback_amount || 0);
+        const total = Number(order.total_amount || 0);
+        const payable = Number(order.payable_amount || Math.max(0, total - walletUsed));
 
-        const subtotalAmount = Number(order.subtotal_amount || 0);
-        const shippingAmount = Number(order.shipping_amount || 0);
-        const walletUsedAmount = Number(order.wallet_used_amount || 0);
-        const cashbackAmount = Number(order.cashback_amount || 0);
-        const totalAmount = Number(order.total_amount || 0);
-        const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
+        els.summarySubtotal.textContent = formatPrice(subtotal);
+        els.summaryShipping.textContent = formatPrice(shipping);
+        els.summaryWalletUsed.textContent = formatPrice(walletUsed);
+        els.summaryCashback.textContent = formatPrice(cashback);
+        els.summaryTotal.textContent = formatPrice(total);
+        els.summaryPayable.textContent = formatPrice(payable);
 
-        summarySubtotal.textContent = formatPrice(subtotalAmount);
-        summaryWalletUsed.textContent = formatPrice(walletUsedAmount);
-        summaryShipping.textContent = formatPrice(shippingAmount);
-        summaryCashback.textContent = formatPrice(cashbackAmount);
-        summaryTotal.textContent = formatPrice(totalAmount);
-        summaryPaid.textContent = formatPrice(payableAmount);
-        summaryPaymentStatus.innerHTML = renderStatusBadge(
-          order.payment_status || order.status,
-          translatePaymentStatus
+        // اطلاعات پرداخت (از تنظیمات)
+        els.paymentAccount.textContent = settings.account || '-';
+        els.paymentCard.textContent = settings.card || '-';
+        els.paymentSheba.textContent = settings.sheba || '-';
+        els.paymentDeadline.textContent = settings.deadline || '-';
+        els.paymentDescription.textContent = settings.description || '';
+
+        // آدرس
+        const address = order.shipping_address || order.address || {};
+        els.shippingAddress.textContent = formatAddress(address);
+        els.contactInfo.textContent = formatContact(address);
+
+        // تنظیمات متنی
+        els.companyName.textContent = settings.companyName || 'تک تجارت';
+        els.thankyouText.textContent = settings.thankyouText || 'سپاس‌گزاریم که از تک تجارت خرید کردید. سفارش شما با موفقیت ثبت شد.';
+
+        // تاریخ چاپ
+        els.printDate.textContent = new Date().toLocaleDateString('fa-IR');
+
+        // لوگو
+        if (settings.logo) {
+          els.logoContainer.innerHTML = `<img src="${esc(settings.logo)}" alt="لوگو" class="invoice-logo" />`;
+        } else {
+          els.logoContainer.innerHTML = `<div class="invoice-logo-placeholder">تک</div>`;
+        }
+
+        // دکمه واتساپ
+        const whatsappNumber = settings.whatsapp || '09123456789';
+        const cleanNumber = whatsappNumber.replace(/[^0-9]/g, '');
+        const message = encodeURIComponent(
+          `سلام، سفارش ${orderNumber} را ثبت کردم. لطفاً رسید پرداخت را بررسی کنید.`
         );
+        els.whatsappBtn.onclick = function() {
+          window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
+        };
 
-        addressesSection.style.display = "block";
-        shippingAddressText.textContent = formatAddress(order.address || order.shipping_address);
-        billingAddressText.textContent = formatAddress(order.billing_address || order.address || order.shipping_address);
-      } catch (error) {
-        setError("دریافت فاکتور با خطا مواجه شد.");
-        headerText.textContent = "لطفاً بعداً دوباره تلاش کن.";
+        // نمایش محتوا
+        if (els.loading) els.loading.style.display = 'none';
+        if (els.content) els.content.style.display = 'block';
       }
-    }
 
-    if (printInvoiceBtn) {
-      printInvoiceBtn.addEventListener("click", printInvoice);
-    }
+      // ============================================
+      // چاپ
+      // ============================================
+      function printInvoice() {
+        window.print();
+      }
 
-    document.addEventListener("DOMContentLoaded", async function () {
-      await loadInvoice();
-    });
+      // ============================================
+      // مقداردهی اولیه
+      // ============================================
+      async function init() {
+        // بررسی احراز هویت
+        if (typeof window.Auth !== 'undefined' && typeof window.Auth.requireAuth === 'function') {
+          const user = await window.Auth.requireAuth({ redirectTo: '/login.html' });
+          if (!user) return;
+        }
+
+        // دریافت شماره سفارش از URL
+        const params = new URLSearchParams(window.location.search);
+        const orderNumber = params.get('order');
+
+        if (!orderNumber) {
+          setError('شماره سفارش در آدرس صفحه پیدا نشد.');
+          return;
+        }
+
+        // بارگذاری تنظیمات و سفارش به صورت همزمان
+        const [settings, order] = await Promise.all([
+          loadInvoiceSettings(),
+          loadOrder(orderNumber)
+        ]);
+
+        if (order) {
+          renderInvoice(order, settings);
+        }
+      }
+
+      // رویدادها
+      if (els.printBtn) {
+        els.printBtn.addEventListener('click', printInvoice);
+      }
+
+      // شروع
+      document.addEventListener('DOMContentLoaded', init);
+    })();
   </script>
 </body>
 </html>

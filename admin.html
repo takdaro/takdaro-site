@@ -673,6 +673,19 @@
       flex-wrap: wrap;
     }
 
+    /* Products manager */
+    .products-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+    .product-image-thumb { width:58px; height:58px; border-radius:12px; object-fit:cover; border:1px solid rgba(15,23,42,.1); background:#f8fafc; }
+    .product-empty-image { width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:#f8fafc; color:#94a3b8; border:1px dashed rgba(15,23,42,.16); }
+    .product-gallery-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-top:14px; }
+    .product-gallery-item { position:relative; padding:10px; border:1px solid rgba(15,23,42,.1); border-radius:16px; background:#fff; }
+    .product-gallery-item img { width:100%; height:140px; object-fit:cover; border-radius:11px; background:#f8fafc; display:block; }
+    .product-gallery-item .form-field { margin-top:9px; gap:5px; }
+    .product-gallery-item .form-field input { padding:10px 11px; border-radius:11px; }
+    .product-gallery-actions { display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
+    .product-gallery-actions label { display:flex; align-items:center; gap:5px; color:#475569; font-size:.82rem; font-weight:700; cursor:pointer; }
+    .product-file-help { color:#64748b; font-size:.83rem; line-height:1.8; margin:0; }
+
     @media (max-width: 1280px) {
       .container {
         width: min(100%, calc(100% - 24px));
@@ -763,20 +776,6 @@
         min-width: 900px;
       }
     }
-  
-    /* Products manager */
-    .products-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
-    .product-image-thumb { width:58px; height:58px; border-radius:12px; object-fit:cover; border:1px solid rgba(15,23,42,.1); background:#f8fafc; }
-    .product-empty-image { width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:#f8fafc; color:#94a3b8; border:1px dashed rgba(15,23,42,.16); }
-    .product-gallery-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-top:14px; }
-    .product-gallery-item { position:relative; padding:10px; border:1px solid rgba(15,23,42,.1); border-radius:16px; background:#fff; }
-    .product-gallery-item img { width:100%; height:140px; object-fit:cover; border-radius:11px; background:#f8fafc; display:block; }
-    .product-gallery-item .form-field { margin-top:9px; gap:5px; }
-    .product-gallery-item .form-field input { padding:10px 11px; border-radius:11px; }
-    .product-gallery-actions { display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
-    .product-gallery-actions label { display:flex; align-items:center; gap:5px; color:#475569; font-size:.82rem; font-weight:700; cursor:pointer; }
-    .product-file-help { color:#64748b; font-size:.83rem; line-height:1.8; margin:0; }
-
   </style>
 </head>
 <body>
@@ -819,6 +818,7 @@
                 <button class="admin-menu-btn" type="button" data-admin-panel="users">کاربران</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="wallet">کیف پول</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="products">محصولات</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="invoice">تنظیمات فاکتور</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="logout">خروج</button>
               </nav>
             </div>
@@ -833,6 +833,7 @@
             <div class="admin-panel-body">
               <div id="admin-message" class="admin-message"></div>
 
+              <!-- ==================== داشبورد ==================== -->
               <div id="admin-panel-dashboard" class="admin-section is-active">
                 <div class="stats-grid">
                   <div class="stat-card"><span>کل کاربران</span><strong id="stat-users">0</strong></div>
@@ -879,6 +880,7 @@
                 </div>
               </div>
 
+              <!-- ==================== سفارش‌ها ==================== -->
               <div id="admin-panel-orders" class="admin-section">
                 <div class="filters-grid">
                   <div class="form-field">
@@ -935,6 +937,7 @@
                 <div id="order-detail" class="detail-card admin-hidden"></div>
               </div>
 
+              <!-- ==================== کاربران ==================== -->
               <div id="admin-panel-users" class="admin-section">
                 <div class="users-toolbar">
                   <h4 style="margin:0;color:#0f172a;">مدیریت کاربران</h4>
@@ -984,6 +987,7 @@
                 <div id="user-edit-box" class="detail-card admin-hidden"></div>
               </div>
 
+              <!-- ==================== محصولات ==================== -->
               <div id="admin-panel-products" class="admin-section">
                 <div class="products-toolbar">
                   <div>
@@ -1005,6 +1009,7 @@
                 <div id="product-edit-box" class="detail-card admin-hidden"></div>
               </div>
 
+              <!-- ==================== کیف پول ==================== -->
               <div id="admin-panel-wallet" class="admin-section">
                 <div class="wallet-shell">
                   <div class="wallet-toolbar">
@@ -1059,6 +1064,74 @@
                 </div>
               </div>
 
+              <!-- ==================== تنظیمات فاکتور ==================== -->
+              <div id="admin-panel-invoice" class="admin-section">
+                <div class="detail-card">
+                  <h4>تنظیمات فاکتور و پرداخت</h4>
+                  <p class="admin-help">اطلاعات نمایش داده شده در فاکتور و صفحه تشکر را مدیریت کنید.</p>
+
+                  <div id="invoice-settings-message" class="admin-message"></div>
+
+                  <div class="filters-grid filters-grid-2">
+                    <div class="form-field">
+                      <label for="invoice-logo">آدرس لوگو</label>
+                      <input id="invoice-logo" type="text" placeholder="/assets/images/logo.png" />
+                      <small class="admin-help">مسیر تصویر لوگو در فاکتور</small>
+                    </div>
+                    <div class="form-field">
+                      <label for="invoice-company-name">نام شرکت</label>
+                      <input id="invoice-company-name" type="text" placeholder="تک تجارت" />
+                    </div>
+                    <div class="form-field" style="grid-column:1/-1;">
+                      <label for="invoice-thankyou-text">متن تشکر</label>
+                      <textarea id="invoice-thankyou-text" rows="3" placeholder="متن تشکر از خرید"></textarea>
+                    </div>
+                  </div>
+
+                  <hr style="border:1px solid var(--border);margin:20px 0;" />
+
+                  <h4 style="margin-bottom:12px;">اطلاعات بانکی</h4>
+                  <div class="filters-grid filters-grid-2">
+                    <div class="form-field">
+                      <label for="invoice-account">شماره حساب</label>
+                      <input id="invoice-account" type="text" placeholder="بانک ملی - شماره حساب: ۱۲۳۴۵۶۷۸۹۰" />
+                    </div>
+                    <div class="form-field">
+                      <label for="invoice-card">شماره کارت</label>
+                      <input id="invoice-card" type="text" placeholder="۶۰۳۷-۷۹۹۱-۵۰۵۴-۴۳۴۲" />
+                    </div>
+                    <div class="form-field" style="grid-column:1/-1;">
+                      <label for="invoice-sheba">شماره شبا</label>
+                      <input id="invoice-sheba" type="text" placeholder="IR۴۵۰۱۷۰۰۰۰۰۰۰۰۱۲۳۴۵۶۷۸۹۰" />
+                    </div>
+                  </div>
+
+                  <hr style="border:1px solid var(--border);margin:20px 0;" />
+
+                  <h4 style="margin-bottom:12px;">اطلاعات پرداخت</h4>
+                  <div class="filters-grid filters-grid-2">
+                    <div class="form-field">
+                      <label for="invoice-deadline">مهلت پرداخت</label>
+                      <input id="invoice-deadline" type="text" placeholder="۲۴ ساعت" />
+                    </div>
+                    <div class="form-field">
+                      <label for="invoice-whatsapp">شماره واتساپ پشتیبانی</label>
+                      <input id="invoice-whatsapp" type="text" placeholder="۰۹۱۲۳۴۵۶۷۸۹" />
+                    </div>
+                    <div class="form-field" style="grid-column:1/-1;">
+                      <label for="invoice-description">توضیحات پرداخت</label>
+                      <textarea id="invoice-description" rows="3" placeholder="توضیحات مربوط به نحوه پرداخت"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="panel-actions">
+                    <button class="btn btn-primary" type="button" id="save-invoice-settings-btn">ذخیره تنظیمات</button>
+                    <button class="btn btn-secondary" type="button" id="load-invoice-settings-btn">بارگذاری مجدد</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ==================== خروج ==================== -->
               <div id="admin-panel-logout" class="admin-section">
                 <div class="detail-card">
                   <h4>خروج از پنل مدیریت</h4>
@@ -1068,6 +1141,7 @@
                   </div>
                 </div>
               </div>
+
             </div>
           </section>
         </div>
@@ -1110,6 +1184,7 @@
       users: { title: "کاربران", description: "مدیریت کاربران، نقش‌ها و اطلاعات حساب." },
       wallet: { title: "کیف پول", description: "مدیریت حرفه‌ای موجودی، تراکنش‌ها و تنظیمات کش‌بک کاربران." },
       products: { title: "محصولات", description: "مدیریت محصولات، قیمت، موجودی، انتشار و گالری تصاویر." },
+      invoice: { title: "تنظیمات فاکتور", description: "مدیریت اطلاعات نمایش داده شده در فاکتور و صفحه تشکر." },
       logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
     };
 
@@ -1135,6 +1210,7 @@
         adminDescription.textContent = panelMeta[panel].description;
       }
       if (panel === "products") loadProducts();
+      if (panel === "invoice") loadInvoiceSettingsToForm();
     }
 
     function esc(value) {
@@ -2153,7 +2229,6 @@
       });
     }
 
-
     function faProductStatus(value) {
       const map = { published: "منتشرشده", draft: "پیش‌نویس", private: "خصوصی" };
       return map[String(value || "").toLowerCase()] || "پیش‌نویس";
@@ -2293,6 +2368,91 @@
       renderWalletHistory(txs);
     }
 
+    // ==========================================
+    // مدیریت تنظیمات فاکتور
+    // ==========================================
+    async function loadInvoiceSettings() {
+      try {
+        const response = await fetch('/api/admin/settings', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' }
+        });
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.success) {
+          return null;
+        }
+
+        return data.settings || {};
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function saveInvoiceSettings() {
+      const payload = {
+        invoice_logo: document.getElementById('invoice-logo').value.trim(),
+        invoice_company_name: document.getElementById('invoice-company-name').value.trim(),
+        invoice_thankyou_text: document.getElementById('invoice-thankyou-text').value.trim(),
+        invoice_bank_account: document.getElementById('invoice-account').value.trim(),
+        invoice_card_number: document.getElementById('invoice-card').value.trim(),
+        invoice_sheba_number: document.getElementById('invoice-sheba').value.trim(),
+        invoice_payment_deadline: document.getElementById('invoice-deadline').value.trim(),
+        invoice_whatsapp_number: document.getElementById('invoice-whatsapp').value.trim(),
+        invoice_payment_description: document.getElementById('invoice-description').value.trim(),
+      };
+
+      try {
+        const response = await fetch('/api/admin/settings', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json().catch(() => null);
+
+        const msg = document.getElementById('invoice-settings-message');
+        if (!response.ok || !data?.success) {
+          msg.textContent = data?.error || 'ذخیره تنظیمات انجام نشد.';
+          msg.className = 'admin-message is-error';
+          return;
+        }
+
+        msg.textContent = 'تنظیمات فاکتور با موفقیت ذخیره شد.';
+        msg.className = 'admin-message is-success';
+        await loadInvoiceSettingsToForm();
+      } catch (_) {
+        const msg = document.getElementById('invoice-settings-message');
+        msg.textContent = 'خطا در ارتباط با سرور.';
+        msg.className = 'admin-message is-error';
+      }
+    }
+
+    async function loadInvoiceSettingsToForm() {
+      const settings = await loadInvoiceSettings();
+      if (!settings) return;
+
+      const fields = {
+        'invoice-logo': settings.invoice_logo || '',
+        'invoice-company-name': settings.invoice_company_name || 'تک تجارت',
+        'invoice-thankyou-text': settings.invoice_thankyou_text || '',
+        'invoice-account': settings.invoice_bank_account || '',
+        'invoice-card': settings.invoice_card_number || '',
+        'invoice-sheba': settings.invoice_sheba_number || '',
+        'invoice-deadline': settings.invoice_payment_deadline || '۲۴ ساعت',
+        'invoice-whatsapp': settings.invoice_whatsapp_number || '',
+        'invoice-description': settings.invoice_payment_description || '',
+      };
+
+      for (const [id, value] of Object.entries(fields)) {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+      }
+    }
+
+    // ==========================================
+    // رویدادها
+    // ==========================================
     adminPanels.forEach((btn) => {
       btn.addEventListener("click", async () => {
         const panel = btn.getAttribute("data-admin-panel");
@@ -2301,6 +2461,7 @@
         if (panel === "dashboard") await loadDashboard();
         if (panel === "orders") await loadOrders();
         if (panel === "users") await loadUsers();
+        if (panel === "invoice") await loadInvoiceSettingsToForm();
       });
     });
 
@@ -2350,6 +2511,20 @@
       }
     });
 
+    // رویدادهای تنظیمات فاکتور
+    document.addEventListener('click', function(event) {
+      if (event.target.id === 'save-invoice-settings-btn') {
+        saveInvoiceSettings();
+      }
+      if (event.target.id === 'load-invoice-settings-btn') {
+        loadInvoiceSettingsToForm();
+        const msg = document.getElementById('invoice-settings-message');
+        msg.textContent = 'تنظیمات بارگذاری شد.';
+        msg.className = 'admin-message is-success';
+        setTimeout(() => { msg.className = 'admin-message'; }, 3000);
+      }
+    });
+
     document.addEventListener("DOMContentLoaded", async () => {
       const adminUser = await window.Auth.requireAdmin({ redirectPath: "/admin.html" });
       if (!adminUser) return;
@@ -2360,6 +2535,7 @@
       });
 
       await loadDashboard();
+      await loadInvoiceSettingsToForm();
 
       window.Auth.bindLogoutButton({
         buttonSelector: "[data-auth-logout]",

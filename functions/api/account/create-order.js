@@ -186,61 +186,37 @@ async function getCashbackSettings(db) {
     cashbackStatuses: ["completed"]
   };
 
-  const attempts = [
-    {
-      table: "app_settings",
-      keyColumn: "setting_key",
-      valueColumn: "setting_value"
-    },
-    {
-      table: "site_settings",
-      keyColumn: "key",
-      valueColumn: "value"
+  try {
+    const rows = await db.prepare(`
+      SELECT setting_key, setting_value
+      FROM app_settings
+      WHERE setting_key IN ('cashback_percent', 'cashback_statuses')
+    `).all();
+
+    const results = Array.isArray(rows?.results) ? rows.results : [];
+    if (!results.length) return defaults;
+
+    const settingsMap = {};
+    for (const row of results) {
+      settingsMap[String(row?.setting_key || "").trim()] = row?.setting_value;
     }
-  ];
 
-  for (const attempt of attempts) {
-    try {
-      const rows = await db.prepare(`
-        SELECT ${attempt.keyColumn} AS setting_key, ${attempt.valueColumn} AS setting_value
-        FROM ${attempt.table}
-        WHERE ${attempt.keyColumn} IN ('cashback_percent', 'cashback_statuses')
-      `).all();
+    let cashbackPercent = Math.max(
+      0,
+      Math.min(100, Number(settingsMap.cashback_percent || 0))
+    );
 
-      const results = Array.isArray(rows?.results) ? rows.results : [];
-      if (!results.length) continue;
+    if (!Number.isFinite(cashbackPercent)) cashbackPercent = 0;
 
-      const settingsMap = {};
-      for (const row of results) {
-        settingsMap[String(row?.setting_key || "").trim()] = row?.setting_value;
-      }
+    const cashbackStatuses = normalizeStatuses(settingsMap.cashback_statuses);
 
-      let cashbackPercent = Math.max(
-        0,
-        Math.min(100, Number(settingsMap.cashback_percent || 0))
-      );
-
-      if (!Number.isFinite(cashbackPercent)) cashbackPercent = 0;
-
-      const cashbackStatuses = normalizeStatuses(settingsMap.cashback_statuses);
-
-      return {
-        cashbackPercent,
-        cashbackStatuses
-      };
-    } catch (error) {
-      const message = String(error?.message || error || "");
-      const ignorable =
-        message.includes("no such table") ||
-        message.includes("no such column");
-
-      if (!ignorable) {
-        throw error;
-      }
-    }
+    return {
+      cashbackPercent,
+      cashbackStatuses
+    };
+  } catch (error) {
+    return defaults;
   }
-
-  return defaults;
 }
 
 async function createOrUpdateAddress(context, user, address) {
@@ -375,82 +351,6 @@ async function hasWalletUseTransaction(db, userId, orderId) {
   return !!row;
 }
 
-async function insertOrderRecord(db, payload) {
-  try {
-    return await db.prepare(`
-      INSERT INTO orders (
-        user_id,
-        order_number,
-        address_id,
-        status,
-        payment_status,
-        subtotal_amount,
-        shipping_amount,
-        total_amount,
-        wallet_used_amount,
-        payable_amount,
-        cashback_amount,
-        cashback_status,
-        notes,
-        created_at,
-        updated_at
-      )
-      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).bind(
-      payload.user_id,
-      payload.order_number,
-      payload.address_id,
-      payload.subtotal_amount,
-      payload.shipping_amount,
-      payload.total_amount,
-      payload.wallet_used_amount,
-      payload.payable_amount,
-      payload.cashback_amount,
-      payload.cashback_status,
-      payload.notes
-    ).run();
-  } catch (error) {
-    const message = String(error?.message || error || "");
-    const ignorable =
-      message.includes("has no column named payable_amount") ||
-      message.includes("table orders has no column named payable_amount") ||
-      message.includes("no such column: payable_amount");
-
-    if (!ignorable) throw error;
-
-    return await db.prepare(`
-      INSERT INTO orders (
-        user_id,
-        order_number,
-        address_id,
-        status,
-        payment_status,
-        subtotal_amount,
-        shipping_amount,
-        total_amount,
-        wallet_used_amount,
-        cashback_amount,
-        cashback_status,
-        notes,
-        created_at,
-        updated_at
-      )
-      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).bind(
-      payload.user_id,
-      payload.order_number,
-      payload.address_id,
-      payload.subtotal_amount,
-      payload.shipping_amount,
-      payload.total_amount,
-      payload.wallet_used_amount,
-      payload.cashback_amount,
-      payload.cashback_status,
-      payload.notes
-    ).run();
-  }
-}
-
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
@@ -521,19 +421,38 @@ export async function onRequestPost(context) {
     const savedAddress = await createOrUpdateAddress(context, user, address);
     const orderNumber = await generateUniqueOrderNumber(context.env.DB);
 
-    const orderInsert = await insertOrderRecord(context.env.DB, {
-      user_id: user.id,
-      order_number: orderNumber,
-      address_id: savedAddress.id,
-      subtotal_amount: subtotalAmount,
-      shipping_amount: shippingAmount,
-      total_amount: totalAmount,
-      wallet_used_amount: walletUsedAmount,
-      payable_amount: payableAmount,
-      cashback_amount: cashbackAmount,
-      cashback_status: cashbackAmount > 0 ? "pending" : "none",
-      notes: normalizeText(order.notes || body.notes)
-    });
+    const orderInsert = await context.env.DB.prepare(`
+      INSERT INTO orders (
+        user_id,
+        order_number,
+        address_id,
+        status,
+        payment_status,
+        subtotal_amount,
+        shipping_amount,
+        total_amount,
+        wallet_used_amount,
+        payable_amount,
+        cashback_amount,
+        cashback_status,
+        notes,
+        created_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).bind(
+      user.id,
+      orderNumber,
+      savedAddress.id,
+      subtotalAmount,
+      shippingAmount,
+      totalAmount,
+      walletUsedAmount,
+      payableAmount,
+      cashbackAmount,
+      cashbackAmount > 0 ? 'pending' : 'none',
+      normalizeText(order.notes || body.notes)
+    ).run();
 
     const orderId = orderInsert.meta?.last_row_id ?? null;
 
@@ -613,6 +532,7 @@ export async function onRequestPost(context) {
       }
     }
 
+    // ✅ تغییر اصلی: برگرداندن شماره سفارش برای هدایت به صفحه تشکر
     return json({
       success: true,
       order: {
