@@ -96,7 +96,6 @@
       color: var(--secondary);
     }
 
-    /* ===== Reaction/Ripple Effect برای موبایل ===== */
     .admin-menu-btn::after {
       content: "";
       position: absolute;
@@ -376,6 +375,93 @@
 
     .admin-hidden {
       display: none !important;
+    }
+
+    /* ==========================================
+       استایل Toggle Switch جدید
+       ========================================== */
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .toggle-wrapper .toggle-label {
+      font-weight: 700;
+      color: var(--text-soft);
+      font-size: 1rem;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .toggle-wrapper .toggle-status {
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: var(--secondary-soft);
+      color: var(--success);
+      transition: all 0.3s ease;
+    }
+
+    .toggle-wrapper .toggle-status.is-disabled {
+      background: #fef2f2;
+      color: var(--danger);
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 56px;
+      height: 30px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #d1d5db;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background: #fff;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--secondary);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(26px);
+    }
+
+    .toggle-switch input:disabled + .toggle-slider {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .wallet-shell {
@@ -871,6 +957,16 @@
         width: 100%;
         text-align: center;
       }
+
+      .toggle-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+      }
+
+      .toggle-switch {
+        align-self: center;
+      }
     }
   </style>
 </head>
@@ -1041,6 +1137,21 @@
                   <button class="btn btn-primary" type="button" id="show-create-user-btn">افزودن کاربر</button>
                 </div>
 
+                <!-- ==========================================
+                گزینه جدید: عدم ثبت‌نام توسط کاربر
+                ========================================== -->
+                <div class="toggle-wrapper" id="registration-toggle-wrapper">
+                  <span class="toggle-label">عدم ثبت‌نام توسط کاربر</span>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="registration-toggle-input" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="toggle-status" id="registration-toggle-status">فعال</span>
+                  <span style="color:var(--muted);font-size:0.85rem;margin-right:auto;">
+                    (غیرفعال = ثبت‌نام عمومی بسته است)
+                  </span>
+                </div>
+
                 <div class="filters-grid">
                   <div class="form-field">
                     <label for="users-search">جستجو</label>
@@ -1083,8 +1194,6 @@
 
                 <div id="user-edit-box" class="detail-card admin-hidden"></div>
               </div>
-
-              
 
               <div id="admin-panel-wallet" class="admin-section">
                 <div class="wallet-shell">
@@ -1284,6 +1393,12 @@
       const productCreateBox = document.getElementById("product-create-box");
       const productEditBox = document.getElementById("product-edit-box");
 
+      // ==========================================
+      // عناصر Toggle جدید
+      // ==========================================
+      const toggleInput = document.getElementById("registration-toggle-input");
+      const toggleStatus = document.getElementById("registration-toggle-status");
+
       const walletContent = document.getElementById("wallet-content");
       const walletEmptyState = document.getElementById("wallet-empty-state");
       const walletHeroCard = document.getElementById("wallet-hero-card");
@@ -1310,7 +1425,7 @@
       };
 
       // ==========================================
-      // 🔹 تابع برای محاسبه Offset Header
+      // توابع کمکی
       // ==========================================
       function getAdminHeaderOffset() {
         const header = document.querySelector('.site-header');
@@ -1321,29 +1436,19 @@
         return height + panelHeadHeight + 30;
       }
 
-      // ==========================================
-      // 🔹 تابع برای اسکرول نرم به بخش
-      // ==========================================
       function smoothScrollToAdminPanel(panelElement) {
         if (!panelElement) return;
-
         const offset = getAdminHeaderOffset();
         const elementPosition = panelElement.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - offset;
-
         window.scrollTo({
           top: Math.max(0, offsetPosition),
           behavior: 'smooth'
         });
       }
 
-      // ==========================================
-      // 🔹 تابع برای انیمیشن Reaction Tab
-      // ==========================================
       function animateAdminTab(tabButton) {
         if (!tabButton) return;
-
-        // Ripple Effect
         const ripple = document.createElement('span');
         ripple.style.cssText = `
           position: absolute;
@@ -1360,35 +1465,22 @@
         tabButton.style.position = 'relative';
         tabButton.style.overflow = 'hidden';
         tabButton.appendChild(ripple);
-
         void ripple.offsetWidth;
-
         ripple.style.width = '200px';
         ripple.style.height = '200px';
         ripple.style.opacity = '0';
-
-        setTimeout(() => {
-          ripple.remove();
-        }, 600);
-
+        setTimeout(() => { ripple.remove(); }, 600);
         tabButton.style.transform = 'scale(0.97)';
-        setTimeout(() => {
-          tabButton.style.transform = '';
-        }, 200);
+        setTimeout(() => { tabButton.style.transform = ''; }, 200);
       }
 
-      // ==========================================
-      // 🔹 تابع اصلی تغییر Tab - نسخه اصلاح‌شده
-      // ==========================================
       function openAdminPanel(panel, animate = false, scroll = false) {
-        // به‌روزرسانی دکمه‌ها
         adminPanels.forEach((btn) => {
           const isTarget = btn.getAttribute("data-admin-panel") === panel;
           btn.classList.toggle("is-active", isTarget);
           btn.setAttribute("aria-selected", isTarget ? "true" : "false");
         });
 
-        // به‌روزرسانی بخش‌ها
         let targetSection = null;
         adminSections.forEach((section) => {
           const isTarget = section.id === `admin-panel-${panel}`;
@@ -1396,26 +1488,20 @@
           if (isTarget) targetSection = section;
         });
 
-        // انیمیشن Reaction - فقط در صورت درخواست
         if (animate) {
           const activeButton = document.querySelector(`.admin-menu-btn[data-admin-panel="${panel}"]`);
-          if (activeButton) {
-            animateAdminTab(activeButton);
-          }
+          if (activeButton) animateAdminTab(activeButton);
         }
 
-        // به‌روزرسانی عنوان و توضیحات
         const meta = panelMeta[panel] || panelMeta.dashboard;
         if (adminHeading) adminHeading.textContent = meta.title;
         if (adminDescription) adminDescription.textContent = meta.description;
 
-        // بارگذاری داده‌ها
         if (panel === "dashboard") loadDashboard();
         if (panel === "orders") loadOrders();
-        if (panel === "users") loadUsers();
+        if (panel === "users") { loadUsers(); loadRegistrationSetting(); }
         if (panel === "products") loadProducts();
         if (panel === "wallet") {
-          // فقط اگر کاربری انتخاب شده باشد
           const userId = document.getElementById("wallet-user-id")?.value;
           if (userId) loadWalletUser();
         }
@@ -1435,28 +1521,16 @@
           }
         }
 
-        // اسکرول نرم - فقط در صورت درخواست
         if (scroll && targetSection) {
-          setTimeout(() => {
-            smoothScrollToAdminPanel(targetSection);
-          }, 150);
+          setTimeout(() => { smoothScrollToAdminPanel(targetSection); }, 150);
         }
       }
 
-      // ==========================================
-      // 🔹 تابع برای هماهنگی Tab با Scroll
-      // ==========================================
       function setupAdminScrollObserver() {
         if (window.innerWidth > 820) return;
-
-        if (observer) {
-          observer.disconnect();
-          observer = null;
-        }
-
+        if (observer) { observer.disconnect(); observer = null; }
         const sections = document.querySelectorAll('.admin-section');
         const sectionMap = {};
-
         sections.forEach((section) => {
           const id = section.id;
           if (id && id.startsWith('admin-panel-')) {
@@ -1464,15 +1538,11 @@
             sectionMap[target] = section;
           }
         });
-
         if (Object.keys(sectionMap).length === 0) return;
-
         observer = new IntersectionObserver((entries) => {
           if (isScrolling) return;
-
           let visibleTarget = null;
           let maxRatio = 0;
-
           entries.forEach((entry) => {
             if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
               maxRatio = entry.intersectionRatio;
@@ -1482,12 +1552,10 @@
               }
             }
           });
-
           if (visibleTarget && maxRatio > 0.3) {
             const currentActive = document.querySelector('.admin-menu-btn.is-active');
             const currentTarget = currentActive ? currentActive.getAttribute('data-admin-panel') : null;
             if (currentTarget !== visibleTarget) {
-              // اسکرول دستی - بدون انیمیشن و بدون اسکرول خودکار
               openAdminPanel(visibleTarget, false, false);
             }
           }
@@ -1495,14 +1563,61 @@
           threshold: [0.1, 0.2, 0.3, 0.4, 0.5],
           rootMargin: '0px 0px -50px 0px'
         });
-
         Object.values(sectionMap).forEach((section) => {
           if (section) observer.observe(section);
         });
       }
 
       // ==========================================
-      // توابع موجود Admin
+      // توابع مدیریت Toggle جدید
+      // ==========================================
+      async function loadRegistrationSetting() {
+        try {
+          const result = await api("/api/admin/settings", { method: "GET" });
+          if (result.ok && result.data?.success) {
+            const settings = result.data.settings || {};
+            const isEnabled = String(settings.allow_public_registration || 'true').toLowerCase() === 'true';
+            toggleInput.checked = !isEnabled; // اگر فعال = خاموش است
+            updateToggleStatus(!isEnabled);
+          }
+        } catch (_) {
+          // خطا نادیده گرفته شود
+        }
+      }
+
+      function updateToggleStatus(isDisabled) {
+        if (isDisabled) {
+          toggleStatus.textContent = 'غیرفعال';
+          toggleStatus.className = 'toggle-status is-disabled';
+        } else {
+          toggleStatus.textContent = 'فعال';
+          toggleStatus.className = 'toggle-status';
+        }
+      }
+
+      async function saveRegistrationSetting(disabled) {
+        const value = disabled ? 'false' : 'true';
+        try {
+          const result = await api("/api/admin/settings", {
+            method: "POST",
+            body: JSON.stringify({ allow_public_registration: value })
+          });
+          if (result.ok && result.data?.success) {
+            setAdminMessage("تنظیمات ثبت‌نام با موفقیت ذخیره شد.", "success");
+            updateToggleStatus(disabled);
+            return true;
+          } else {
+            setAdminMessage(result.data?.error || "ذخیره تنظیمات انجام نشد.", "error");
+            return false;
+          }
+        } catch (_) {
+          setAdminMessage("خطا در ارتباط با سرور.", "error");
+          return false;
+        }
+      }
+
+      // ==========================================
+      // توابع اصلی Admin
       // ==========================================
       function setAdminMessage(message, type = "error") {
         adminMessage.textContent = message || "";
@@ -1617,17 +1732,18 @@
           headers: { "Content-Type": "application/json" },
           ...options
         });
-
         let data = null;
         try {
           data = await response.json();
         } catch (error) {
           data = { success: false, error: "پاسخ سرور نامعتبر است." };
         }
-
         return { ok: response.ok, data };
       }
 
+      // ==========================================
+      // توابع مدیریت کاربران و سایر بخش‌ها
+      // ==========================================
       function closeUserCreateBox() {
         userCreateBox.classList.add("admin-hidden");
         userCreateBox.innerHTML = "";
@@ -1679,7 +1795,6 @@
             <button class="btn btn-secondary" type="button" id="cancel-create-user-btn">بستن</button>
           </div>
         `;
-
         document.getElementById("create-user-btn").addEventListener("click", async () => {
           const payload = {
             full_name: document.getElementById("create-user-full-name").value.trim(),
@@ -1689,38 +1804,31 @@
             password: document.getElementById("create-user-password").value,
             password_confirm: document.getElementById("create-user-password-confirm").value
           };
-
           if (!payload.full_name || !payload.email || !payload.role || !payload.password || !payload.password_confirm) {
             setAdminMessage("برای ایجاد کاربر، همه فیلدهای ضروری را کامل کن.");
             return;
           }
-
           if (payload.password.length < 8) {
             setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
             return;
           }
-
           if (payload.password !== payload.password_confirm) {
             setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
             return;
           }
-
           const result = await api("/api/admin/users", {
             method: "POST",
             body: JSON.stringify(payload)
           });
-
           if (!result.ok || !result.data?.success) {
             setAdminMessage(result.data?.error || "ایجاد کاربر انجام نشد.");
             return;
           }
-
           setAdminMessage("کاربر جدید با موفقیت ایجاد شد.", "success");
           closeUserCreateBox();
           await loadUsers();
           await loadDashboard();
         });
-
         document.getElementById("cancel-create-user-btn").addEventListener("click", closeUserCreateBox);
       }
 
@@ -1729,23 +1837,18 @@
           setAdminMessage("شماره سفارش معتبر نیست.");
           return false;
         }
-
         const firstConfirm = window.confirm(`آیا از حذف سفارش ${orderNumber} مطمئن هستی؟`);
         if (!firstConfirm) return false;
-
         const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست. حذف انجام شود؟");
         if (!secondConfirm) return false;
-
         const result = await api("/api/admin/orders", {
           method: "DELETE",
           body: JSON.stringify({ order_number: orderNumber })
         });
-
         if (!result.ok || !result.data?.success) {
           setAdminMessage(result.data?.error || "حذف سفارش انجام نشد.");
           return false;
         }
-
         setAdminMessage("سفارش با موفقیت حذف شد.", "success");
         document.getElementById("order-detail").classList.add("admin-hidden");
         document.getElementById("order-detail").innerHTML = "";
@@ -1757,28 +1860,22 @@
       async function deleteUser(user) {
         const userId = Number(user?.id || 0);
         const userName = user?.full_name || `#${userId}`;
-
         if (!userId) {
           setAdminMessage("شناسه کاربر معتبر نیست.");
           return false;
         }
-
         const firstConfirm = window.confirm(`آیا از حذف کاربر ${userName} مطمئن هستی؟`);
         if (!firstConfirm) return false;
-
         const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست و اطلاعات وابسته کاربر هم حذف می‌شود. حذف انجام شود؟");
         if (!secondConfirm) return false;
-
         const result = await api("/api/admin/users", {
           method: "DELETE",
           body: JSON.stringify({ user_id: userId })
         });
-
         if (!result.ok || !result.data?.success) {
           setAdminMessage(result.data?.error || "حذف کاربر انجام نشد.");
           return false;
         }
-
         setAdminMessage("کاربر با موفقیت حذف شد.", "success");
         closeUserEditBox();
         closeUserCreateBox();
@@ -1793,7 +1890,6 @@
           setAdminMessage(result.data?.error || "دریافت آمار انجام نشد.");
           return;
         }
-
         const stats = result.data.stats || {};
         document.getElementById("stat-users").textContent = money(stats.total_users || 0);
         document.getElementById("stat-orders").textContent = money(stats.total_orders || 0);
@@ -1829,31 +1925,22 @@
         const search = document.getElementById("orders-search").value.trim();
         const status = document.getElementById("orders-status").value.trim();
         const payment_status = document.getElementById("orders-payment-status").value.trim();
-
         const params = new URLSearchParams();
         if (search) params.set("search", search);
         if (status) params.set("status", status);
         if (payment_status) params.set("payment_status", payment_status);
-
         const query = params.toString();
         const result = await api(`/api/admin/orders${query ? `?${query}` : ""}`);
         const tbody = document.getElementById("orders-body");
-
         if (!result.ok || !result.data?.success) {
           tbody.innerHTML = `<tr><td colspan="10">دریافت سفارش‌ها انجام نشد.</td></tr>`;
           return;
         }
-
         const orders = Array.isArray(result.data.orders) ? result.data.orders : [];
-
         tbody.innerHTML = orders.map((order) => {
           const totalAmount = Number(order.total_amount || 0);
           const walletUsedAmount = Number(order.wallet_used_amount || 0);
-          const payableAmount =
-            order.payable_amount != null
-              ? Number(order.payable_amount || 0)
-              : Math.max(0, totalAmount - walletUsedAmount);
-
+          const payableAmount = order.payable_amount != null ? Number(order.payable_amount || 0) : Math.max(0, totalAmount - walletUsedAmount);
           return `
             <tr>
               <td class="table-number">${esc(order.order_number)}</td>
@@ -1879,26 +1966,19 @@
       async function loadOrderDetail(orderNumber) {
         const result = await api(`/api/admin/orders/${encodeURIComponent(orderNumber)}`);
         const box = document.getElementById("order-detail");
-
         if (!result.ok || !result.data?.success) {
           box.classList.remove("admin-hidden");
           box.innerHTML = `<h4>خطا</h4><p>${esc(result.data?.error || "دریافت جزئیات سفارش انجام نشد.")}</p>`;
           return;
         }
-
         const order = result.data.order || {};
         const items = Array.isArray(order.items) ? order.items : [];
         const address = order.shipping_address || null;
-
         const totalAmount = Number(order.total_amount || 0);
         const shippingAmount = Number(order.shipping_amount || 0);
         const walletUsedAmount = Number(order.wallet_used_amount || 0);
-        const payableAmount =
-          order.payable_amount != null
-            ? Number(order.payable_amount || 0)
-            : Math.max(0, totalAmount - walletUsedAmount);
+        const payableAmount = order.payable_amount != null ? Number(order.payable_amount || 0) : Math.max(0, totalAmount - walletUsedAmount);
         const cashbackAmount = Number(order.cashback_amount || 0);
-
         box.classList.remove("admin-hidden");
         box.innerHTML = `
           <h4>جزئیات سفارش ${esc(order.order_number || "-")}</h4>
@@ -1916,7 +1996,6 @@
             وضعیت کش‌بک: ${esc(order.cashback_status || "-")}<br>
             تاریخ: ${formatDate(order.created_at)}
           </p>
-
           ${address ? `
             <div class="detail-card" style="margin-top:16px;">
               <h4>آدرس ارسال</h4>
@@ -1930,7 +2009,6 @@
               </p>
             </div>
           ` : ""}
-
           <div class="panel-actions">
             <select id="detail-status">
               <option value="pending">در انتظار</option>
@@ -1939,18 +2017,15 @@
               <option value="completed">تکمیل شده</option>
               <option value="cancelled">لغو شده</option>
             </select>
-
             <select id="detail-payment-status">
               <option value="pending">در انتظار پرداخت</option>
               <option value="paid">پرداخت شده</option>
               <option value="completed">تسویه شده</option>
               <option value="failed">ناموفق</option>
             </select>
-
             <button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>
             <button class="btn btn-secondary" type="button" id="delete-order-detail-btn">حذف سفارش</button>
           </div>
-
           <div class="table-wrap" style="margin-top:16px;">
             <table class="admin-table">
               <thead>
@@ -1962,53 +2037,38 @@
                 </tr>
               </thead>
               <tbody>
-                ${items.length
-                  ? items.map((item) => `
-                    <tr>
-                      <td>${esc(item.product_name || "-")}</td>
-                      <td class="table-number">${esc(item.quantity)}</td>
-                      <td class="table-number">${money(item.unit_price)}</td>
-                      <td class="table-number">${money(item.total_price)}</td>
-                    </tr>
-                  `).join("")
-                  : `<tr><td colspan="4">آیتمی ثبت نشده است.</td></tr>`
-                }
+                ${items.length ? items.map((item) => `
+                  <tr>
+                    <td>${esc(item.product_name || "-")}</td>
+                    <td class="table-number">${esc(item.quantity)}</td>
+                    <td class="table-number">${money(item.unit_price)}</td>
+                    <td class="table-number">${money(item.total_price)}</td>
+                  </tr>
+                `).join("") : `<tr><td colspan="4">آیتمی ثبت نشده است.</td></tr>`}
               </tbody>
             </table>
           </div>
         `;
-
         document.getElementById("detail-status").value = order.status || "pending";
         document.getElementById("detail-payment-status").value = order.payment_status || "pending";
-
         document.getElementById("save-order-status-btn").addEventListener("click", async () => {
           const status = document.getElementById("detail-status").value;
           const payment_status = document.getElementById("detail-payment-status").value;
-
           const saveResult = await api(`/api/admin/orders/${encodeURIComponent(order.order_number)}`, {
             method: "POST",
-            body: JSON.stringify({
-              status,
-              payment_status
-            })
+            body: JSON.stringify({ status, payment_status })
           });
-
           if (!saveResult.ok || !saveResult.data?.success) {
             setAdminMessage(saveResult.data?.error || "ذخیره وضعیت سفارش انجام نشد.");
             return;
           }
-
-          const cashbackMessage = saveResult.data?.cashback_result?.applied
-            ? " کش‌بک هم اعمال شد."
-            : "";
-
+          const cashbackMessage = saveResult.data?.cashback_result?.applied ? " کش‌بک هم اعمال شد." : "";
           setAdminMessage(`وضعیت سفارش با موفقیت ذخیره شد.${cashbackMessage}`, "success");
           await loadOrders();
           await loadOrderDetail(order.order_number);
           await loadDashboard();
           await loadUsers();
         });
-
         document.getElementById("delete-order-detail-btn").addEventListener("click", async () => {
           await deleteOrder(order.order_number);
         });
@@ -2017,20 +2077,16 @@
       async function loadUsers() {
         const search = document.getElementById("users-search").value.trim();
         const role = document.getElementById("users-role").value.trim();
-
         const params = new URLSearchParams();
         if (search) params.set("search", search);
         if (role) params.set("role", role);
-
         const query = params.toString();
         const result = await api(`/api/admin/users${query ? `?${query}` : ""}`);
         const tbody = document.getElementById("users-body");
-
         if (!result.ok || !result.data?.success) {
           tbody.innerHTML = `<tr><td colspan="8">دریافت کاربران انجام نشد.</td></tr>`;
           return;
         }
-
         const users = result.data.users || [];
         tbody.innerHTML = users.map((user) => `
           <tr>
@@ -2093,9 +2149,7 @@
             <button class="btn btn-secondary" type="button" id="close-user-edit-btn">بستن</button>
           </div>
         `;
-
         document.getElementById("edit-user-role").value = user.role || "user";
-
         document.getElementById("save-user-btn").addEventListener("click", async () => {
           const payload = {
             user_id: user.id,
@@ -2104,75 +2158,53 @@
             phone: document.getElementById("edit-user-phone").value.trim(),
             role: document.getElementById("edit-user-role").value.trim()
           };
-
           const result = await api("/api/admin/users", {
             method: "POST",
             body: JSON.stringify(payload)
           });
-
           if (!result.ok || !result.data?.success) {
             setAdminMessage(result.data?.error || "ذخیره اطلاعات کاربر انجام نشد.");
             return;
           }
-
           setAdminMessage("اطلاعات کاربر با موفقیت ذخیره شد.", "success");
           await loadUsers();
           await loadDashboard();
         });
-
         document.getElementById("save-user-password-btn").addEventListener("click", async () => {
           const password = document.getElementById("edit-user-password").value;
           const password_confirm = document.getElementById("edit-user-password-confirm").value;
-
           if (!password || !password_confirm) {
             setAdminMessage("رمز عبور و تکرار آن را وارد کن.");
             return;
           }
-
           if (password.length < 8) {
             setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
             return;
           }
-
           if (password !== password_confirm) {
             setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
             return;
           }
-
           const result = await api("/api/admin/users/password", {
             method: "POST",
-            body: JSON.stringify({
-              user_id: user.id,
-              password,
-              password_confirm
-            })
+            body: JSON.stringify({ user_id: user.id, password, password_confirm })
           });
-
           if (!result.ok || !result.data?.success) {
             setAdminMessage(result.data?.error || "ذخیره رمز عبور انجام نشد.");
             return;
           }
-
           document.getElementById("edit-user-password").value = "";
           document.getElementById("edit-user-password-confirm").value = "";
           setAdminMessage("رمز عبور کاربر با موفقیت به‌روزرسانی شد.", "success");
         });
-
         document.getElementById("delete-user-btn").addEventListener("click", async () => {
           await deleteUser(user);
         });
-
         document.getElementById("close-user-edit-btn").addEventListener("click", closeUserEditBox);
       }
 
       function getWalletSummary(transactions = []) {
-        const summary = {
-          total_credit: 0,
-          total_debit: 0,
-          credit_count: 0,
-          debit_count: 0
-        };
-
+        const summary = { total_credit: 0, total_debit: 0, credit_count: 0, debit_count: 0 };
         transactions.forEach((tx) => {
           const type = String(tx.type || "").toLowerCase();
           const amount = Number(tx.amount || 0);
@@ -2190,7 +2222,6 @@
             summary.debit_count += 1;
           }
         });
-
         return summary;
       }
 
@@ -2205,12 +2236,10 @@
             </div>
             <div>${badge(user.role || "user")}</div>
           </div>
-
           <div class="wallet-balance">
             <span>موجودی فعلی</span>
             <strong>${money(user.wallet_balance || 0)} تومان</strong>
           </div>
-
           <div class="wallet-meta-line">
             <div class="wallet-meta-pill">شناسه کاربر: ${esc(user.id)}</div>
             <div class="wallet-meta-pill">شماره: ${esc(user.phone || "-")}</div>
@@ -2254,7 +2283,6 @@
             </div>
             <div>${badge(user.role || "user")}</div>
           </div>
-
           <div class="wallet-user-list">
             <div class="wallet-user-row">
               <span>شناسه کاربر</span>
@@ -2284,7 +2312,6 @@
               <p>واریز، برداشت، کش‌بک، بازگشت وجه یا تعدیل را برای این کاربر ثبت کن.</p>
             </div>
           </div>
-
           <div class="filters-grid filters-grid-3">
             <div class="form-field">
               <label for="wallet-type">نوع عملیات</label>
@@ -2305,7 +2332,6 @@
               <input id="wallet-reference-id" type="text" placeholder="اختیاری" />
             </div>
           </div>
-
           <div class="filters-grid filters-grid-2">
             <div class="form-field">
               <label for="wallet-reference-type">منبع ثبت</label>
@@ -2321,48 +2347,34 @@
               <input id="wallet-note" type="text" placeholder="توضیح کوتاه برای ثبت تراکنش" />
             </div>
           </div>
-
           <div class="wallet-inline-actions">
             <button class="btn btn-primary" type="button" id="wallet-save-btn">ثبت عملیات</button>
             <button class="btn btn-secondary" type="button" id="wallet-refresh-btn">به‌روزرسانی</button>
           </div>
         `;
-
         document.getElementById("wallet-save-btn").addEventListener("click", async () => {
           const type = document.getElementById("wallet-type").value;
           const amount = Number(document.getElementById("wallet-amount").value || 0);
           const note = document.getElementById("wallet-note").value.trim();
           const reference_type = document.getElementById("wallet-reference-type").value.trim();
           const reference_id = document.getElementById("wallet-reference-id").value.trim();
-
           if (!amount || amount <= 0) {
             setAdminMessage("مبلغ معتبر وارد کن.");
             return;
           }
-
           const saveResult = await api("/api/admin/wallet", {
             method: "POST",
-            body: JSON.stringify({
-              user_id: user.id,
-              type,
-              amount,
-              note,
-              reference_type,
-              reference_id
-            })
+            body: JSON.stringify({ user_id: user.id, type, amount, note, reference_type, reference_id })
           });
-
           if (!saveResult.ok || !saveResult.data?.success) {
             setAdminMessage(saveResult.data?.error || "ثبت عملیات کیف پول انجام نشد.");
             return;
           }
-
           setAdminMessage("عملیات کیف پول با موفقیت ثبت شد.", "success");
           await loadWalletUser();
           await loadDashboard();
           await loadUsers();
         });
-
         document.getElementById("wallet-refresh-btn").addEventListener("click", async () => {
           await loadWalletUser();
         });
@@ -2372,7 +2384,6 @@
         const cashbackStatuses = Array.isArray(settings.cashback_statuses)
           ? settings.cashback_statuses
           : ["completed", "processing"];
-
         walletSettingsBox.innerHTML = `
           <div class="wallet-card-head">
             <div>
@@ -2380,7 +2391,6 @@
               <p>درصد کش‌بک و وضعیت‌های مجاز سفارش برای ثبت خودکار را تعیین کن.</p>
             </div>
           </div>
-
           <div class="filters-grid filters-grid-2">
             <div class="form-field">
               <label for="cashback-percent">درصد کش‌بک</label>
@@ -2391,38 +2401,26 @@
               <input id="cashback-statuses" type="text" value="${esc(cashbackStatuses.join(", "))}" placeholder="completed, processing" />
             </div>
           </div>
-
           <div class="wallet-inline-actions">
             <button class="btn btn-primary" type="button" id="wallet-save-settings-btn">ذخیره تنظیمات</button>
           </div>
         `;
-
         document.getElementById("wallet-save-settings-btn").addEventListener("click", async () => {
           const cashback_percent = Number(document.getElementById("cashback-percent").value || 0);
           const cashback_statuses = document.getElementById("cashback-statuses").value
             .split(",")
             .map((s) => s.trim().toLowerCase())
             .filter(Boolean);
-
           const result = await api("/api/admin/wallet", {
             method: "POST",
-            body: JSON.stringify({
-              action: "save_settings",
-              cashback_percent,
-              cashback_statuses
-            })
+            body: JSON.stringify({ action: "save_settings", cashback_percent, cashback_statuses })
           });
-
           if (!result.ok || !result.data?.success) {
             setAdminMessage(result.data?.error || "ذخیره تنظیمات کش‌بک انجام نشد.");
             return;
           }
-
           setAdminMessage("تنظیمات کش‌بک با موفقیت ذخیره شد.", "success");
-          currentWalletPayload = {
-            ...(currentWalletPayload || {}),
-            settings: result.data.settings || {}
-          };
+          currentWalletPayload = { ...(currentWalletPayload || {}), settings: result.data.settings || {} };
           renderWalletSettings(result.data.settings || {});
         });
       }
@@ -2432,7 +2430,6 @@
         const filtered = filterType
           ? transactions.filter((tx) => String(tx.type || "").toLowerCase() === filterType)
           : transactions;
-
         walletHistoryBox.innerHTML = `
           <div class="wallet-card-head">
             <div>
@@ -2440,7 +2437,6 @@
               <p>تمام ثبت‌های اخیر کیف پول کاربر همراه با وضعیت، مانده قبل و بعد، و توضیحات.</p>
             </div>
           </div>
-
           <div class="wallet-history-tools">
             <div class="form-field">
               <label for="wallet-history-search">جستجو در یادداشت</label>
@@ -2455,7 +2451,6 @@
               <input type="text" value="${filtered[0] ? formatDate(filtered[0].created_at) : "-"}" disabled />
             </div>
           </div>
-
           <div class="table-wrap">
             <table class="admin-table">
               <thead>
@@ -2492,22 +2487,15 @@
             </table>
           </div>
         `;
-
         const searchInput = document.getElementById("wallet-history-search");
         const body = document.getElementById("wallet-history-body");
-
         searchInput.addEventListener("input", () => {
           const q = searchInput.value.trim().toLowerCase();
           const list = filtered.filter((tx) => {
-            const hay = [
-              tx.type,
-              tx.note,
-              tx.reference_type,
-              tx.source
-            ].map((v) => String(v || "").toLowerCase()).join(" ");
+            const hay = [tx.type, tx.note, tx.reference_type, tx.source]
+              .map((v) => String(v || "").toLowerCase()).join(" ");
             return !q || hay.includes(q);
           });
-
           body.innerHTML = list.length
             ? list.map((tx) => `
                 <tr>
@@ -2635,12 +2623,10 @@
       async function loadWalletUser() {
         const userId = Number(document.getElementById("wallet-user-id").value || 0);
         const limit = Number(document.getElementById("wallet-limit").value || 50);
-
         if (!userId) {
           setAdminMessage("شناسه کاربر را وارد کن.");
           return;
         }
-
         const result = await api(`/api/admin/wallet?user_id=${encodeURIComponent(userId)}&limit=${encodeURIComponent(limit)}`);
         if (!result.ok || !result.data?.success) {
           setAdminMessage(result.data?.error || "دریافت کیف پول انجام نشد.");
@@ -2648,15 +2634,12 @@
           walletEmptyState.classList.remove("admin-hidden");
           return;
         }
-
         const payload = result.data || {};
         const user = payload.user || {};
         const txs = payload.transactions || [];
         currentWalletPayload = payload;
-
         walletEmptyState.classList.add("admin-hidden");
         walletContent.classList.remove("admin-hidden");
-
         renderWalletHero(user, txs);
         renderWalletSummary(user, txs);
         renderWalletUser(user);
@@ -2665,9 +2648,6 @@
         renderWalletHistory(txs);
       }
 
-      // ==========================================
-      // مدیریت تنظیمات فاکتور
-      // ==========================================
       async function loadInvoiceSettings() {
         try {
           const response = await fetch('/api/admin/settings', {
@@ -2675,15 +2655,9 @@
             headers: { Accept: 'application/json' }
           });
           const data = await response.json().catch(() => null);
-
-          if (!response.ok || !data?.success) {
-            return null;
-          }
-
+          if (!response.ok || !data?.success) return null;
           return data.settings || {};
-        } catch (_) {
-          return null;
-        }
+        } catch (_) { return null; }
       }
 
       async function saveInvoiceSettings() {
@@ -2698,7 +2672,6 @@
           invoice_whatsapp_number: document.getElementById('invoice-whatsapp').value.trim(),
           invoice_payment_description: document.getElementById('invoice-description').value.trim(),
         };
-
         try {
           const response = await fetch('/api/admin/settings', {
             method: 'POST',
@@ -2707,14 +2680,12 @@
             body: JSON.stringify(payload)
           });
           const data = await response.json().catch(() => null);
-
           const msg = document.getElementById('invoice-settings-message');
           if (!response.ok || !data?.success) {
             msg.textContent = data?.error || 'ذخیره تنظیمات انجام نشد.';
             msg.className = 'admin-message is-error';
             return;
           }
-
           msg.textContent = 'تنظیمات فاکتور با موفقیت ذخیره شد.';
           msg.className = 'admin-message is-success';
           await loadInvoiceSettingsToForm();
@@ -2728,7 +2699,6 @@
       async function loadInvoiceSettingsToForm() {
         const settings = await loadInvoiceSettings();
         if (!settings) return;
-
         const fields = {
           'invoice-logo': settings.invoice_logo || '',
           'invoice-company-name': settings.invoice_company_name || 'تک تجارت',
@@ -2740,16 +2710,12 @@
           'invoice-whatsapp': settings.invoice_whatsapp_number || '',
           'invoice-description': settings.invoice_payment_description || '',
         };
-
         for (const [id, value] of Object.entries(fields)) {
           const el = document.getElementById(id);
           if (el) el.value = value;
         }
       }
 
-      // ==========================================
-      // مدیریت تب‌های حمل‌ونقل
-      // ==========================================
       function setupShippingTabs() {
         const tabs = document.querySelectorAll('[data-shipping-tab]');
         const contents = {
@@ -2757,51 +2723,38 @@
           costs: document.getElementById('shipping-tab-costs'),
           free: document.getElementById('shipping-tab-free')
         };
-
         tabs.forEach(tab => {
           tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('is-active'));
             tab.classList.add('is-active');
-
             Object.keys(contents).forEach(key => {
               contents[key].classList.toggle('is-active', key === tab.dataset.shippingTab);
             });
-
-            if (tab.dataset.shippingTab === 'methods') {
-              renderMethodsContent();
-            } else if (tab.dataset.shippingTab === 'costs') {
-              renderCostsContent();
-            } else if (tab.dataset.shippingTab === 'free') {
-              renderFreeContent();
-            }
+            if (tab.dataset.shippingTab === 'methods') renderMethodsContent();
+            else if (tab.dataset.shippingTab === 'costs') renderCostsContent();
+            else if (tab.dataset.shippingTab === 'free') renderFreeContent();
           });
         });
       }
 
       function renderMethodsContent() {
         const container = document.getElementById('shipping-tab-methods');
-        if (container && window.ShippingAdmin) {
-          if (typeof window.ShippingAdmin.renderMethods === 'function') {
-            window.ShippingAdmin.renderMethods(container);
-          }
+        if (container && window.ShippingAdmin && typeof window.ShippingAdmin.renderMethods === 'function') {
+          window.ShippingAdmin.renderMethods(container);
         }
       }
 
       function renderCostsContent() {
         const container = document.getElementById('shipping-tab-costs');
-        if (container && window.ShippingAdmin) {
-          if (typeof window.ShippingAdmin.renderCosts === 'function') {
-            window.ShippingAdmin.renderCosts(container);
-          }
+        if (container && window.ShippingAdmin && typeof window.ShippingAdmin.renderCosts === 'function') {
+          window.ShippingAdmin.renderCosts(container);
         }
       }
 
       function renderFreeContent() {
         const container = document.getElementById('shipping-tab-free');
-        if (container && window.ShippingAdmin) {
-          if (typeof window.ShippingAdmin.renderFree === 'function') {
-            window.ShippingAdmin.renderFree(container);
-          }
+        if (container && window.ShippingAdmin && typeof window.ShippingAdmin.renderFree === 'function') {
+          window.ShippingAdmin.renderFree(container);
         }
       }
 
@@ -2828,21 +2781,26 @@
         if (productsFilterBtn) productsFilterBtn.addEventListener("click", loadProducts);
 
         // ==========================================
-        // پنل‌های مدیریت - فقط User Interaction باعث Animation می‌شود
+        // رویداد Toggle جدید
         // ==========================================
+        if (toggleInput) {
+          toggleInput.addEventListener("change", async function() {
+            const isChecked = this.checked; // true = غیرفعال
+            const saved = await saveRegistrationSetting(isChecked);
+            if (!saved) {
+              // برگرداندن وضعیت قبلی
+              this.checked = !isChecked;
+            }
+          });
+        }
+
         adminPanels.forEach((btn) => {
           btn.addEventListener("click", function() {
             const panel = this.getAttribute("data-admin-panel");
-
             isScrolling = true;
             clearTimeout(scrollTimeout);
-
-            // ✅ فقط اینجا (کلیک کاربر) Animation و Scroll اجرا می‌شود
             openAdminPanel(panel, true, true);
-
-            scrollTimeout = setTimeout(() => {
-              isScrolling = false;
-            }, 800);
+            scrollTimeout = setTimeout(() => { isScrolling = false; }, 800);
           });
         });
 
@@ -2854,7 +2812,6 @@
               await loadOrderDetail(viewBtn.getAttribute("data-view-order"));
               return;
             }
-
             const deleteBtn = event.target.closest("[data-delete-order]");
             if (deleteBtn) {
               await deleteOrder(deleteBtn.getAttribute("data-delete-order"));
@@ -2871,7 +2828,6 @@
               openUserEdit(user);
               return;
             }
-
             const deleteBtn = event.target.closest("[data-delete-user]");
             if (deleteBtn) {
               const user = JSON.parse(deleteBtn.getAttribute("data-delete-user"));
@@ -2929,9 +2885,9 @@
             roleSelector: "[data-user-role]"
           });
 
-          // بارگذاری داده‌های اولیه
           await loadDashboard();
           await loadInvoiceSettingsToForm();
+          await loadRegistrationSetting();
 
           window.Auth.bindLogoutButton({
             buttonSelector: "[data-auth-logout]",
@@ -2945,15 +2901,11 @@
             window.ShippingAdmin.init();
           }
 
-          // راه‌اندازی Observer برای هماهنگی Tab با Scroll (بدون انیمیشن)
           setupAdminScrollObserver();
 
           window.addEventListener('resize', function() {
             if (window.innerWidth > 820) {
-              if (observer) {
-                observer.disconnect();
-                observer = null;
-              }
+              if (observer) { observer.disconnect(); observer = null; }
             } else {
               setupAdminScrollObserver();
             }

@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS user_addresses (
 );
 
 -- ============================================
--- 3. سفارش‌ها (نسخه کامل با فیلدهای فاکتور)
+-- 4. سفارش‌ها (نسخه کامل با فیلدهای فاکتور)
 -- ============================================
 CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 -- ============================================
--- 4. آیتم‌های سفارش
+-- 5. آیتم‌های سفارش
 -- ============================================
 CREATE TABLE IF NOT EXISTS order_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- ============================================
--- 5. تراکنش‌های کیف پول
+-- 6. تراکنش‌های کیف پول
 -- ============================================
 CREATE TABLE IF NOT EXISTS wallet_transactions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
 );
 
 -- ============================================
--- 6. تنظیمات برنامه (شامل تنظیمات فاکتور)
+-- 7. تنظیمات برنامه (شامل تنظیمات فاکتور)
 -- ============================================
 CREATE TABLE IF NOT EXISTS app_settings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 
 -- ============================================
--- 7. لاگ‌های ادمین
+-- 8. لاگ‌های ادمین
 -- ============================================
 CREATE TABLE IF NOT EXISTS admin_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS admin_logs (
 );
 
 -- ============================================
--- 8. محصولات
+-- 9. محصولات
 -- ============================================
 CREATE TABLE IF NOT EXISTS products (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 -- ============================================
--- 9. تصاویر محصولات
+-- 10. تصاویر محصولات
 -- ============================================
 CREATE TABLE IF NOT EXISTS product_images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -183,6 +183,52 @@ CREATE TABLE IF NOT EXISTS product_images (
   is_primary INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+-- ============================================
+-- 11. روش‌های حمل‌ونقل
+-- ============================================
+CREATE TABLE IF NOT EXISTS shipping_methods (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT,
+  delivery_time TEXT,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 12. هزینه ارسال بر اساس استان و شهر
+-- ============================================
+CREATE TABLE IF NOT EXISTS shipping_costs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  province TEXT NOT NULL,
+  city TEXT NOT NULL,
+  shipping_method_id INTEGER NOT NULL,
+  cost_type TEXT NOT NULL DEFAULT 'fixed',
+  cost_amount INTEGER NOT NULL DEFAULT 0,
+  delivery_time TEXT,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (shipping_method_id) REFERENCES shipping_methods(id) ON DELETE CASCADE,
+  UNIQUE(province, city, shipping_method_id)
+);
+
+-- ============================================
+-- 13. ارسال رایگان بر اساس مبلغ سفارش
+-- ============================================
+CREATE TABLE IF NOT EXISTS shipping_free_thresholds (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  shipping_method_id INTEGER NOT NULL,
+  min_order_amount INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (shipping_method_id) REFERENCES shipping_methods(id) ON DELETE CASCADE
 );
 
 -- ============================================
@@ -211,6 +257,10 @@ CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
 
 CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id);
 
+CREATE INDEX IF NOT EXISTS idx_shipping_costs_province_city ON shipping_costs(province, city);
+CREATE INDEX IF NOT EXISTS idx_shipping_costs_method ON shipping_costs(shipping_method_id);
+CREATE INDEX IF NOT EXISTS idx_shipping_methods_active ON shipping_methods(is_active);
+
 -- ============================================
 -- تنظیمات پیش‌فرض فاکتور و پرداخت
 -- ============================================
@@ -227,69 +277,6 @@ INSERT OR IGNORE INTO app_settings (setting_key, setting_value) VALUES
   ('invoice_company_phone', '۰۲۱‑۱۲۳۴۵۶۷۸'),
   ('invoice_company_address', 'تهران، خیابان ولیعصر، پلاک ۱۲۳'),
   ('cashback_percent', '0'),
-  ('cashback_statuses', 'completed');
-
--- ============================================
--- یوزر ادمین پیش‌فرض (رمز: 12345678)
--- ============================================
-INSERT OR IGNORE INTO users (full_name, email, phone, password_hash, role) VALUES
-  ('مدیر سایت', 'admin@takdaro.com', '09123456789', '$2a$10$3wWb6p3wN7VgVq6zH7nZbO8X9y2Z4s6s8s0s2s4s6s8s0s2s4s6', 'super_admin');
-  -- ============================================
--- 10. روش‌های حمل‌ونقل
--- ============================================
-CREATE TABLE IF NOT EXISTS shipping_methods (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  description TEXT,
-  delivery_time TEXT,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- ============================================
--- 11. هزینه ارسال بر اساس استان و شهر
--- ============================================
-CREATE TABLE IF NOT EXISTS shipping_costs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  province TEXT NOT NULL,
-  city TEXT NOT NULL,
-  shipping_method_id INTEGER NOT NULL,
-  cost_type TEXT NOT NULL DEFAULT 'fixed',
-  cost_amount INTEGER NOT NULL DEFAULT 0,
-  delivery_time TEXT,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (shipping_method_id) REFERENCES shipping_methods(id) ON DELETE CASCADE,
-  UNIQUE(province, city, shipping_method_id)
-);
-
--- ============================================
--- 12. ارسال رایگان بر اساس مبلغ سفارش
--- ============================================
-CREATE TABLE IF NOT EXISTS shipping_free_thresholds (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  shipping_method_id INTEGER NOT NULL,
-  min_order_amount INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (shipping_method_id) REFERENCES shipping_methods(id) ON DELETE CASCADE
-);
-
--- ============================================
--- 13. اضافه کردن ستون shipping_method به orders
--- ============================================
--- توجه: اگر جدول orders قبلاً وجود دارد، این دستورات را اجرا کنید
--- ALTER TABLE orders ADD COLUMN shipping_method TEXT;
--- ALTER TABLE orders ADD COLUMN shipping_method_id INTEGER;
-
--- ============================================
--- 14. ایندکس‌ها
--- ============================================
-CREATE INDEX IF NOT EXISTS idx_shipping_costs_province_city ON shipping_costs(province, city);
-CREATE INDEX IF NOT EXISTS idx_shipping_costs_method ON shipping_costs(shipping_method_id);
-CREATE INDEX IF NOT EXISTS idx_shipping_methods_active ON shipping_methods(is_active);
+  ('cashback_statuses', 'completed'),
+  -- تنظیم جدید: ثبت‌نام عمومی (پیش‌فرض: فعال)
+  ('allow_public_registration', 'true');

@@ -127,6 +127,13 @@
       border: 1px solid #bbf7d0;
     }
 
+    .auth-message.is-info {
+      display: block;
+      color: var(--secondary);
+      background: rgba(33, 158, 188, 0.08);
+      border: 1px solid rgba(33, 158, 188, 0.2);
+    }
+
     .auth-footer {
       margin-top: 18px;
       text-align: center;
@@ -143,6 +150,38 @@
     .auth-footer a:hover {
       text-decoration: underline;
     }
+
+    .registration-disabled-message {
+      padding: 20px;
+      background: rgba(33, 158, 188, 0.06);
+      border: 1px solid rgba(33, 158, 188, 0.15);
+      border-radius: 16px;
+      text-align: center;
+      line-height: 2.2;
+      color: var(--text-soft);
+      font-size: 1.05rem;
+    }
+
+    .registration-disabled-message strong {
+      color: var(--secondary);
+      font-size: 1.1rem;
+    }
+
+    .registration-disabled-message .phone-number {
+      display: inline-block;
+      direction: ltr;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.2rem;
+      padding: 4px 12px;
+      background: rgba(33, 158, 188, 0.08);
+      border-radius: 8px;
+      margin: 4px 0;
+    }
+
+    .auth-form-hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -150,6 +189,20 @@
     <section class="auth-card">
       <h1 class="auth-title">ایجاد حساب کاربری</h1>
       <p class="auth-subtitle">برای ادامه، اطلاعات خود را وارد کنید.</p>
+
+      <!-- ==========================================
+      پیام غیرفعال بودن ثبت‌نام
+      ========================================== -->
+      <div id="registration-disabled-message" class="registration-disabled-message" style="display:none;">
+        <p style="margin:0 0 12px;">
+          ثبت‌نام کاربر توسط مدیریت سایت انجام می‌شود.
+        </p>
+        <p style="margin:0;">
+          لطفاً با پشتیبانی با شماره 
+          <span class="phone-number">۰۹۲۱۴۱۴۷۰۷۰</span>
+          تماس حاصل فرمایید.
+        </p>
+      </div>
 
       <form id="register-form" class="auth-form" novalidate>
         <div class="auth-message" data-auth-message></div>
@@ -223,6 +276,52 @@
         redirectTo: "/account.html"
       });
 
+      // ==========================================
+      // بررسی وضعیت ثبت‌نام عمومی
+      // ==========================================
+      const disabledMessage = document.getElementById('registration-disabled-message');
+      const registerForm = document.getElementById('register-form');
+
+      async function checkRegistrationStatus() {
+        try {
+          const response = await fetch('/api/admin/settings', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' }
+          });
+          const data = await response.json().catch(() => null);
+
+          if (!response.ok || !data?.success) {
+            // در صورت خطا، فرم را نشان بده
+            registerForm.style.display = 'grid';
+            disabledMessage.style.display = 'none';
+            return;
+          }
+
+          const settings = data.settings || {};
+          const isEnabled = String(settings.allow_public_registration || 'true').toLowerCase() === 'true';
+
+          if (isEnabled) {
+            // ثبت‌نام فعال است - فرم را نشان بده
+            registerForm.style.display = 'grid';
+            disabledMessage.style.display = 'none';
+          } else {
+            // ثبت‌نام غیرفعال است - پیام را نشان بده
+            registerForm.style.display = 'none';
+            disabledMessage.style.display = 'block';
+          }
+        } catch (_) {
+          // در صورت خطا، فرم را نشان بده
+          registerForm.style.display = 'grid';
+          disabledMessage.style.display = 'none';
+        }
+      }
+
+      // بررسی وضعیت در هنگام بارگذاری صفحه
+      await checkRegistrationStatus();
+
+      // ==========================================
+      // اتصال فرم ثبت‌نام به Auth
+      // ==========================================
       window.Auth.bindRegisterForm({
         formSelector: "#register-form",
         messageSelector: "[data-auth-message]",

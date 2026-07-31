@@ -126,10 +126,18 @@
       color: var(--secondary);
       font-weight: 700;
       text-decoration: none;
+      cursor: pointer;
     }
 
     .auth-register-link a:hover {
       text-decoration: underline;
+    }
+
+    .auth-register-link a.is-disabled {
+      color: var(--muted-2);
+      cursor: default;
+      pointer-events: none;
+      opacity: 0.6;
     }
 
     .auth-message {
@@ -154,6 +162,118 @@
       border: 1px solid #bbf7d0;
     }
 
+    .auth-message.is-info {
+      display: block;
+      background: rgba(33, 158, 188, 0.08);
+      color: var(--secondary);
+      border: 1px solid rgba(33, 158, 188, 0.2);
+    }
+
+    /* ==========================================
+    Modal / Toast برای پیام ثبت‌نام غیرفعال
+    ========================================== */
+    .auth-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .auth-modal-overlay.is-active {
+      display: flex;
+    }
+
+    .auth-modal {
+      max-width: 440px;
+      width: 100%;
+      background: #fff;
+      border-radius: 24px;
+      padding: 32px 28px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+      animation: authModalIn 0.3s ease;
+    }
+
+    @keyframes authModalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.92) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .auth-modal-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .auth-modal h3 {
+      margin: 0 0 12px;
+      color: var(--primary);
+      font-size: 1.2rem;
+    }
+
+    .auth-modal p {
+      margin: 0 0 20px;
+      color: var(--text-soft);
+      line-height: 2;
+      font-size: 0.98rem;
+    }
+
+    .auth-modal .phone-number {
+      display: inline-block;
+      direction: ltr;
+      font-weight: 700;
+      color: var(--secondary);
+      font-size: 1.1rem;
+      padding: 2px 10px;
+      background: rgba(33, 158, 188, 0.08);
+      border-radius: 6px;
+    }
+
+    .auth-modal .btn {
+      min-width: 120px;
+    }
+
+    .auth-modal-close-btn {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .auth-modal .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .checkout-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .checkout-actions .btn {
+      flex: 1;
+      min-width: 140px;
+      justify-content: center;
+    }
+
     @media (max-width: 640px) {
       .auth-section {
         padding: 24px 0;
@@ -162,6 +282,14 @@
       .auth-card__head,
       .auth-card__body {
         padding: 18px;
+      }
+
+      .checkout-actions .btn {
+        min-width: 100%;
+      }
+
+      .auth-modal {
+        padding: 24px 18px;
       }
     }
   </style>
@@ -227,7 +355,7 @@
 
                 <div class="checkout-actions">
                   <button type="submit" class="btn btn-primary">ورود به حساب</button>
-                  <a href="./register.html" class="btn btn-secondary">ایجاد حساب جدید</a>
+                  <a href="./register.html" class="btn btn-secondary" id="register-btn-header">ایجاد حساب جدید</a>
                 </div>
 
                 <div class="auth-footer">
@@ -236,7 +364,7 @@
                   </p>
                   <p class="auth-register-link">
                     هنوز ثبت نام نکردی؟
-                    <a href="./register.html">ثبت نام میکنم</a>
+                    <a id="register-link-footer">ثبت نام میکنم</a>
                   </p>
                 </div>
               </form>
@@ -246,6 +374,26 @@
       </div>
     </section>
   </main>
+
+  <!-- ==========================================
+  Modal برای پیام غیرفعال بودن ثبت‌نام
+  ========================================== -->
+  <div class="auth-modal-overlay" id="registration-modal">
+    <div class="auth-modal" style="position:relative;">
+      <button class="auth-modal-close-btn" id="registration-modal-close" aria-label="بستن">✕</button>
+      <div class="auth-modal-icon">🔒</div>
+      <h3>ثبت‌نام غیرفعال</h3>
+      <p>
+        ثبت‌نام کاربر توسط مدیریت سایت انجام می‌شود.<br />
+        لطفاً با پشتیبانی با شماره 
+        <span class="phone-number">۰۹۲۱۴۱۴۷۰۷۰</span>
+        تماس حاصل فرمایید.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="registration-modal-ok">متوجه شدم</button>
+      </div>
+    </div>
+  </div>
 
   <div id="site-footer"></div>
   <div id="site-cart"></div>
@@ -269,6 +417,132 @@
         messageSelector: "[data-auth-message]",
         redirectAfterSuccess: "/account.html"
       });
+
+      // ==========================================
+      // بررسی وضعیت ثبت‌نام عمومی
+      // ==========================================
+      const registerBtnHeader = document.getElementById('register-btn-header');
+      const registerLinkFooter = document.getElementById('register-link-footer');
+      const registrationModal = document.getElementById('registration-modal');
+      const modalClose = document.getElementById('registration-modal-close');
+      const modalOk = document.getElementById('registration-modal-ok');
+
+      async function checkRegistrationStatus() {
+        try {
+          const response = await fetch('/api/admin/settings', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' }
+          });
+          const data = await response.json().catch(() => null);
+
+          if (!response.ok || !data?.success) {
+            // در صورت خطا، لینک‌ها فعال باشند
+            enableRegisterLinks();
+            return;
+          }
+
+          const settings = data.settings || {};
+          const isEnabled = String(settings.allow_public_registration || 'true').toLowerCase() === 'true';
+
+          if (isEnabled) {
+            // ثبت‌نام فعال است
+            enableRegisterLinks();
+          } else {
+            // ثبت‌نام غیرفعال است
+            disableRegisterLinks();
+          }
+        } catch (_) {
+          enableRegisterLinks();
+        }
+      }
+
+      function enableRegisterLinks() {
+        // لینک ثبت‌نام در دکمه
+        registerBtnHeader.href = './register.html';
+        registerBtnHeader.classList.remove('is-disabled');
+        registerBtnHeader.style.pointerEvents = 'auto';
+        registerBtnHeader.style.opacity = '1';
+
+        // لینک ثبت‌نام در فوتر
+        registerLinkFooter.href = './register.html';
+        registerLinkFooter.classList.remove('is-disabled');
+        registerLinkFooter.style.pointerEvents = 'auto';
+        registerLinkFooter.style.opacity = '1';
+        registerLinkFooter.style.cursor = 'pointer';
+
+        // حذف event listener قدیمی
+        registerLinkFooter.replaceWith(registerLinkFooter.cloneNode(true));
+        const newFooterLink = document.getElementById('register-link-footer');
+        if (newFooterLink) {
+          newFooterLink.href = './register.html';
+        }
+      }
+
+      function disableRegisterLinks() {
+        // دکمه ثبت‌نام - جلوگیری از Navigation
+        registerBtnHeader.href = 'javascript:void(0)';
+        registerBtnHeader.classList.add('is-disabled');
+        registerBtnHeader.style.pointerEvents = 'auto';
+        registerBtnHeader.style.cursor = 'pointer';
+        registerBtnHeader.style.opacity = '1';
+
+        registerBtnHeader.addEventListener('click', function(e) {
+          e.preventDefault();
+          showRegistrationModal();
+        });
+
+        // لینک ثبت‌نام در فوتر
+        registerLinkFooter.href = 'javascript:void(0)';
+        registerLinkFooter.classList.add('is-disabled');
+        registerLinkFooter.style.pointerEvents = 'auto';
+        registerLinkFooter.style.cursor = 'pointer';
+        registerLinkFooter.style.opacity = '1';
+
+        // حذف event listener قدیمی و اضافه کردن جدید
+        const newFooterLink = registerLinkFooter.cloneNode(true);
+        registerLinkFooter.parentNode.replaceChild(newFooterLink, registerLinkFooter);
+        const newLink = document.getElementById('register-link-footer');
+        if (newLink) {
+          newLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showRegistrationModal();
+          });
+        }
+      }
+
+      function showRegistrationModal() {
+        registrationModal.classList.add('is-active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function hideRegistrationModal() {
+        registrationModal.classList.remove('is-active');
+        document.body.style.overflow = '';
+      }
+
+      // رویدادهای Modal
+      if (modalClose) {
+        modalClose.addEventListener('click', hideRegistrationModal);
+      }
+
+      if (modalOk) {
+        modalOk.addEventListener('click', hideRegistrationModal);
+      }
+
+      registrationModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+          hideRegistrationModal();
+        }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          hideRegistrationModal();
+        }
+      });
+
+      // اجرای بررسی
+      await checkRegistrationStatus();
     });
   </script>
 </body>

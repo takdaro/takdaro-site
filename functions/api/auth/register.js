@@ -11,8 +11,39 @@ function normalizePhone(value) {
   return String(value).trim().replace(/[^\d+]/g, "");
 }
 
+// ============================================
+// تابع بررسی وضعیت ثبت‌نام عمومی
+// ============================================
+async function isPublicRegistrationEnabled(env) {
+  try {
+    const result = await env.DB
+      .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = 'allow_public_registration'`)
+      .first();
+
+    if (!result) return true; // پیش‌فرض: فعال
+    return String(result.setting_value || 'true').toLowerCase() === 'true';
+  } catch (_) {
+    return true; // در صورت خطا، پیش‌فرض فعال
+  }
+}
+
 export async function onRequestPost(context) {
   try {
+    // ============================================
+    // ✅ بررسی وضعیت ثبت‌نام عمومی
+    // ============================================
+    const publicRegistrationEnabled = await isPublicRegistrationEnabled(context.env);
+
+    if (!publicRegistrationEnabled) {
+      return Response.json(
+        { 
+          success: false, 
+          error: "ثبت‌نام کاربر توسط مدیریت سایت انجام می‌شود. لطفاً با پشتیبانی با شماره 09214147070 تماس حاصل فرمایید." 
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await context.request.json();
 
     const full_name = String(body.full_name || "").trim();

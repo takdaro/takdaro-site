@@ -56,6 +56,9 @@ function canEditTarget(actorRole, currentTargetRole, requestedRole) {
   return false;
 }
 
+// ============================================
+// GET - دریافت لیست کاربران
+// ============================================
 export async function onRequestGet(context) {
   try {
     const adminCheck = await requireAdmin(context);
@@ -137,6 +140,9 @@ export async function onRequestGet(context) {
   }
 }
 
+// ============================================
+// POST - ایجاد یا ویرایش کاربر
+// ============================================
 export async function onRequestPost(context) {
   try {
     const adminCheck = await requireAdmin(context);
@@ -164,6 +170,9 @@ export async function onRequestPost(context) {
       );
     }
 
+    // ============================================
+    // ویرایش کاربر موجود
+    // ============================================
     if (user_id > 0) {
       const targetUser = await context.env.DB
         .prepare(`SELECT id, role FROM users WHERE id = ?`)
@@ -242,6 +251,9 @@ export async function onRequestPost(context) {
       });
     }
 
+    // ============================================
+    // ایجاد کاربر جدید توسط ادمین
+    // ============================================
     const password = String(body.password || "");
     const password_confirm = String(body.password_confirm || "");
 
@@ -344,6 +356,9 @@ export async function onRequestPost(context) {
   }
 }
 
+// ============================================
+// DELETE - حذف کاربر
+// ============================================
 export async function onRequestDelete(context) {
   try {
     const adminCheck = await requireAdmin(context);

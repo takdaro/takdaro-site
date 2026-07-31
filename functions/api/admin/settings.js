@@ -39,14 +39,11 @@ export async function onRequestGet(context) {
   try {
     const user = await getCurrentUser(context);
 
-    // برای دسترسی عمومی (همه کاربران) - چون فاکتور نیاز به تنظیمات دارد
-    // اما اگر کاربر لاگین نکرده باشد، تنظیمات پیش‌فرض برگردانده می‌شود
-
     const result = await context.env.DB.prepare(`
       SELECT setting_key, setting_value
       FROM app_settings
       WHERE setting_key LIKE 'invoice_%'
-         OR setting_key IN ('cashback_percent', 'cashback_statuses')
+         OR setting_key IN ('cashback_percent', 'cashback_statuses', 'allow_public_registration')
     `).all();
 
     const rows = Array.isArray(result?.results) ? result.results : [];
@@ -69,6 +66,7 @@ export async function onRequestGet(context) {
       invoice_company_name: 'تک تجارت',
       invoice_company_phone: '۰۲۱-۱۲۳۴۵۶۷۸',
       invoice_company_address: 'تهران، خیابان ولیعصر، پلاک ۱۲۳',
+      allow_public_registration: 'true'
     };
 
     // ترکیب تنظیمات با پیش‌فرض‌ها
@@ -120,6 +118,7 @@ export async function onRequestPost(context) {
       'invoice_company_name',
       'invoice_company_phone',
       'invoice_company_address',
+      'allow_public_registration'  // تنظیم جدید اضافه شد
     ];
 
     const operations = [];
@@ -148,6 +147,7 @@ export async function onRequestPost(context) {
       SELECT setting_key, setting_value
       FROM app_settings
       WHERE setting_key LIKE 'invoice_%'
+         OR setting_key IN ('cashback_percent', 'cashback_statuses', 'allow_public_registration')
     `).all();
 
     const rows = Array.isArray(result?.results) ? result.results : [];
