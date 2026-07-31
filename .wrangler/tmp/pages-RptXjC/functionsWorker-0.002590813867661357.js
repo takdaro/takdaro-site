@@ -3662,6 +3662,7 @@ async function onRequestGet11(context) {
           slug, 
           description, 
           delivery_time, 
+          default_cost,
           is_active, 
           sort_order,
           created_at,
@@ -3686,10 +3687,12 @@ async function onRequestGet11(context) {
           sc.shipping_method_id,
           sc.cost_type,
           sc.cost_amount,
+          sc.extra_cost,
           sc.delivery_time,
           sc.is_active,
           sm.name as method_name,
-          sm.slug as method_slug
+          sm.slug as method_slug,
+          sm.default_cost
         FROM shipping_costs sc
         INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
         WHERE sc.province = ? AND sc.city = ?
@@ -3746,6 +3749,7 @@ async function onRequestPost9(context) {
       const slug = normalizeText5(body.slug).toLowerCase().replace(/\s+/g, "-");
       const description = normalizeText5(body.description);
       const delivery_time = normalizeText5(body.delivery_time);
+      const default_cost = normalizeNumber4(body.default_cost);
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       const sort_order = normalizeNumber4(body.sort_order);
       if (!name || !slug) {
@@ -3758,14 +3762,14 @@ async function onRequestPost9(context) {
         return json13({ success: false, error: "slug_already_exists" }, 400);
       }
       const result = await context.env.DB.prepare(`
-        INSERT INTO shipping_methods (name, slug, description, delivery_time, is_active, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).bind(name, slug, description, delivery_time, is_active, sort_order).run();
+        INSERT INTO shipping_methods (name, slug, description, delivery_time, default_cost, is_active, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(name, slug, description, delivery_time, default_cost, is_active, sort_order).run();
       const newId = result.meta?.last_row_id || null;
       return json13({
         success: true,
         message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u06CC\u062C\u0627\u062F \u0634\u062F.",
-        method: { id: newId, name, slug, description, delivery_time, is_active, sort_order }
+        method: { id: newId, name, slug, description, delivery_time, default_cost, is_active, sort_order }
       });
     }
     if (action === "update_method") {
@@ -3774,6 +3778,7 @@ async function onRequestPost9(context) {
       const slug = normalizeText5(body.slug).toLowerCase().replace(/\s+/g, "-");
       const description = normalizeText5(body.description);
       const delivery_time = normalizeText5(body.delivery_time);
+      const default_cost = normalizeNumber4(body.default_cost);
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       const sort_order = normalizeNumber4(body.sort_order);
       if (!id || !name || !slug) {
@@ -3793,9 +3798,9 @@ async function onRequestPost9(context) {
       }
       await context.env.DB.prepare(`
         UPDATE shipping_methods
-        SET name = ?, slug = ?, description = ?, delivery_time = ?, is_active = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+        SET name = ?, slug = ?, description = ?, delivery_time = ?, default_cost = ?, is_active = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).bind(name, slug, description, delivery_time, is_active, sort_order, id).run();
+      `).bind(name, slug, description, delivery_time, default_cost, is_active, sort_order, id).run();
       return json13({
         success: true,
         message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0647\u200C\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06CC \u0634\u062F."
@@ -3820,23 +3825,45 @@ async function onRequestPost9(context) {
         message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
       });
     }
+    if (action === "delete_cost") {
+      const cost_id = normalizeNumber4(body.cost_id);
+      if (!cost_id) {
+        return json13({ success: false, error: "cost_id_required" }, 400);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_costs WHERE id = ?
+      `).bind(cost_id).first();
+      if (!existing) {
+        return json13({ success: false, error: "cost_not_found" }, 404);
+      }
+      await context.env.DB.prepare(`
+        DELETE FROM shipping_costs WHERE id = ?
+      `).bind(cost_id).run();
+      return json13({
+        success: true,
+        message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
+      });
+    }
     if (action === "save_cost") {
       const province = normalizeText5(body.province);
       const city = normalizeText5(body.city);
       const shipping_method_id = normalizeNumber4(body.shipping_method_id);
       const cost_type = body.cost_type || "fixed";
       const cost_amount = normalizeNumber4(body.cost_amount);
+      const extra_cost = normalizeNumber4(body.extra_cost);
       const delivery_time = normalizeText5(body.delivery_time);
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       if (!province || !city || !shipping_method_id) {
         return json13({ success: false, error: "province_city_method_required" }, 400);
       }
       const method = await context.env.DB.prepare(`
-        SELECT id FROM shipping_methods WHERE id = ?
+        SELECT id, default_cost FROM shipping_methods WHERE id = ?
       `).bind(shipping_method_id).first();
       if (!method) {
         return json13({ success: false, error: "method_not_found" }, 404);
       }
+      const defaultCost = method.default_cost || 0;
+      const finalCost = defaultCost + extra_cost;
       const existing = await context.env.DB.prepare(`
         SELECT id FROM shipping_costs 
         WHERE province = ? AND city = ? AND shipping_method_id = ?
@@ -3845,18 +3872,67 @@ async function onRequestPost9(context) {
       if (existing) {
         result = await context.env.DB.prepare(`
           UPDATE shipping_costs
-          SET cost_type = ?, cost_amount = ?, delivery_time = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+          SET cost_type = ?, cost_amount = ?, extra_cost = ?, delivery_time = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
           WHERE province = ? AND city = ? AND shipping_method_id = ?
-        `).bind(cost_type, cost_amount, delivery_time, is_active, province, city, shipping_method_id).run();
+        `).bind(cost_type, finalCost, extra_cost, delivery_time, is_active, province, city, shipping_method_id).run();
       } else {
         result = await context.env.DB.prepare(`
-          INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, delivery_time, is_active)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(province, city, shipping_method_id, cost_type, cost_amount, delivery_time, is_active).run();
+          INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(province, city, shipping_method_id, cost_type, finalCost, extra_cost, delivery_time, is_active).run();
       }
       return json13({
         success: true,
-        message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F."
+        message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F.",
+        extra_cost,
+        final_cost: finalCost,
+        default_cost: defaultCost
+      });
+    }
+    if (action === "add_city") {
+      const province = normalizeText5(body.province);
+      const city = normalizeText5(body.city);
+      if (!province || !city) {
+        return json13({ success: false, error: "province_and_city_required" }, 400);
+      }
+      const defaultMethod = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE slug = 'freight' AND is_active = 1 LIMIT 1
+      `).first();
+      if (!defaultMethod) {
+        return json13({ success: false, error: "default_method_not_found" }, 404);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_costs 
+        WHERE province = ? AND city = ?
+        LIMIT 1
+      `).bind(province, city).first();
+      if (existing) {
+        return json13({ success: false, error: "city_already_exists" }, 400);
+      }
+      const result = await context.env.DB.prepare(`
+        INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
+        VALUES (?, ?, ?, 'extra', 0, 0, '', 1)
+      `).bind(province, city, defaultMethod.id).run();
+      return json13({
+        success: true,
+        message: "\u0634\u0647\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u0636\u0627\u0641\u0647 \u0634\u062F.",
+        city,
+        province
+      });
+    }
+    if (action === "delete_city") {
+      const province = normalizeText5(body.province);
+      const city = normalizeText5(body.city);
+      if (!province || !city) {
+        return json13({ success: false, error: "province_and_city_required" }, 400);
+      }
+      await context.env.DB.prepare(`
+        DELETE FROM shipping_costs 
+        WHERE province = ? AND city = ?
+      `).bind(province, city).run();
+      return json13({
+        success: true,
+        message: "\u0634\u0647\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
       });
     }
     if (action === "save_free_threshold") {
@@ -5119,103 +5195,85 @@ __name(normalizeNumber5, "normalizeNumber");
 async function getShippingCost(db, province, city, subtotal = 0) {
   const normalizedProvince = normalizeText8(province);
   const normalizedCity = normalizeText8(city);
-  let result = await db.prepare(`
+  let cost = await db.prepare(`
     SELECT 
       sc.id,
       sc.province,
       sc.city,
+      sc.shipping_method_id,
       sc.cost_type,
       sc.cost_amount,
+      sc.extra_cost,
       sc.delivery_time,
+      sc.is_active,
       sm.id as method_id,
       sm.name as method_name,
-      sm.slug as method_slug
+      sm.slug as method_slug,
+      sm.default_cost,
+      sm.delivery_time as method_delivery_time
     FROM shipping_costs sc
     INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
-    WHERE sc.province = ? 
-      AND sc.city = ? 
-      AND sc.is_active = 1 
-      AND sm.is_active = 1
-    ORDER BY sm.sort_order ASC
+    WHERE sc.province = ? AND sc.city = ? AND sc.is_active = 1 AND sm.is_active = 1
     LIMIT 1
   `).bind(normalizedProvince, normalizedCity).first();
-  if (!result) {
-    result = await db.prepare(`
+  if (!cost) {
+    cost = await db.prepare(`
       SELECT 
         sc.id,
         sc.province,
         sc.city,
+        sc.shipping_method_id,
         sc.cost_type,
         sc.cost_amount,
+        sc.extra_cost,
         sc.delivery_time,
+        sc.is_active,
         sm.id as method_id,
         sm.name as method_name,
-        sm.slug as method_slug
+        sm.slug as method_slug,
+        sm.default_cost,
+        sm.delivery_time as method_delivery_time
       FROM shipping_costs sc
       INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
-      WHERE sc.province = ? 
-        AND sc.city = 'default'
-        AND sc.is_active = 1 
-        AND sm.is_active = 1
-      ORDER BY sm.sort_order ASC
+      WHERE sc.province = ? AND sc.city = 'default' AND sc.is_active = 1 AND sm.is_active = 1
       LIMIT 1
     `).bind(normalizedProvince).first();
   }
-  if (!result) {
-    result = await db.prepare(`
-      SELECT 
-        sc.id,
-        sc.province,
-        sc.city,
-        sc.cost_type,
-        sc.cost_amount,
-        sc.delivery_time,
-        sm.id as method_id,
-        sm.name as method_name,
-        sm.slug as method_slug
-      FROM shipping_costs sc
-      INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
-      WHERE sc.province = 'default' 
-        AND sc.city = 'default'
-        AND sc.is_active = 1 
-        AND sm.is_active = 1
-      ORDER BY sm.sort_order ASC
-      LIMIT 1
-    `).first();
-  }
-  if (!result) {
+  if (!cost) {
     return {
       success: false,
-      message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0631\u0627\u06CC \u0627\u06CC\u0646 \u0645\u0646\u0637\u0642\u0647 \u062A\u0639\u06CC\u06CC\u0646 \u0646\u0634\u062F\u0647 \u0627\u0633\u062A."
+      message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0631\u0627\u06CC \u0627\u06CC\u0646 \u0634\u0647\u0631 \u062A\u0639\u06CC\u06CC\u0646 \u0646\u0634\u062F\u0647 \u0627\u0633\u062A."
     };
   }
-  let shippingCost = normalizeNumber5(result.cost_amount);
+  const baseCost = cost.default_cost || 0;
+  const extraCost = cost.extra_cost || 0;
+  let finalCost = baseCost + extraCost;
+  let deliveryTime = cost.delivery_time || cost.method_delivery_time || "\u0646\u0627\u0645\u0634\u062E\u0635";
   let isFree = false;
   const freeThreshold = await db.prepare(`
     SELECT min_order_amount
     FROM shipping_free_thresholds
-    WHERE shipping_method_id = ? 
-      AND is_active = 1
+    WHERE shipping_method_id = ? AND is_active = 1
     ORDER BY min_order_amount ASC
     LIMIT 1
-  `).bind(result.method_id).first();
+  `).bind(cost.method_id).first();
   if (freeThreshold && subtotal >= normalizeNumber5(freeThreshold.min_order_amount)) {
-    shippingCost = 0;
+    finalCost = 0;
     isFree = true;
   }
   return {
     success: true,
     shipping: {
-      method_id: result.method_id,
-      method_name: result.method_name,
-      method_slug: result.method_slug,
-      province: result.province,
-      city: result.city,
-      cost_type: result.cost_type,
-      cost_amount: result.cost_amount,
-      shipping_cost: shippingCost,
+      method_id: cost.method_id,
+      method_name: cost.method_name,
+      method_slug: cost.method_slug,
+      province: cost.province,
+      city: cost.city,
+      cost_type: cost.cost_type || "fixed",
+      extra_cost: extraCost,
+      shipping_cost: finalCost,
       is_free: isFree,
-      delivery_time: result.delivery_time || "\u0646\u0627\u0645\u0634\u062E\u0635",
+      delivery_time: deliveryTime,
       free_threshold: freeThreshold ? normalizeNumber5(freeThreshold.min_order_amount) : null
     }
   };
@@ -5250,60 +5308,30 @@ async function onRequestPost16(context) {
 }
 __name(onRequestPost16, "onRequestPost");
 
-// api/shipping/provinces.js
+// api/shipping/methods.js
 function json16(data, status = 200) {
   return Response.json(data, { status });
 }
 __name(json16, "json");
-var PROVINCES = {
-  "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F", "\u0645\u06CC\u0627\u0646\u0647", "\u0627\u0647\u0631", "\u0628\u0646\u0627\u0628", "\u0633\u0631\u0627\u0628", "\u0634\u0628\u0633\u062A\u0631", "\u062C\u0644\u0641\u0627", "\u0627\u0633\u06A9\u0648"],
-  "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u063A\u0631\u0628\u06CC": ["\u0627\u0631\u0648\u0645\u06CC\u0647", "\u062E\u0648\u06CC", "\u0645\u0647\u0627\u0628\u0627\u062F", "\u0645\u06CC\u0627\u0646\u062F\u0648\u0622\u0628", "\u0628\u0648\u06A9\u0627\u0646", "\u0633\u0644\u0645\u0627\u0633", "\u067E\u06CC\u0631\u0627\u0646\u0634\u0647\u0631", "\u0646\u0642\u062F\u0647", "\u0645\u0627\u06A9\u0648", "\u0634\u0627\u0647\u06CC\u0646\u200C\u062F\u0698"],
-  "\u0627\u0631\u062F\u0628\u06CC\u0644": ["\u0627\u0631\u062F\u0628\u06CC\u0644", "\u067E\u0627\u0631\u0633\u200C\u0622\u0628\u0627\u062F", "\u0645\u0634\u06AF\u06CC\u0646\u200C\u0634\u0647\u0631", "\u062E\u0644\u062E\u0627\u0644", "\u06AF\u0631\u0645\u06CC", "\u0646\u0645\u06CC\u0646", "\u0646\u06CC\u0631", "\u0628\u06CC\u0644\u0647\u200C\u0633\u0648\u0627\u0631"],
-  "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u062E\u0645\u06CC\u0646\u06CC\u200C\u0634\u0647\u0631", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F", "\u0634\u0627\u0647\u06CC\u0646\u200C\u0634\u0647\u0631", "\u0634\u0647\u0631\u0636\u0627", "\u0641\u0644\u0627\u0648\u0631\u062C\u0627\u0646", "\u0645\u0628\u0627\u0631\u06A9\u0647", "\u0644\u0646\u062C\u0627\u0646", "\u06AF\u0644\u067E\u0627\u06CC\u06AF\u0627\u0646", "\u0646\u0637\u0646\u0632", "\u0633\u0645\u06CC\u0631\u0645"],
-  "\u0627\u0644\u0628\u0631\u0632": ["\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0646\u0638\u0631\u0622\u0628\u0627\u062F", "\u0647\u0634\u062A\u06AF\u0631\u062F", "\u0645\u062D\u0645\u062F\u0634\u0647\u0631", "\u06A9\u0645\u0627\u0644\u0634\u0647\u0631", "\u0645\u0627\u0647\u062F\u0634\u062A", "\u0627\u0634\u062A\u0647\u0627\u0631\u062F"],
-  "\u0627\u06CC\u0644\u0627\u0645": ["\u0627\u06CC\u0644\u0627\u0645", "\u062F\u0647\u0644\u0631\u0627\u0646", "\u0645\u0647\u0631\u0627\u0646", "\u0622\u0628\u062F\u0627\u0646\u0627\u0646", "\u062F\u0631\u0647\u200C\u0634\u0647\u0631", "\u0627\u06CC\u0648\u0627\u0646", "\u0633\u0631\u0627\u0628\u0644\u0647"],
-  "\u0628\u0648\u0634\u0647\u0631": ["\u0628\u0648\u0634\u0647\u0631", "\u0628\u0631\u0627\u0632\u062C\u0627\u0646", "\u06AF\u0646\u0627\u0648\u0647", "\u06A9\u0646\u06AF\u0627\u0646", "\u062F\u06CC\u0631", "\u0639\u0633\u0644\u0648\u06CC\u0647", "\u062E\u0648\u0631\u0645\u0648\u062C", "\u062C\u0645"],
-  "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u0631\u06CC", "\u0634\u0645\u06CC\u0631\u0627\u0646\u0627\u062A", "\u0634\u0647\u0631\u06CC\u0627\u0631", "\u0627\u0633\u0644\u0627\u0645\u0634\u0647\u0631", "\u0631\u0628\u0627\u0637\u200C\u06A9\u0631\u06CC\u0645", "\u0648\u0631\u0627\u0645\u06CC\u0646", "\u067E\u0627\u06A9\u062F\u0634\u062A", "\u062F\u0645\u0627\u0648\u0646\u062F", "\u0641\u06CC\u0631\u0648\u0632\u06A9\u0648\u0647", "\u0642\u062F\u0633", "\u0645\u0644\u0627\u0631\u062F", "\u0642\u0631\u0686\u06A9", "\u067E\u0631\u062F\u06CC\u0633"],
-  "\u0686\u0647\u0627\u0631\u0645\u062D\u0627\u0644 \u0648 \u0628\u062E\u062A\u06CC\u0627\u0631\u06CC": ["\u0634\u0647\u0631\u06A9\u0631\u062F", "\u0628\u0631\u0648\u062C\u0646", "\u0641\u0627\u0631\u0633\u0627\u0646", "\u0644\u0631\u062F\u06AF\u0627\u0646", "\u0633\u0627\u0645\u0627\u0646", "\u0641\u0631\u062E\u200C\u0634\u0647\u0631", "\u0647\u0641\u0634\u062C\u0627\u0646", "\u0627\u0631\u062F\u0644"],
-  "\u062E\u0631\u0627\u0633\u0627\u0646 \u062C\u0646\u0648\u0628\u06CC": ["\u0628\u06CC\u0631\u062C\u0646\u062F", "\u0642\u0627\u0626\u0646", "\u0637\u0628\u0633", "\u0641\u0631\u062F\u0648\u0633", "\u0646\u0647\u0628\u0646\u062F\u0627\u0646", "\u0633\u0631\u0628\u06CC\u0634\u0647", "\u0628\u0634\u0631\u0648\u06CC\u0647", "\u0633\u0631\u0627\u06CC\u0627\u0646"],
-  "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631", "\u062A\u0631\u0628\u062A \u062D\u06CC\u062F\u0631\u06CC\u0647", "\u0642\u0648\u0686\u0627\u0646", "\u06A9\u0627\u0634\u0645\u0631", "\u062A\u0631\u0628\u062A \u062C\u0627\u0645", "\u06AF\u0646\u0627\u0628\u0627\u062F", "\u0686\u0646\u0627\u0631\u0627\u0646", "\u0641\u0631\u06CC\u0645\u0627\u0646", "\u062F\u0631\u06AF\u0632", "\u062E\u0648\u0627\u0641"],
-  "\u062E\u0631\u0627\u0633\u0627\u0646 \u0634\u0645\u0627\u0644\u06CC": ["\u0628\u062C\u0646\u0648\u0631\u062F", "\u0634\u06CC\u0631\u0648\u0627\u0646", "\u0627\u0633\u0641\u0631\u0627\u06CC\u0646", "\u062C\u0627\u062C\u0631\u0645", "\u0622\u0634\u062E\u0627\u0646\u0647", "\u0641\u0627\u0631\u0648\u062C", "\u06AF\u0631\u0645\u0647"],
-  "\u062E\u0648\u0632\u0633\u062A\u0627\u0646": ["\u0627\u0647\u0648\u0627\u0632", "\u0622\u0628\u0627\u062F\u0627\u0646", "\u062E\u0631\u0645\u0634\u0647\u0631", "\u062F\u0632\u0641\u0648\u0644", "\u0627\u0646\u062F\u06CC\u0645\u0634\u06A9", "\u0645\u0627\u0647\u0634\u0647\u0631", "\u0628\u0646\u062F\u0631 \u0627\u0645\u0627\u0645 \u062E\u0645\u06CC\u0646\u06CC", "\u0634\u0648\u0634\u062A\u0631", "\u0634\u0648\u0634", "\u0628\u0647\u0628\u0647\u0627\u0646", "\u0627\u06CC\u0630\u0647", "\u0645\u0633\u062C\u062F\u0633\u0644\u06CC\u0645\u0627\u0646", "\u0631\u0627\u0645\u0647\u0631\u0645\u0632"],
-  "\u0632\u0646\u062C\u0627\u0646": ["\u0632\u0646\u062C\u0627\u0646", "\u0627\u0628\u0647\u0631", "\u062E\u0631\u0645\u062F\u0631\u0647", "\u0642\u06CC\u062F\u0627\u0631", "\u0637\u0627\u0631\u0645", "\u0645\u0627\u0647\u0646\u0634\u0627\u0646", "\u0633\u0644\u0637\u0627\u0646\u06CC\u0647"],
-  "\u0633\u0645\u0646\u0627\u0646": ["\u0633\u0645\u0646\u0627\u0646", "\u0634\u0627\u0647\u0631\u0648\u062F", "\u062F\u0627\u0645\u063A\u0627\u0646", "\u06AF\u0631\u0645\u0633\u0627\u0631", "\u0645\u0647\u062F\u06CC\u200C\u0634\u0647\u0631", "\u0622\u0631\u0627\u062F\u0627\u0646", "\u0633\u0631\u062E\u0647"],
-  "\u0633\u06CC\u0633\u062A\u0627\u0646 \u0648 \u0628\u0644\u0648\u0686\u0633\u062A\u0627\u0646": ["\u0632\u0627\u0647\u062F\u0627\u0646", "\u0686\u0627\u0628\u0647\u0627\u0631", "\u0632\u0627\u0628\u0644", "\u0627\u06CC\u0631\u0627\u0646\u0634\u0647\u0631", "\u0633\u0631\u0627\u0648\u0627\u0646", "\u062E\u0627\u0634", "\u06A9\u0646\u0627\u0631\u06A9", "\u0646\u06CC\u06A9\u200C\u0634\u0647\u0631", "\u0631\u0627\u0633\u06A9", "\u0628\u0645\u067E\u0648\u0631"],
-  "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645", "\u0641\u0633\u0627", "\u06A9\u0627\u0632\u0631\u0648\u0646", "\u0644\u0627\u0631", "\u062F\u0627\u0631\u0627\u0628", "\u0622\u0628\u0627\u062F\u0647", "\u0646\u0648\u0631\u0622\u0628\u0627\u062F", "\u0641\u06CC\u0631\u0648\u0632\u0622\u0628\u0627\u062F", "\u0627\u0633\u062A\u0647\u0628\u0627\u0646", "\u0627\u0642\u0644\u06CC\u062F", "\u0646\u06CC\u200C\u0631\u06CC\u0632"],
-  "\u0642\u0632\u0648\u06CC\u0646": ["\u0642\u0632\u0648\u06CC\u0646", "\u062A\u0627\u06A9\u0633\u062A\u0627\u0646", "\u0622\u0628\u06CC\u06A9", "\u0627\u0644\u0648\u0646\u062F", "\u0645\u062D\u0645\u062F\u06CC\u0647", "\u0628\u0648\u0626\u06CC\u0646\u200C\u0632\u0647\u0631\u0627", "\u0622\u0628\u06AF\u0631\u0645"],
-  "\u0642\u0645": ["\u0642\u0645", "\u062C\u0639\u0641\u0631\u06CC\u0647", "\u06A9\u0647\u06A9", "\u0633\u0644\u0641\u0686\u06AF\u0627\u0646"],
-  "\u06A9\u0631\u062F\u0633\u062A\u0627\u0646": ["\u0633\u0646\u0646\u062F\u062C", "\u0633\u0642\u0632", "\u0645\u0631\u06CC\u0648\u0627\u0646", "\u0628\u0627\u0646\u0647", "\u0642\u0631\u0648\u0647", "\u0628\u06CC\u062C\u0627\u0631", "\u06A9\u0627\u0645\u06CC\u0627\u0631\u0627\u0646", "\u062F\u06CC\u0648\u0627\u0646\u062F\u0631\u0647"],
-  "\u06A9\u0631\u0645\u0627\u0646": ["\u06A9\u0631\u0645\u0627\u0646", "\u0633\u06CC\u0631\u062C\u0627\u0646", "\u0631\u0641\u0633\u0646\u062C\u0627\u0646", "\u062C\u06CC\u0631\u0641\u062A", "\u0628\u0645", "\u0632\u0631\u0646\u062F", "\u0634\u0647\u0631\u0628\u0627\u0628\u06A9", "\u0628\u0627\u0641\u062A", "\u0628\u0631\u062F\u0633\u06CC\u0631", "\u06A9\u0647\u0646\u0648\u062C", "\u0639\u0646\u0628\u0631\u0622\u0628\u0627\u062F"],
-  "\u06A9\u0631\u0645\u0627\u0646\u0634\u0627\u0647": ["\u06A9\u0631\u0645\u0627\u0646\u0634\u0627\u0647", "\u0627\u0633\u0644\u0627\u0645\u200C\u0622\u0628\u0627\u062F \u063A\u0631\u0628", "\u067E\u0627\u0648\u0647", "\u062C\u0648\u0627\u0646\u0631\u0648\u062F", "\u0633\u0631\u067E\u0644\u200C\u0630\u0647\u0627\u0628", "\u06A9\u0646\u06AF\u0627\u0648\u0631", "\u0635\u062D\u0646\u0647", "\u0647\u0631\u0633\u06CC\u0646", "\u0642\u0635\u0631\u0634\u06CC\u0631\u06CC\u0646"],
-  "\u06A9\u0647\u06AF\u06CC\u0644\u0648\u06CC\u0647 \u0648 \u0628\u0648\u06CC\u0631\u0627\u062D\u0645\u062F": ["\u06CC\u0627\u0633\u0648\u062C", "\u062F\u0648\u06AF\u0646\u0628\u062F\u0627\u0646", "\u062F\u0647\u062F\u0634\u062A", "\u0644\u06CC\u06A9\u06A9", "\u0633\u06CC\u200C\u0633\u062E\u062A"],
-  "\u06AF\u0644\u0633\u062A\u0627\u0646": ["\u06AF\u0631\u06AF\u0627\u0646", "\u06AF\u0646\u0628\u062F \u06A9\u0627\u0648\u0648\u0633", "\u0639\u0644\u06CC\u200C\u0622\u0628\u0627\u062F \u06A9\u062A\u0648\u0644", "\u0628\u0646\u062F\u0631 \u062A\u0631\u06A9\u0645\u0646", "\u06A9\u0631\u062F\u06A9\u0648\u06CC", "\u0622\u0632\u0627\u062F\u0634\u0647\u0631", "\u0645\u06CC\u0646\u0648\u062F\u0634\u062A", "\u0622\u0642\u200C\u0642\u0644\u0627", "\u06A9\u0644\u0627\u0644\u0647"],
-  "\u06AF\u06CC\u0644\u0627\u0646": ["\u0631\u0634\u062A", "\u0628\u0646\u062F\u0631 \u0627\u0646\u0632\u0644\u06CC", "\u0644\u0627\u0647\u06CC\u062C\u0627\u0646", "\u0644\u0646\u06AF\u0631\u0648\u062F", "\u0622\u0633\u062A\u0627\u0631\u0627", "\u0631\u0648\u062F\u0633\u0631", "\u062A\u0627\u0644\u0634", "\u0635\u0648\u0645\u0639\u0647\u200C\u0633\u0631\u0627", "\u0641\u0648\u0645\u0646", "\u0631\u0648\u062F\u0628\u0627\u0631", "\u0622\u0633\u062A\u0627\u0646\u0647 \u0627\u0634\u0631\u0641\u06CC\u0647"],
-  "\u0644\u0631\u0633\u062A\u0627\u0646": ["\u062E\u0631\u0645\u200C\u0622\u0628\u0627\u062F", "\u0628\u0631\u0648\u062C\u0631\u062F", "\u062F\u0648\u0631\u0648\u062F", "\u06A9\u0648\u0647\u062F\u0634\u062A", "\u0627\u0644\u06CC\u06AF\u0648\u062F\u0631\u0632", "\u0646\u0648\u0631\u0622\u0628\u0627\u062F", "\u0627\u0644\u0634\u062A\u0631", "\u067E\u0644\u062F\u062E\u062A\u0631", "\u0627\u0632\u0646\u0627"],
-  "\u0645\u0627\u0632\u0646\u062F\u0631\u0627\u0646": ["\u0633\u0627\u0631\u06CC", "\u0628\u0627\u0628\u0644", "\u0622\u0645\u0644", "\u0642\u0627\u0626\u0645\u200C\u0634\u0647\u0631", "\u0628\u0647\u0634\u0647\u0631", "\u0686\u0627\u0644\u0648\u0633", "\u0646\u0648\u0634\u0647\u0631", "\u062A\u0646\u06A9\u0627\u0628\u0646", "\u0631\u0627\u0645\u0633\u0631", "\u0628\u0627\u0628\u0644\u0633\u0631", "\u0645\u062D\u0645\u0648\u062F\u0622\u0628\u0627\u062F", "\u0646\u06A9\u0627", "\u0646\u0648\u0631", "\u0641\u0631\u06CC\u062F\u0648\u0646\u06A9\u0646\u0627\u0631"],
-  "\u0645\u0631\u06A9\u0632\u06CC": ["\u0627\u0631\u0627\u06A9", "\u0633\u0627\u0648\u0647", "\u062E\u0645\u06CC\u0646", "\u0645\u062D\u0644\u0627\u062A", "\u062F\u0644\u06CC\u062C\u0627\u0646", "\u0634\u0627\u0632\u0646\u062F", "\u062A\u0641\u0631\u0634", "\u0622\u0634\u062A\u06CC\u0627\u0646", "\u0632\u0631\u0646\u062F\u06CC\u0647"],
-  "\u0647\u0631\u0645\u0632\u06AF\u0627\u0646": ["\u0628\u0646\u062F\u0631\u0639\u0628\u0627\u0633", "\u0645\u06CC\u0646\u0627\u0628", "\u0628\u0646\u062F\u0631\u0644\u0646\u06AF\u0647", "\u0642\u0634\u0645", "\u06A9\u06CC\u0634", "\u0631\u0648\u062F\u0627\u0646", "\u062D\u0627\u062C\u06CC\u200C\u0622\u0628\u0627\u062F", "\u062C\u0627\u0633\u06A9", "\u067E\u0627\u0631\u0633\u06CC\u0627\u0646", "\u0628\u0633\u062A\u06A9"],
-  "\u0647\u0645\u062F\u0627\u0646": ["\u0647\u0645\u062F\u0627\u0646", "\u0645\u0644\u0627\u06CC\u0631", "\u0646\u0647\u0627\u0648\u0646\u062F", "\u062A\u0648\u06CC\u0633\u0631\u06A9\u0627\u0646", "\u0627\u0633\u062F\u0622\u0628\u0627\u062F", "\u06A9\u0628\u0648\u062F\u0631\u0622\u0647\u0646\u06AF", "\u0631\u0632\u0646", "\u0641\u0627\u0645\u0646\u06CC\u0646"],
-  "\u06CC\u0632\u062F": ["\u06CC\u0632\u062F", "\u0645\u06CC\u0628\u062F", "\u0627\u0631\u062F\u06A9\u0627\u0646", "\u0628\u0627\u0641\u0642", "\u0645\u0647\u0631\u06CC\u0632", "\u062A\u0641\u062A", "\u0627\u0628\u0631\u06A9\u0648\u0647", "\u0627\u0634\u06A9\u0630\u0631", "\u0628\u0647\u0627\u0628\u0627\u062F"]
-};
 async function onRequestGet17(context) {
   try {
-    const url = new URL(context.request.url);
-    const province = url.searchParams.get("province");
-    if (province) {
-      const cities = PROVINCES[province] || [];
-      return json16({
-        success: true,
-        province,
-        cities
-      });
-    }
+    const result = await context.env.DB.prepare(`
+      SELECT 
+        id, 
+        name, 
+        slug, 
+        description, 
+        delivery_time, 
+        is_active, 
+        sort_order
+      FROM shipping_methods
+      WHERE is_active = 1
+      ORDER BY sort_order ASC, id ASC
+    `).all();
+    const methods = Array.isArray(result?.results) ? result.results : [];
     return json16({
       success: true,
-      provinces: PROVINCES,
-      provinceList: Object.keys(PROVINCES)
+      methods
     });
   } catch (error) {
     return json16({
@@ -5314,154 +5342,114 @@ async function onRequestGet17(context) {
 }
 __name(onRequestGet17, "onRequestGet");
 
-// api/catalog.js
+// api/shipping/provinces.js
 function json17(data, status = 200) {
-  return Response.json(data, {
-    status,
-    headers: {
-      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
-    }
-  });
+  return Response.json(data, { status });
 }
 __name(json17, "json");
-function normalizeProduct(row, imagesByProductId) {
-  const productId = Number(row.id);
-  const gallery = imagesByProductId.get(productId) || [];
-  const primaryImage = row.primary_image || gallery.find((image) => Number(image.is_primary) === 1)?.image_url || gallery[0]?.image_url || "";
-  const numericPrice = row.price === null || row.price === void 0 || row.price === "" ? null : Number(row.price);
-  const stockQuantity = Math.max(0, Number(row.stock_quantity || 0));
-  const inStock = Number(row.in_stock) === 1 && stockQuantity > 0;
-  return {
-    id: productId,
-    slug: row.slug,
-    name: row.name,
-    category: row.category || "",
-    price: numericPrice,
-    priceLabel: numericPrice === null ? row.price_label || "\u062A\u0645\u0627\u0633 \u0628\u06AF\u06CC\u0631\u06CC\u062F" : numericPrice.toLocaleString("fa-IR"),
-    showPrice: Number(row.show_price) === 1 && numericPrice !== null,
-    stockQuantity,
-    inStock,
-    stockLabel: row.stock_label || (inStock ? `\u0645\u0648\u062C\u0648\u062F (${stockQuantity.toLocaleString("fa-IR")})` : "\u0646\u0627\u0645\u0648\u062C\u0648\u062F"),
-    shortDescription: row.short_description || "",
-    description: row.description || "",
-    primaryImage,
-    images: gallery.map((image) => image.image_url).filter(Boolean),
-    pageUrl: row.page_url || `products/${row.slug}.html`,
-    status: row.status || "published",
-    updatedAt: row.updated_at || null
-  };
-}
-__name(normalizeProduct, "normalizeProduct");
 async function onRequestGet18(context) {
   try {
-    const url = new URL(context.request.url);
-    const requestedSlug = String(url.searchParams.get("slug") || "").trim();
-    const requestedCategory = String(url.searchParams.get("category") || "").trim();
-    let productsQuery = `
-      SELECT
-        id,
-        slug,
-        name,
-        category,
-        price,
-        price_label,
-        show_price,
-        stock_quantity,
-        in_stock,
-        stock_label,
-        short_description,
-        description,
-        primary_image,
-        page_url,
-        status,
-        created_at,
-        updated_at
-      FROM products
-      WHERE status = 'published'
-    `;
-    const bindings = [];
-    if (requestedSlug) {
-      productsQuery += " AND slug = ?";
-      bindings.push(requestedSlug);
-    }
-    if (requestedCategory) {
-      productsQuery += " AND category = ?";
-      bindings.push(requestedCategory);
-    }
-    productsQuery += " ORDER BY id DESC";
-    const productsResult = await context.env.DB.prepare(productsQuery).bind(...bindings).all();
-    const productRows = productsResult.results || [];
-    if (requestedSlug && productRows.length === 0) {
-      return json17(
-        {
-          success: false,
-          error: "\u0645\u062D\u0635\u0648\u0644 \u0645\u0648\u0631\u062F\u0646\u0638\u0631 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F."
-        },
-        404
-      );
-    }
-    const productIds = productRows.map((product) => Number(product.id)).filter((id) => Number.isInteger(id) && id > 0);
-    const imagesByProductId = /* @__PURE__ */ new Map();
-    if (productIds.length > 0) {
-      const placeholders = productIds.map(() => "?").join(", ");
-      const imagesResult = await context.env.DB.prepare(`
-        SELECT
-          id,
-          product_id,
-          image_url,
-          alt_text,
-          sort_order,
-          is_primary
-        FROM product_images
-        WHERE product_id IN (${placeholders})
-        ORDER BY product_id ASC, is_primary DESC, sort_order ASC, id ASC
-      `).bind(...productIds).all();
-      for (const image of imagesResult.results || []) {
-        const productId = Number(image.product_id);
-        if (!imagesByProductId.has(productId)) {
-          imagesByProductId.set(productId, []);
-        }
-        imagesByProductId.get(productId).push({
-          id: Number(image.id),
-          imageUrl: image.image_url,
-          image_url: image.image_url,
-          altText: image.alt_text || "",
-          alt_text: image.alt_text || "",
-          sortOrder: Number(image.sort_order || 0),
-          sort_order: Number(image.sort_order || 0),
-          isPrimary: Number(image.is_primary) === 1,
-          is_primary: Number(image.is_primary) === 1 ? 1 : 0
-        });
+    const result = await context.env.DB.prepare(`
+      SELECT DISTINCT province, city 
+      FROM shipping_costs 
+      WHERE is_active = 1
+      ORDER BY province, city ASC
+    `).all();
+    const rows = Array.isArray(result?.results) ? result.results : [];
+    const provinces = {};
+    for (const row of rows) {
+      const province = row.province || "\u0646\u0627\u0645\u0634\u062E\u0635";
+      const city = row.city || "";
+      if (!provinces[province]) {
+        provinces[province] = [];
+      }
+      if (city && !provinces[province].includes(city)) {
+        provinces[province].push(city);
       }
     }
-    const products = productRows.map(
-      (row) => normalizeProduct(row, imagesByProductId)
-    );
-    if (requestedSlug) {
+    if (Object.keys(provinces).length === 0) {
+      const fallbackData = {
+        "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0631\u0648\u062F\u0647\u0646", "\u0628\u0648\u0645\u0647\u0646"],
+        "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F"],
+        "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645"],
+        "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631"],
+        "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F"]
+      };
       return json17({
         success: true,
-        product: products[0]
+        provinces: fallbackData,
+        provinceList: Object.keys(fallbackData)
       });
     }
     return json17({
       success: true,
-      count: products.length,
-      products
+      provinces,
+      provinceList: Object.keys(provinces)
     });
   } catch (error) {
-    return json17(
-      {
-        success: false,
-        error: String(error?.message || error)
-      },
-      500
-    );
+    return json17({
+      success: false,
+      error: String(error?.message || error)
+    }, 500);
   }
 }
 __name(onRequestGet18, "onRequestGet");
 
+// api/catalog.js
+function json18(data, status = 200) {
+  return Response.json(data, { status });
+}
+__name(json18, "json");
+async function onRequestGet19(context) {
+  try {
+    const result = await context.env.DB.prepare(`
+      SELECT DISTINCT province, city 
+      FROM shipping_costs 
+      WHERE is_active = 1
+      ORDER BY province, city ASC
+    `).all();
+    const rows = Array.isArray(result?.results) ? result.results : [];
+    const provinces = {};
+    for (const row of rows) {
+      const province = row.province || "\u0646\u0627\u0645\u0634\u062E\u0635";
+      const city = row.city || "";
+      if (!provinces[province]) {
+        provinces[province] = [];
+      }
+      if (city && !provinces[province].includes(city)) {
+        provinces[province].push(city);
+      }
+    }
+    if (Object.keys(provinces).length === 0) {
+      const fallbackData = {
+        "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0631\u0648\u062F\u0647\u0646", "\u0628\u0648\u0645\u0647\u0646"],
+        "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F"],
+        "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645"],
+        "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631"],
+        "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F"]
+      };
+      return json18({
+        success: true,
+        provinces: fallbackData,
+        provinceList: Object.keys(fallbackData)
+      });
+    }
+    return json18({
+      success: true,
+      provinces,
+      provinceList: Object.keys(provinces)
+    });
+  } catch (error) {
+    return json18({
+      success: false,
+      error: String(error?.message || error)
+    }, 500);
+  }
+}
+__name(onRequestGet19, "onRequestGet");
+
 // api/products.js
-function json18(data, status = 200, headers = {}) {
+function json19(data, status = 200, headers = {}) {
   return Response.json(data, {
     status,
     headers: {
@@ -5470,7 +5458,7 @@ function json18(data, status = 200, headers = {}) {
     }
   });
 }
-__name(json18, "json");
+__name(json19, "json");
 function cleanText3(value) {
   return String(value ?? "").trim();
 }
@@ -5562,11 +5550,11 @@ async function onRequestOptions() {
   });
 }
 __name(onRequestOptions, "onRequestOptions");
-async function onRequestGet19(context) {
+async function onRequestGet20(context) {
   try {
     const db = context.env?.DB;
     if (!db) {
-      return json18(
+      return json19(
         {
           success: false,
           error: "D1 database binding DB is not configured."
@@ -5620,7 +5608,7 @@ async function onRequestGet19(context) {
     const productsResult = bindings.length ? await db.prepare(productsQuery).bind(...bindings).all() : await db.prepare(productsQuery).all();
     const productRows = Array.isArray(productsResult?.results) ? productsResult.results : [];
     if (!productRows.length) {
-      return json18({
+      return json19({
         success: true,
         total: 0,
         products: []
@@ -5649,13 +5637,13 @@ async function onRequestGet19(context) {
     const products = productRows.map(
       (product) => productFromRow3(product, imageRows)
     );
-    return json18({
+    return json19({
       success: true,
       total: products.length,
       products
     });
   } catch (error) {
-    return json18(
+    return json19(
       {
         success: false,
         error: String(error?.message || error)
@@ -5667,10 +5655,10 @@ async function onRequestGet19(context) {
     );
   }
 }
-__name(onRequestGet19, "onRequestGet");
+__name(onRequestGet20, "onRequestGet");
 
 // api/test-db.js
-async function onRequestGet20(context) {
+async function onRequestGet21(context) {
   try {
     const row = await context.env.DB.prepare("SELECT 1 as ok").first();
     return Response.json({
@@ -5689,9 +5677,9 @@ async function onRequestGet20(context) {
     );
   }
 }
-__name(onRequestGet20, "onRequestGet");
+__name(onRequestGet21, "onRequestGet");
 
-// ../.wrangler/tmp/pages-v76EUG/functionsRoutes-0.9512133526809174.mjs
+// ../.wrangler/tmp/pages-RptXjC/functionsRoutes-0.2930176633867788.mjs
 var routes = [
   {
     routePath: "/api/account/addresses/:id/default",
@@ -5981,25 +5969,32 @@ var routes = [
     modules: [onRequestPost16]
   },
   {
-    routePath: "/api/shipping/provinces",
+    routePath: "/api/shipping/methods",
     mountPath: "/api/shipping",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet17]
   },
   {
+    routePath: "/api/shipping/provinces",
+    mountPath: "/api/shipping",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet18]
+  },
+  {
     routePath: "/api/catalog",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet18]
+    modules: [onRequestGet19]
   },
   {
     routePath: "/api/products",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet19]
+    modules: [onRequestGet20]
   },
   {
     routePath: "/api/products",
@@ -6013,7 +6008,7 @@ var routes = [
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet20]
+    modules: [onRequestGet21]
   }
 ];
 

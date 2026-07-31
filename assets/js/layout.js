@@ -379,6 +379,58 @@
     document.addEventListener("products:ready", renderCartDrawer);
   }
 
+  // ==========================================
+  // 🔹 مدیریت Bottom Navigation
+  // ==========================================
+  function setupBottomNav() {
+    const items = document.querySelectorAll(".bottom-nav__item");
+    const currentPath = window.location.pathname;
+
+    items.forEach((item) => {
+      const href = item.getAttribute("href");
+      if (!href) return;
+
+      // تشخیص صفحه فعال بر اساس مسیر
+      const isActive = 
+        (href === "/index.html" && (currentPath === "/" || currentPath === "/index.html")) ||
+        (href !== "/index.html" && currentPath.includes(href.replace("/", "")));
+
+      if (isActive) {
+        item.classList.add("is-active");
+        item.setAttribute("aria-current", "page");
+      }
+
+      // کلیک روی آیتم
+      item.addEventListener("click", function (e) {
+        // اگر لینک به صفحه فعلی باشد، از رفتن جلوگیری کن
+        if (this.classList.contains("is-active")) {
+          e.preventDefault();
+        }
+      });
+    });
+  }
+
+  // ==========================================
+  // 🔹 به‌روزرسانی Badge سبد خرید در Bottom Nav
+  // ==========================================
+  function updateBottomCartBadge() {
+    const cartApi = getCartApi();
+    const badge = document.querySelector("[data-cart-count-badge]");
+    if (!badge || !cartApi) return;
+
+    const count = typeof cartApi.getItemCount === "function" ? cartApi.getItemCount() : 0;
+
+    if (count > 0) {
+      badge.textContent = count;
+      badge.classList.remove("bottom-nav__badge--hidden");
+    } else {
+      badge.classList.add("bottom-nav__badge--hidden");
+    }
+  }
+
+  // ==========================================
+  // بارگذاری اولیه
+  // ==========================================
   document.addEventListener("DOMContentLoaded", async function () {
     const base = getBasePath();
 
@@ -389,8 +441,20 @@
 
     await loadPartial("site-footer", `${base}components/footer.html`);
     await loadPartial("site-cart", `${base}components/cart-drawer.html`);
+    await loadPartial("bottom-nav", `${base}components/bottom-nav.html`);
 
     setupCartDrawer();
+    setupBottomNav();
+
+    // به‌روزرسانی اولیه Badge
+    setTimeout(() => {
+      updateBottomCartBadge();
+    }, 100);
+
+    // گوش دادن به رویداد به‌روزرسانی سبد
+    document.addEventListener("cart:updated", function () {
+      updateBottomCartBadge();
+    });
 
     document.dispatchEvent(new CustomEvent("layout:loaded"));
   });

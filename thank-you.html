@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تشکر از شما | تک تجارت</title>
+  <meta name="description" content="صفحه تشکر از ارتباط با تک تجارت" />
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  <style>
+    .thankyou-page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 40px 0;
+    }
+
+    .thankyou-box {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow-md);
+      padding: 48px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .thankyou-box::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--secondary), var(--accent-blue-light), var(--accent-yellow));
+    }
+
+    .thankyou-box .icon {
+      font-size: 72px;
+      display: block;
+      margin-bottom: 16px;
+      animation: bounceIn 0.8s ease;
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0); opacity: 0; }
+      60% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    .thankyou-box h1 {
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      color: var(--primary);
+      margin: 0 0 12px;
+    }
+
+    .thankyou-box p {
+      font-size: 1.05rem;
+      color: var(--muted);
+      line-height: 2;
+      max-width: 520px;
+      margin: 0 auto 20px;
+    }
+
+    .thankyou-box .divider {
+      width: 80px;
+      height: 3px;
+      background: var(--secondary);
+      margin: 20px auto;
+      border-radius: 999px;
+    }
+
+    .thankyou-box .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+      text-align: right;
+    }
+
+    .thankyou-box .info-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+    }
+
+    .thankyou-box .info-item .label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .thankyou-box .info-item .value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .thankyou-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .thankyou-actions .btn {
+      min-width: 160px;
+    }
+
+    .btn-whatsapp {
+      background: #25D366;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-whatsapp:hover {
+      background: #1da851;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
+    }
+
+    @media (max-width: 560px) {
+      .thankyou-box {
+        padding: 32px 20px;
+      }
+
+      .thankyou-box .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .thankyou-actions .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="site-header"></div>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="thankyou-page">
+          <div class="thankyou-box">
+            <span class="icon">🙏</span>
+            <h1>از شما متشکریم!</h1>
+            <p>
+              پیام شما با موفقیت دریافت شد. تیم پشتیبانی تک تجارت در اسرع وقت با شما تماس خواهد گرفت.
+            </p>
+
+            <div class="divider"></div>
+
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">وضعیت</span>
+                <span class="value" style="color:var(--success);">✓ دریافت شد</span>
+              </div>
+              <div class="info-item">
+                <span class="label">پاسخگویی</span>
+                <span class="value" style="color:var(--secondary);">حداکثر ۲۴ ساعت</span>
+              </div>
+              <div class="info-item">
+                <span class="label">تاریخ</span>
+                <span class="value" id="today-date">-</span>
+              </div>
+              <div class="info-item">
+                <span class="label">شماره پیگیری</span>
+                <span class="value" id="tracking-code">-</span>
+              </div>
+            </div>
+
+            <p style="font-size:0.92rem;color:var(--muted-2);">
+              در صورت نیاز به پشتیبانی فوری، از طریق واتساپ با ما در ارتباط باشید.
+            </p>
+
+            <div class="thankyou-actions">
+              <a href="/" class="btn btn-primary">🏠 بازگشت به خانه</a>
+              <a href="/products.html" class="btn btn-secondary">🛍️ مشاهده محصولات</a>
+              <a href="https://wa.me/09123456789" target="_blank" class="btn btn-whatsapp">
+                📱 پشتیبانی واتساپ
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+  <div id="site-cart"></div>
+  <div id="bottom-nav"></div>
+
+  <script src="/assets/js/layout.js"></script>
+  <script src="/assets/js/cart.js"></script>
+  <script src="/assets/js/app.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // تاریخ امروز
+      const today = new Date();
+      document.getElementById("today-date").textContent = 
+        today.toLocaleDateString("fa-IR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        });
+
+      // شماره پیگیری تصادفی
+      const tracking = "TK-" + String(Math.floor(100000 + Math.random() * 900000));
+      document.getElementById("tracking-code").textContent = tracking;
+    });
+  </script>
+</body>
+</html>

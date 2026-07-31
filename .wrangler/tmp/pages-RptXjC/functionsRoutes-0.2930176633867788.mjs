@@ -39,6 +39,7 @@ import { onRequestGet as __api_auth_profile_js_onRequestGet } from "C:\\Users\\A
 import { onRequestPost as __api_auth_profile_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\auth\\profile.js"
 import { onRequestPost as __api_auth_register_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\auth\\register.js"
 import { onRequestPost as __api_shipping_calculate_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\calculate.js"
+import { onRequestGet as __api_shipping_methods_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\methods.js"
 import { onRequestGet as __api_shipping_provinces_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\provinces.js"
 import { onRequestGet as __api_catalog_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\catalog.js"
 import { onRequestGet as __api_products_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\products.js"
@@ -332,6 +333,13 @@ export const routes = [
       method: "POST",
       middlewares: [],
       modules: [__api_shipping_calculate_js_onRequestPost],
+    },
+  {
+      routePath: "/api/shipping/methods",
+      mountPath: "/api/shipping",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_shipping_methods_js_onRequestGet],
     },
   {
       routePath: "/api/shipping/provinces",
