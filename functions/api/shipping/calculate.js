@@ -15,93 +15,73 @@ function normalizeNumber(value) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
 }
 
-// ✅ گروه تهران و شهرهای نزدیک
-const TEHRAN_GROUP = ["تهران", "کرج", "فردیس", "رودهن", "بومهن"];
-
-// ✅ تعیین slug روش ارسال بر اساس شهر
-function getShippingMethodSlug(city) {
-  if (TEHRAN_GROUP.includes(city)) {
-    return "motor"; // اسنپ‌باکس
-  } else {
-    return "freight"; // باربری
-  }
-}
-
 async function getShippingCost(db, province, city, subtotal = 0) {
   const normalizedProvince = normalizeText(province);
   const normalizedCity = normalizeText(city);
 
-  // ✅ تعیین روش ارسال بر اساس شهر
-  const methodSlug = getShippingMethodSlug(normalizedCity);
-
-  // ✅ پیدا کردن روش ارسال از دیتابیس
-  const method = await db.prepare(`
-    SELECT 
-      id, 
-      name, 
-      slug, 
-      description, 
-      delivery_time, 
-      default_cost,
-      is_active
-    FROM shipping_methods
-    WHERE slug = ? AND is_active = 1
-    LIMIT 1
-  `).bind(methodSlug).first();
-
-  if (!method) {
-    return {
-      success: false,
-      message: "روش ارسال برای این شهر فعال نیست."
-    };
-  }
-
-  // ✅ پیدا کردن هزینه ارسال برای این شهر و روش
+  // ✅ ابتدا هزینه ارسال را از دیتابیس بخوان (روش ارسال و هزینه)
   let cost = await db.prepare(`
     SELECT 
-      id,
-      province,
-      city,
-      cost_type,
-      cost_amount,
-      extra_cost,
-      delivery_time,
-      is_active
-    FROM shipping_costs
-    WHERE province = ? AND city = ? AND shipping_method_id = ? AND is_active = 1
+      sc.id,
+      sc.province,
+      sc.city,
+      sc.shipping_method_id,
+      sc.cost_type,
+      sc.cost_amount,
+      sc.extra_cost,
+      sc.delivery_time,
+      sc.is_active,
+      sm.id as method_id,
+      sm.name as method_name,
+      sm.slug as method_slug,
+      sm.default_cost,
+      sm.delivery_time as method_delivery_time
+    FROM shipping_costs sc
+    INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+    WHERE sc.province = ? AND sc.city = ? AND sc.is_active = 1 AND sm.is_active = 1
     LIMIT 1
-  `).bind(normalizedProvince, normalizedCity, method.id).first();
+  `).bind(normalizedProvince, normalizedCity).first();
 
-  // ✅ اگر هزینه برای شهر پیدا نشد، هزینه پیش‌فرض استان را بررسی کن
+  // ✅ اگر هزینه برای شهر پیدا نشد، از هزینه پیش‌فرض استان استفاده کن
   if (!cost) {
     cost = await db.prepare(`
       SELECT 
-        id,
-        province,
-        city,
-        cost_type,
-        cost_amount,
-        extra_cost,
-        delivery_time,
-        is_active
-      FROM shipping_costs
-      WHERE province = ? AND city = 'default' AND shipping_method_id = ? AND is_active = 1
+        sc.id,
+        sc.province,
+        sc.city,
+        sc.shipping_method_id,
+        sc.cost_type,
+        sc.cost_amount,
+        sc.extra_cost,
+        sc.delivery_time,
+        sc.is_active,
+        sm.id as method_id,
+        sm.name as method_name,
+        sm.slug as method_slug,
+        sm.default_cost,
+        sm.delivery_time as method_delivery_time
+      FROM shipping_costs sc
+      INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+      WHERE sc.province = ? AND sc.city = 'default' AND sc.is_active = 1 AND sm.is_active = 1
       LIMIT 1
-    `).bind(normalizedProvince, method.id).first();
+    `).bind(normalizedProvince).first();
   }
 
-  // ✅ اگر هیچ هزینه‌ای پیدا نشد، از default_cost روش استفاده کن
-  let finalCost = method.default_cost || 0;
-  let extraCost = 0;
-  let deliveryTime = method.delivery_time || "نامشخص";
-
-  if (cost) {
-    extraCost = cost.extra_cost || 0;
-    finalCost = method.default_cost + extraCost;
-    deliveryTime = cost.delivery_time || method.delivery_time || "نامشخص";
+  // ✅ اگر هیچ هزینه‌ای پیدا نشد، خطا برگردان
+  if (!cost) {
+    return {
+      success: false,
+      message: "هزینه ارسال برای این شهر تعیین نشده است."
+    };
   }
 
-  // ✅ بررسی ارسال رایگان
+  // محاسبه هزینه نهایی
+  const baseCost = cost.default_cost || 0;
+  const extraCost = cost.extra_cost || 0;
+  let finalCost = baseCost + extraCost;
+  let deliveryTime = cost.delivery_time || cost.method_delivery_time || "نامشخص";
+
+  // بررسی ارسال رایگان
   let isFree = false;
   const freeThreshold = await db.prepare(`
     SELECT min_order_amount
@@ -109,7 +89,7 @@ async function getShippingCost(db, province, city, subtotal = 0) {
     WHERE shipping_method_id = ? AND is_active = 1
     ORDER BY min_order_amount ASC
     LIMIT 1
-  `).bind(method.id).first();
+  `).bind(cost.method_id).first();
 
   if (freeThreshold && subtotal >= normalizeNumber(freeThreshold.min_order_amount)) {
     finalCost = 0;
@@ -119,12 +99,12 @@ async function getShippingCost(db, province, city, subtotal = 0) {
   return {
     success: true,
     shipping: {
-      method_id: method.id,
-      method_name: method.name,
-      method_slug: method.slug,
-      province: normalizedProvince,
-      city: normalizedCity,
-      cost_type: cost?.cost_type || "fixed",
+      method_id: cost.method_id,
+      method_name: cost.method_name,
+      method_slug: cost.method_slug,
+      province: cost.province,
+      city: cost.city,
+      cost_type: cost.cost_type || "fixed",
       extra_cost: extraCost,
       shipping_cost: finalCost,
       is_free: isFree,
