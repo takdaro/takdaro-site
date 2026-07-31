@@ -55,6 +55,7 @@
   --surface-2: #f8fbfd;
   --surface-3: #eef5f8;
 
+  /* ===== پالت رنگی جدید تک تجارت ===== */
   --primary: #023047;
   --primary-dark: #023047;
   --primary-deep: #023047;
@@ -73,6 +74,7 @@
   --danger: #b42318;
   --warning: #a56a00;
 
+  /* ===== رنگ‌های جدید برای المان‌های خاص ===== */
   --accent-yellow: #FFB703;
   --accent-orange: #FB8500;
   --accent-blue-light: #8ECAE6;
@@ -88,6 +90,7 @@
   --radius-pill: 999px;
 
   --container: 1180px;
+
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -263,6 +266,7 @@ h4 {
   z-index: 1;
 }
 
+/* Desktop header */
 .topbar {
   min-height: 82px;
   display: grid;
@@ -282,6 +286,7 @@ h4 {
   white-space: nowrap;
   letter-spacing: -0.2px;
 }
+
 
 .nav a {
   color: rgba(255, 255, 255, 0.94);
@@ -480,6 +485,7 @@ h4 {
   border-color: var(--secondary);
 }
 
+/* ===== دکمه‌های جدید با رنگ‌های پالت ===== */
 .btn-cta {
   background: var(--accent-orange);
   color: #fff;
@@ -1760,6 +1766,88 @@ select:focus-visible {
 }
 
 /* ==========================================
+   🔹 استایل‌های جدید برای Tabهای حساب کاربری - فقط موبایل و تبلت
+   ========================================== */
+@media (max-width: 820px) {
+  /* Reaction انیمیشن برای Tabها */
+  .account-menubtn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .account-menubtn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(33, 158, 188, 0.12);
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+    pointer-events: none;
+  }
+
+  .account-menubtn.is-active::after {
+    width: 120%;
+    height: 120%;
+  }
+
+  .account-menubtn.is-active .account-menuicon {
+    transform: scale(1.1);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .account-menubtn:active:not(.is-active) {
+    transform: scale(0.96);
+  }
+
+  .account-menubtn.is-active:active {
+    transform: scale(0.98);
+  }
+
+  /* Pulse effect برای Tab فعال */
+  .account-menubtn.is-active .account-menulabel span:last-child {
+    animation: tabPulse 0.6s ease;
+  }
+
+  @keyframes tabPulse {
+    0% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(-4px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  /* Smooth transition برای تغییر محتوا */
+  .account-section {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .account-section.is-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Scroll padding برای Header */
+  .account-panelbody {
+    scroll-margin-top: 100px;
+  }
+
+  .account-section {
+    scroll-margin-top: 100px;
+  }
+}
+
+/* ==========================================
    ریسپانسیو - گالری تصاویر پزشکی
    ========================================== */
 @media (max-width: 1100px) {
@@ -2012,4 +2100,61 @@ select:focus-visible {
 
 .nav-logout-btn:hover {
   opacity: 0.8;
+}
+/* ==========================================
+   🔹 استایل‌های جدید برای Tabهای Admin - فقط موبایل و تبلت
+   ========================================== */
+@media (max-width: 820px) {
+  /* Reaction انیمیشن برای Tabها */
+  .admin-menu-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .admin-menu-btn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(33, 158, 188, 0.12);
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+    pointer-events: none;
+  }
+
+  .admin-menu-btn.is-active::after {
+    width: 120%;
+    height: 120%;
+  }
+
+  .admin-menu-btn:active:not(.is-active) {
+    transform: scale(0.96);
+  }
+
+  .admin-menu-btn.is-active:active {
+    transform: scale(0.98);
+  }
+
+  /* Smooth transition برای تغییر محتوا */
+  .admin-section {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    scroll-margin-top: 100px;
+  }
+
+  .admin-section.is-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Scroll padding برای Header */
+  .admin-panel-body {
+    scroll-margin-top: 100px;
+  }
 }
