@@ -78,10 +78,7 @@
       font: inherit;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      position: relative;
-      overflow: hidden;
-      -webkit-tap-highlight-color: transparent;
+      transition: all 0.2s ease;
     }
 
     .admin-menu-btn:hover {
@@ -94,34 +91,6 @@
       background: rgba(33, 158, 188, 0.08);
       border-color: rgba(33, 158, 188, 0.2);
       color: var(--secondary);
-    }
-
-    /* ===== Reaction/Ripple Effect برای موبایل ===== */
-    .admin-menu-btn::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      right: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(33, 158, 188, 0.12);
-      border-radius: 50%;
-      transform: translate(50%, -50%);
-      transition: width 0.4s ease, height 0.4s ease;
-      pointer-events: none;
-    }
-
-    .admin-menu-btn.is-active::after {
-      width: 120%;
-      height: 120%;
-    }
-
-    .admin-menu-btn:active:not(.is-active) {
-      transform: scale(0.96);
-    }
-
-    .admin-menu-btn.is-active:active {
-      transform: scale(0.98);
     }
 
     .admin-chip {
@@ -147,16 +116,10 @@
     .admin-section {
       display: none;
       min-width: 0;
-      opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      scroll-margin-top: 100px;
     }
 
     .admin-section.is-active {
       display: block;
-      opacity: 1;
-      transform: translateY(0);
     }
 
     .admin-message {
@@ -908,15 +871,15 @@
             </div>
 
             <div class="admin-sidebar-body">
-              <nav class="admin-menu" role="tablist">
-                <button class="admin-menu-btn is-active" type="button" data-admin-panel="dashboard" role="tab" aria-selected="true" aria-controls="admin-panel-dashboard" id="admin-tab-dashboard">داشبورد</button>
-                <button class="admin-menu-btn" type="button" data-admin-panel="orders" role="tab" aria-selected="false" aria-controls="admin-panel-orders" id="admin-tab-orders">سفارش‌ها</button>
-                <button class="admin-menu-btn" type="button" data-admin-panel="users" role="tab" aria-selected="false" aria-controls="admin-panel-users" id="admin-tab-users">کاربران</button>
-                <button class="admin-menu-btn" type="button" data-admin-panel="wallet" role="tab" aria-selected="false" aria-controls="admin-panel-wallet" id="admin-tab-wallet">کیف پول</button>
-                <button class="admin-menu-btn" type="button" data-admin-panel="products" role="tab" aria-selected="false" aria-controls="admin-panel-products" id="admin-tab-products">محصولات</button>
-                <button class="admin-menu-btn" type="button" data-admin-panel="shipping" role="tab" aria-selected="false" aria-controls="admin-panel-shipping" id="admin-tab-shipping">🚚 حمل‌ونقل</button>
-                <button class="admin-menu-btn" type="button" data-admin-panel="invoice" role="tab" aria-selected="false" aria-controls="admin-panel-invoice" id="admin-tab-invoice">تنظیمات فاکتور</button>
-                <button class="admin-menu-btn" type="button" data-admin-panel="logout" role="tab" aria-selected="false" aria-controls="admin-panel-logout" id="admin-tab-logout">خروج</button>
+              <nav class="admin-menu">
+                <button class="admin-menu-btn is-active" type="button" data-admin-panel="dashboard">داشبورد</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="orders">سفارش‌ها</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="users">کاربران</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="wallet">کیف پول</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="products">محصولات</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="shipping">🚚 حمل‌ونقل</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="invoice">تنظیمات فاکتور</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="logout">خروج</button>
               </nav>
             </div>
           </aside>
@@ -931,7 +894,7 @@
               <div id="admin-message" class="admin-message"></div>
 
               <!-- ==================== داشبورد ==================== -->
-              <div id="admin-panel-dashboard" class="admin-section is-active" role="tabpanel" aria-labelledby="admin-tab-dashboard">
+              <div id="admin-panel-dashboard" class="admin-section is-active">
                 <div class="stats-grid">
                   <div class="stat-card"><span>کل کاربران</span><strong id="stat-users">0</strong></div>
                   <div class="stat-card"><span>کل سفارش‌ها</span><strong id="stat-orders">0</strong></div>
@@ -978,7 +941,7 @@
               </div>
 
               <!-- ==================== سفارش‌ها ==================== -->
-              <div id="admin-panel-orders" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-orders">
+              <div id="admin-panel-orders" class="admin-section">
                 <div class="filters-grid">
                   <div class="form-field">
                     <label for="orders-search">جستجو</label>
@@ -1035,7 +998,7 @@
               </div>
 
               <!-- ==================== کاربران ==================== -->
-              <div id="admin-panel-users" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-users">
+              <div id="admin-panel-users" class="admin-section">
                 <div class="users-toolbar">
                   <h4 style="margin:0;color:var(--primary);">مدیریت کاربران</h4>
                   <button class="btn btn-primary" type="button" id="show-create-user-btn">افزودن کاربر</button>
@@ -1085,7 +1048,7 @@
               </div>
 
               <!-- ==================== محصولات ==================== -->
-              <div id="admin-panel-products" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-products">
+              <div id="admin-panel-products" class="admin-section">
                 <div class="products-toolbar">
                   <div>
                     <h4 style="margin:0;color:var(--primary)">مدیریت محصولات</h4>
@@ -1107,7 +1070,7 @@
               </div>
 
               <!-- ==================== حمل‌ونقل ==================== -->
-              <div id="admin-panel-shipping" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-shipping">
+              <div id="admin-panel-shipping" class="admin-section">
                 <div class="shipping-tabs">
                   <button class="shipping-tab-btn is-active" type="button" data-shipping-tab="methods">🚛 روش‌های حمل‌ونقل</button>
                   <button class="shipping-tab-btn" type="button" data-shipping-tab="costs">💰 هزینه ارسال</button>
@@ -1122,7 +1085,7 @@
               </div>
 
               <!-- ==================== تنظیمات فاکتور ==================== -->
-              <div id="admin-panel-invoice" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-invoice">
+              <div id="admin-panel-invoice" class="admin-section">
                 <div class="detail-card">
                   <h4>تنظیمات فاکتور و پرداخت</h4>
                   <p class="admin-help">اطلاعات نمایش داده شده در فاکتور و صفحه تشکر را مدیریت کنید.</p>
@@ -1189,7 +1152,7 @@
               </div>
 
               <!-- ==================== خروج ==================== -->
-              <div id="admin-panel-logout" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-logout">
+              <div id="admin-panel-logout" class="admin-section">
                 <div class="detail-card">
                   <h4>خروج از پنل مدیریت</h4>
                   <p>برای پایان نشست مدیریتی از دکمه زیر استفاده کن.</p>
@@ -1213,685 +1176,543 @@
   <script src="assets/js/layout.js"></script>
   <script src="assets/js/auth.js"></script>
   <script>
-    (function() {
-      'use strict';
+    const adminPanels = document.querySelectorAll("[data-admin-panel]");
+    const adminSections = document.querySelectorAll(".admin-section");
+    const adminHeading = document.getElementById("admin-panel-heading");
+    const adminDescription = document.getElementById("admin-panel-description");
+    const adminLoading = document.getElementById("admin-loading");
+    const adminApp = document.getElementById("admin-app");
+    const adminMessage = document.getElementById("admin-message");
+    const userCreateBox = document.getElementById("user-create-box");
+    const userEditBox = document.getElementById("user-edit-box");
+    const productCreateBox = document.getElementById("product-create-box");
+    const productEditBox = document.getElementById("product-edit-box");
 
-      const adminPanels = document.querySelectorAll("[data-admin-panel]");
-      const adminSections = document.querySelectorAll(".admin-section");
-      const adminHeading = document.getElementById("admin-panel-heading");
-      const adminDescription = document.getElementById("admin-panel-description");
-      const adminLoading = document.getElementById("admin-loading");
-      const adminApp = document.getElementById("admin-app");
-      const adminMessage = document.getElementById("admin-message");
-      const userCreateBox = document.getElementById("user-create-box");
-      const userEditBox = document.getElementById("user-edit-box");
-      const productCreateBox = document.getElementById("product-create-box");
-      const productEditBox = document.getElementById("product-edit-box");
+    const walletContent = document.getElementById("wallet-content");
+    const walletEmptyState = document.getElementById("wallet-empty-state");
+    const walletHeroCard = document.getElementById("wallet-hero-card");
+    const walletSummaryCards = document.getElementById("wallet-summary-cards");
+    const walletUserBox = document.getElementById("wallet-user-box");
+    const walletAdjustBox = document.getElementById("wallet-adjust-box");
+    const walletSettingsBox = document.getElementById("wallet-settings-box");
+    const walletHistoryBox = document.getElementById("wallet-history-box");
 
-      const walletContent = document.getElementById("wallet-content");
-      const walletEmptyState = document.getElementById("wallet-empty-state");
-      const walletHeroCard = document.getElementById("wallet-hero-card");
-      const walletSummaryCards = document.getElementById("wallet-summary-cards");
-      const walletUserBox = document.getElementById("wallet-user-box");
-      const walletAdjustBox = document.getElementById("wallet-adjust-box");
-      const walletSettingsBox = document.getElementById("wallet-settings-box");
-      const walletHistoryBox = document.getElementById("wallet-history-box");
+    let currentWalletPayload = null;
 
-      let currentWalletPayload = null;
-      let isScrolling = false;
-      let scrollTimeout = null;
-      let observer = null;
+    const panelMeta = {
+      dashboard: { title: "داشبورد", description: "نمای کلی وضعیت فروشگاه و آخرین فعالیت‌ها." },
+      orders: { title: "سفارش‌ها", description: "مدیریت و بررسی همه سفارش‌های ثبت شده." },
+      users: { title: "کاربران", description: "مدیریت کاربران، نقش‌ها و اطلاعات حساب." },
+      wallet: { title: "کیف پول", description: "مدیریت حرفه‌ای موجودی، تراکنش‌ها و تنظیمات کش‌بک کاربران." },
+      products: { title: "محصولات", description: "مدیریت محصولات، قیمت، موجودی، انتشار و گالری تصاویر." },
+      shipping: { title: "🚚 حمل‌ونقل", description: "مدیریت روش‌های حمل‌ونقل، هزینه‌ها و ارسال رایگان." },
+      invoice: { title: "تنظیمات فاکتور", description: "مدیریت اطلاعات نمایش داده شده در فاکتور و صفحه تشکر." },
+      logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
+    };
 
-      const panelMeta = {
-        dashboard: { title: "داشبورد", description: "نمای کلی وضعیت فروشگاه و آخرین فعالیت‌ها." },
-        orders: { title: "سفارش‌ها", description: "مدیریت و بررسی همه سفارش‌های ثبت شده." },
-        users: { title: "کاربران", description: "مدیریت کاربران، نقش‌ها و اطلاعات حساب." },
-        wallet: { title: "کیف پول", description: "مدیریت حرفه‌ای موجودی، تراکنش‌ها و تنظیمات کش‌بک کاربران." },
-        products: { title: "محصولات", description: "مدیریت محصولات، قیمت، موجودی، انتشار و گالری تصاویر." },
-        shipping: { title: "🚚 حمل‌ونقل", description: "مدیریت روش‌های حمل‌ونقل، هزینه‌ها و ارسال رایگان." },
-        invoice: { title: "تنظیمات فاکتور", description: "مدیریت اطلاعات نمایش داده شده در فاکتور و صفحه تشکر." },
-        logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
+    function setAdminMessage(message, type = "error") {
+      adminMessage.textContent = message || "";
+      adminMessage.className = "admin-message";
+      if (message) {
+        adminMessage.classList.add(type === "success" ? "is-success" : "is-error");
+      }
+    }
+
+    function openAdminPanel(panel) {
+      adminPanels.forEach((btn) => {
+        btn.classList.toggle("is-active", btn.getAttribute("data-admin-panel") === panel);
+      });
+
+      adminSections.forEach((section) => {
+        section.classList.toggle("is-active", section.id === `admin-panel-${panel}`);
+      });
+
+      if (panelMeta[panel]) {
+        adminHeading.textContent = panelMeta[panel].title;
+        adminDescription.textContent = panelMeta[panel].description;
+      }
+
+      if (panel === "products") loadProducts();
+      if (panel === "invoice") loadInvoiceSettingsToForm();
+      if (panel === "shipping") {
+  console.log("🔄 Opening shipping panel...");
+  if (typeof window.ShippingAdmin === 'undefined') {
+    console.warn("⚠️ ShippingAdmin not loaded, loading now...");
+    const script = document.createElement('script');
+    script.src = 'assets/js/shipping-admin.js';
+    script.onload = function() {
+      console.log("✅ ShippingAdmin loaded dynamically");
+      if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
+        window.ShippingAdmin.render();
+      } else {
+        console.error("❌ ShippingAdmin still not available");
+      }
+    };
+    script.onerror = function() {
+      console.error("❌ Failed to load shipping-admin.js");
+    };
+    document.head.appendChild(script);
+  } else if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
+    console.log("✅ ShippingAdmin already loaded, rendering...");
+    window.ShippingAdmin.render();
+  } else {
+    console.error("❌ ShippingAdmin.render is not a function");
+  }
+}
+    }
+
+    function esc(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function money(value) {
+      return Number(value || 0).toLocaleString("fa-IR");
+    }
+
+    function formatDate(value) {
+      if (!value) return "-";
+      try {
+        const normalized = String(value).trim().replace(" ", "T");
+        const date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) return esc(String(value));
+        return new Intl.DateTimeFormat("fa-IR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        }).format(date);
+      } catch (error) {
+        return esc(String(value));
+      }
+    }
+
+    function faRole(value) {
+      const map = {
+        user: "مشتری",
+        customer: "مشتری",
+        admin: "ادمین",
+        super_admin: "مدیر کل"
       };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
 
-      // ==========================================
-      // 🔹 تابع برای محاسبه Offset Header
-      // ==========================================
-      function getAdminHeaderOffset() {
-        const header = document.querySelector('.site-header');
-        if (!header) return 100;
-        const height = header.offsetHeight;
-        const panelHead = document.querySelector('.admin-panel-head');
-        const panelHeadHeight = panelHead ? panelHead.offsetHeight : 0;
-        return height + panelHeadHeight + 30;
+    function faOrderStatus(value) {
+      const map = {
+        pending: "در انتظار",
+        processing: "در حال پردازش",
+        shipped: "ارسال شده",
+        completed: "تکمیل شده",
+        cancelled: "لغو شده"
+      };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
+
+    function faPaymentStatus(value) {
+      const map = {
+        pending: "در انتظار پرداخت",
+        paid: "پرداخت شده",
+        completed: "تسویه شده",
+        failed: "ناموفق"
+      };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
+
+    function faWalletType(value) {
+      const map = {
+        credit: "واریز",
+        debit: "برداشت",
+        cashback: "کش‌بک",
+        refund: "بازگشت وجه",
+        adjustment: "تعدیل"
+      };
+      return map[String(value || "").toLowerCase()] || "نامشخص";
+    }
+
+    function faGenericStatus(value) {
+      const v = String(value || "").toLowerCase();
+      if (["user", "customer", "admin", "super_admin"].includes(v)) return faRole(v);
+      if (["pending", "processing", "shipped", "completed", "cancelled"].includes(v)) return faOrderStatus(v);
+      if (["paid", "failed", "completed"].includes(v)) return faPaymentStatus(v);
+      if (["credit", "debit", "cashback", "refund", "adjustment"].includes(v)) return faWalletType(v);
+      if (["success"].includes(v)) return "موفق";
+      return value || "نامشخص";
+    }
+
+    function badge(value) {
+      const v = String(value || "").toLowerCase();
+      let cls = "status-badge status-badge--warning";
+      if (["paid", "completed", "success", "credit", "cashback", "refund"].includes(v)) cls = "status-badge status-badge--success";
+      else if (["processing", "shipped", "adjustment"].includes(v)) cls = "status-badge status-badge--info";
+      else if (["cancelled", "failed", "debit"].includes(v)) cls = "status-badge status-badge--danger";
+      return `<span class="${cls}">${esc(faGenericStatus(value))}</span>`;
+    }
+
+    function walletTypeChip(type) {
+      const v = String(type || "").toLowerCase();
+      let cls = "wallet-type-chip wallet-type-chip--adjustment";
+      if (["credit", "cashback", "refund"].includes(v)) cls = `wallet-type-chip wallet-type-chip--${v}`;
+      else if (v === "debit") cls = "wallet-type-chip wallet-type-chip--debit";
+      else if (v === "adjustment") cls = "wallet-type-chip wallet-type-chip--adjustment";
+      return `<span class="${cls}">${esc(faWalletType(type))}</span>`;
+    }
+
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        ...options
+      });
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = { success: false, error: "پاسخ سرور نامعتبر است." };
       }
 
-      // ==========================================
-      // 🔹 تابع برای اسکرول نرم به بخش
-      // ==========================================
-      function smoothScrollToAdminPanel(panelElement) {
-        if (!panelElement) return;
+      return { ok: response.ok, data };
+    }
 
-        const offset = getAdminHeaderOffset();
-        const elementPosition = panelElement.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - offset;
+    function closeUserCreateBox() {
+      userCreateBox.classList.add("admin-hidden");
+      userCreateBox.innerHTML = "";
+    }
 
-        window.scrollTo({
-          top: Math.max(0, offsetPosition),
-          behavior: 'smooth'
-        });
-      }
+    function closeUserEditBox() {
+      userEditBox.classList.add("admin-hidden");
+      userEditBox.innerHTML = "";
+    }
 
-      // ==========================================
-      // 🔹 تابع برای انیمیشن Reaction Tab
-      // ==========================================
-      function animateAdminTab(tabButton) {
-        if (!tabButton) return;
-
-        // Ripple Effect
-        const ripple = document.createElement('span');
-        ripple.style.cssText = `
-          position: absolute;
-          top: 50%;
-          right: 50%;
-          width: 0;
-          height: 0;
-          background: rgba(33, 158, 188, 0.15);
-          border-radius: 50%;
-          transform: translate(50%, -50%);
-          pointer-events: none;
-          transition: width 0.5s ease, height 0.5s ease, opacity 0.5s ease;
-        `;
-        tabButton.style.position = 'relative';
-        tabButton.style.overflow = 'hidden';
-        tabButton.appendChild(ripple);
-
-        void ripple.offsetWidth;
-
-        ripple.style.width = '200px';
-        ripple.style.height = '200px';
-        ripple.style.opacity = '0';
-
-        setTimeout(() => {
-          ripple.remove();
-        }, 600);
-
-        tabButton.style.transform = 'scale(0.97)';
-        setTimeout(() => {
-          tabButton.style.transform = '';
-        }, 200);
-      }
-
-      // ==========================================
-      // 🔹 تابع اصلی تغییر Tab - نسخه بهبودیافته
-      // ==========================================
-      function openAdminPanel(panel, animate = true, scroll = true) {
-        adminPanels.forEach((btn) => {
-          const isTarget = btn.getAttribute("data-admin-panel") === panel;
-          btn.classList.toggle("is-active", isTarget);
-          btn.setAttribute("aria-selected", isTarget ? "true" : "false");
-        });
-
-        let targetSection = null;
-        adminSections.forEach((section) => {
-          const isTarget = section.id === `admin-panel-${panel}`;
-          section.classList.toggle("is-active", isTarget);
-          if (isTarget) targetSection = section;
-        });
-
-        if (animate) {
-          const activeButton = document.querySelector(`.admin-menu-btn[data-admin-panel="${panel}"]`);
-          if (activeButton) {
-            animateAdminTab(activeButton);
-          }
-        }
-
-        const meta = panelMeta[panel] || panelMeta.dashboard;
-        if (adminHeading) adminHeading.textContent = meta.title;
-        if (adminDescription) adminDescription.textContent = meta.description;
-
-        if (panel === "products") loadProducts();
-        if (panel === "invoice") loadInvoiceSettingsToForm();
-        if (panel === "shipping") {
-          if (typeof window.ShippingAdmin === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'assets/js/shipping-admin.js';
-            script.onload = function() {
-              if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
-                window.ShippingAdmin.render();
-              }
-            };
-            document.head.appendChild(script);
-          } else if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
-            window.ShippingAdmin.render();
-          }
-        }
-
-        if (scroll && targetSection) {
-          setTimeout(() => {
-            smoothScrollToAdminPanel(targetSection);
-          }, 150);
-        }
-      }
-
-      // ==========================================
-      // 🔹 تابع برای هماهنگی Tab با Scroll
-      // ==========================================
-      function setupAdminScrollObserver() {
-        if (window.innerWidth > 820) return;
-
-        if (observer) {
-          observer.disconnect();
-          observer = null;
-        }
-
-        const sections = document.querySelectorAll('.admin-section');
-        const sectionMap = {};
-
-        sections.forEach((section) => {
-          const id = section.id;
-          if (id && id.startsWith('admin-panel-')) {
-            const target = id.replace('admin-panel-', '');
-            sectionMap[target] = section;
-          }
-        });
-
-        if (Object.keys(sectionMap).length === 0) return;
-
-        observer = new IntersectionObserver((entries) => {
-          if (isScrolling) return;
-
-          let visibleTarget = null;
-          let maxRatio = 0;
-
-          entries.forEach((entry) => {
-            if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
-              maxRatio = entry.intersectionRatio;
-              const id = entry.target.id;
-              if (id && id.startsWith('admin-panel-')) {
-                visibleTarget = id.replace('admin-panel-', '');
-              }
-            }
-          });
-
-          if (visibleTarget && maxRatio > 0.3) {
-            const currentActive = document.querySelector('.admin-menu-btn.is-active');
-            const currentTarget = currentActive ? currentActive.getAttribute('data-admin-panel') : null;
-            if (currentTarget !== visibleTarget) {
-              openAdminPanel(visibleTarget, false, false);
-            }
-          }
-        }, {
-          threshold: [0.1, 0.2, 0.3, 0.4, 0.5],
-          rootMargin: '0px 0px -50px 0px'
-        });
-
-        Object.values(sectionMap).forEach((section) => {
-          if (section) observer.observe(section);
-        });
-      }
-
-      // ==========================================
-      // توابع موجود Admin
-      // ==========================================
-      function setAdminMessage(message, type = "error") {
-        adminMessage.textContent = message || "";
-        adminMessage.className = "admin-message";
-        if (message) {
-          adminMessage.classList.add(type === "success" ? "is-success" : "is-error");
-        }
-      }
-
-      function esc(value) {
-        return String(value ?? "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#39;");
-      }
-
-      function money(value) {
-        return Number(value || 0).toLocaleString("fa-IR");
-      }
-
-      function formatDate(value) {
-        if (!value) return "-";
-        try {
-          const normalized = String(value).trim().replace(" ", "T");
-          const date = new Date(normalized);
-          if (Number.isNaN(date.getTime())) return esc(String(value));
-          return new Intl.DateTimeFormat("fa-IR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric"
-          }).format(date);
-        } catch (error) {
-          return esc(String(value));
-        }
-      }
-
-      function faRole(value) {
-        const map = {
-          user: "مشتری",
-          customer: "مشتری",
-          admin: "ادمین",
-          super_admin: "مدیر کل"
-        };
-        return map[String(value || "").toLowerCase()] || "نامشخص";
-      }
-
-      function faOrderStatus(value) {
-        const map = {
-          pending: "در انتظار",
-          processing: "در حال پردازش",
-          shipped: "ارسال شده",
-          completed: "تکمیل شده",
-          cancelled: "لغو شده"
-        };
-        return map[String(value || "").toLowerCase()] || "نامشخص";
-      }
-
-      function faPaymentStatus(value) {
-        const map = {
-          pending: "در انتظار پرداخت",
-          paid: "پرداخت شده",
-          completed: "تسویه شده",
-          failed: "ناموفق"
-        };
-        return map[String(value || "").toLowerCase()] || "نامشخص";
-      }
-
-      function faWalletType(value) {
-        const map = {
-          credit: "واریز",
-          debit: "برداشت",
-          cashback: "کش‌بک",
-          refund: "بازگشت وجه",
-          adjustment: "تعدیل"
-        };
-        return map[String(value || "").toLowerCase()] || "نامشخص";
-      }
-
-      function faGenericStatus(value) {
-        const v = String(value || "").toLowerCase();
-        if (["user", "customer", "admin", "super_admin"].includes(v)) return faRole(v);
-        if (["pending", "processing", "shipped", "completed", "cancelled"].includes(v)) return faOrderStatus(v);
-        if (["paid", "failed", "completed"].includes(v)) return faPaymentStatus(v);
-        if (["credit", "debit", "cashback", "refund", "adjustment"].includes(v)) return faWalletType(v);
-        if (["success"].includes(v)) return "موفق";
-        return value || "نامشخص";
-      }
-
-      function badge(value) {
-        const v = String(value || "").toLowerCase();
-        let cls = "status-badge status-badge--warning";
-        if (["paid", "completed", "success", "credit", "cashback", "refund"].includes(v)) cls = "status-badge status-badge--success";
-        else if (["processing", "shipped", "adjustment"].includes(v)) cls = "status-badge status-badge--info";
-        else if (["cancelled", "failed", "debit"].includes(v)) cls = "status-badge status-badge--danger";
-        return `<span class="${cls}">${esc(faGenericStatus(value))}</span>`;
-      }
-
-      function walletTypeChip(type) {
-        const v = String(type || "").toLowerCase();
-        let cls = "wallet-type-chip wallet-type-chip--adjustment";
-        if (["credit", "cashback", "refund"].includes(v)) cls = `wallet-type-chip wallet-type-chip--${v}`;
-        else if (v === "debit") cls = "wallet-type-chip wallet-type-chip--debit";
-        else if (v === "adjustment") cls = "wallet-type-chip wallet-type-chip--adjustment";
-        return `<span class="${cls}">${esc(faWalletType(type))}</span>`;
-      }
-
-      async function api(url, options = {}) {
-        const response = await fetch(url, {
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          ...options
-        });
-
-        let data = null;
-        try {
-          data = await response.json();
-        } catch (error) {
-          data = { success: false, error: "پاسخ سرور نامعتبر است." };
-        }
-
-        return { ok: response.ok, data };
-      }
-
-      function closeUserCreateBox() {
-        userCreateBox.classList.add("admin-hidden");
-        userCreateBox.innerHTML = "";
-      }
-
-      function closeUserEditBox() {
-        userEditBox.classList.add("admin-hidden");
-        userEditBox.innerHTML = "";
-      }
-
-      function openUserCreate() {
-        closeUserEditBox();
-        userCreateBox.classList.remove("admin-hidden");
-        userCreateBox.innerHTML = `
-          <h4>افزودن کاربر جدید</h4>
-          <div class="filters-grid">
-            <div class="form-field">
-              <label for="create-user-full-name">نام</label>
-              <input id="create-user-full-name" type="text" placeholder="نام و نام خانوادگی" />
-            </div>
-            <div class="form-field">
-              <label for="create-user-email">ایمیل</label>
-              <input id="create-user-email" type="email" placeholder="example@mail.com" />
-            </div>
-            <div class="form-field">
-              <label for="create-user-phone">شماره</label>
-              <input id="create-user-phone" type="text" placeholder="0912..." />
-            </div>
-            <div class="form-field">
-              <label for="create-user-role">نقش</label>
-              <select id="create-user-role">
-                <option value="user">مشتری</option>
-                <option value="admin">ادمین</option>
-                <option value="super_admin">مدیر کل</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="create-user-password">رمز عبور</label>
-              <input id="create-user-password" type="password" placeholder="حداقل 8 کاراکتر" />
-            </div>
-            <div class="form-field">
-              <label for="create-user-password-confirm">تکرار رمز عبور</label>
-              <input id="create-user-password-confirm" type="password" placeholder="تکرار رمز عبور" />
-            </div>
+    function openUserCreate() {
+      closeUserEditBox();
+      userCreateBox.classList.remove("admin-hidden");
+      userCreateBox.innerHTML = `
+        <h4>افزودن کاربر جدید</h4>
+        <div class="filters-grid">
+          <div class="form-field">
+            <label for="create-user-full-name">نام</label>
+            <input id="create-user-full-name" type="text" placeholder="نام و نام خانوادگی" />
           </div>
-          <p class="admin-help">برای ساخت کاربر جدید، همه فیلدهای بالا را کامل کن.</p>
-          <div class="panel-actions">
-            <button class="btn btn-primary" type="button" id="create-user-btn">ایجاد کاربر</button>
-            <button class="btn btn-secondary" type="button" id="cancel-create-user-btn">بستن</button>
+          <div class="form-field">
+            <label for="create-user-email">ایمیل</label>
+            <input id="create-user-email" type="email" placeholder="example@mail.com" />
           </div>
-        `;
+          <div class="form-field">
+            <label for="create-user-phone">شماره</label>
+            <input id="create-user-phone" type="text" placeholder="0912..." />
+          </div>
+          <div class="form-field">
+            <label for="create-user-role">نقش</label>
+            <select id="create-user-role">
+              <option value="user">مشتری</option>
+              <option value="admin">ادمین</option>
+              <option value="super_admin">مدیر کل</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="create-user-password">رمز عبور</label>
+            <input id="create-user-password" type="password" placeholder="حداقل 8 کاراکتر" />
+          </div>
+          <div class="form-field">
+            <label for="create-user-password-confirm">تکرار رمز عبور</label>
+            <input id="create-user-password-confirm" type="password" placeholder="تکرار رمز عبور" />
+          </div>
+        </div>
+        <p class="admin-help">برای ساخت کاربر جدید، همه فیلدهای بالا را کامل کن.</p>
+        <div class="panel-actions">
+          <button class="btn btn-primary" type="button" id="create-user-btn">ایجاد کاربر</button>
+          <button class="btn btn-secondary" type="button" id="cancel-create-user-btn">بستن</button>
+        </div>
+      `;
 
-        document.getElementById("create-user-btn").addEventListener("click", async () => {
-          const payload = {
-            full_name: document.getElementById("create-user-full-name").value.trim(),
-            email: document.getElementById("create-user-email").value.trim(),
-            phone: document.getElementById("create-user-phone").value.trim(),
-            role: document.getElementById("create-user-role").value.trim(),
-            password: document.getElementById("create-user-password").value,
-            password_confirm: document.getElementById("create-user-password-confirm").value
-          };
+      document.getElementById("create-user-btn").addEventListener("click", async () => {
+        const payload = {
+          full_name: document.getElementById("create-user-full-name").value.trim(),
+          email: document.getElementById("create-user-email").value.trim(),
+          phone: document.getElementById("create-user-phone").value.trim(),
+          role: document.getElementById("create-user-role").value.trim(),
+          password: document.getElementById("create-user-password").value,
+          password_confirm: document.getElementById("create-user-password-confirm").value
+        };
 
-          if (!payload.full_name || !payload.email || !payload.role || !payload.password || !payload.password_confirm) {
-            setAdminMessage("برای ایجاد کاربر، همه فیلدهای ضروری را کامل کن.");
-            return;
-          }
-
-          if (payload.password.length < 8) {
-            setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
-            return;
-          }
-
-          if (payload.password !== payload.password_confirm) {
-            setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
-            return;
-          }
-
-          const result = await api("/api/admin/users", {
-            method: "POST",
-            body: JSON.stringify(payload)
-          });
-
-          if (!result.ok || !result.data?.success) {
-            setAdminMessage(result.data?.error || "ایجاد کاربر انجام نشد.");
-            return;
-          }
-
-          setAdminMessage("کاربر جدید با موفقیت ایجاد شد.", "success");
-          closeUserCreateBox();
-          await loadUsers();
-          await loadDashboard();
-        });
-
-        document.getElementById("cancel-create-user-btn").addEventListener("click", closeUserCreateBox);
-      }
-
-      async function deleteOrder(orderNumber) {
-        if (!orderNumber) {
-          setAdminMessage("شماره سفارش معتبر نیست.");
-          return false;
+        if (!payload.full_name || !payload.email || !payload.role || !payload.password || !payload.password_confirm) {
+          setAdminMessage("برای ایجاد کاربر، همه فیلدهای ضروری را کامل کن.");
+          return;
         }
 
-        const firstConfirm = window.confirm(`آیا از حذف سفارش ${orderNumber} مطمئن هستی؟`);
-        if (!firstConfirm) return false;
-
-        const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست. حذف انجام شود؟");
-        if (!secondConfirm) return false;
-
-        const result = await api("/api/admin/orders", {
-          method: "DELETE",
-          body: JSON.stringify({ order_number: orderNumber })
-        });
-
-        if (!result.ok || !result.data?.success) {
-          setAdminMessage(result.data?.error || "حذف سفارش انجام نشد.");
-          return false;
+        if (payload.password.length < 8) {
+          setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
+          return;
         }
 
-        setAdminMessage("سفارش با موفقیت حذف شد.", "success");
-        document.getElementById("order-detail").classList.add("admin-hidden");
-        document.getElementById("order-detail").innerHTML = "";
-        await loadOrders();
-        await loadDashboard();
-        return true;
-      }
-
-      async function deleteUser(user) {
-        const userId = Number(user?.id || 0);
-        const userName = user?.full_name || `#${userId}`;
-
-        if (!userId) {
-          setAdminMessage("شناسه کاربر معتبر نیست.");
-          return false;
+        if (payload.password !== payload.password_confirm) {
+          setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
+          return;
         }
-
-        const firstConfirm = window.confirm(`آیا از حذف کاربر ${userName} مطمئن هستی؟`);
-        if (!firstConfirm) return false;
-
-        const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست و اطلاعات وابسته کاربر هم حذف می‌شود. حذف انجام شود؟");
-        if (!secondConfirm) return false;
 
         const result = await api("/api/admin/users", {
-          method: "DELETE",
-          body: JSON.stringify({ user_id: userId })
+          method: "POST",
+          body: JSON.stringify(payload)
         });
 
         if (!result.ok || !result.data?.success) {
-          setAdminMessage(result.data?.error || "حذف کاربر انجام نشد.");
-          return false;
+          setAdminMessage(result.data?.error || "ایجاد کاربر انجام نشد.");
+          return;
         }
 
-        setAdminMessage("کاربر با موفقیت حذف شد.", "success");
-        closeUserEditBox();
+        setAdminMessage("کاربر جدید با موفقیت ایجاد شد.", "success");
         closeUserCreateBox();
         await loadUsers();
         await loadDashboard();
-        return true;
+      });
+
+      document.getElementById("cancel-create-user-btn").addEventListener("click", closeUserCreateBox);
+    }
+
+    async function deleteOrder(orderNumber) {
+      if (!orderNumber) {
+        setAdminMessage("شماره سفارش معتبر نیست.");
+        return false;
       }
 
-      async function loadDashboard() {
-        const result = await api("/api/admin/stats");
-        if (!result.ok || !result.data?.success) {
-          setAdminMessage(result.data?.error || "دریافت آمار انجام نشد.");
-          return;
-        }
+      const firstConfirm = window.confirm(`آیا از حذف سفارش ${orderNumber} مطمئن هستی؟`);
+      if (!firstConfirm) return false;
 
-        const stats = result.data.stats || {};
-        document.getElementById("stat-users").textContent = money(stats.total_users || 0);
-        document.getElementById("stat-orders").textContent = money(stats.total_orders || 0);
-        document.getElementById("stat-pending").textContent = money(stats.pending_orders || 0);
-        document.getElementById("stat-revenue").textContent = money(stats.total_revenue || 0);
-        document.getElementById("stat-wallet").textContent = money(stats.total_wallet_balance || 0);
+      const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست. حذف انجام شود؟");
+      if (!secondConfirm) return false;
 
-        const latestUsersBody = document.getElementById("latest-users-body");
-        const latestOrdersBody = document.getElementById("latest-orders-body");
+      const result = await api("/api/admin/orders", {
+        method: "DELETE",
+        body: JSON.stringify({ order_number: orderNumber })
+      });
 
-        latestUsersBody.innerHTML = (result.data.latest_users || []).map((user) => `
-          <tr>
-            <td class="table-number">${esc(user.id)}</td>
-            <td>${esc(user.full_name)}</td>
-            <td>${esc(user.email)}</td>
-            <td>${badge(user.role)}</td>
-            <td class="table-number">${formatDate(user.created_at)}</td>
-          </tr>
-        `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
-
-        latestOrdersBody.innerHTML = (result.data.latest_orders || []).map((order) => `
-          <tr>
-            <td class="table-number">${esc(order.order_number)}</td>
-            <td>${badge(order.status)}</td>
-            <td>${badge(order.payment_status)}</td>
-            <td class="table-number">${money(order.total_amount)}</td>
-            <td class="table-number">${formatDate(order.created_at)}</td>
-          </tr>
-        `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "حذف سفارش انجام نشد.");
+        return false;
       }
 
-      async function loadOrders() {
-        const search = document.getElementById("orders-search").value.trim();
-        const status = document.getElementById("orders-status").value.trim();
-        const payment_status = document.getElementById("orders-payment-status").value.trim();
+      setAdminMessage("سفارش با موفقیت حذف شد.", "success");
+      document.getElementById("order-detail").classList.add("admin-hidden");
+      document.getElementById("order-detail").innerHTML = "";
+      await loadOrders();
+      await loadDashboard();
+      return true;
+    }
 
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        if (status) params.set("status", status);
-        if (payment_status) params.set("payment_status", payment_status);
+    async function deleteUser(user) {
+      const userId = Number(user?.id || 0);
+      const userName = user?.full_name || `#${userId}`;
 
-        const query = params.toString();
-        const result = await api(`/api/admin/orders${query ? `?${query}` : ""}`);
-        const tbody = document.getElementById("orders-body");
-
-        if (!result.ok || !result.data?.success) {
-          tbody.innerHTML = `<tr><td colspan="10">دریافت سفارش‌ها انجام نشد.</td></tr>`;
-          return;
-        }
-
-        const orders = Array.isArray(result.data.orders) ? result.data.orders : [];
-
-        tbody.innerHTML = orders.map((order) => {
-          const totalAmount = Number(order.total_amount || 0);
-          const walletUsedAmount = Number(order.wallet_used_amount || 0);
-          const payableAmount =
-            order.payable_amount != null
-              ? Number(order.payable_amount || 0)
-              : Math.max(0, totalAmount - walletUsedAmount);
-
-          return `
-            <tr>
-              <td class="table-number">${esc(order.order_number)}</td>
-              <td>${esc(order.full_name || "-")}</td>
-              <td>${esc(order.email || "-")}</td>
-              <td>${badge(order.status)}</td>
-              <td>${badge(order.payment_status)}</td>
-              <td class="table-number">${money(totalAmount)}</td>
-              <td class="table-number">${money(walletUsedAmount)}</td>
-              <td class="table-number">${money(payableAmount)}</td>
-              <td class="table-number">${formatDate(order.created_at)}</td>
-              <td>
-                <div class="panel-actions" style="margin-top:0;">
-                  <button class="btn btn-secondary" type="button" data-view-order="${esc(order.order_number)}">جزئیات</button>
-                  <button class="btn btn-secondary" type="button" data-delete-order="${esc(order.order_number)}">حذف</button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join("") || `<tr><td colspan="10">سفارشی پیدا نشد.</td></tr>`;
+      if (!userId) {
+        setAdminMessage("شناسه کاربر معتبر نیست.");
+        return false;
       }
 
-      async function loadOrderDetail(orderNumber) {
-        const result = await api(`/api/admin/orders/${encodeURIComponent(orderNumber)}`);
-        const box = document.getElementById("order-detail");
+      const firstConfirm = window.confirm(`آیا از حذف کاربر ${userName} مطمئن هستی؟`);
+      if (!firstConfirm) return false;
 
-        if (!result.ok || !result.data?.success) {
-          box.classList.remove("admin-hidden");
-          box.innerHTML = `<h4>خطا</h4><p>${esc(result.data?.error || "دریافت جزئیات سفارش انجام نشد.")}</p>`;
-          return;
-        }
+      const secondConfirm = window.confirm("این عملیات قابل بازگشت نیست و اطلاعات وابسته کاربر هم حذف می‌شود. حذف انجام شود؟");
+      if (!secondConfirm) return false;
 
-        const order = result.data.order || {};
-        const items = Array.isArray(order.items) ? order.items : [];
-        const address = order.shipping_address || null;
+      const result = await api("/api/admin/users", {
+        method: "DELETE",
+        body: JSON.stringify({ user_id: userId })
+      });
 
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "حذف کاربر انجام نشد.");
+        return false;
+      }
+
+      setAdminMessage("کاربر با موفقیت حذف شد.", "success");
+      closeUserEditBox();
+      closeUserCreateBox();
+      await loadUsers();
+      await loadDashboard();
+      return true;
+    }
+
+    async function loadDashboard() {
+      const result = await api("/api/admin/stats");
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "دریافت آمار انجام نشد.");
+        return;
+      }
+
+      const stats = result.data.stats || {};
+      document.getElementById("stat-users").textContent = money(stats.total_users || 0);
+      document.getElementById("stat-orders").textContent = money(stats.total_orders || 0);
+      document.getElementById("stat-pending").textContent = money(stats.pending_orders || 0);
+      document.getElementById("stat-revenue").textContent = money(stats.total_revenue || 0);
+      document.getElementById("stat-wallet").textContent = money(stats.total_wallet_balance || 0);
+
+      const latestUsersBody = document.getElementById("latest-users-body");
+      const latestOrdersBody = document.getElementById("latest-orders-body");
+
+      latestUsersBody.innerHTML = (result.data.latest_users || []).map((user) => `
+        <tr>
+          <td class="table-number">${esc(user.id)}</td>
+          <td>${esc(user.full_name)}</td>
+          <td>${esc(user.email)}</td>
+          <td>${badge(user.role)}</td>
+          <td class="table-number">${formatDate(user.created_at)}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
+
+      latestOrdersBody.innerHTML = (result.data.latest_orders || []).map((order) => `
+        <tr>
+          <td class="table-number">${esc(order.order_number)}</td>
+          <td>${badge(order.status)}</td>
+          <td>${badge(order.payment_status)}</td>
+          <td class="table-number">${money(order.total_amount)}</td>
+          <td class="table-number">${formatDate(order.created_at)}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="5">داده‌ای موجود نیست.</td></tr>`;
+    }
+
+    async function loadOrders() {
+      const search = document.getElementById("orders-search").value.trim();
+      const status = document.getElementById("orders-status").value.trim();
+      const payment_status = document.getElementById("orders-payment-status").value.trim();
+
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (status) params.set("status", status);
+      if (payment_status) params.set("payment_status", payment_status);
+
+      const query = params.toString();
+      const result = await api(`/api/admin/orders${query ? `?${query}` : ""}`);
+      const tbody = document.getElementById("orders-body");
+
+      if (!result.ok || !result.data?.success) {
+        tbody.innerHTML = `<tr><td colspan="10">دریافت سفارش‌ها انجام نشد.</td></tr>`;
+        return;
+      }
+
+      const orders = Array.isArray(result.data.orders) ? result.data.orders : [];
+
+      tbody.innerHTML = orders.map((order) => {
         const totalAmount = Number(order.total_amount || 0);
-        const shippingAmount = Number(order.shipping_amount || 0);
         const walletUsedAmount = Number(order.wallet_used_amount || 0);
         const payableAmount =
           order.payable_amount != null
             ? Number(order.payable_amount || 0)
             : Math.max(0, totalAmount - walletUsedAmount);
-        const cashbackAmount = Number(order.cashback_amount || 0);
 
+        return `
+          <tr>
+            <td class="table-number">${esc(order.order_number)}</td>
+            <td>${esc(order.full_name || "-")}</td>
+            <td>${esc(order.email || "-")}</td>
+            <td>${badge(order.status)}</td>
+            <td>${badge(order.payment_status)}</td>
+            <td class="table-number">${money(totalAmount)}</td>
+            <td class="table-number">${money(walletUsedAmount)}</td>
+            <td class="table-number">${money(payableAmount)}</td>
+            <td class="table-number">${formatDate(order.created_at)}</td>
+            <td>
+              <div class="panel-actions" style="margin-top:0;">
+                <button class="btn btn-secondary" type="button" data-view-order="${esc(order.order_number)}">جزئیات</button>
+                <button class="btn btn-secondary" type="button" data-delete-order="${esc(order.order_number)}">حذف</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("") || `<tr><td colspan="10">سفارشی پیدا نشد.</td></tr>`;
+    }
+
+    async function loadOrderDetail(orderNumber) {
+      const result = await api(`/api/admin/orders/${encodeURIComponent(orderNumber)}`);
+      const box = document.getElementById("order-detail");
+
+      if (!result.ok || !result.data?.success) {
         box.classList.remove("admin-hidden");
-        box.innerHTML = `
-          <h4>جزئیات سفارش ${esc(order.order_number || "-")}</h4>
-          <p>
-            کاربر: ${esc(order.full_name || "-")}<br>
-            ایمیل: ${esc(order.email || "-")}<br>
-            شماره: ${esc(order.phone || "-")}<br>
-            وضعیت: ${esc(faOrderStatus(order.status))}<br>
-            پرداخت: ${esc(faPaymentStatus(order.payment_status))}<br>
-            مبلغ فاکتور: ${money(totalAmount)} تومان<br>
-            مبلغ ارسال: ${money(shippingAmount)} تومان<br>
-            برداشت از کیف پول: ${money(walletUsedAmount)} تومان<br>
-            مانده قابل پرداخت: ${money(payableAmount)} تومان<br>
-            کش‌بک: ${money(cashbackAmount)} تومان<br>
-            وضعیت کش‌بک: ${esc(order.cashback_status || "-")}<br>
-            تاریخ: ${formatDate(order.created_at)}
-          </p>
+        box.innerHTML = `<h4>خطا</h4><p>${esc(result.data?.error || "دریافت جزئیات سفارش انجام نشد.")}</p>`;
+        return;
+      }
 
-          ${address ? `
-            <div class="detail-card" style="margin-top:16px;">
-              <h4>آدرس ارسال</h4>
-              <p>
-                نام: ${esc(address.full_name || "-")}<br>
-                موبایل: ${esc(address.phone || "-")}<br>
-                آدرس: ${esc(address.address_line || "-")}<br>
-                شهر: ${esc(address.city || "-")}<br>
-                استان: ${esc(address.state || "-")}<br>
-                کد پستی: ${esc(address.postal_code || "-")}
-              </p>
-            </div>
-          ` : ""}
+      const order = result.data.order || {};
+      const items = Array.isArray(order.items) ? order.items : [];
+      const address = order.shipping_address || null;
 
-          <div class="panel-actions">
-            <select id="detail-status">
-              <option value="pending">در انتظار</option>
-              <option value="processing">در حال پردازش</option>
-              <option value="shipped">ارسال شده</option>
-              <option value="completed">تکمیل شده</option>
-              <option value="cancelled">لغو شده</option>
-            </select>
+      const totalAmount = Number(order.total_amount || 0);
+      const shippingAmount = Number(order.shipping_amount || 0);
+      const walletUsedAmount = Number(order.wallet_used_amount || 0);
+      const payableAmount =
+        order.payable_amount != null
+          ? Number(order.payable_amount || 0)
+          : Math.max(0, totalAmount - walletUsedAmount);
+      const cashbackAmount = Number(order.cashback_amount || 0);
 
-            <select id="detail-payment-status">
-              <option value="pending">در انتظار پرداخت</option>
-              <option value="paid">پرداخت شده</option>
-              <option value="completed">تسویه شده</option>
-              <option value="failed">ناموفق</option>
-            </select>
+      box.classList.remove("admin-hidden");
+      box.innerHTML = `
+        <h4>جزئیات سفارش ${esc(order.order_number || "-")}</h4>
+        <p>
+          کاربر: ${esc(order.full_name || "-")}<br>
+          ایمیل: ${esc(order.email || "-")}<br>
+          شماره: ${esc(order.phone || "-")}<br>
+          وضعیت: ${esc(faOrderStatus(order.status))}<br>
+          پرداخت: ${esc(faPaymentStatus(order.payment_status))}<br>
+          مبلغ فاکتور: ${money(totalAmount)} تومان<br>
+          مبلغ ارسال: ${money(shippingAmount)} تومان<br>
+          برداشت از کیف پول: ${money(walletUsedAmount)} تومان<br>
+          مانده قابل پرداخت: ${money(payableAmount)} تومان<br>
+          کش‌بک: ${money(cashbackAmount)} تومان<br>
+          وضعیت کش‌بک: ${esc(order.cashback_status || "-")}<br>
+          تاریخ: ${formatDate(order.created_at)}
+        </p>
 
-            <button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>
-            <button class="btn btn-secondary" type="button" id="delete-order-detail-btn">حذف سفارش</button>
+        ${address ? `
+          <div class="detail-card" style="margin-top:16px;">
+            <h4>آدرس ارسال</h4>
+            <p>
+              نام: ${esc(address.full_name || "-")}<br>
+              موبایل: ${esc(address.phone || "-")}<br>
+              آدرس: ${esc(address.address_line || "-")}<br>
+              شهر: ${esc(address.city || "-")}<br>
+              استان: ${esc(address.state || "-")}<br>
+              کد پستی: ${esc(address.postal_code || "-")}
+            </p>
           </div>
+        ` : ""}
 
-          <div class="table-wrap" style="margin-top:16px;">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>محصول</th>
-                  <th>تعداد</th>
-                  <th>قیمت واحد</th>
-                  <th>جمع</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items.length
+        <div class="panel-actions">
+          <select id="detail-status">
+            <option value="pending">در انتظار</option>
+            <option value="processing">در حال پردازش</option>
+            <option value="shipped">ارسال شده</option>
+            <option value="completed">تکمیل شده</option>
+            <option value="cancelled">لغو شده</option>
+          </select>
+
+          <select id="detail-payment-status">
+            <option value="pending">در انتظار پرداخت</option>
+            <option value="paid">پرداخت شده</option>
+            <option value="completed">تسویه شده</option>
+            <option value="failed">ناموفق</option>
+          </select>
+
+          <button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>
+          <button class="btn btn-secondary" type="button" id="delete-order-detail-btn">حذف سفارش</button>
+        </div>
+
+        <div class="table-wrap" style="margin-top:16px;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>محصول</th>
+                <th>تعداد</th>
+                <th>قیمت واحد</th>
+                <th>جمع</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                items.length
                   ? items.map((item) => `
                     <tr>
                       <td>${esc(item.product_name || "-")}</td>
@@ -1901,507 +1722,508 @@
                     </tr>
                   `).join("")
                   : `<tr><td colspan="4">آیتمی ثبت نشده است.</td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        `;
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
 
-        document.getElementById("detail-status").value = order.status || "pending";
-        document.getElementById("detail-payment-status").value = order.payment_status || "pending";
+      document.getElementById("detail-status").value = order.status || "pending";
+      document.getElementById("detail-payment-status").value = order.payment_status || "pending";
 
-        document.getElementById("save-order-status-btn").addEventListener("click", async () => {
-          const status = document.getElementById("detail-status").value;
-          const payment_status = document.getElementById("detail-payment-status").value;
+      document.getElementById("save-order-status-btn").addEventListener("click", async () => {
+        const status = document.getElementById("detail-status").value;
+        const payment_status = document.getElementById("detail-payment-status").value;
 
-          const saveResult = await api(`/api/admin/orders/${encodeURIComponent(order.order_number)}`, {
-            method: "POST",
-            body: JSON.stringify({
-              status,
-              payment_status
-            })
-          });
-
-          if (!saveResult.ok || !saveResult.data?.success) {
-            setAdminMessage(saveResult.data?.error || "ذخیره وضعیت سفارش انجام نشد.");
-            return;
-          }
-
-          const cashbackMessage = saveResult.data?.cashback_result?.applied
-            ? " کش‌بک هم اعمال شد."
-            : "";
-
-          setAdminMessage(`وضعیت سفارش با موفقیت ذخیره شد.${cashbackMessage}`, "success");
-          await loadOrders();
-          await loadOrderDetail(order.order_number);
-          await loadDashboard();
-          await loadUsers();
+        const saveResult = await api(`/api/admin/orders/${encodeURIComponent(order.order_number)}`, {
+          method: "POST",
+          body: JSON.stringify({
+            status,
+            payment_status
+          })
         });
 
-        document.getElementById("delete-order-detail-btn").addEventListener("click", async () => {
-          await deleteOrder(order.order_number);
-        });
-      }
-
-      async function loadUsers() {
-        const search = document.getElementById("users-search").value.trim();
-        const role = document.getElementById("users-role").value.trim();
-
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        if (role) params.set("role", role);
-
-        const query = params.toString();
-        const result = await api(`/api/admin/users${query ? `?${query}` : ""}`);
-        const tbody = document.getElementById("users-body");
-
-        if (!result.ok || !result.data?.success) {
-          tbody.innerHTML = `<tr><td colspan="8">دریافت کاربران انجام نشد.</td></tr>`;
+        if (!saveResult.ok || !saveResult.data?.success) {
+          setAdminMessage(saveResult.data?.error || "ذخیره وضعیت سفارش انجام نشد.");
           return;
         }
 
-        const users = result.data.users || [];
-        tbody.innerHTML = users.map((user) => `
-          <tr>
-            <td class="table-number">${esc(user.id)}</td>
-            <td>${esc(user.full_name || "-")}</td>
-            <td>${esc(user.email || "-")}</td>
-            <td>${esc(user.phone || "-")}</td>
-            <td>${badge(user.role)}</td>
-            <td class="table-number">${money(user.wallet_balance || 0)}</td>
-            <td class="table-number">${money(user.orders_count || 0)}</td>
-            <td>
-              <div class="panel-actions" style="margin-top:0;">
-                <button class="btn btn-secondary" type="button" data-edit-user='${esc(JSON.stringify(user))}'>ویرایش</button>
-                <button class="btn btn-secondary" type="button" data-delete-user='${esc(JSON.stringify(user))}'>حذف</button>
-              </div>
-            </td>
-          </tr>
-        `).join("") || `<tr><td colspan="8">کاربری پیدا نشد.</td></tr>`;
+        const cashbackMessage = saveResult.data?.cashback_result?.applied
+          ? " کش‌بک هم اعمال شد."
+          : "";
+
+        setAdminMessage(`وضعیت سفارش با موفقیت ذخیره شد.${cashbackMessage}`, "success");
+        await loadOrders();
+        await loadOrderDetail(order.order_number);
+        await loadDashboard();
+        await loadUsers();
+      });
+
+      document.getElementById("delete-order-detail-btn").addEventListener("click", async () => {
+        await deleteOrder(order.order_number);
+      });
+    }
+
+    async function loadUsers() {
+      const search = document.getElementById("users-search").value.trim();
+      const role = document.getElementById("users-role").value.trim();
+
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (role) params.set("role", role);
+
+      const query = params.toString();
+      const result = await api(`/api/admin/users${query ? `?${query}` : ""}`);
+      const tbody = document.getElementById("users-body");
+
+      if (!result.ok || !result.data?.success) {
+        tbody.innerHTML = `<tr><td colspan="8">دریافت کاربران انجام نشد.</td></tr>`;
+        return;
       }
 
-      function openUserEdit(user) {
-        closeUserCreateBox();
-        userEditBox.classList.remove("admin-hidden");
-        userEditBox.innerHTML = `
-          <h4>ویرایش کاربر #${esc(user.id)}</h4>
-          <div class="filters-grid">
-            <div class="form-field">
-              <label for="edit-user-full-name">نام</label>
-              <input id="edit-user-full-name" type="text" value="${esc(user.full_name || "")}" />
+      const users = result.data.users || [];
+      tbody.innerHTML = users.map((user) => `
+        <tr>
+          <td class="table-number">${esc(user.id)}</td>
+          <td>${esc(user.full_name || "-")}</td>
+          <td>${esc(user.email || "-")}</td>
+          <td>${esc(user.phone || "-")}</td>
+          <td>${badge(user.role)}</td>
+          <td class="table-number">${money(user.wallet_balance || 0)}</td>
+          <td class="table-number">${money(user.orders_count || 0)}</td>
+          <td>
+            <div class="panel-actions" style="margin-top:0;">
+              <button class="btn btn-secondary" type="button" data-edit-user='${esc(JSON.stringify(user))}'>ویرایش</button>
+              <button class="btn btn-secondary" type="button" data-delete-user='${esc(JSON.stringify(user))}'>حذف</button>
             </div>
-            <div class="form-field">
-              <label for="edit-user-email">ایمیل</label>
-              <input id="edit-user-email" type="email" value="${esc(user.email || "")}" />
-            </div>
-            <div class="form-field">
-              <label for="edit-user-phone">شماره</label>
-              <input id="edit-user-phone" type="text" value="${esc(user.phone || "")}" />
-            </div>
-            <div class="form-field">
-              <label for="edit-user-role">نقش</label>
-              <select id="edit-user-role">
-                <option value="user">مشتری</option>
-                <option value="admin">ادمین</option>
-                <option value="super_admin">مدیر کل</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="edit-user-password">رمز عبور جدید</label>
-              <input id="edit-user-password" type="password" placeholder="اختیاری" />
-            </div>
-            <div class="form-field">
-              <label for="edit-user-password-confirm">تکرار رمز عبور</label>
-              <input id="edit-user-password-confirm" type="password" placeholder="تکرار رمز عبور" />
-            </div>
+          </td>
+        </tr>
+      `).join("") || `<tr><td colspan="8">کاربری پیدا نشد.</td></tr>`;
+    }
+
+    function openUserEdit(user) {
+      closeUserCreateBox();
+      userEditBox.classList.remove("admin-hidden");
+      userEditBox.innerHTML = `
+        <h4>ویرایش کاربر #${esc(user.id)}</h4>
+        <div class="filters-grid">
+          <div class="form-field">
+            <label for="edit-user-full-name">نام</label>
+            <input id="edit-user-full-name" type="text" value="${esc(user.full_name || "")}" />
           </div>
-          <div class="panel-actions">
-            <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
-            <button class="btn btn-secondary" type="button" id="save-user-password-btn">ذخیره رمز عبور</button>
-            <button class="btn btn-secondary" type="button" id="delete-user-btn">حذف کاربر</button>
-            <button class="btn btn-secondary" type="button" id="close-user-edit-btn">بستن</button>
+          <div class="form-field">
+            <label for="edit-user-email">ایمیل</label>
+            <input id="edit-user-email" type="email" value="${esc(user.email || "")}" />
           </div>
-        `;
+          <div class="form-field">
+            <label for="edit-user-phone">شماره</label>
+            <input id="edit-user-phone" type="text" value="${esc(user.phone || "")}" />
+          </div>
+          <div class="form-field">
+            <label for="edit-user-role">نقش</label>
+            <select id="edit-user-role">
+              <option value="user">مشتری</option>
+              <option value="admin">ادمین</option>
+              <option value="super_admin">مدیر کل</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="edit-user-password">رمز عبور جدید</label>
+            <input id="edit-user-password" type="password" placeholder="اختیاری" />
+          </div>
+          <div class="form-field">
+            <label for="edit-user-password-confirm">تکرار رمز عبور</label>
+            <input id="edit-user-password-confirm" type="password" placeholder="تکرار رمز عبور" />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>
+          <button class="btn btn-secondary" type="button" id="save-user-password-btn">ذخیره رمز عبور</button>
+          <button class="btn btn-secondary" type="button" id="delete-user-btn">حذف کاربر</button>
+          <button class="btn btn-secondary" type="button" id="close-user-edit-btn">بستن</button>
+        </div>
+      `;
 
-        document.getElementById("edit-user-role").value = user.role || "user";
+      document.getElementById("edit-user-role").value = user.role || "user";
 
-        document.getElementById("save-user-btn").addEventListener("click", async () => {
-          const payload = {
-            user_id: user.id,
-            full_name: document.getElementById("edit-user-full-name").value.trim(),
-            email: document.getElementById("edit-user-email").value.trim(),
-            phone: document.getElementById("edit-user-phone").value.trim(),
-            role: document.getElementById("edit-user-role").value.trim()
-          };
-
-          const result = await api("/api/admin/users", {
-            method: "POST",
-            body: JSON.stringify(payload)
-          });
-
-          if (!result.ok || !result.data?.success) {
-            setAdminMessage(result.data?.error || "ذخیره اطلاعات کاربر انجام نشد.");
-            return;
-          }
-
-          setAdminMessage("اطلاعات کاربر با موفقیت ذخیره شد.", "success");
-          await loadUsers();
-          await loadDashboard();
-        });
-
-        document.getElementById("save-user-password-btn").addEventListener("click", async () => {
-          const password = document.getElementById("edit-user-password").value;
-          const password_confirm = document.getElementById("edit-user-password-confirm").value;
-
-          if (!password || !password_confirm) {
-            setAdminMessage("رمز عبور و تکرار آن را وارد کن.");
-            return;
-          }
-
-          if (password.length < 8) {
-            setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
-            return;
-          }
-
-          if (password !== password_confirm) {
-            setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
-            return;
-          }
-
-          const result = await api("/api/admin/users/password", {
-            method: "POST",
-            body: JSON.stringify({
-              user_id: user.id,
-              password,
-              password_confirm
-            })
-          });
-
-          if (!result.ok || !result.data?.success) {
-            setAdminMessage(result.data?.error || "ذخیره رمز عبور انجام نشد.");
-            return;
-          }
-
-          document.getElementById("edit-user-password").value = "";
-          document.getElementById("edit-user-password-confirm").value = "";
-          setAdminMessage("رمز عبور کاربر با موفقیت به‌روزرسانی شد.", "success");
-        });
-
-        document.getElementById("delete-user-btn").addEventListener("click", async () => {
-          await deleteUser(user);
-        });
-
-        document.getElementById("close-user-edit-btn").addEventListener("click", closeUserEditBox);
-      }
-
-      function getWalletSummary(transactions = []) {
-        const summary = {
-          total_credit: 0,
-          total_debit: 0,
-          credit_count: 0,
-          debit_count: 0
+      document.getElementById("save-user-btn").addEventListener("click", async () => {
+        const payload = {
+          user_id: user.id,
+          full_name: document.getElementById("edit-user-full-name").value.trim(),
+          email: document.getElementById("edit-user-email").value.trim(),
+          phone: document.getElementById("edit-user-phone").value.trim(),
+          role: document.getElementById("edit-user-role").value.trim()
         };
 
-        transactions.forEach((tx) => {
-          const type = String(tx.type || "").toLowerCase();
-          const amount = Number(tx.amount || 0);
-          if (["debit"].includes(type)) {
-            summary.total_debit += Math.abs(amount);
-            summary.debit_count += 1;
-          } else if (["credit", "cashback", "refund", "adjustment"].includes(type)) {
-            summary.total_credit += Math.abs(amount);
-            summary.credit_count += 1;
-          } else if (amount > 0) {
-            summary.total_credit += amount;
-            summary.credit_count += 1;
-          } else if (amount < 0) {
-            summary.total_debit += Math.abs(amount);
-            summary.debit_count += 1;
-          }
+        const result = await api("/api/admin/users", {
+          method: "POST",
+          body: JSON.stringify(payload)
         });
 
-        return summary;
-      }
+        if (!result.ok || !result.data?.success) {
+          setAdminMessage(result.data?.error || "ذخیره اطلاعات کاربر انجام نشد.");
+          return;
+        }
 
-      function renderWalletHero(user, transactions) {
-        const lastTx = transactions[0];
-        walletHeroCard.innerHTML = `
-          <div class="wallet-hero-top">
-            <div>
-              <div class="wallet-hero-kicker">کیف پول کاربر</div>
-              <h3 style="margin:14px 0 0;font-size:1.2rem;">${esc(user.full_name || "کاربر بدون نام")}</h3>
-              <p style="margin:8px 0 0;color:rgba(255,255,255,0.78);line-height:1.9;">${esc(user.email || "-")}</p>
-            </div>
-            <div>${badge(user.role || "user")}</div>
+        setAdminMessage("اطلاعات کاربر با موفقیت ذخیره شد.", "success");
+        await loadUsers();
+        await loadDashboard();
+      });
+
+      document.getElementById("save-user-password-btn").addEventListener("click", async () => {
+        const password = document.getElementById("edit-user-password").value;
+        const password_confirm = document.getElementById("edit-user-password-confirm").value;
+
+        if (!password || !password_confirm) {
+          setAdminMessage("رمز عبور و تکرار آن را وارد کن.");
+          return;
+        }
+
+        if (password.length < 8) {
+          setAdminMessage("رمز عبور باید حداقل 8 کاراکتر باشد.");
+          return;
+        }
+
+        if (password !== password_confirm) {
+          setAdminMessage("رمز عبور و تکرار آن یکسان نیست.");
+          return;
+        }
+
+        const result = await api("/api/admin/users/password", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: user.id,
+            password,
+            password_confirm
+          })
+        });
+
+        if (!result.ok || !result.data?.success) {
+          setAdminMessage(result.data?.error || "ذخیره رمز عبور انجام نشد.");
+          return;
+        }
+
+        document.getElementById("edit-user-password").value = "";
+        document.getElementById("edit-user-password-confirm").value = "";
+        setAdminMessage("رمز عبور کاربر با موفقیت به‌روزرسانی شد.", "success");
+      });
+
+      document.getElementById("delete-user-btn").addEventListener("click", async () => {
+        await deleteUser(user);
+      });
+
+      document.getElementById("close-user-edit-btn").addEventListener("click", closeUserEditBox);
+    }
+
+    function getWalletSummary(transactions = []) {
+      const summary = {
+        total_credit: 0,
+        total_debit: 0,
+        credit_count: 0,
+        debit_count: 0
+      };
+
+      transactions.forEach((tx) => {
+        const type = String(tx.type || "").toLowerCase();
+        const amount = Number(tx.amount || 0);
+        if (["debit"].includes(type)) {
+          summary.total_debit += Math.abs(amount);
+          summary.debit_count += 1;
+        } else if (["credit", "cashback", "refund", "adjustment"].includes(type)) {
+          summary.total_credit += Math.abs(amount);
+          summary.credit_count += 1;
+        } else if (amount > 0) {
+          summary.total_credit += amount;
+          summary.credit_count += 1;
+        } else if (amount < 0) {
+          summary.total_debit += Math.abs(amount);
+          summary.debit_count += 1;
+        }
+      });
+
+      return summary;
+    }
+
+    function renderWalletHero(user, transactions) {
+      const lastTx = transactions[0];
+      walletHeroCard.innerHTML = `
+        <div class="wallet-hero-top">
+          <div>
+            <div class="wallet-hero-kicker">کیف پول کاربر</div>
+            <h3 style="margin:14px 0 0;font-size:1.2rem;">${esc(user.full_name || "کاربر بدون نام")}</h3>
+            <p style="margin:8px 0 0;color:rgba(255,255,255,0.78);line-height:1.9;">${esc(user.email || "-")}</p>
           </div>
+          <div>${badge(user.role || "user")}</div>
+        </div>
 
-          <div class="wallet-balance">
+        <div class="wallet-balance">
+          <span>موجودی فعلی</span>
+          <strong>${money(user.wallet_balance || 0)} تومان</strong>
+        </div>
+
+        <div class="wallet-meta-line">
+          <div class="wallet-meta-pill">شناسه کاربر: ${esc(user.id)}</div>
+          <div class="wallet-meta-pill">شماره: ${esc(user.phone || "-")}</div>
+          <div class="wallet-meta-pill">آخرین تراکنش: ${lastTx ? formatDate(lastTx.created_at) : "-"}</div>
+        </div>
+      `;
+    }
+
+    function renderWalletSummary(user, transactions) {
+      const summary = getWalletSummary(transactions);
+      walletSummaryCards.innerHTML = `
+        <div class="wallet-mini-card">
+          <span>جمع واریزی‌ها</span>
+          <strong>${money(summary.total_credit)} تومان</strong>
+          <small>${money(summary.credit_count)} تراکنش مثبت</small>
+        </div>
+        <div class="wallet-mini-card">
+          <span>جمع برداشت‌ها</span>
+          <strong>${money(summary.total_debit)} تومان</strong>
+          <small>${money(summary.debit_count)} تراکنش منفی</small>
+        </div>
+        <div class="wallet-mini-card">
+          <span>تعداد تراکنش‌ها</span>
+          <strong>${money(transactions.length)}</strong>
+          <small>براساس لیست بارگذاری‌شده</small>
+        </div>
+        <div class="wallet-mini-card">
+          <span>موجودی ثبت‌شده</span>
+          <strong>${money(user.wallet_balance || 0)} تومان</strong>
+          <small>خوانده‌شده از جدول users</small>
+        </div>
+      `;
+    }
+
+    function renderWalletUser(user) {
+      walletUserBox.innerHTML = `
+        <div class="wallet-user-head">
+          <div>
+            <h4 class="wallet-user-name">${esc(user.full_name || "-")}</h4>
+            <p class="wallet-user-email">${esc(user.email || "-")}</p>
+          </div>
+          <div>${badge(user.role || "user")}</div>
+        </div>
+
+        <div class="wallet-user-list">
+          <div class="wallet-user-row">
+            <span>شناسه کاربر</span>
+            <strong>${esc(user.id)}</strong>
+          </div>
+          <div class="wallet-user-row">
+            <span>شماره تماس</span>
+            <strong>${esc(user.phone || "-")}</strong>
+          </div>
+          <div class="wallet-user-row">
             <span>موجودی فعلی</span>
             <strong>${money(user.wallet_balance || 0)} تومان</strong>
           </div>
-
-          <div class="wallet-meta-line">
-            <div class="wallet-meta-pill">شناسه کاربر: ${esc(user.id)}</div>
-            <div class="wallet-meta-pill">شماره: ${esc(user.phone || "-")}</div>
-            <div class="wallet-meta-pill">آخرین تراکنش: ${lastTx ? formatDate(lastTx.created_at) : "-"}</div>
+          <div class="wallet-user-row">
+            <span>نقش حساب</span>
+            <strong>${esc(faRole(user.role || "user"))}</strong>
           </div>
-        `;
-      }
+        </div>
+      `;
+    }
 
-      function renderWalletSummary(user, transactions) {
-        const summary = getWalletSummary(transactions);
-        walletSummaryCards.innerHTML = `
-          <div class="wallet-mini-card">
-            <span>جمع واریزی‌ها</span>
-            <strong>${money(summary.total_credit)} تومان</strong>
-            <small>${money(summary.credit_count)} تراکنش مثبت</small>
+    function renderWalletAdjust(user) {
+      walletAdjustBox.innerHTML = `
+        <div class="wallet-card-head">
+          <div>
+            <h4>ثبت عملیات کیف پول</h4>
+            <p>واریز، برداشت، کش‌بک، بازگشت وجه یا تعدیل را برای این کاربر ثبت کن.</p>
           </div>
-          <div class="wallet-mini-card">
-            <span>جمع برداشت‌ها</span>
-            <strong>${money(summary.total_debit)} تومان</strong>
-            <small>${money(summary.debit_count)} تراکنش منفی</small>
+        </div>
+
+        <div class="filters-grid filters-grid-3">
+          <div class="form-field">
+            <label for="wallet-type">نوع عملیات</label>
+            <select id="wallet-type">
+              <option value="credit">واریز</option>
+              <option value="debit">برداشت</option>
+              <option value="cashback">کش‌بک</option>
+              <option value="refund">بازگشت وجه</option>
+              <option value="adjustment">تعدیل</option>
+            </select>
           </div>
-          <div class="wallet-mini-card">
-            <span>تعداد تراکنش‌ها</span>
-            <strong>${money(transactions.length)}</strong>
-            <small>براساس لیست بارگذاری‌شده</small>
+          <div class="form-field">
+            <label for="wallet-amount">مبلغ</label>
+            <input id="wallet-amount" type="number" min="1" placeholder="مثلاً 50000" />
           </div>
-          <div class="wallet-mini-card">
-            <span>موجودی ثبت‌شده</span>
-            <strong>${money(user.wallet_balance || 0)} تومان</strong>
-            <small>خوانده‌شده از جدول users</small>
+          <div class="form-field">
+            <label for="wallet-reference-id">شناسه مرجع</label>
+            <input id="wallet-reference-id" type="text" placeholder="اختیاری" />
           </div>
-        `;
-      }
+        </div>
 
-      function renderWalletUser(user) {
-        walletUserBox.innerHTML = `
-          <div class="wallet-user-head">
-            <div>
-              <h4 class="wallet-user-name">${esc(user.full_name || "-")}</h4>
-              <p class="wallet-user-email">${esc(user.email || "-")}</p>
-            </div>
-            <div>${badge(user.role || "user")}</div>
+        <div class="filters-grid filters-grid-2">
+          <div class="form-field">
+            <label for="wallet-reference-type">منبع ثبت</label>
+            <select id="wallet-reference-type">
+              <option value="admin">ادمین</option>
+              <option value="order">سفارش</option>
+              <option value="cashback">کش‌بک</option>
+              <option value="refund">بازگشت وجه</option>
+            </select>
           </div>
-
-          <div class="wallet-user-list">
-            <div class="wallet-user-row">
-              <span>شناسه کاربر</span>
-              <strong>${esc(user.id)}</strong>
-            </div>
-            <div class="wallet-user-row">
-              <span>شماره تماس</span>
-              <strong>${esc(user.phone || "-")}</strong>
-            </div>
-            <div class="wallet-user-row">
-              <span>موجودی فعلی</span>
-              <strong>${money(user.wallet_balance || 0)} تومان</strong>
-            </div>
-            <div class="wallet-user-row">
-              <span>نقش حساب</span>
-              <strong>${esc(faRole(user.role || "user"))}</strong>
-            </div>
+          <div class="form-field">
+            <label for="wallet-note">یادداشت</label>
+            <input id="wallet-note" type="text" placeholder="توضیح کوتاه برای ثبت تراکنش" />
           </div>
-        `;
-      }
+        </div>
 
-      function renderWalletAdjust(user) {
-        walletAdjustBox.innerHTML = `
-          <div class="wallet-card-head">
-            <div>
-              <h4>ثبت عملیات کیف پول</h4>
-              <p>واریز، برداشت، کش‌بک، بازگشت وجه یا تعدیل را برای این کاربر ثبت کن.</p>
-            </div>
-          </div>
+        <div class="wallet-inline-actions">
+          <button class="btn btn-primary" type="button" id="wallet-save-btn">ثبت عملیات</button>
+          <button class="btn btn-secondary" type="button" id="wallet-refresh-btn">به‌روزرسانی</button>
+        </div>
+      `;
 
-          <div class="filters-grid filters-grid-3">
-            <div class="form-field">
-              <label for="wallet-type">نوع عملیات</label>
-              <select id="wallet-type">
-                <option value="credit">واریز</option>
-                <option value="debit">برداشت</option>
-                <option value="cashback">کش‌بک</option>
-                <option value="refund">بازگشت وجه</option>
-                <option value="adjustment">تعدیل</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="wallet-amount">مبلغ</label>
-              <input id="wallet-amount" type="number" min="1" placeholder="مثلاً 50000" />
-            </div>
-            <div class="form-field">
-              <label for="wallet-reference-id">شناسه مرجع</label>
-              <input id="wallet-reference-id" type="text" placeholder="اختیاری" />
-            </div>
-          </div>
+      document.getElementById("wallet-save-btn").addEventListener("click", async () => {
+        const type = document.getElementById("wallet-type").value;
+        const amount = Number(document.getElementById("wallet-amount").value || 0);
+        const note = document.getElementById("wallet-note").value.trim();
+        const reference_type = document.getElementById("wallet-reference-type").value.trim();
+        const reference_id = document.getElementById("wallet-reference-id").value.trim();
 
-          <div class="filters-grid filters-grid-2">
-            <div class="form-field">
-              <label for="wallet-reference-type">منبع ثبت</label>
-              <select id="wallet-reference-type">
-                <option value="admin">ادمین</option>
-                <option value="order">سفارش</option>
-                <option value="cashback">کش‌بک</option>
-                <option value="refund">بازگشت وجه</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="wallet-note">یادداشت</label>
-              <input id="wallet-note" type="text" placeholder="توضیح کوتاه برای ثبت تراکنش" />
-            </div>
-          </div>
+        if (!amount || amount <= 0) {
+          setAdminMessage("مبلغ معتبر وارد کن.");
+          return;
+        }
 
-          <div class="wallet-inline-actions">
-            <button class="btn btn-primary" type="button" id="wallet-save-btn">ثبت عملیات</button>
-            <button class="btn btn-secondary" type="button" id="wallet-refresh-btn">به‌روزرسانی</button>
-          </div>
-        `;
-
-        document.getElementById("wallet-save-btn").addEventListener("click", async () => {
-          const type = document.getElementById("wallet-type").value;
-          const amount = Number(document.getElementById("wallet-amount").value || 0);
-          const note = document.getElementById("wallet-note").value.trim();
-          const reference_type = document.getElementById("wallet-reference-type").value.trim();
-          const reference_id = document.getElementById("wallet-reference-id").value.trim();
-
-          if (!amount || amount <= 0) {
-            setAdminMessage("مبلغ معتبر وارد کن.");
-            return;
-          }
-
-          const saveResult = await api("/api/admin/wallet", {
-            method: "POST",
-            body: JSON.stringify({
-              user_id: user.id,
-              type,
-              amount,
-              note,
-              reference_type,
-              reference_id
-            })
-          });
-
-          if (!saveResult.ok || !saveResult.data?.success) {
-            setAdminMessage(saveResult.data?.error || "ثبت عملیات کیف پول انجام نشد.");
-            return;
-          }
-
-          setAdminMessage("عملیات کیف پول با موفقیت ثبت شد.", "success");
-          await loadWalletUser();
-          await loadDashboard();
-          await loadUsers();
+        const saveResult = await api("/api/admin/wallet", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: user.id,
+            type,
+            amount,
+            note,
+            reference_type,
+            reference_id
+          })
         });
 
-        document.getElementById("wallet-refresh-btn").addEventListener("click", async () => {
-          await loadWalletUser();
+        if (!saveResult.ok || !saveResult.data?.success) {
+          setAdminMessage(saveResult.data?.error || "ثبت عملیات کیف پول انجام نشد.");
+          return;
+        }
+
+        setAdminMessage("عملیات کیف پول با موفقیت ثبت شد.", "success");
+        await loadWalletUser();
+        await loadDashboard();
+        await loadUsers();
+      });
+
+      document.getElementById("wallet-refresh-btn").addEventListener("click", async () => {
+        await loadWalletUser();
+      });
+    }
+
+    function renderWalletSettings(settings = {}) {
+      const cashbackStatuses = Array.isArray(settings.cashback_statuses)
+        ? settings.cashback_statuses
+        : ["completed", "processing"];
+
+      walletSettingsBox.innerHTML = `
+        <div class="wallet-card-head">
+          <div>
+            <h4>تنظیمات کش‌بک</h4>
+            <p>درصد کش‌بک و وضعیت‌های مجاز سفارش برای ثبت خودکار را تعیین کن.</p>
+          </div>
+        </div>
+
+        <div class="filters-grid filters-grid-2">
+          <div class="form-field">
+            <label for="cashback-percent">درصد کش‌بک</label>
+            <input id="cashback-percent" type="number" min="0" max="100" value="${esc(settings.cashback_percent ?? 0)}" />
+          </div>
+          <div class="form-field">
+            <label for="cashback-statuses">وضعیت‌های مجاز</label>
+            <input id="cashback-statuses" type="text" value="${esc(cashbackStatuses.join(", "))}" placeholder="completed, processing" />
+          </div>
+        </div>
+
+        <div class="wallet-inline-actions">
+          <button class="btn btn-primary" type="button" id="wallet-save-settings-btn">ذخیره تنظیمات</button>
+        </div>
+      `;
+
+      document.getElementById("wallet-save-settings-btn").addEventListener("click", async () => {
+        const cashback_percent = Number(document.getElementById("cashback-percent").value || 0);
+        const cashback_statuses = document.getElementById("cashback-statuses").value
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+
+        const result = await api("/api/admin/wallet", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "save_settings",
+            cashback_percent,
+            cashback_statuses
+          })
         });
-      }
 
-      function renderWalletSettings(settings = {}) {
-        const cashbackStatuses = Array.isArray(settings.cashback_statuses)
-          ? settings.cashback_statuses
-          : ["completed", "processing"];
+        if (!result.ok || !result.data?.success) {
+          setAdminMessage(result.data?.error || "ذخیره تنظیمات کش‌بک انجام نشد.");
+          return;
+        }
 
-        walletSettingsBox.innerHTML = `
-          <div class="wallet-card-head">
-            <div>
-              <h4>تنظیمات کش‌بک</h4>
-              <p>درصد کش‌بک و وضعیت‌های مجاز سفارش برای ثبت خودکار را تعیین کن.</p>
-            </div>
+        setAdminMessage("تنظیمات کش‌بک با موفقیت ذخیره شد.", "success");
+        currentWalletPayload = {
+          ...(currentWalletPayload || {}),
+          settings: result.data.settings || {}
+        };
+        renderWalletSettings(result.data.settings || {});
+      });
+    }
+
+    function renderWalletHistory(transactions = []) {
+      const filterType = document.getElementById("wallet-quick-type")?.value || "";
+      const filtered = filterType
+        ? transactions.filter((tx) => String(tx.type || "").toLowerCase() === filterType)
+        : transactions;
+
+      walletHistoryBox.innerHTML = `
+        <div class="wallet-card-head">
+          <div>
+            <h4>تاریخچه تراکنش‌ها</h4>
+            <p>تمام ثبت‌های اخیر کیف پول کاربر همراه با وضعیت، مانده قبل و بعد، و توضیحات.</p>
           </div>
+        </div>
 
-          <div class="filters-grid filters-grid-2">
-            <div class="form-field">
-              <label for="cashback-percent">درصد کش‌بک</label>
-              <input id="cashback-percent" type="number" min="0" max="100" value="${esc(settings.cashback_percent ?? 0)}" />
-            </div>
-            <div class="form-field">
-              <label for="cashback-statuses">وضعیت‌های مجاز</label>
-              <input id="cashback-statuses" type="text" value="${esc(cashbackStatuses.join(", "))}" placeholder="completed, processing" />
-            </div>
+        <div class="wallet-history-tools">
+          <div class="form-field">
+            <label for="wallet-history-search">جستجو در یادداشت</label>
+            <input id="wallet-history-search" type="text" placeholder="یادداشت یا نوع تراکنش" />
           </div>
-
-          <div class="wallet-inline-actions">
-            <button class="btn btn-primary" type="button" id="wallet-save-settings-btn">ذخیره تنظیمات</button>
+          <div class="form-field">
+            <label>تراکنش‌های نمایشی</label>
+            <input type="text" value="${money(filtered.length)} مورد" disabled />
           </div>
-        `;
-
-        document.getElementById("wallet-save-settings-btn").addEventListener("click", async () => {
-          const cashback_percent = Number(document.getElementById("cashback-percent").value || 0);
-          const cashback_statuses = document.getElementById("cashback-statuses").value
-            .split(",")
-            .map((s) => s.trim().toLowerCase())
-            .filter(Boolean);
-
-          const result = await api("/api/admin/wallet", {
-            method: "POST",
-            body: JSON.stringify({
-              action: "save_settings",
-              cashback_percent,
-              cashback_statuses
-            })
-          });
-
-          if (!result.ok || !result.data?.success) {
-            setAdminMessage(result.data?.error || "ذخیره تنظیمات کش‌بک انجام نشد.");
-            return;
-          }
-
-          setAdminMessage("تنظیمات کش‌بک با موفقیت ذخیره شد.", "success");
-          currentWalletPayload = {
-            ...(currentWalletPayload || {}),
-            settings: result.data.settings || {}
-          };
-          renderWalletSettings(result.data.settings || {});
-        });
-      }
-
-      function renderWalletHistory(transactions = []) {
-        const filterType = document.getElementById("wallet-quick-type")?.value || "";
-        const filtered = filterType
-          ? transactions.filter((tx) => String(tx.type || "").toLowerCase() === filterType)
-          : transactions;
-
-        walletHistoryBox.innerHTML = `
-          <div class="wallet-card-head">
-            <div>
-              <h4>تاریخچه تراکنش‌ها</h4>
-              <p>تمام ثبت‌های اخیر کیف پول کاربر همراه با وضعیت، مانده قبل و بعد، و توضیحات.</p>
-            </div>
+          <div class="form-field">
+            <label>آخرین به‌روزرسانی</label>
+            <input type="text" value="${filtered[0] ? formatDate(filtered[0].created_at) : "-"}" disabled />
           </div>
+        </div>
 
-          <div class="wallet-history-tools">
-            <div class="form-field">
-              <label for="wallet-history-search">جستجو در یادداشت</label>
-              <input id="wallet-history-search" type="text" placeholder="یادداشت یا نوع تراکنش" />
-            </div>
-            <div class="form-field">
-              <label>تراکنش‌های نمایشی</label>
-              <input type="text" value="${money(filtered.length)} مورد" disabled />
-            </div>
-            <div class="form-field">
-              <label>آخرین به‌روزرسانی</label>
-              <input type="text" value="${filtered[0] ? formatDate(filtered[0].created_at) : "-"}" disabled />
-            </div>
-          </div>
-
-          <div class="table-wrap">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>شناسه</th>
-                  <th>نوع</th>
-                  <th>مبلغ</th>
-                  <th>قبل</th>
-                  <th>بعد</th>
-                  <th>وضعیت</th>
-                  <th>منبع</th>
-                  <th>یادداشت</th>
-                  <th>تاریخ</th>
-                </tr>
-              </thead>
-              <tbody id="wallet-history-body">
-                ${filtered.length
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>شناسه</th>
+                <th>نوع</th>
+                <th>مبلغ</th>
+                <th>قبل</th>
+                <th>بعد</th>
+                <th>وضعیت</th>
+                <th>منبع</th>
+                <th>یادداشت</th>
+                <th>تاریخ</th>
+              </tr>
+            </thead>
+            <tbody id="wallet-history-body">
+              ${
+                filtered.length
                   ? filtered.map((tx) => `
                     <tr>
                       <td class="table-number">${esc(tx.id)}</td>
@@ -2416,473 +2238,476 @@
                     </tr>
                   `).join("")
                   : `<tr><td colspan="9">تراکنشی ثبت نشده است.</td></tr>`
-                }
-              </tbody>
-            </table>
-          </div>
-        `;
+              }
+            </tbody>
+          </table>
+        </div>
+      `;
 
-        const searchInput = document.getElementById("wallet-history-search");
-        const body = document.getElementById("wallet-history-body");
+      const searchInput = document.getElementById("wallet-history-search");
+      const body = document.getElementById("wallet-history-body");
 
-        searchInput.addEventListener("input", () => {
-          const q = searchInput.value.trim().toLowerCase();
-          const list = filtered.filter((tx) => {
-            const hay = [
-              tx.type,
-              tx.note,
-              tx.reference_type,
-              tx.source
-            ].map((v) => String(v || "").toLowerCase()).join(" ");
-            return !q || hay.includes(q);
-          });
-
-          body.innerHTML = list.length
-            ? list.map((tx) => `
-                <tr>
-                  <td class="table-number">${esc(tx.id)}</td>
-                  <td>${walletTypeChip(tx.type)}</td>
-                  <td class="table-number">${money(tx.amount)}</td>
-                  <td class="table-number">${money(tx.balance_before)}</td>
-                  <td class="table-number">${money(tx.balance_after)}</td>
-                  <td>${badge(tx.status)}</td>
-                  <td>${esc(tx.reference_type || tx.source || "-")}</td>
-                  <td class="wallet-note">${esc(tx.note || "-")}</td>
-                  <td class="table-number">${formatDate(tx.created_at)}</td>
-                </tr>
-              `).join("")
-            : `<tr><td colspan="9">نتیجه‌ای پیدا نشد.</td></tr>`;
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.trim().toLowerCase();
+        const list = filtered.filter((tx) => {
+          const hay = [
+            tx.type,
+            tx.note,
+            tx.reference_type,
+            tx.source
+          ].map((v) => String(v || "").toLowerCase()).join(" ");
+          return !q || hay.includes(q);
         });
-      }
 
-      function faProductStatus(value) {
-        const map = { published: "منتشرشده", draft: "پیش‌نویس", private: "خصوصی" };
-        return map[String(value || "").toLowerCase()] || "پیش‌نویس";
-      }
+        body.innerHTML = list.length
+          ? list.map((tx) => `
+              <tr>
+                <td class="table-number">${esc(tx.id)}</td>
+                <td>${walletTypeChip(tx.type)}</td>
+                <td class="table-number">${money(tx.amount)}</td>
+                <td class="table-number">${money(tx.balance_before)}</td>
+                <td class="table-number">${money(tx.balance_after)}</td>
+                <td>${badge(tx.status)}</td>
+                <td>${esc(tx.reference_type || tx.source || "-")}</td>
+                <td class="wallet-note">${esc(tx.note || "-")}</td>
+                <td class="table-number">${formatDate(tx.created_at)}</td>
+              </tr>
+            `).join("")
+          : `<tr><td colspan="9">نتیجه‌ای پیدا نشد.</td></tr>`;
+      });
+    }
 
-      function productStatusBadge(value) {
-        const v = String(value || "draft").toLowerCase();
-        const cls = v === "published" ? "status-badge status-badge--success" : v === "private" ? "status-badge status-badge--danger" : "status-badge status-badge--warning";
-        return `<span class="${cls}">${esc(faProductStatus(v))}</span>`;
-      }
+    function faProductStatus(value) {
+      const map = { published: "منتشرشده", draft: "پیش‌نویس", private: "خصوصی" };
+      return map[String(value || "").toLowerCase()] || "پیش‌نویس";
+    }
 
-      function closeProductCreateBox() { productCreateBox.classList.add("admin-hidden"); productCreateBox.innerHTML = ""; }
-      function closeProductEditBox() { productEditBox.classList.add("admin-hidden"); productEditBox.innerHTML = ""; }
+    function productStatusBadge(value) {
+      const v = String(value || "draft").toLowerCase();
+      const cls = v === "published" ? "status-badge status-badge--success" : v === "private" ? "status-badge status-badge--danger" : "status-badge status-badge--warning";
+      return `<span class="${cls}">${esc(faProductStatus(v))}</span>`;
+    }
 
-      function productFormHtml(product = {}) {
-        const images = Array.isArray(product.images) ? product.images : [];
-        const imageRows = images.map((image, index) => productGalleryHtml(image, index)).join("");
-        return `
-          <h4>${product.id ? `ویرایش محصول #${esc(product.id)}` : "افزودن محصول جدید"}</h4>
-          <div class="filters-grid filters-grid-3">
-            <div class="form-field"><label>نام محصول *</label><input data-product-field="name" type="text" value="${esc(product.name || "")}" placeholder="نام محصول" /></div>
-            <div class="form-field"><label>Slug انگلیسی *</label><input data-product-field="slug" type="text" value="${esc(product.slug || "")}" placeholder="مثلاً tb-500" /></div>
-            <div class="form-field"><label>دسته‌بندی</label><input data-product-field="category" type="text" value="${esc(product.category || "")}" placeholder="مثلاً پپتاید" /></div>
-            <div class="form-field"><label>قیمت (تومان)</label><input data-product-field="price" type="text" inputmode="numeric" value="${product.price ?? ""}" placeholder="مثلاً 2500000" /></div>
-            <div class="form-field"><label>برچسب قیمت</label><input data-product-field="price_label" type="text" value="${esc(product.price_label || "تماس بگیرید")}" /></div>
-            <div class="form-field"><label>تعداد موجودی</label><input data-product-field="stock_quantity" type="number" min="0" value="${Number(product.stock_quantity || 0)}" /></div>
-            <div class="form-field"><label>برچسب موجودی</label><input data-product-field="stock_label" type="text" value="${esc(product.stock_label || "")}" placeholder="موجود / ناموجود" /></div>
-            <div class="form-field"><label>وضعیت انتشار</label><select data-product-field="status"><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="private">خصوصی</option></select></div>
-            <div class="form-field"><label>آدرس صفحه محصول</label><input data-product-field="page_url" type="text" value="${esc(product.page_url || "")}" placeholder="products/example.html" /></div>
-          </div>
-          <div class="filters-grid filters-grid-2">
-            <div class="form-field"><label><input data-product-field="show_price" type="checkbox" ${product.show_price ? "checked" : ""} /> نمایش قیمت به مشتری</label></div>
-            <div class="form-field"><label><input data-product-field="in_stock" type="checkbox" ${product.in_stock ? "checked" : ""} /> محصول موجود است</label></div>
-          </div>
-          <div class="form-field"><label>توضیح کوتاه</label><textarea data-product-field="short_description" rows="3" placeholder="توضیح کوتاه برای محصول">${esc(product.short_description || "")}</textarea></div>
-          <div class="form-field"><label>توضیحات کامل</label><textarea data-product-field="description" rows="7" placeholder="توضیحات کامل محصول">${esc(product.description || "")}</textarea></div>
-          <div class="detail-card" style="margin-top:16px;background:var(--surface-2);">
-            <div class="products-toolbar"><div><h4 style="margin:0">گالری تصاویر</h4><p class="product-file-help">برای تصویر جدید، مسیر آن را وارد کن؛ مثل: /assets/images/tb-500/1.png. انتخاب فایل فقط پیش‌نمایش محلی است و فایل را روی سرور آپلود نمی‌کند.</p></div><button class="btn btn-secondary" type="button" data-add-product-image>افزودن مسیر تصویر</button></div>
-            <div class="form-field"><label>انتخاب تصویر از رایانه (پیش‌نمایش)</label><input data-product-local-files type="file" accept="image/*" multiple /></div>
-            <div class="product-gallery-list" data-product-gallery>${imageRows}</div>
-          </div>
-          <div class="panel-actions"><button class="btn btn-primary" type="button" data-save-product>${product.id ? "ذخیره تغییرات" : "ثبت محصول"}</button>${product.id ? `<button class="btn btn-secondary" type="button" data-delete-current-product="${esc(product.id)}">حذف محصول</button>` : ""}<button class="btn btn-secondary" type="button" data-close-product-form>بستن</button></div>
-        `;
-      }
+    function closeProductCreateBox() { productCreateBox.classList.add("admin-hidden"); productCreateBox.innerHTML = ""; }
+    function closeProductEditBox() { productEditBox.classList.add("admin-hidden"); productEditBox.innerHTML = ""; }
 
-      function productGalleryHtml(image = {}, index = 0) {
-        const url = image.image_url || image.imageUrl || "";
-        const alt = image.alt_text || image.altText || "";
-        const primary = image.is_primary === true || image.is_primary === 1 || index === 0;
-        return `<div class="product-gallery-item" data-gallery-item><img data-gallery-preview src="${esc(url)}" alt="${esc(alt)}" onerror="this.style.display='none'" /><div class="form-field"><label>مسیر تصویر</label><input data-gallery-url type="text" value="${esc(url)}" placeholder="/assets/images/..." /></div><div class="form-field"><label>متن جایگزین</label><input data-gallery-alt type="text" value="${esc(alt)}" placeholder="نام تصویر" /></div><div class="product-gallery-actions"><label><input data-gallery-primary type="radio" name="product-primary-image" ${primary ? "checked" : ""} /> تصویر اصلی</label><button class="btn btn-secondary" type="button" data-remove-product-image>حذف</button></div></div>`;
-      }
+    function productFormHtml(product = {}) {
+      const images = Array.isArray(product.images) ? product.images : [];
+      const imageRows = images.map((image, index) => productGalleryHtml(image, index)).join("");
+      return `
+        <h4>${product.id ? `ویرایش محصول #${esc(product.id)}` : "افزودن محصول جدید"}</h4>
+        <div class="filters-grid filters-grid-3">
+          <div class="form-field"><label>نام محصول *</label><input data-product-field="name" type="text" value="${esc(product.name || "")}" placeholder="نام محصول" /></div>
+          <div class="form-field"><label>Slug انگلیسی *</label><input data-product-field="slug" type="text" value="${esc(product.slug || "")}" placeholder="مثلاً tb-500" /></div>
+          <div class="form-field"><label>دسته‌بندی</label><input data-product-field="category" type="text" value="${esc(product.category || "")}" placeholder="مثلاً پپتاید" /></div>
+          <div class="form-field"><label>قیمت (تومان)</label><input data-product-field="price" type="text" inputmode="numeric" value="${product.price ?? ""}" placeholder="مثلاً 2500000" /></div>
+          <div class="form-field"><label>برچسب قیمت</label><input data-product-field="price_label" type="text" value="${esc(product.price_label || "تماس بگیرید")}" /></div>
+          <div class="form-field"><label>تعداد موجودی</label><input data-product-field="stock_quantity" type="number" min="0" value="${Number(product.stock_quantity || 0)}" /></div>
+          <div class="form-field"><label>برچسب موجودی</label><input data-product-field="stock_label" type="text" value="${esc(product.stock_label || "")}" placeholder="موجود / ناموجود" /></div>
+          <div class="form-field"><label>وضعیت انتشار</label><select data-product-field="status"><option value="published">منتشرشده</option><option value="draft">پیش‌نویس</option><option value="private">خصوصی</option></select></div>
+          <div class="form-field"><label>آدرس صفحه محصول</label><input data-product-field="page_url" type="text" value="${esc(product.page_url || "")}" placeholder="products/example.html" /></div>
+        </div>
+        <div class="filters-grid filters-grid-2">
+          <div class="form-field"><label><input data-product-field="show_price" type="checkbox" ${product.show_price ? "checked" : ""} /> نمایش قیمت به مشتری</label></div>
+          <div class="form-field"><label><input data-product-field="in_stock" type="checkbox" ${product.in_stock ? "checked" : ""} /> محصول موجود است</label></div>
+        </div>
+        <div class="form-field"><label>توضیح کوتاه</label><textarea data-product-field="short_description" rows="3" placeholder="توضیح کوتاه برای محصول">${esc(product.short_description || "")}</textarea></div>
+        <div class="form-field"><label>توضیحات کامل</label><textarea data-product-field="description" rows="7" placeholder="توضیحات کامل محصول">${esc(product.description || "")}</textarea></div>
+        <div class="detail-card" style="margin-top:16px;background:var(--surface-2);">
+          <div class="products-toolbar"><div><h4 style="margin:0">گالری تصاویر</h4><p class="product-file-help">برای تصویر جدید، مسیر آن را وارد کن؛ مثل: /assets/images/tb-500/1.png. انتخاب فایل فقط پیش‌نمایش محلی است و فایل را روی سرور آپلود نمی‌کند.</p></div><button class="btn btn-secondary" type="button" data-add-product-image>افزودن مسیر تصویر</button></div>
+          <div class="form-field"><label>انتخاب تصویر از رایانه (پیش‌نمایش)</label><input data-product-local-files type="file" accept="image/*" multiple /></div>
+          <div class="product-gallery-list" data-product-gallery>${imageRows}</div>
+        </div>
+        <div class="panel-actions"><button class="btn btn-primary" type="button" data-save-product>${product.id ? "ذخیره تغییرات" : "ثبت محصول"}</button>${product.id ? `<button class="btn btn-secondary" type="button" data-delete-current-product="${esc(product.id)}">حذف محصول</button>` : ""}<button class="btn btn-secondary" type="button" data-close-product-form>بستن</button></div>
+      `;
+    }
 
-      function bindProductForm(box, product = {}) {
-        const statusField = box.querySelector('[data-product-field="status"]');
-        statusField.value = product.status || "draft";
-        box.querySelector('[data-add-product-image]').addEventListener("click", () => {
-          box.querySelector('[data-product-gallery]').insertAdjacentHTML("beforeend", productGalleryHtml({}, box.querySelectorAll('[data-gallery-item]').length));
-        });
-        box.querySelector('[data-product-gallery]').addEventListener("click", event => {
-          if (event.target.closest('[data-remove-product-image]')) event.target.closest('[data-gallery-item]').remove();
-        });
-        box.querySelector('[data-product-gallery]').addEventListener("input", event => {
-          if (event.target.matches('[data-gallery-url]')) {
-            const preview = event.target.closest('[data-gallery-item]').querySelector('[data-gallery-preview]');
-            preview.style.display = "block"; preview.src = event.target.value.trim();
-          }
-        });
-        box.querySelector('[data-product-local-files]').addEventListener("change", event => {
-          [...event.target.files].forEach(file => {
-            const reader = new FileReader();
-            reader.onload = () => box.querySelector('[data-product-gallery]').insertAdjacentHTML("beforeend", productGalleryHtml({ image_url: reader.result, alt_text: file.name }, box.querySelectorAll('[data-gallery-item]').length));
-            reader.readAsDataURL(file);
-          });
-          setAdminMessage("فایل‌ها فقط برای پیش‌نمایش اضافه شدند. پیش از ذخیره، مسیر واقعی /assets/images/... را وارد کن.");
-        });
-        box.querySelector('[data-save-product]').addEventListener("click", async () => {
-          const get = key => box.querySelector(`[data-product-field="${key}"]`);
-          const images = [...box.querySelectorAll('[data-gallery-item]')].map((item, index) => ({ image_url: item.querySelector('[data-gallery-url]').value.trim(), alt_text: item.querySelector('[data-gallery-alt]').value.trim(), sort_order: index + 1, is_primary: item.querySelector('[data-gallery-primary]').checked })).filter(image => image.image_url && !image.image_url.startsWith("data:"));
-          const payload = { name:get("name").value.trim(), slug:get("slug").value.trim(), category:get("category").value.trim(), price:get("price").value.trim(), price_label:get("price_label").value.trim(), show_price:get("show_price").checked, stock_quantity:get("stock_quantity").value, in_stock:get("in_stock").checked, stock_label:get("stock_label").value.trim(), short_description:get("short_description").value.trim(), description:get("description").value.trim(), page_url:get("page_url").value.trim(), status:get("status").value, images };
-          if (!payload.name) { setAdminMessage("نام محصول الزامی است."); return; }
-          const url = product.id ? `/api/admin/products/${encodeURIComponent(product.id)}` : "/api/admin/products";
-          const result = await api(url, { method: product.id ? "PUT" : "POST", body: JSON.stringify(payload) });
-          if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "ذخیره محصول انجام نشد."); return; }
-          setAdminMessage(result.data.message || "محصول با موفقیت ذخیره شد.", "success"); closeProductCreateBox(); closeProductEditBox(); await loadProducts();
-        });
-        box.querySelector('[data-close-product-form]').addEventListener("click", () => { closeProductCreateBox(); closeProductEditBox(); });
-        const deleteBtn = box.querySelector('[data-delete-current-product]');
-        if (deleteBtn) deleteBtn.addEventListener("click", () => deleteProduct(Number(deleteBtn.getAttribute("data-delete-current-product"))));
-      }
+    function productGalleryHtml(image = {}, index = 0) {
+      const url = image.image_url || image.imageUrl || "";
+      const alt = image.alt_text || image.altText || "";
+      const primary = image.is_primary === true || image.is_primary === 1 || index === 0;
+      return `<div class="product-gallery-item" data-gallery-item><img data-gallery-preview src="${esc(url)}" alt="${esc(alt)}" onerror="this.style.display='none'" /><div class="form-field"><label>مسیر تصویر</label><input data-gallery-url type="text" value="${esc(url)}" placeholder="/assets/images/..." /></div><div class="form-field"><label>متن جایگزین</label><input data-gallery-alt type="text" value="${esc(alt)}" placeholder="نام تصویر" /></div><div class="product-gallery-actions"><label><input data-gallery-primary type="radio" name="product-primary-image" ${primary ? "checked" : ""} /> تصویر اصلی</label><button class="btn btn-secondary" type="button" data-remove-product-image>حذف</button></div></div>`;
+    }
 
-      function openProductCreate() { closeProductEditBox(); productCreateBox.classList.remove("admin-hidden"); productCreateBox.innerHTML = productFormHtml({ show_price:true, in_stock:true, status:"draft", stock_label:"موجود", price_label:"تماس بگیرید" }); bindProductForm(productCreateBox); productCreateBox.scrollIntoView({ behavior:"smooth", block:"start" }); }
-      async function openProductEdit(id) { closeProductCreateBox(); const result = await api(`/api/admin/products/${encodeURIComponent(id)}`); if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "دریافت محصول انجام نشد."); return; } productEditBox.classList.remove("admin-hidden"); productEditBox.innerHTML = productFormHtml(result.data.product); bindProductForm(productEditBox, result.data.product); productEditBox.scrollIntoView({ behavior:"smooth", block:"start" }); }
-      async function deleteProduct(id) { if (!id) return; if (!window.confirm("آیا از حذف این محصول مطمئن هستی؟")) return; if (!window.confirm("حذف محصول و گالری تصاویر غیرقابل بازگشت است. ادامه می‌دهی؟")) return; const result = await api(`/api/admin/products/${encodeURIComponent(id)}`, { method:"DELETE" }); if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "حذف محصول انجام نشد."); return; } setAdminMessage(result.data.message || "محصول حذف شد.", "success"); closeProductCreateBox(); closeProductEditBox(); await loadProducts(); }
-      async function loadProducts() {
-        const tbody = document.getElementById("products-body");
-        if (!tbody) return;
-        const params = new URLSearchParams(); const search = document.getElementById("products-search").value.trim(); const category = document.getElementById("products-category").value; const status = document.getElementById("products-status").value;
-        if (search) params.set("search", search); if (category) params.set("category", category); if (status) params.set("status", status);
-        tbody.innerHTML = '<tr><td colspan="9">در حال دریافت محصولات...</td></tr>';
-        const result = await api(`/api/admin/products${params.toString() ? `?${params}` : ""}`);
-        if (!result.ok || !result.data?.success) { tbody.innerHTML = `<tr><td colspan="9">${esc(result.data?.error || "دریافت محصولات انجام نشد.")}</td></tr>`; return; }
-        const select = document.getElementById("products-category"); const oldCategory = select.value; select.innerHTML = '<option value="">همه دسته‌بندی‌ها</option>' + (result.data.categories || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(""); select.value = oldCategory;
-        const products = Array.isArray(result.data.products) ? result.data.products : [];
-        tbody.innerHTML = products.length ? products.map(product => { const img = product.primary_image || product.images?.[0]?.image_url || ""; return `<tr><td>${img ? `<img class="product-image-thumb" src="${esc(img)}" alt="${esc(product.name)}" onerror="this.outerHTML='<div class=product-empty-image>—</div>'" />` : '<div class="product-empty-image">—</div>'}</td><td class="table-number">${esc(product.id)}</td><td><strong>${esc(product.name)}</strong><br><small style="color:var(--muted)">${esc(product.slug)}</small></td><td>${esc(product.category || "—")}</td><td class="table-number">${product.show_price && product.price !== null ? `${money(product.price)} تومان` : esc(product.price_label || "تماس بگیرید")}</td><td>${Number(product.in_stock) || product.in_stock === true ? `<span class="status-badge status-badge--success">${esc(product.stock_label || "موجود")}</span><br><small>${money(product.stock_quantity || 0)} عدد</small>` : `<span class="status-badge status-badge--danger">${esc(product.stock_label || "ناموجود")}</span>`}</td><td>${productStatusBadge(product.status)}</td><td class="table-number">${formatDate(product.updated_at || product.created_at)}</td><td><div class="panel-actions" style="margin-top:0"><button class="btn btn-secondary" type="button" data-edit-product="${esc(product.id)}">ویرایش</button><button class="btn btn-secondary" type="button" data-delete-product="${esc(product.id)}">حذف</button></div></td></tr>`; }).join("") : '<tr><td colspan="9">محصولی پیدا نشد.</td></tr>';
-      }
-
-      async function loadWalletUser() {
-        const userId = Number(document.getElementById("wallet-user-id").value || 0);
-        const limit = Number(document.getElementById("wallet-limit").value || 50);
-
-        if (!userId) {
-          setAdminMessage("شناسه کاربر را وارد کن.");
-          return;
+    function bindProductForm(box, product = {}) {
+      const statusField = box.querySelector('[data-product-field="status"]');
+      statusField.value = product.status || "draft";
+      box.querySelector('[data-add-product-image]').addEventListener("click", () => {
+        box.querySelector('[data-product-gallery]').insertAdjacentHTML("beforeend", productGalleryHtml({}, box.querySelectorAll('[data-gallery-item]').length));
+      });
+      box.querySelector('[data-product-gallery]').addEventListener("click", event => {
+        if (event.target.closest('[data-remove-product-image]')) event.target.closest('[data-gallery-item]').remove();
+      });
+      box.querySelector('[data-product-gallery]').addEventListener("input", event => {
+        if (event.target.matches('[data-gallery-url]')) {
+          const preview = event.target.closest('[data-gallery-item]').querySelector('[data-gallery-preview]');
+          preview.style.display = "block"; preview.src = event.target.value.trim();
         }
+      });
+      box.querySelector('[data-product-local-files]').addEventListener("change", event => {
+        [...event.target.files].forEach(file => {
+          const reader = new FileReader();
+          reader.onload = () => box.querySelector('[data-product-gallery]').insertAdjacentHTML("beforeend", productGalleryHtml({ image_url: reader.result, alt_text: file.name }, box.querySelectorAll('[data-gallery-item]').length));
+          reader.readAsDataURL(file);
+        });
+        setAdminMessage("فایل‌ها فقط برای پیش‌نمایش اضافه شدند. پیش از ذخیره، مسیر واقعی /assets/images/... را وارد کن.");
+      });
+      box.querySelector('[data-save-product]').addEventListener("click", async () => {
+        const get = key => box.querySelector(`[data-product-field="${key}"]`);
+        const images = [...box.querySelectorAll('[data-gallery-item]')].map((item, index) => ({ image_url: item.querySelector('[data-gallery-url]').value.trim(), alt_text: item.querySelector('[data-gallery-alt]').value.trim(), sort_order: index + 1, is_primary: item.querySelector('[data-gallery-primary]').checked })).filter(image => image.image_url && !image.image_url.startsWith("data:"));
+        const payload = { name:get("name").value.trim(), slug:get("slug").value.trim(), category:get("category").value.trim(), price:get("price").value.trim(), price_label:get("price_label").value.trim(), show_price:get("show_price").checked, stock_quantity:get("stock_quantity").value, in_stock:get("in_stock").checked, stock_label:get("stock_label").value.trim(), short_description:get("short_description").value.trim(), description:get("description").value.trim(), page_url:get("page_url").value.trim(), status:get("status").value, images };
+        if (!payload.name) { setAdminMessage("نام محصول الزامی است."); return; }
+        const url = product.id ? `/api/admin/products/${encodeURIComponent(product.id)}` : "/api/admin/products";
+        const result = await api(url, { method: product.id ? "PUT" : "POST", body: JSON.stringify(payload) });
+        if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "ذخیره محصول انجام نشد."); return; }
+        setAdminMessage(result.data.message || "محصول با موفقیت ذخیره شد.", "success"); closeProductCreateBox(); closeProductEditBox(); await loadProducts();
+      });
+      box.querySelector('[data-close-product-form]').addEventListener("click", () => { closeProductCreateBox(); closeProductEditBox(); });
+      const deleteBtn = box.querySelector('[data-delete-current-product]');
+      if (deleteBtn) deleteBtn.addEventListener("click", () => deleteProduct(Number(deleteBtn.getAttribute("data-delete-current-product"))));
+    }
 
-        const result = await api(`/api/admin/wallet?user_id=${encodeURIComponent(userId)}&limit=${encodeURIComponent(limit)}`);
-        if (!result.ok || !result.data?.success) {
-          setAdminMessage(result.data?.error || "دریافت کیف پول انجام نشد.");
-          walletContent.classList.add("admin-hidden");
-          walletEmptyState.classList.remove("admin-hidden");
-          return;
-        }
+    function openProductCreate() { closeProductEditBox(); productCreateBox.classList.remove("admin-hidden"); productCreateBox.innerHTML = productFormHtml({ show_price:true, in_stock:true, status:"draft", stock_label:"موجود", price_label:"تماس بگیرید" }); bindProductForm(productCreateBox); productCreateBox.scrollIntoView({ behavior:"smooth", block:"start" }); }
+    async function openProductEdit(id) { closeProductCreateBox(); const result = await api(`/api/admin/products/${encodeURIComponent(id)}`); if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "دریافت محصول انجام نشد."); return; } productEditBox.classList.remove("admin-hidden"); productEditBox.innerHTML = productFormHtml(result.data.product); bindProductForm(productEditBox, result.data.product); productEditBox.scrollIntoView({ behavior:"smooth", block:"start" }); }
+    async function deleteProduct(id) { if (!id) return; if (!window.confirm("آیا از حذف این محصول مطمئن هستی؟")) return; if (!window.confirm("حذف محصول و گالری تصاویر غیرقابل بازگشت است. ادامه می‌دهی؟")) return; const result = await api(`/api/admin/products/${encodeURIComponent(id)}`, { method:"DELETE" }); if (!result.ok || !result.data?.success) { setAdminMessage(result.data?.error || "حذف محصول انجام نشد."); return; } setAdminMessage(result.data.message || "محصول حذف شد.", "success"); closeProductCreateBox(); closeProductEditBox(); await loadProducts(); }
+    async function loadProducts() {
+      const tbody = document.getElementById("products-body");
+      if (!tbody) return;
+      const params = new URLSearchParams(); const search = document.getElementById("products-search").value.trim(); const category = document.getElementById("products-category").value; const status = document.getElementById("products-status").value;
+      if (search) params.set("search", search); if (category) params.set("category", category); if (status) params.set("status", status);
+      tbody.innerHTML = '<tr><td colspan="9">در حال دریافت محصولات...</td></tr>';
+      const result = await api(`/api/admin/products${params.toString() ? `?${params}` : ""}`);
+      if (!result.ok || !result.data?.success) { tbody.innerHTML = `<tr><td colspan="9">${esc(result.data?.error || "دریافت محصولات انجام نشد.")}</td></tr>`; return; }
+      const select = document.getElementById("products-category"); const oldCategory = select.value; select.innerHTML = '<option value="">همه دسته‌بندی‌ها</option>' + (result.data.categories || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(""); select.value = oldCategory;
+      const products = Array.isArray(result.data.products) ? result.data.products : [];
+      tbody.innerHTML = products.length ? products.map(product => { const img = product.primary_image || product.images?.[0]?.image_url || ""; return `<tr><td>${img ? `<img class="product-image-thumb" src="${esc(img)}" alt="${esc(product.name)}" onerror="this.outerHTML='<div class=product-empty-image>—</div>'" />` : '<div class="product-empty-image">—</div>'}</td><td class="table-number">${esc(product.id)}</td><td><strong>${esc(product.name)}</strong><br><small style="color:var(--muted)">${esc(product.slug)}</small></td><td>${esc(product.category || "—")}</td><td class="table-number">${product.show_price && product.price !== null ? `${money(product.price)} تومان` : esc(product.price_label || "تماس بگیرید")}</td><td>${Number(product.in_stock) || product.in_stock === true ? `<span class="status-badge status-badge--success">${esc(product.stock_label || "موجود")}</span><br><small>${money(product.stock_quantity || 0)} عدد</small>` : `<span class="status-badge status-badge--danger">${esc(product.stock_label || "ناموجود")}</span>`}</td><td>${productStatusBadge(product.status)}</td><td class="table-number">${formatDate(product.updated_at || product.created_at)}</td><td><div class="panel-actions" style="margin-top:0"><button class="btn btn-secondary" type="button" data-edit-product="${esc(product.id)}">ویرایش</button><button class="btn btn-secondary" type="button" data-delete-product="${esc(product.id)}">حذف</button></div></td></tr>`; }).join("") : '<tr><td colspan="9">محصولی پیدا نشد.</td></tr>';
+    }
 
-        const payload = result.data || {};
-        const user = payload.user || {};
-        const txs = payload.transactions || [];
-        currentWalletPayload = payload;
+    async function loadWalletUser() {
+      const userId = Number(document.getElementById("wallet-user-id").value || 0);
+      const limit = Number(document.getElementById("wallet-limit").value || 50);
 
-        walletEmptyState.classList.add("admin-hidden");
-        walletContent.classList.remove("admin-hidden");
-
-        renderWalletHero(user, txs);
-        renderWalletSummary(user, txs);
-        renderWalletUser(user);
-        renderWalletAdjust(user);
-        renderWalletSettings(payload.settings || {});
-        renderWalletHistory(txs);
+      if (!userId) {
+        setAdminMessage("شناسه کاربر را وارد کن.");
+        return;
       }
 
-      // ==========================================
-      // مدیریت تنظیمات فاکتور
-      // ==========================================
-      async function loadInvoiceSettings() {
-        try {
-          const response = await fetch('/api/admin/settings', {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' }
-          });
-          const data = await response.json().catch(() => null);
+      const result = await api(`/api/admin/wallet?user_id=${encodeURIComponent(userId)}&limit=${encodeURIComponent(limit)}`);
+      if (!result.ok || !result.data?.success) {
+        setAdminMessage(result.data?.error || "دریافت کیف پول انجام نشد.");
+        walletContent.classList.add("admin-hidden");
+        walletEmptyState.classList.remove("admin-hidden");
+        return;
+      }
 
-          if (!response.ok || !data?.success) {
-            return null;
-          }
+      const payload = result.data || {};
+      const user = payload.user || {};
+      const txs = payload.transactions || [];
+      currentWalletPayload = payload;
 
-          return data.settings || {};
-        } catch (_) {
+      walletEmptyState.classList.add("admin-hidden");
+      walletContent.classList.remove("admin-hidden");
+
+      renderWalletHero(user, txs);
+      renderWalletSummary(user, txs);
+      renderWalletUser(user);
+      renderWalletAdjust(user);
+      renderWalletSettings(payload.settings || {});
+      renderWalletHistory(txs);
+    }
+
+    // ==========================================
+    // مدیریت تنظیمات فاکتور
+    // ==========================================
+    async function loadInvoiceSettings() {
+      try {
+        const response = await fetch('/api/admin/settings', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' }
+        });
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.success) {
           return null;
         }
+
+        return data.settings || {};
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function saveInvoiceSettings() {
+      const payload = {
+        invoice_logo: document.getElementById('invoice-logo').value.trim(),
+        invoice_company_name: document.getElementById('invoice-company-name').value.trim(),
+        invoice_thankyou_text: document.getElementById('invoice-thankyou-text').value.trim(),
+        invoice_bank_account: document.getElementById('invoice-account').value.trim(),
+        invoice_card_number: document.getElementById('invoice-card').value.trim(),
+        invoice_sheba_number: document.getElementById('invoice-sheba').value.trim(),
+        invoice_payment_deadline: document.getElementById('invoice-deadline').value.trim(),
+        invoice_whatsapp_number: document.getElementById('invoice-whatsapp').value.trim(),
+        invoice_payment_description: document.getElementById('invoice-description').value.trim(),
+      };
+
+      try {
+        const response = await fetch('/api/admin/settings', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json().catch(() => null);
+
+        const msg = document.getElementById('invoice-settings-message');
+        if (!response.ok || !data?.success) {
+          msg.textContent = data?.error || 'ذخیره تنظیمات انجام نشد.';
+          msg.className = 'admin-message is-error';
+          return;
+        }
+
+        msg.textContent = 'تنظیمات فاکتور با موفقیت ذخیره شد.';
+        msg.className = 'admin-message is-success';
+        await loadInvoiceSettingsToForm();
+      } catch (_) {
+        const msg = document.getElementById('invoice-settings-message');
+        msg.textContent = 'خطا در ارتباط با سرور.';
+        msg.className = 'admin-message is-error';
+      }
+    }
+
+    async function loadInvoiceSettingsToForm() {
+      const settings = await loadInvoiceSettings();
+      if (!settings) return;
+
+      const fields = {
+        'invoice-logo': settings.invoice_logo || '',
+        'invoice-company-name': settings.invoice_company_name || 'تک تجارت',
+        'invoice-thankyou-text': settings.invoice_thankyou_text || '',
+        'invoice-account': settings.invoice_bank_account || '',
+        'invoice-card': settings.invoice_card_number || '',
+        'invoice-sheba': settings.invoice_sheba_number || '',
+        'invoice-deadline': settings.invoice_payment_deadline || '۲۴ ساعت',
+        'invoice-whatsapp': settings.invoice_whatsapp_number || '',
+        'invoice-description': settings.invoice_payment_description || '',
+      };
+
+      for (const [id, value] of Object.entries(fields)) {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+      }
+    }
+
+    // ==========================================
+    // مدیریت تب‌های حمل‌ونقل
+    // ==========================================
+    function setupShippingTabs() {
+      const tabs = document.querySelectorAll('[data-shipping-tab]');
+      const contents = {
+        methods: document.getElementById('shipping-tab-methods'),
+        costs: document.getElementById('shipping-tab-costs'),
+        free: document.getElementById('shipping-tab-free')
+      };
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('is-active'));
+          tab.classList.add('is-active');
+
+          Object.keys(contents).forEach(key => {
+            contents[key].classList.toggle('is-active', key === tab.dataset.shippingTab);
+          });
+
+          if (tab.dataset.shippingTab === 'methods') {
+            renderMethodsContent();
+          } else if (tab.dataset.shippingTab === 'costs') {
+            renderCostsContent();
+          } else if (tab.dataset.shippingTab === 'free') {
+            renderFreeContent();
+          }
+        });
+      });
+    }
+
+    function renderMethodsContent() {
+      const container = document.getElementById('shipping-tab-methods');
+      if (container && window.ShippingAdmin) {
+        if (typeof window.ShippingAdmin.renderMethods === 'function') {
+          window.ShippingAdmin.renderMethods(container);
+        }
+      }
+    }
+
+    function renderCostsContent() {
+      const container = document.getElementById('shipping-tab-costs');
+      if (container && window.ShippingAdmin) {
+        if (typeof window.ShippingAdmin.renderCosts === 'function') {
+          window.ShippingAdmin.renderCosts(container);
+        }
+      }
+    }
+
+    function renderFreeContent() {
+      const container = document.getElementById('shipping-tab-free');
+      if (container && window.ShippingAdmin) {
+        if (typeof window.ShippingAdmin.renderFree === 'function') {
+          window.ShippingAdmin.renderFree(container);
+        }
+      }
+    }
+
+    // ==========================================
+    // رویدادها - نسخه اصلاح‌شده با بررسی وجود عناصر
+    // ==========================================
+    document.addEventListener("DOMContentLoaded", function() {
+      
+      // دکمه‌های فیلتر
+      const ordersFilterBtn = document.getElementById("orders-filter-btn");
+      if (ordersFilterBtn) ordersFilterBtn.addEventListener("click", loadOrders);
+
+      const usersFilterBtn = document.getElementById("users-filter-btn");
+      if (usersFilterBtn) usersFilterBtn.addEventListener("click", loadUsers);
+
+      const walletLoadBtn = document.getElementById("wallet-load-btn");
+      if (walletLoadBtn) walletLoadBtn.addEventListener("click", loadWalletUser);
+
+      const showCreateUserBtn = document.getElementById("show-create-user-btn");
+      if (showCreateUserBtn) showCreateUserBtn.addEventListener("click", openUserCreate);
+
+      const showCreateProductBtn = document.getElementById("show-create-product-btn");
+      if (showCreateProductBtn) showCreateProductBtn.addEventListener("click", openProductCreate);
+
+      const productsFilterBtn = document.getElementById("products-filter-btn");
+      if (productsFilterBtn) productsFilterBtn.addEventListener("click", loadProducts);
+
+      // پنل‌های مدیریت
+      const adminPanels = document.querySelectorAll("[data-admin-panel]");
+      if (adminPanels && adminPanels.length) {
+        adminPanels.forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const panel = btn.getAttribute("data-admin-panel");
+            openAdminPanel(panel);
+
+            if (panel === "dashboard") await loadDashboard();
+            if (panel === "orders") await loadOrders();
+            if (panel === "users") await loadUsers();
+            if (panel === "invoice") await loadInvoiceSettingsToForm();
+            if (panel === "shipping") {
+              setupShippingTabs();
+              setTimeout(() => {
+                renderMethodsContent();
+              }, 100);
+            }
+          });
+        });
       }
 
-      async function saveInvoiceSettings() {
-        const payload = {
-          invoice_logo: document.getElementById('invoice-logo').value.trim(),
-          invoice_company_name: document.getElementById('invoice-company-name').value.trim(),
-          invoice_thankyou_text: document.getElementById('invoice-thankyou-text').value.trim(),
-          invoice_bank_account: document.getElementById('invoice-account').value.trim(),
-          invoice_card_number: document.getElementById('invoice-card').value.trim(),
-          invoice_sheba_number: document.getElementById('invoice-sheba').value.trim(),
-          invoice_payment_deadline: document.getElementById('invoice-deadline').value.trim(),
-          invoice_whatsapp_number: document.getElementById('invoice-whatsapp').value.trim(),
-          invoice_payment_description: document.getElementById('invoice-description').value.trim(),
-        };
-
-        try {
-          const response = await fetch('/api/admin/settings', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const data = await response.json().catch(() => null);
-
-          const msg = document.getElementById('invoice-settings-message');
-          if (!response.ok || !data?.success) {
-            msg.textContent = data?.error || 'ذخیره تنظیمات انجام نشد.';
-            msg.className = 'admin-message is-error';
+      // جدول سفارش‌ها
+      const ordersBody = document.getElementById("orders-body");
+      if (ordersBody) {
+        ordersBody.addEventListener("click", async (event) => {
+          const viewBtn = event.target.closest("[data-view-order]");
+          if (viewBtn) {
+            await loadOrderDetail(viewBtn.getAttribute("data-view-order"));
             return;
           }
 
-          msg.textContent = 'تنظیمات فاکتور با موفقیت ذخیره شد.';
-          msg.className = 'admin-message is-success';
-          await loadInvoiceSettingsToForm();
-        } catch (_) {
+          const deleteBtn = event.target.closest("[data-delete-order]");
+          if (deleteBtn) {
+            await deleteOrder(deleteBtn.getAttribute("data-delete-order"));
+          }
+        });
+      }
+
+      // جدول کاربران
+      const usersBody = document.getElementById("users-body");
+      if (usersBody) {
+        usersBody.addEventListener("click", async (event) => {
+          const editBtn = event.target.closest("[data-edit-user]");
+          if (editBtn) {
+            const user = JSON.parse(editBtn.getAttribute("data-edit-user"));
+            openUserEdit(user);
+            return;
+          }
+
+          const deleteBtn = event.target.closest("[data-delete-user]");
+          if (deleteBtn) {
+            const user = JSON.parse(deleteBtn.getAttribute("data-delete-user"));
+            await deleteUser(user);
+          }
+        });
+      }
+
+      // جدول محصولات
+      const productsBody = document.getElementById("products-body");
+      if (productsBody) {
+        productsBody.addEventListener("click", async (event) => {
+          const editBtn = event.target.closest("[data-edit-product]");
+          if (editBtn) { 
+            await openProductEdit(Number(editBtn.getAttribute("data-edit-product"))); 
+            return; 
+          }
+          const deleteBtn = event.target.closest("[data-delete-product]");
+          if (deleteBtn) await deleteProduct(Number(deleteBtn.getAttribute("data-delete-product")));
+        });
+      }
+
+      // تنظیمات فاکتور
+      document.addEventListener('click', function(event) {
+        if (event.target.id === 'save-invoice-settings-btn') {
+          saveInvoiceSettings();
+        }
+        if (event.target.id === 'load-invoice-settings-btn') {
+          loadInvoiceSettingsToForm();
           const msg = document.getElementById('invoice-settings-message');
-          msg.textContent = 'خطا در ارتباط با سرور.';
-          msg.className = 'admin-message is-error';
-        }
-      }
-
-      async function loadInvoiceSettingsToForm() {
-        const settings = await loadInvoiceSettings();
-        if (!settings) return;
-
-        const fields = {
-          'invoice-logo': settings.invoice_logo || '',
-          'invoice-company-name': settings.invoice_company_name || 'تک تجارت',
-          'invoice-thankyou-text': settings.invoice_thankyou_text || '',
-          'invoice-account': settings.invoice_bank_account || '',
-          'invoice-card': settings.invoice_card_number || '',
-          'invoice-sheba': settings.invoice_sheba_number || '',
-          'invoice-deadline': settings.invoice_payment_deadline || '۲۴ ساعت',
-          'invoice-whatsapp': settings.invoice_whatsapp_number || '',
-          'invoice-description': settings.invoice_payment_description || '',
-        };
-
-        for (const [id, value] of Object.entries(fields)) {
-          const el = document.getElementById(id);
-          if (el) el.value = value;
-        }
-      }
-
-      // ==========================================
-      // مدیریت تب‌های حمل‌ونقل
-      // ==========================================
-      function setupShippingTabs() {
-        const tabs = document.querySelectorAll('[data-shipping-tab]');
-        const contents = {
-          methods: document.getElementById('shipping-tab-methods'),
-          costs: document.getElementById('shipping-tab-costs'),
-          free: document.getElementById('shipping-tab-free')
-        };
-
-        tabs.forEach(tab => {
-          tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('is-active'));
-            tab.classList.add('is-active');
-
-            Object.keys(contents).forEach(key => {
-              contents[key].classList.toggle('is-active', key === tab.dataset.shippingTab);
-            });
-
-            if (tab.dataset.shippingTab === 'methods') {
-              renderMethodsContent();
-            } else if (tab.dataset.shippingTab === 'costs') {
-              renderCostsContent();
-            } else if (tab.dataset.shippingTab === 'free') {
-              renderFreeContent();
-            }
-          });
-        });
-      }
-
-      function renderMethodsContent() {
-        const container = document.getElementById('shipping-tab-methods');
-        if (container && window.ShippingAdmin) {
-          if (typeof window.ShippingAdmin.renderMethods === 'function') {
-            window.ShippingAdmin.renderMethods(container);
+          if (msg) {
+            msg.textContent = 'تنظیمات بارگذاری شد.';
+            msg.className = 'admin-message is-success';
+            setTimeout(() => { msg.className = 'admin-message'; }, 3000);
           }
         }
-      }
-
-      function renderCostsContent() {
-        const container = document.getElementById('shipping-tab-costs');
-        if (container && window.ShippingAdmin) {
-          if (typeof window.ShippingAdmin.renderCosts === 'function') {
-            window.ShippingAdmin.renderCosts(container);
-          }
-        }
-      }
-
-      function renderFreeContent() {
-        const container = document.getElementById('shipping-tab-free');
-        if (container && window.ShippingAdmin) {
-          if (typeof window.ShippingAdmin.renderFree === 'function') {
-            window.ShippingAdmin.renderFree(container);
-          }
-        }
-      }
-
-      // ==========================================
-      // رویدادها و بارگذاری اولیه
-      // ==========================================
-      document.addEventListener("DOMContentLoaded", function() {
-        const ordersFilterBtn = document.getElementById("orders-filter-btn");
-        if (ordersFilterBtn) ordersFilterBtn.addEventListener("click", loadOrders);
-
-        const usersFilterBtn = document.getElementById("users-filter-btn");
-        if (usersFilterBtn) usersFilterBtn.addEventListener("click", loadUsers);
-
-        const walletLoadBtn = document.getElementById("wallet-load-btn");
-        if (walletLoadBtn) walletLoadBtn.addEventListener("click", loadWalletUser);
-
-        const showCreateUserBtn = document.getElementById("show-create-user-btn");
-        if (showCreateUserBtn) showCreateUserBtn.addEventListener("click", openUserCreate);
-
-        const showCreateProductBtn = document.getElementById("show-create-product-btn");
-        if (showCreateProductBtn) showCreateProductBtn.addEventListener("click", openProductCreate);
-
-        const productsFilterBtn = document.getElementById("products-filter-btn");
-        if (productsFilterBtn) productsFilterBtn.addEventListener("click", loadProducts);
-
-        adminPanels.forEach((btn) => {
-          btn.addEventListener("click", function() {
-            const panel = this.getAttribute("data-admin-panel");
-
-            isScrolling = true;
-            clearTimeout(scrollTimeout);
-
-            openAdminPanel(panel, true, true);
-
-            scrollTimeout = setTimeout(() => {
-              isScrolling = false;
-            }, 800);
-          });
-        });
-
-        const ordersBody = document.getElementById("orders-body");
-        if (ordersBody) {
-          ordersBody.addEventListener("click", async (event) => {
-            const viewBtn = event.target.closest("[data-view-order]");
-            if (viewBtn) {
-              await loadOrderDetail(viewBtn.getAttribute("data-view-order"));
-              return;
-            }
-
-            const deleteBtn = event.target.closest("[data-delete-order]");
-            if (deleteBtn) {
-              await deleteOrder(deleteBtn.getAttribute("data-delete-order"));
-            }
-          });
-        }
-
-        const usersBody = document.getElementById("users-body");
-        if (usersBody) {
-          usersBody.addEventListener("click", async (event) => {
-            const editBtn = event.target.closest("[data-edit-user]");
-            if (editBtn) {
-              const user = JSON.parse(editBtn.getAttribute("data-edit-user"));
-              openUserEdit(user);
-              return;
-            }
-
-            const deleteBtn = event.target.closest("[data-delete-user]");
-            if (deleteBtn) {
-              const user = JSON.parse(deleteBtn.getAttribute("data-delete-user"));
-              await deleteUser(user);
-            }
-          });
-        }
-
-        const productsBody = document.getElementById("products-body");
-        if (productsBody) {
-          productsBody.addEventListener("click", async (event) => {
-            const editBtn = event.target.closest("[data-edit-product]");
-            if (editBtn) {
-              await openProductEdit(Number(editBtn.getAttribute("data-edit-product")));
-              return;
-            }
-            const deleteBtn = event.target.closest("[data-delete-product]");
-            if (deleteBtn) await deleteProduct(Number(deleteBtn.getAttribute("data-delete-product")));
-          });
-        }
-
-        document.addEventListener('click', function(event) {
-          if (event.target.id === 'save-invoice-settings-btn') {
-            saveInvoiceSettings();
-          }
-          if (event.target.id === 'load-invoice-settings-btn') {
-            loadInvoiceSettingsToForm();
-            const msg = document.getElementById('invoice-settings-message');
-            if (msg) {
-              msg.textContent = 'تنظیمات بارگذاری شد.';
-              msg.className = 'admin-message is-success';
-              setTimeout(() => { msg.className = 'admin-message'; }, 3000);
-            }
-          }
-        });
-
-        const walletQuickType = document.getElementById("wallet-quick-type");
-        if (walletQuickType) {
-          walletQuickType.addEventListener("change", () => {
-            if (currentWalletPayload?.transactions) {
-              renderWalletHistory(currentWalletPayload.transactions);
-            }
-          });
-        }
-
-        (async function() {
-          const adminUser = await window.Auth.requireAdmin({ redirectPath: "/admin.html" });
-          if (!adminUser) return;
-
-          window.Auth.fillUserFields(adminUser, {
-            nameSelector: "[data-user-full-name]",
-            roleSelector: "[data-user-role]"
-          });
-
-          await loadDashboard();
-          await loadInvoiceSettingsToForm();
-
-          window.Auth.bindLogoutButton({
-            buttonSelector: "[data-auth-logout]",
-            redirectAfterSuccess: "/index.html"
-          });
-
-          if (adminLoading) adminLoading.classList.add("admin-hidden");
-          if (adminApp) adminApp.classList.remove("admin-hidden");
-
-          if (window.ShippingAdmin && typeof window.ShippingAdmin.init === 'function') {
-            window.ShippingAdmin.init();
-          }
-
-          setupAdminScrollObserver();
-
-          window.addEventListener('resize', function() {
-            if (window.innerWidth > 820) {
-              if (observer) {
-                observer.disconnect();
-                observer = null;
-              }
-            } else {
-              setupAdminScrollObserver();
-            }
-          });
-
-          console.log("✅ Admin page loaded successfully");
-        })();
       });
-    })();
+
+      // کیف پول - فیلتر نوع
+      const walletQuickType = document.getElementById("wallet-quick-type");
+      if (walletQuickType) {
+        walletQuickType.addEventListener("change", () => {
+          if (currentWalletPayload?.transactions) {
+            renderWalletHistory(currentWalletPayload.transactions);
+          }
+        });
+      }
+
+      // ==========================================
+      // بارگذاری اولیه
+      // ==========================================
+      (async function() {
+        const adminUser = await window.Auth.requireAdmin({ redirectPath: "/admin.html" });
+        if (!adminUser) return;
+
+        window.Auth.fillUserFields(adminUser, {
+          nameSelector: "[data-user-full-name]",
+          roleSelector: "[data-user-role]"
+        });
+
+        await loadDashboard();
+        await loadInvoiceSettingsToForm();
+
+        window.Auth.bindLogoutButton({
+          buttonSelector: "[data-auth-logout]",
+          redirectAfterSuccess: "/index.html"
+        });
+
+        if (adminLoading) adminLoading.classList.add("admin-hidden");
+        if (adminApp) adminApp.classList.remove("admin-hidden");
+
+        if (window.ShippingAdmin && typeof window.ShippingAdmin.init === 'function') {
+          window.ShippingAdmin.init();
+        }
+
+        console.log("✅ Admin page loaded successfully");
+      })();
+    });
   </script>
 </body>
 </html>
