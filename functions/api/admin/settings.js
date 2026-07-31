@@ -1,31 +1,7 @@
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
+import { getCurrentUser, requireAdmin } from "../../lib/admin";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
-}
-
-async function getCurrentUser(context) {
-  const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie(cookieString, "session_id");
-
-  if (!sessionId) return null;
-
-  return await context.env.DB.prepare(`
-    SELECT id, full_name, email, phone, role
-    FROM users
-    WHERE id = (SELECT user_id FROM sessions WHERE id = ? LIMIT 1)
-    LIMIT 1
-  `).bind(sessionId).first();
-}
-
-function isAdmin(user) {
-  const role = String(user?.role || "").toLowerCase();
-  return role === "admin" || role === "super_admin";
 }
 
 function normalizeText(value) {
@@ -93,11 +69,8 @@ export async function onRequestGet(context) {
 // ============================================
 export async function onRequestPost(context) {
   try {
-    const user = await getCurrentUser(context);
-
-    if (!user || !isAdmin(user)) {
-      return json({ success: false, error: "unauthorized" }, 401);
-    }
+    const adminCheck = await requireAdmin(context);
+    if (!adminCheck.ok) return adminCheck.response;
 
     const body = await context.request.json().catch(() => null);
 
@@ -118,7 +91,7 @@ export async function onRequestPost(context) {
       'invoice_company_name',
       'invoice_company_phone',
       'invoice_company_address',
-      'allow_public_registration'  // تنظیم جدید اضافه شد
+      'allow_public_registration'
     ];
 
     const operations = [];

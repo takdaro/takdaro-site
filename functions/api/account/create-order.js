@@ -1,37 +1,7 @@
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
+import { getCurrentUser } from "../../lib/admin";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
-}
-
-async function getCurrentUser(context) {
-  const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie(cookieString, "session_id");
-
-  if (!sessionId) return null;
-
-  return await context.env.DB.prepare(`
-    SELECT
-      id,
-      full_name,
-      email,
-      phone,
-      role,
-      COALESCE(wallet_balance, 0) AS wallet_balance
-    FROM users
-    WHERE id = (
-      SELECT user_id
-      FROM sessions
-      WHERE id = ?
-      LIMIT 1
-    )
-    LIMIT 1
-  `).bind(sessionId).first();
 }
 
 function normalizeDigits(value) {
@@ -219,6 +189,9 @@ async function getCashbackSettings(db) {
   }
 }
 
+// ============================================
+// ✅ اصلاح شده: استفاده از جدول addresses
+// ============================================
 async function createOrUpdateAddress(context, user, address) {
   const fullName = normalizeText(address.full_name) || normalizeText(user.full_name);
   const addressLine = normalizeText(address.address_line);
@@ -227,17 +200,19 @@ async function createOrUpdateAddress(context, user, address) {
   const city = normalizeText(address.city);
   const state = normalizeText(address.state);
 
+  // بررسی وجود آدرس قبلی برای این کاربر
   const existingAddress = await context.env.DB.prepare(`
     SELECT id
-    FROM user_addresses
+    FROM addresses
     WHERE user_id = ?
     ORDER BY is_default DESC, id DESC
     LIMIT 1
   `).bind(user.id).first();
 
   if (existingAddress?.id) {
+    // به‌روزرسانی آدرس موجود
     await context.env.DB.prepare(`
-      UPDATE user_addresses
+      UPDATE addresses
       SET
         type = 'shipping',
         full_name = ?,
@@ -271,15 +246,17 @@ async function createOrUpdateAddress(context, user, address) {
     };
   }
 
+  // غیرفعال کردن آدرس‌های قبلی به عنوان پیش‌فرض
   await context.env.DB.prepare(`
-    UPDATE user_addresses
+    UPDATE addresses
     SET is_default = 0,
         updated_at = CURRENT_TIMESTAMP
     WHERE user_id = ?
   `).bind(user.id).run();
 
+  // ایجاد آدرس جدید
   const addressInsert = await context.env.DB.prepare(`
-    INSERT INTO user_addresses (
+    INSERT INTO addresses (
       user_id,
       type,
       full_name,
@@ -351,6 +328,9 @@ async function hasWalletUseTransaction(db, userId, orderId) {
   return !!row;
 }
 
+// ============================================
+// POST - ایجاد سفارش جدید
+// ============================================
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
@@ -532,7 +512,6 @@ export async function onRequestPost(context) {
       }
     }
 
-    // ✅ تغییر اصلی: برگرداندن شماره سفارش برای هدایت به صفحه تشکر
     return json({
       success: true,
       order: {

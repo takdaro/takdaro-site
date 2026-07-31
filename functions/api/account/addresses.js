@@ -1,28 +1,8 @@
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
+import { getCurrentUser } from "../../lib/admin";
 
 function normalizePhone(phone) {
   if (!phone) return null;
   return String(phone).trim().replace(/\s+/g, "");
-}
-
-async function getCurrentUser(request, env) {
-  const sessionId = getCookie(request.headers.get("cookie"), "session_id");
-  if (!sessionId) return null;
-
-  const row = await env.DB.prepare(`
-    SELECT users.id, users.email, users.full_name, users.phone
-    FROM sessions
-    JOIN users ON users.id = sessions.user_id
-    WHERE sessions.id = ?
-    LIMIT 1
-  `).bind(sessionId).first();
-
-  return row || null;
 }
 
 function json(data, status = 200) {
@@ -53,11 +33,15 @@ function validateAddressInput(data) {
   return null;
 }
 
+// ============================================
+// GET - دریافت لیست آدرس‌های کاربر
+// ============================================
 export async function onRequestGet(context) {
   try {
-    const user = await getCurrentUser(context.request, context.env);
+    const user = await getCurrentUser(context);
     if (!user) return json({ success: false, error: "Unauthorized" }, 401);
 
+    // توجه: جدول addresses است، نه user_addresses
     const result = await context.env.DB.prepare(`
       SELECT id, user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
       FROM addresses
@@ -71,9 +55,12 @@ export async function onRequestGet(context) {
   }
 }
 
+// ============================================
+// POST - ایجاد آدرس جدید
+// ============================================
 export async function onRequestPost(context) {
   try {
-    const user = await getCurrentUser(context.request, context.env);
+    const user = await getCurrentUser(context);
     if (!user) return json({ success: false, error: "Unauthorized" }, 401);
 
     const body = await context.request.json();
@@ -84,6 +71,7 @@ export async function onRequestPost(context) {
       return json({ success: false, error: validationError }, 400);
     }
 
+    // اگر آدرس جدید به عنوان پیش‌فرض انتخاب شده، آدرس‌های قبلی را غیرپیش‌فرض کن
     if (data.is_default === 1) {
       await context.env.DB.prepare(`
         UPDATE addresses
@@ -120,6 +108,132 @@ export async function onRequestPost(context) {
       : null;
 
     return json({ success: true, id: insertedId, address });
+  } catch (error) {
+    return json({ success: false, error: String(error?.message || error) }, 500);
+  }
+}
+
+// ============================================
+// PUT - ویرایش آدرس
+// ============================================
+export async function onRequestPut(context) {
+  try {
+    const user = await getCurrentUser(context);
+    if (!user) return json({ success: false, error: "Unauthorized" }, 401);
+
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get("id") || url.pathname.split("/").pop();
+
+    if (!id) {
+      return json({ success: false, error: "آدرس مورد نظر یافت نشد." }, 400);
+    }
+
+    const body = await context.request.json();
+    const data = normalizeAddressInput(body);
+    const validationError = validateAddressInput(data);
+
+    if (validationError) {
+      return json({ success: false, error: validationError }, 400);
+    }
+
+    // بررسی وجود آدرس
+    const existing = await context.env.DB.prepare(`
+      SELECT id FROM addresses WHERE id = ? AND user_id = ?
+    `).bind(id, user.id).first();
+
+    if (!existing) {
+      return json({ success: false, error: "آدرس مورد نظر یافت نشد." }, 404);
+    }
+
+    // اگر آدرس جدید به عنوان پیش‌فرض انتخاب شده، آدرس‌های قبلی را غیرپیش‌فرض کن
+    if (data.is_default === 1) {
+      await context.env.DB.prepare(`
+        UPDATE addresses
+        SET is_default = 0, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND id != ?
+      `).bind(user.id, id).run();
+    }
+
+    await context.env.DB.prepare(`
+      UPDATE addresses
+      SET
+        type = ?,
+        full_name = ?,
+        address_line = ?,
+        postal_code = ?,
+        phone = ?,
+        city = ?,
+        state = ?,
+        is_default = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ?
+    `).bind(
+      data.type,
+      data.full_name,
+      data.address_line,
+      data.postal_code,
+      data.phone,
+      data.city,
+      data.state,
+      data.is_default,
+      id,
+      user.id
+    ).run();
+
+    const updated = await context.env.DB.prepare(`
+      SELECT id, user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
+      FROM addresses
+      WHERE id = ? AND user_id = ?
+      LIMIT 1
+    `).bind(id, user.id).first();
+
+    return json({ success: true, address: updated });
+  } catch (error) {
+    return json({ success: false, error: String(error?.message || error) }, 500);
+  }
+}
+
+// ============================================
+// DELETE - حذف آدرس
+// ============================================
+export async function onRequestDelete(context) {
+  try {
+    const user = await getCurrentUser(context);
+    if (!user) return json({ success: false, error: "Unauthorized" }, 401);
+
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get("id") || url.pathname.split("/").pop();
+
+    if (!id) {
+      return json({ success: false, error: "آدرس مورد نظر یافت نشد." }, 400);
+    }
+
+    const existing = await context.env.DB.prepare(`
+      SELECT id, is_default FROM addresses WHERE id = ? AND user_id = ?
+    `).bind(id, user.id).first();
+
+    if (!existing) {
+      return json({ success: false, error: "آدرس مورد نظر یافت نشد." }, 404);
+    }
+
+    await context.env.DB.prepare(`
+      DELETE FROM addresses WHERE id = ? AND user_id = ?
+    `).bind(id, user.id).run();
+
+    // اگر آدرس حذف شده پیش‌فرض بود، یکی دیگر را پیش‌فرض کن
+    if (existing.is_default === 1) {
+      const nextDefault = await context.env.DB.prepare(`
+        SELECT id FROM addresses WHERE user_id = ? ORDER BY id DESC LIMIT 1
+      `).bind(user.id).first();
+
+      if (nextDefault) {
+        await context.env.DB.prepare(`
+          UPDATE addresses SET is_default = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+        `).bind(nextDefault.id).run();
+      }
+    }
+
+    return json({ success: true, message: "آدرس با موفقیت حذف شد." });
   } catch (error) {
     return json({ success: false, error: String(error?.message || error) }, 500);
   }

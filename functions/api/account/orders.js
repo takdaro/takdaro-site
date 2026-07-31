@@ -1,33 +1,18 @@
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
+import { getCurrentUser } from "../../lib/admin";
+
+function json(data, status = 200) {
+  return Response.json(data, { status });
 }
 
-async function getCurrentUserId(context) {
-  const cookieString = context.request.headers.get("Cookie") || "";
-  const sessionId = getCookie(cookieString, "session_id");
-
-  if (!sessionId) return null;
-
-  const session = await context.env.DB
-    .prepare("SELECT user_id FROM sessions WHERE id = ?")
-    .bind(sessionId)
-    .first();
-
-  return session?.user_id ?? null;
-}
-
+// ============================================
+// GET - دریافت لیست سفارش‌های کاربر
+// ============================================
 export async function onRequestGet(context) {
   try {
-    const userId = await getCurrentUserId(context);
+    const user = await getCurrentUser(context);
 
-    if (!userId) {
-      return Response.json(
-        { success: false, error: "unauthorized" },
-        { status: 401 }
-      );
+    if (!user) {
+      return json({ success: false, error: "unauthorized" }, 401);
     }
 
     const orders = await context.env.DB
@@ -36,26 +21,30 @@ export async function onRequestGet(context) {
           id,
           order_number,
           status,
+          payment_status,
           total_amount,
           shipping_amount,
-          discount_amount,
-          payment_status,
-          created_at
+          wallet_used_amount,
+          payable_amount,
+          cashback_amount,
+          cashback_status,
+          created_at,
+          updated_at
         FROM orders
         WHERE user_id = ?
         ORDER BY created_at DESC
       `)
-      .bind(userId)
+      .bind(user.id)
       .all();
 
-    return Response.json({
+    return json({
       success: true,
       orders: orders.results || []
     });
   } catch (error) {
-    return Response.json(
+    return json(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }

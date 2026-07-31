@@ -89,7 +89,6 @@
       box-shadow: inset 0 0 0 1px rgba(33, 158, 188, 0.08);
     }
 
-    /* ===== Reaction/Ripple Effect برای موبایل ===== */
     .account-menubtn::after {
       content: "";
       position: absolute;
@@ -864,15 +863,24 @@
                     <input type="email" id="account-email" name="email" autocomplete="email" />
                   </div>
 
+                  <!-- ==========================================
+                  فیلد جدید: رمز عبور فعلی (برای تغییر رمز)
+                  ========================================== -->
+                  <div class="form-field">
+                    <label for="account-current-password">رمز عبور فعلی <span style="color:var(--danger);">*</span></label>
+                    <input type="password" id="account-current-password" name="current_password" autocomplete="current-password" placeholder="برای تغییر رمز عبور، رمز فعلی را وارد کنید" />
+                    <span class="account-help">وارد کردن رمز عبور فعلی برای تغییر رمز عبور الزامی است.</span>
+                  </div>
+
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="account-password">رمز عبور جدید</label>
-                      <input type="password" id="account-password" name="password" autocomplete="new-password" />
+                      <input type="password" id="account-password" name="password" autocomplete="new-password" placeholder="حداقل ۶ کاراکتر" />
                     </div>
 
                     <div class="form-field">
                       <label for="account-password-confirm">تکرار رمز عبور جدید</label>
-                      <input type="password" id="account-password-confirm" name="password_confirm" autocomplete="new-password" />
+                      <input type="password" id="account-password-confirm" name="password_confirm" autocomplete="new-password" placeholder="تکرار رمز عبور جدید" />
                     </div>
                   </div>
 
@@ -1087,7 +1095,6 @@
       function animateTab(tabButton) {
         if (!tabButton) return;
 
-        // Ripple Effect
         const ripple = document.createElement('span');
         ripple.style.cssText = `
           position: absolute;
@@ -1115,7 +1122,6 @@
           ripple.remove();
         }, 600);
 
-        // Pulse effect on icon
         const icon = tabButton.querySelector('.account-menuicon');
         if (icon) {
           icon.style.transform = 'scale(1.15)';
@@ -1124,7 +1130,6 @@
           }, 300);
         }
 
-        // Small scale animation on the button
         tabButton.style.transform = 'scale(0.97)';
         setTimeout(() => {
           tabButton.style.transform = '';
@@ -1135,7 +1140,6 @@
       // 🔹 تابع اصلی تغییر Tab - فقط User Interaction باعث Animation می‌شود
       // ==========================================
       function switchPanel(target, animate = true, scroll = true) {
-        // به‌روزرسانی دکمه‌ها
         const buttons = document.querySelectorAll(".account-menubtn");
         buttons.forEach((button) => {
           const isTarget = button.dataset.panelTarget === target;
@@ -1143,7 +1147,6 @@
           button.setAttribute("aria-selected", isTarget ? "true" : "false");
         });
 
-        // به‌روزرسانی بخش‌ها
         const sections = document.querySelectorAll(".account-section");
         let targetSection = null;
         sections.forEach((section) => {
@@ -1152,7 +1155,6 @@
           if (isTarget) targetSection = section;
         });
 
-        // انیمیشن Reaction - فقط در صورت درخواست (User Interaction)
         if (animate) {
           const activeButton = document.querySelector(`.account-menubtn[data-panel-target="${target}"]`);
           if (activeButton) {
@@ -1160,40 +1162,15 @@
           }
         }
 
-        // به‌روزرسانی عنوان و توضیحات
         const headings = {
-          dashboard: {
-            title: "داشبورد",
-            description: "نمای کلی حساب کاربری و وضعیت فعالیت‌هایت را اینجا می‌بینی."
-          },
-          orders: {
-            title: "سفارش‌ها",
-            description: "فهرست سفارش‌های ثبت‌شده و وضعیت هر سفارش در این بخش قرار دارد."
-          },
-          addresses: {
-            title: "آدرس‌ها",
-            description: "آدرس‌های ارسال و صورتحساب ذخیره‌شده را از این بخش مدیریت کن."
-          },
-          payments: {
-            title: "پرداخت‌ها",
-            description: "مرور وضعیت پرداخت‌ها و دسترسی به فاکتورهای سفارش از این بخش انجام می‌شود."
-          },
-          wallet: {
-            title: "کیف پول",
-            description: "موجودی فعلی کیف پول و اعتبار حساب را اینجا مشاهده می‌کنی."
-          },
-          "wallet-history": {
-            title: "تاریخچه کیف پول",
-            description: "سوابق تراکنش‌های مربوط به کیف پول در این قسمت نشان داده می‌شود."
-          },
-          "account-details": {
-            title: "جزئیات حساب",
-            description: "نام، ایمیل، شماره تماس و رمز عبور خود را به‌روزرسانی کن."
-          },
-          logout: {
-            title: "خروج",
-            description: "برای خروج امن از حساب کاربری از این بخش استفاده کن."
-          }
+          dashboard: { title: "داشبورد", description: "نمای کلی حساب کاربری و وضعیت فعالیت‌هایت را اینجا می‌بینی." },
+          orders: { title: "سفارش‌ها", description: "فهرست سفارش‌های ثبت‌شده و وضعیت هر سفارش در این بخش قرار دارد." },
+          addresses: { title: "آدرس‌ها", description: "آدرس‌های ارسال و صورتحساب ذخیره‌شده را از این بخش مدیریت کن." },
+          payments: { title: "پرداخت‌ها", description: "مرور وضعیت پرداخت‌ها و دسترسی به فاکتورهای سفارش از این بخش انجام می‌شود." },
+          wallet: { title: "کیف پول", description: "موجودی فعلی کیف پول و اعتبار حساب را اینجا مشاهده می‌کنی." },
+          "wallet-history": { title: "تاریخچه کیف پول", description: "سوابق تراکنش‌های مربوط به کیف پول در این قسمت نشان داده می‌شود." },
+          "account-details": { title: "جزئیات حساب", description: "نام، ایمیل، شماره تماس و رمز عبور خود را به‌روزرسانی کن." },
+          logout: { title: "خروج", description: "برای خروج امن از حساب کاربری از این بخش استفاده کن." }
         };
 
         const panelMeta = headings[target] || headings.dashboard;
@@ -1203,7 +1180,6 @@
         if (heading) heading.textContent = panelMeta.title;
         if (description) description.textContent = panelMeta.description;
 
-        // اسکرول نرم - فقط در صورت درخواست (User Interaction)
         if (scroll && targetSection) {
           setTimeout(() => {
             smoothScrollToPanel(targetSection);
@@ -1255,7 +1231,6 @@
             const currentActive = document.querySelector('.account-menubtn.is-active');
             const currentTarget = currentActive ? currentActive.dataset.panelTarget : null;
             if (currentTarget !== visibleTarget) {
-              // هنگام اسکرول دستی، انیمیشن و اسکرول خودکار اجرا نشود
               switchPanel(visibleTarget, false, false);
             }
           }
@@ -1521,7 +1496,6 @@
           accountPage.classList.remove("account-hidden");
         }
 
-        // راه‌اندازی Observer برای هماهنگی Tab با Scroll
         setupScrollObserver();
 
         window.addEventListener('resize', function() {
@@ -1545,13 +1519,9 @@
         button.addEventListener("click", function (event) {
           const target = this.dataset.panelTarget || "dashboard";
 
-          // ❌ اگر Animation ناشی از کلیک کاربر نباشد، اجرا نشود
-          // این رویداد همیشه کلیک کاربر است، پس Animation اجرا می‌شود
-
           isScrolling = true;
           clearTimeout(scrollTimeout);
 
-          // ✅ فقط در اینجا (کلیک کاربر) Animation و Scroll اجرا می‌شود
           switchPanel(target, true, true);
 
           scrollTimeout = setTimeout(() => {
@@ -1570,11 +1540,18 @@
             full_name: String(formData.get("full_name") || "").trim(),
             phone: String(formData.get("phone") || "").trim(),
             email: String(formData.get("email") || "").trim(),
+            current_password: String(formData.get("current_password") || ""),
             password: String(formData.get("password") || ""),
             password_confirm: String(formData.get("password_confirm") || "")
           };
 
+          // اگر رمز عبور جدید وارد شده، باید رمز فعلی هم وارد شود
           if (payload.password || payload.password_confirm) {
+            if (!payload.current_password) {
+              setFormMessage("error", "برای تغییر رمز عبور، رمز عبور فعلی را وارد کنید.");
+              return;
+            }
+
             if (payload.password.length < 6) {
               setFormMessage("error", "رمز عبور جدید باید حداقل ۶ کاراکتر باشد.");
               return;
@@ -1596,9 +1573,11 @@
 
             setFormMessage("success", "اطلاعات حساب با موفقیت به‌روزرسانی شد.");
 
+            const currentPasswordInput = document.getElementById("account-current-password");
             const passwordInput = document.getElementById("account-password");
             const confirmInput = document.getElementById("account-password-confirm");
 
+            if (currentPasswordInput) currentPasswordInput.value = "";
             if (passwordInput) passwordInput.value = "";
             if (confirmInput) confirmInput.value = "";
 
@@ -1618,9 +1597,8 @@
       document.addEventListener("click", async function (event) {
         const logoutButton = event.target.closest("[data-account-logout]");
         if (logoutButton && window.Auth && typeof window.Auth.logout === "function") {
-          await window.Auth.logout({
-            redirectAfterSuccess: "/index.html"
-          });
+          await window.Auth.logout();
+          window.location.href = "/index.html";
           return;
         }
 
@@ -1649,13 +1627,10 @@
       });
 
       // ==========================================
-      // راه‌اندازی - بدون Animation خودکار
+      // راه‌اندازی
       // ==========================================
       document.addEventListener("DOMContentLoaded", async function () {
         await bootAccount();
-
-        // ❌ حذف کد اسکرول خودکار هنگام ورود به صفحه
-        // دیگر هیچ اسکرول خودکاری در Page Load انجام نمی‌شود
       });
     })();
   </script>

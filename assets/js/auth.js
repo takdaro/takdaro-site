@@ -66,6 +66,9 @@
     return request(endpoints.profile, { method: "GET" });
   }
 
+  // ==========================================
+  // ✅ اصلاح شده: اضافه کردن current_password
+  // ==========================================
   async function updateProfile(payload) {
     return request(endpoints.profile, {
       method: "POST",
@@ -73,6 +76,7 @@
         full_name: String(payload.full_name || "").trim(),
         email: String(payload.email || "").trim(),
         phone: String(payload.phone || "").trim(),
+        current_password: String(payload.current_password || ""), // ✅ اضافه شد
         password: String(payload.password || ""),
         password_confirm: String(payload.password_confirm || "")
       })

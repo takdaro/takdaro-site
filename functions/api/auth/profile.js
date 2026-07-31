@@ -1,68 +1,51 @@
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  if (!target) return null;
-  return target.slice(key.length + 1);
+import { getCurrentUser } from "../../lib/admin";
+import { hashPassword, verifyPassword } from "../../lib/password";
+
+function json(data, status = 200) {
+  return Response.json(data, { status });
 }
 
-async function getCurrentUserId(context) {
-  const cookieString = context.request.headers.get("Cookie") || "";
-  const sessionId = getCookie(cookieString, "session_id");
-  if (!sessionId) return null;
-
-  const session = await context.env.DB
-    .prepare("SELECT user_id FROM sessions WHERE id = ?")
-    .bind(sessionId)
-    .first();
-
-  return session?.user_id ?? null;
-}
-
-async function sha256(text) {
-  const data = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hashBuffer)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
+// ============================================
+// GET - دریافت اطلاعات پروفایل کاربر
+// ============================================
 export async function onRequestGet(context) {
   try {
-    const userId = await getCurrentUserId(context);
-
-    if (!userId) {
-      return Response.json({ success: false, error: "unauthorized" }, { status: 401 });
-    }
-
-    const user = await context.env.DB
-      .prepare(`
-        SELECT id, full_name, email, phone, created_at, updated_at
-        FROM users
-        WHERE id = ?
-      `)
-      .bind(userId)
-      .first();
+    const user = await getCurrentUser(context);
 
     if (!user) {
-      return Response.json({ success: false, error: "user not found" }, { status: 404 });
+      return json({ success: false, error: "unauthorized" }, 401);
     }
 
-    return Response.json({ success: true, user });
+    return json({
+      success: true,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        wallet_balance: user.wallet_balance,
+        created_at: user.created_at,
+        updated_at: user.updated_at
+      }
+    });
   } catch (error) {
-    return Response.json(
+    return json(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }
 
+// ============================================
+// POST - به‌روزرسانی پروفایل کاربر
+// ============================================
 export async function onRequestPost(context) {
   try {
-    const userId = await getCurrentUserId(context);
+    const user = await getCurrentUser(context);
 
-    if (!userId) {
-      return Response.json({ success: false, error: "unauthorized" }, { status: 401 });
+    if (!user) {
+      return json({ success: false, error: "unauthorized" }, 401);
     }
 
     const body = await context.request.json();
@@ -70,80 +53,124 @@ export async function onRequestPost(context) {
     const full_name = String(body.full_name ?? body.name ?? "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
+    const current_password = String(body.current_password || "");
     const password = String(body.password || "");
     const password_confirm = String(body.password_confirm || "");
 
+    // اعتبارسنجی
     if (!full_name || !email) {
-      return Response.json(
+      return json(
         { success: false, error: "full_name and email required" },
-        { status: 400 }
+        400
       );
     }
 
+    // بررسی ایمیل تکراری
+    const existingUser = await context.env.DB
+      .prepare("SELECT id FROM users WHERE email = ? AND id != ?")
+      .bind(email, user.id)
+      .first();
+
+    if (existingUser) {
+      return json(
+        { success: false, error: "email already exists" },
+        409
+      );
+    }
+
+    // ============================================
+    // تغییر رمز عبور
+    // ============================================
     if (password) {
+      // اگر رمز فعلی وارد نشده باشد
+      if (!current_password) {
+        return json(
+          { success: false, error: "برای تغییر رمز عبور، رمز فعلی را وارد کنید." },
+          400
+        );
+      }
+
+      // دریافت رمز فعلی از دیتابیس
+      const currentUser = await context.env.DB
+        .prepare("SELECT password_hash FROM users WHERE id = ?")
+        .bind(user.id)
+        .first();
+
+      if (!currentUser) {
+        return json(
+          { success: false, error: "کاربر یافت نشد." },
+          404
+        );
+      }
+
+      // بررسی رمز فعلی
+      const isPasswordValid = await verifyPassword(current_password, currentUser.password_hash);
+      
+      if (!isPasswordValid) {
+        return json(
+          { success: false, error: "رمز عبور فعلی اشتباه است." },
+          400
+        );
+      }
+
+      // اعتبارسنجی رمز جدید
       if (password.length < 6) {
-        return Response.json(
-          { success: false, error: "password must be at least 6 characters" },
-          { status: 400 }
+        return json(
+          { success: false, error: "رمز عبور جدید باید حداقل 6 کاراکتر باشد." },
+          400
         );
       }
 
       if (password !== password_confirm) {
-        return Response.json(
-          { success: false, error: "password confirmation does not match" },
-          { status: 400 }
+        return json(
+          { success: false, error: "رمز عبور و تکرار آن یکسان نیست." },
+          400
         );
       }
-    }
 
-    const existingUser = await context.env.DB
-      .prepare("SELECT id FROM users WHERE email = ? AND id != ?")
-      .bind(email, userId)
-      .first();
+      // هش کردن رمز جدید با روش استاندارد
+      const newPasswordHash = await hashPassword(password);
 
-    if (existingUser) {
-      return Response.json(
-        { success: false, error: "email already exists" },
-        { status: 409 }
-      );
-    }
-
-    if (password) {
-      const password_hash = await sha256(password);
-
+      // به‌روزرسانی با رمز جدید
       await context.env.DB
         .prepare(`
           UPDATE users
           SET full_name = ?, email = ?, phone = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
         `)
-        .bind(full_name, email, phone || null, password_hash, userId)
+        .bind(full_name, email, phone || null, newPasswordHash, user.id)
         .run();
     } else {
+      // به‌روزرسانی بدون تغییر رمز
       await context.env.DB
         .prepare(`
           UPDATE users
           SET full_name = ?, email = ?, phone = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
         `)
-        .bind(full_name, email, phone || null, userId)
+        .bind(full_name, email, phone || null, user.id)
         .run();
     }
 
-    const user = await context.env.DB
+    // دریافت اطلاعات به‌روز شده
+    const updatedUser = await context.env.DB
       .prepare(`
-        SELECT id, full_name, email, phone, created_at, updated_at
+        SELECT id, full_name, email, phone, role, wallet_balance, created_at, updated_at
         FROM users
         WHERE id = ?
       `)
-      .bind(userId)
+      .bind(user.id)
       .first();
 
-    return Response.json({ success: true, user });
+    return json({
+      success: true,
+      message: "پروفایل با موفقیت به‌روزرسانی شد.",
+      user: updatedUser
+    });
   } catch (error) {
-    return Response.json(
+    return json(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }
