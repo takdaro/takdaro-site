@@ -940,6 +940,7 @@
       let isScrolling = false;
       let scrollTimeout = null;
       let observer = null;
+      let isInitialLoad = true;
 
       // ==========================================
       // توابع کمکی
@@ -1055,7 +1056,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع جدید برای محاسبه Offset Header
+      // 🔹 تابع برای محاسبه Offset Header
       // ==========================================
       function getHeaderOffset() {
         const header = document.querySelector('.site-header');
@@ -1065,7 +1066,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع جدید برای اسکرول نرم به بخش
+      // 🔹 تابع برای اسکرول نرم به بخش - فقط برای User Interaction
       // ==========================================
       function smoothScrollToPanel(panelElement) {
         if (!panelElement) return;
@@ -1081,7 +1082,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع جدید برای انیمیشن Reaction Tab
+      // 🔹 تابع برای انیمیشن Reaction Tab - فقط برای User Interaction
       // ==========================================
       function animateTab(tabButton) {
         if (!tabButton) return;
@@ -1104,14 +1105,12 @@
         tabButton.style.overflow = 'hidden';
         tabButton.appendChild(ripple);
 
-        // Force reflow
         void ripple.offsetWidth;
 
         ripple.style.width = '200px';
         ripple.style.height = '200px';
         ripple.style.opacity = '0';
 
-        // Cleanup
         setTimeout(() => {
           ripple.remove();
         }, 600);
@@ -1133,7 +1132,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع اصلی تغییر Tab - نسخه بهبودیافته
+      // 🔹 تابع اصلی تغییر Tab - فقط User Interaction باعث Animation می‌شود
       // ==========================================
       function switchPanel(target, animate = true, scroll = true) {
         // به‌روزرسانی دکمه‌ها
@@ -1153,7 +1152,7 @@
           if (isTarget) targetSection = section;
         });
 
-        // انیمیشن Reaction
+        // انیمیشن Reaction - فقط در صورت درخواست (User Interaction)
         if (animate) {
           const activeButton = document.querySelector(`.account-menubtn[data-panel-target="${target}"]`);
           if (activeButton) {
@@ -1204,9 +1203,8 @@
         if (heading) heading.textContent = panelMeta.title;
         if (description) description.textContent = panelMeta.description;
 
-        // اسکرول نرم به بخش
+        // اسکرول نرم - فقط در صورت درخواست (User Interaction)
         if (scroll && targetSection) {
-          // تأخیر کوچک برای اجازه دادن به انیمیشن
           setTimeout(() => {
             smoothScrollToPanel(targetSection);
           }, 150);
@@ -1214,13 +1212,11 @@
       }
 
       // ==========================================
-      // 🔹 تابع جدید برای هماهنگی Tab با Scroll
+      // 🔹 تابع برای هماهنگی Tab با Scroll
       // ==========================================
       function setupScrollObserver() {
-        // فقط در موبایل و تبلت فعال شود
         if (window.innerWidth > 820) return;
 
-        // اگر observer قبلی وجود دارد، آن را لغو کن
         if (observer) {
           observer.disconnect();
           observer = null;
@@ -1240,7 +1236,6 @@
         if (Object.keys(sectionMap).length === 0) return;
 
         observer = new IntersectionObserver((entries) => {
-          // فقط در صورتی که اسکرول دستی باشد (نه اسکرول نرم)
           if (isScrolling) return;
 
           let visibleTarget = null;
@@ -1260,6 +1255,7 @@
             const currentActive = document.querySelector('.account-menubtn.is-active');
             const currentTarget = currentActive ? currentActive.dataset.panelTarget : null;
             if (currentTarget !== visibleTarget) {
+              // هنگام اسکرول دستی، انیمیشن و اسکرول خودکار اجرا نشود
               switchPanel(visibleTarget, false, false);
             }
           }
@@ -1268,7 +1264,6 @@
           rootMargin: '0px 0px -50px 0px'
         });
 
-        // اضافه کردن همه بخش‌ها به observer
         Object.values(sectionMap).forEach((section) => {
           if (section) observer.observe(section);
         });
@@ -1493,7 +1488,7 @@
       }
 
       // ==========================================
-      // مقداردهی اولیه حساب
+      // مقداردهی اولیه حساب - بدون Animation خودکار
       // ==========================================
       async function bootAccount() {
         if (!window.Auth || typeof window.Auth.requireAuth !== "function") {
@@ -1529,7 +1524,6 @@
         // راه‌اندازی Observer برای هماهنگی Tab با Scroll
         setupScrollObserver();
 
-        // راه‌اندازی observer مجدد در هنگام تغییر اندازه
         window.addEventListener('resize', function() {
           if (window.innerWidth > 820) {
             if (observer) {
@@ -1540,22 +1534,26 @@
             setupScrollObserver();
           }
         });
+
+        isInitialLoad = false;
       }
 
       // ==========================================
       // رویدادها
       // ==========================================
       document.querySelectorAll(".account-menubtn").forEach((button) => {
-        button.addEventListener("click", function () {
+        button.addEventListener("click", function (event) {
           const target = this.dataset.panelTarget || "dashboard";
 
-          // تنظیم پرچم اسکرول برای جلوگیری از تداخل Observer
+          // ❌ اگر Animation ناشی از کلیک کاربر نباشد، اجرا نشود
+          // این رویداد همیشه کلیک کاربر است، پس Animation اجرا می‌شود
+
           isScrolling = true;
           clearTimeout(scrollTimeout);
 
+          // ✅ فقط در اینجا (کلیک کاربر) Animation و Scroll اجرا می‌شود
           switchPanel(target, true, true);
 
-          // بازنشانی پرچم بعد از اتمام اسکرول
           scrollTimeout = setTimeout(() => {
             isScrolling = false;
           }, 800);
@@ -1650,27 +1648,14 @@
         }
       });
 
-      // راه‌اندازی
+      // ==========================================
+      // راه‌اندازی - بدون Animation خودکار
+      // ==========================================
       document.addEventListener("DOMContentLoaded", async function () {
         await bootAccount();
 
-        // اگر در موبایل هستیم و صفحه بارگذاری شده، به بخش پیش‌فرض اسکرول کن
-        if (window.innerWidth <= 820) {
-          setTimeout(function() {
-            const defaultSection = document.querySelector('.account-section.is-active');
-            if (defaultSection) {
-              const offset = getHeaderOffset();
-              const elementPosition = defaultSection.getBoundingClientRect().top;
-              const offsetPosition = elementPosition + window.pageYOffset - offset;
-              if (offsetPosition > 0) {
-                window.scrollTo({
-                  top: offsetPosition,
-                  behavior: 'smooth'
-                });
-              }
-            }
-          }, 300);
-        }
+        // ❌ حذف کد اسکرول خودکار هنگام ورود به صفحه
+        // دیگر هیچ اسکرول خودکاری در Page Load انجام نمی‌شود
       });
     })();
   </script>
