@@ -24,9 +24,9 @@
     .admin-sidebar,
     .admin-panel {
       background: #fff;
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border);
       border-radius: 24px;
-      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
       min-width: 0;
     }
@@ -34,23 +34,23 @@
     .admin-sidebar-head,
     .admin-panel-head {
       padding: 24px;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid var(--border);
       background:
-        radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 35%),
+        radial-gradient(circle at top right, rgba(33, 158, 188, 0.06), transparent 35%),
         linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }
 
     .admin-sidebar-head h3,
     .admin-panel-head h3 {
       margin: 0 0 8px;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1.08rem;
     }
 
     .admin-sidebar-head p,
     .admin-panel-head p {
       margin: 0;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.92rem;
       line-height: 1.9;
     }
@@ -71,10 +71,10 @@
       justify-content: space-between;
       gap: 12px;
       padding: 14px 16px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       border-radius: 16px;
       background: #fff;
-      color: #334155;
+      color: var(--text-soft);
       font: inherit;
       font-weight: 700;
       cursor: pointer;
@@ -82,15 +82,15 @@
     }
 
     .admin-menu-btn:hover {
-      border-color: rgba(16, 185, 129, 0.25);
+      border-color: rgba(33, 158, 188, 0.25);
       background: #f0fdf4;
-      color: #047857;
+      color: var(--success);
     }
 
     .admin-menu-btn.is-active {
-      background: #ecfdf5;
-      border-color: #a7f3d0;
-      color: #047857;
+      background: rgba(33, 158, 188, 0.08);
+      border-color: rgba(33, 158, 188, 0.2);
+      color: var(--secondary);
     }
 
     .admin-chip {
@@ -100,8 +100,8 @@
       margin-top: 12px;
       padding: 10px 14px;
       border-radius: 999px;
-      background: #ecfdf5;
-      color: #047857;
+      background: rgba(33, 158, 188, 0.08);
+      color: var(--secondary);
       font-size: 0.9rem;
       font-weight: 700;
       flex-wrap: wrap;
@@ -133,15 +133,15 @@
 
     .admin-message.is-success {
       display: block;
-      background: #ecfdf5;
-      color: #047857;
+      background: var(--secondary-soft);
+      color: var(--success);
       border: 1px solid #bbf7d0;
     }
 
     .admin-message.is-error {
       display: block;
       background: #fef2f2;
-      color: #b91c1c;
+      color: var(--danger);
       border: 1px solid #fecaca;
     }
 
@@ -154,8 +154,8 @@
     }
 
     .stat-card {
-      background: #f8fafc;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
       border-radius: 20px;
       padding: 18px;
       min-width: 0;
@@ -163,13 +163,13 @@
 
     .stat-card span {
       display: block;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.88rem;
       margin-bottom: 10px;
     }
 
     .stat-card strong {
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1.2rem;
       font-variant-numeric: tabular-nums;
       word-break: break-word;
@@ -209,7 +209,7 @@
 
     .form-field label {
       font-weight: 700;
-      color: #334155;
+      color: var(--text-soft);
       font-size: 0.94rem;
     }
 
@@ -218,16 +218,25 @@
     .form-field textarea {
       width: 100%;
       min-width: 0;
-      border: 1px solid #dbe2ea;
+      border: 1px solid var(--border);
       border-radius: 16px;
       background: #fff;
       padding: 14px 16px;
       font: inherit;
+      color: var(--text);
+    }
+
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 4px rgba(33, 158, 188, 0.08);
     }
 
     .table-wrap {
       overflow-x: auto;
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border);
       border-radius: 20px;
       background: #fff;
       max-width: 100%;
@@ -243,14 +252,14 @@
     .admin-table td {
       padding: 14px 12px;
       text-align: right;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid var(--border);
       vertical-align: middle;
       font-size: 0.92rem;
     }
 
     .admin-table th {
-      background: #f8fafc;
-      color: #334155;
+      background: var(--surface-2);
+      color: var(--text-soft);
       white-space: nowrap;
     }
 
@@ -276,10 +285,10 @@
       max-width: 100%;
     }
 
-    .status-badge--success { background: #ecfdf5; color: #047857; }
-    .status-badge--warning { background: #fff7ed; color: #c2410c; }
-    .status-badge--info { background: #eff6ff; color: #1d4ed8; }
-    .status-badge--danger { background: #fef2f2; color: #b91c1c; }
+    .status-badge--success { background: var(--secondary-soft); color: var(--success); }
+    .status-badge--warning { background: #fff7ed; color: var(--warning); }
+    .status-badge--info { background: rgba(33, 158, 188, 0.08); color: var(--secondary); }
+    .status-badge--danger { background: #fef2f2; color: var(--danger); }
 
     .panel-actions {
       display: flex;
@@ -289,7 +298,7 @@
     }
 
     .detail-card {
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       border-radius: 20px;
       background: #fff;
       padding: 18px;
@@ -299,13 +308,13 @@
 
     .detail-card h4 {
       margin: 0 0 10px;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1rem;
     }
 
     .detail-card p {
       margin: 0;
-      color: #64748b;
+      color: var(--muted);
       line-height: 1.9;
       font-size: 0.92rem;
       word-break: break-word;
@@ -314,16 +323,16 @@
     .admin-loading {
       padding: 18px;
       border-radius: 18px;
-      background: #ecfdf5;
-      color: #047857;
-      border: 1px solid #a7f3d0;
+      background: rgba(33, 158, 188, 0.08);
+      color: var(--secondary);
+      border: 1px solid rgba(33, 158, 188, 0.16);
       margin-bottom: 18px;
       line-height: 1.9;
     }
 
     .admin-help {
       margin-top: 6px;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.86rem;
       line-height: 1.8;
     }
@@ -348,12 +357,12 @@
     }
 
     .wallet-empty {
-      border: 1px dashed rgba(15, 23, 42, 0.12);
+      border: 1px dashed var(--border);
       border-radius: 20px;
-      background: #f8fafc;
+      background: var(--surface-2);
       padding: 28px 20px;
       text-align: center;
-      color: #64748b;
+      color: var(--muted);
       line-height: 2;
     }
 
@@ -377,8 +386,8 @@
       padding: 22px;
       border-radius: 24px;
       background:
-        radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 38%),
-        linear-gradient(135deg, #0f172a 0%, #111827 55%, #064e3b 100%);
+        radial-gradient(circle at top left, rgba(33, 158, 188, 0.18), transparent 38%),
+        linear-gradient(135deg, var(--primary) 0%, #1a4a5a 55%, #064e3b 100%);
       color: #fff;
       min-height: 220px;
       display: flex;
@@ -477,7 +486,7 @@
     }
 
     .wallet-mini-card {
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       border-radius: 22px;
       padding: 18px;
       background: #fff;
@@ -487,14 +496,14 @@
 
     .wallet-mini-card span {
       display: block;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.86rem;
       margin-bottom: 10px;
     }
 
     .wallet-mini-card strong {
       display: block;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1.15rem;
       font-variant-numeric: tabular-nums;
       word-break: break-word;
@@ -503,7 +512,7 @@
     .wallet-mini-card small {
       display: block;
       margin-top: 8px;
-      color: #94a3b8;
+      color: var(--muted-2);
       font-size: 0.8rem;
       line-height: 1.8;
       word-break: break-word;
@@ -521,7 +530,7 @@
     .wallet-adjust-card,
     .wallet-history-card,
     .wallet-settings-card {
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       border-radius: 22px;
       background: #fff;
       padding: 20px;
@@ -530,7 +539,7 @@
     }
 
     .wallet-user-card {
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      background: linear-gradient(180deg, #ffffff 0%, var(--surface-2) 100%);
     }
 
     .wallet-user-head {
@@ -548,14 +557,14 @@
 
     .wallet-user-name {
       font-size: 1.1rem;
-      color: #0f172a;
+      color: var(--primary);
       margin: 0 0 6px;
       font-weight: 800;
       word-break: break-word;
     }
 
     .wallet-user-email {
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.9rem;
       margin: 0;
       word-break: break-word;
@@ -571,7 +580,7 @@
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      border-bottom: 1px dashed rgba(15, 23, 42, 0.08);
+      border-bottom: 1px dashed var(--border);
       padding-bottom: 10px;
       min-width: 0;
     }
@@ -582,13 +591,13 @@
     }
 
     .wallet-user-row span {
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.88rem;
       min-width: 0;
     }
 
     .wallet-user-row strong {
-      color: #0f172a;
+      color: var(--primary);
       font-size: 0.9rem;
       font-weight: 800;
       text-align: left;
@@ -609,13 +618,13 @@
 
     .wallet-card-head h4 {
       margin: 0;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1rem;
     }
 
     .wallet-card-head p {
       margin: 6px 0 0;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.88rem;
       line-height: 1.8;
       word-break: break-word;
@@ -644,24 +653,24 @@
     .wallet-type-chip--credit,
     .wallet-type-chip--cashback,
     .wallet-type-chip--refund {
-      background: #ecfdf5;
-      color: #047857;
+      background: var(--secondary-soft);
+      color: var(--success);
     }
 
     .wallet-type-chip--debit {
       background: #fef2f2;
-      color: #b91c1c;
+      color: var(--danger);
     }
 
     .wallet-type-chip--adjustment {
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: rgba(33, 158, 188, 0.08);
+      color: var(--secondary);
     }
 
     .wallet-note {
       max-width: 320px;
       line-height: 1.9;
-      color: #475569;
+      color: var(--muted);
       font-size: 0.88rem;
       white-space: normal;
       word-break: break-word;
@@ -674,16 +683,16 @@
     }
 
     .products-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
-    .product-image-thumb { width:58px; height:58px; border-radius:12px; object-fit:cover; border:1px solid rgba(15,23,42,.1); background:#f8fafc; }
-    .product-empty-image { width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:#f8fafc; color:#94a3b8; border:1px dashed rgba(15,23,42,.16); }
+    .product-image-thumb { width:58px; height:58px; border-radius:12px; object-fit:cover; border:1px solid var(--border); background:var(--surface-2); }
+    .product-empty-image { width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:var(--surface-2); color:var(--muted-2); border:1px dashed var(--border); }
     .product-gallery-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-top:14px; }
-    .product-gallery-item { position:relative; padding:10px; border:1px solid rgba(15,23,42,.1); border-radius:16px; background:#fff; }
-    .product-gallery-item img { width:100%; height:140px; object-fit:cover; border-radius:11px; background:#f8fafc; display:block; }
+    .product-gallery-item { position:relative; padding:10px; border:1px solid var(--border); border-radius:16px; background:#fff; }
+    .product-gallery-item img { width:100%; height:140px; object-fit:cover; border-radius:11px; background:var(--surface-2); display:block; }
     .product-gallery-item .form-field { margin-top:9px; gap:5px; }
     .product-gallery-item .form-field input { padding:10px 11px; border-radius:11px; }
     .product-gallery-actions { display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
-    .product-gallery-actions label { display:flex; align-items:center; gap:5px; color:#475569; font-size:.82rem; font-weight:700; cursor:pointer; }
-    .product-file-help { color:#64748b; font-size:.83rem; line-height:1.8; margin:0; }
+    .product-gallery-actions label { display:flex; align-items:center; gap:5px; color:var(--muted); font-size:.82rem; font-weight:700; cursor:pointer; }
+    .product-file-help { color:var(--muted); font-size:.83rem; line-height:1.8; margin:0; }
 
     /* Shipping panel styles */
     .shipping-tabs {
@@ -691,16 +700,16 @@
       gap: 8px;
       margin-bottom: 20px;
       flex-wrap: wrap;
-      border-bottom: 1px solid rgba(15,23,42,0.06);
+      border-bottom: 1px solid var(--border);
       padding-bottom: 16px;
     }
 
     .shipping-tab-btn {
       padding: 10px 20px;
-      border: 1px solid rgba(15,23,42,0.08);
+      border: 1px solid var(--border);
       border-radius: 999px;
       background: #fff;
-      color: #334155;
+      color: var(--text-soft);
       font: inherit;
       font-weight: 700;
       cursor: pointer;
@@ -708,15 +717,15 @@
     }
 
     .shipping-tab-btn:hover {
-      border-color: rgba(16,185,129,0.25);
+      border-color: rgba(33, 158, 188, 0.25);
       background: #f0fdf4;
-      color: #047857;
+      color: var(--success);
     }
 
     .shipping-tab-btn.is-active {
-      background: #ecfdf5;
-      border-color: #a7f3d0;
-      color: #047857;
+      background: rgba(33, 158, 188, 0.08);
+      border-color: rgba(33, 158, 188, 0.2);
+      color: var(--secondary);
     }
 
     .shipping-tab-content {
@@ -991,7 +1000,7 @@
               <!-- ==================== کاربران ==================== -->
               <div id="admin-panel-users" class="admin-section">
                 <div class="users-toolbar">
-                  <h4 style="margin:0;color:#0f172a;">مدیریت کاربران</h4>
+                  <h4 style="margin:0;color:var(--primary);">مدیریت کاربران</h4>
                   <button class="btn btn-primary" type="button" id="show-create-user-btn">افزودن کاربر</button>
                 </div>
 
@@ -1042,7 +1051,7 @@
               <div id="admin-panel-products" class="admin-section">
                 <div class="products-toolbar">
                   <div>
-                    <h4 style="margin:0;color:#0f172a">مدیریت محصولات</h4>
+                    <h4 style="margin:0;color:var(--primary)">مدیریت محصولات</h4>
                     <p class="admin-help">افزودن، ویرایش، حذف و مدیریت گالری تصاویر محصولات.</p>
                   </div>
                   <button class="btn btn-primary" type="button" id="show-create-product-btn">افزودن محصول جدید</button>
@@ -1226,7 +1235,6 @@
       if (panel === "invoice") loadInvoiceSettingsToForm();
       if (panel === "shipping") {
   console.log("🔄 Opening shipping panel...");
-  // اطمینان از بارگذاری ShippingAdmin
   if (typeof window.ShippingAdmin === 'undefined') {
     console.warn("⚠️ ShippingAdmin not loaded, loading now...");
     const script = document.createElement('script');
@@ -2304,7 +2312,7 @@
         </div>
         <div class="form-field"><label>توضیح کوتاه</label><textarea data-product-field="short_description" rows="3" placeholder="توضیح کوتاه برای محصول">${esc(product.short_description || "")}</textarea></div>
         <div class="form-field"><label>توضیحات کامل</label><textarea data-product-field="description" rows="7" placeholder="توضیحات کامل محصول">${esc(product.description || "")}</textarea></div>
-        <div class="detail-card" style="margin-top:16px;background:#f8fafc">
+        <div class="detail-card" style="margin-top:16px;background:var(--surface-2);">
           <div class="products-toolbar"><div><h4 style="margin:0">گالری تصاویر</h4><p class="product-file-help">برای تصویر جدید، مسیر آن را وارد کن؛ مثل: /assets/images/tb-500/1.png. انتخاب فایل فقط پیش‌نمایش محلی است و فایل را روی سرور آپلود نمی‌کند.</p></div><button class="btn btn-secondary" type="button" data-add-product-image>افزودن مسیر تصویر</button></div>
           <div class="form-field"><label>انتخاب تصویر از رایانه (پیش‌نمایش)</label><input data-product-local-files type="file" accept="image/*" multiple /></div>
           <div class="product-gallery-list" data-product-gallery>${imageRows}</div>
@@ -2371,7 +2379,7 @@
       if (!result.ok || !result.data?.success) { tbody.innerHTML = `<tr><td colspan="9">${esc(result.data?.error || "دریافت محصولات انجام نشد.")}</td></tr>`; return; }
       const select = document.getElementById("products-category"); const oldCategory = select.value; select.innerHTML = '<option value="">همه دسته‌بندی‌ها</option>' + (result.data.categories || []).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(""); select.value = oldCategory;
       const products = Array.isArray(result.data.products) ? result.data.products : [];
-      tbody.innerHTML = products.length ? products.map(product => { const img = product.primary_image || product.images?.[0]?.image_url || ""; return `<tr><td>${img ? `<img class="product-image-thumb" src="${esc(img)}" alt="${esc(product.name)}" onerror="this.outerHTML='<div class=product-empty-image>—</div>'" />` : '<div class="product-empty-image">—</div>'}</td><td class="table-number">${esc(product.id)}</td><td><strong>${esc(product.name)}</strong><br><small style="color:#64748b">${esc(product.slug)}</small></td><td>${esc(product.category || "—")}</td><td class="table-number">${product.show_price && product.price !== null ? `${money(product.price)} تومان` : esc(product.price_label || "تماس بگیرید")}</td><td>${Number(product.in_stock) || product.in_stock === true ? `<span class="status-badge status-badge--success">${esc(product.stock_label || "موجود")}</span><br><small>${money(product.stock_quantity || 0)} عدد</small>` : `<span class="status-badge status-badge--danger">${esc(product.stock_label || "ناموجود")}</span>`}</td><td>${productStatusBadge(product.status)}</td><td class="table-number">${formatDate(product.updated_at || product.created_at)}</td><td><div class="panel-actions" style="margin-top:0"><button class="btn btn-secondary" type="button" data-edit-product="${esc(product.id)}">ویرایش</button><button class="btn btn-secondary" type="button" data-delete-product="${esc(product.id)}">حذف</button></div></td></tr>`; }).join("") : '<tr><td colspan="9">محصولی پیدا نشد.</td></tr>';
+      tbody.innerHTML = products.length ? products.map(product => { const img = product.primary_image || product.images?.[0]?.image_url || ""; return `<tr><td>${img ? `<img class="product-image-thumb" src="${esc(img)}" alt="${esc(product.name)}" onerror="this.outerHTML='<div class=product-empty-image>—</div>'" />` : '<div class="product-empty-image">—</div>'}</td><td class="table-number">${esc(product.id)}</td><td><strong>${esc(product.name)}</strong><br><small style="color:var(--muted)">${esc(product.slug)}</small></td><td>${esc(product.category || "—")}</td><td class="table-number">${product.show_price && product.price !== null ? `${money(product.price)} تومان` : esc(product.price_label || "تماس بگیرید")}</td><td>${Number(product.in_stock) || product.in_stock === true ? `<span class="status-badge status-badge--success">${esc(product.stock_label || "موجود")}</span><br><small>${money(product.stock_quantity || 0)} عدد</small>` : `<span class="status-badge status-badge--danger">${esc(product.stock_label || "ناموجود")}</span>`}</td><td>${productStatusBadge(product.status)}</td><td class="table-number">${formatDate(product.updated_at || product.created_at)}</td><td><div class="panel-actions" style="margin-top:0"><button class="btn btn-secondary" type="button" data-edit-product="${esc(product.id)}">ویرایش</button><button class="btn btn-secondary" type="button" data-delete-product="${esc(product.id)}">حذف</button></div></td></tr>`; }).join("") : '<tr><td colspan="9">محصولی پیدا نشد.</td></tr>';
     }
 
     async function loadWalletUser() {
@@ -2509,7 +2517,6 @@
             contents[key].classList.toggle('is-active', key === tab.dataset.shippingTab);
           });
 
-          // رندر محتوای تب انتخاب شده
           if (tab.dataset.shippingTab === 'methods') {
             renderMethodsContent();
           } else if (tab.dataset.shippingTab === 'costs') {
@@ -2693,7 +2700,6 @@
         if (adminLoading) adminLoading.classList.add("admin-hidden");
         if (adminApp) adminApp.classList.remove("admin-hidden");
 
-        // بارگذاری shipping-admin.js
         if (window.ShippingAdmin && typeof window.ShippingAdmin.init === 'function') {
           window.ShippingAdmin.init();
         }

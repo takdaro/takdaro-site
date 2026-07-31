@@ -24,6 +24,8 @@ import { onRequestPost as __api_admin_products_js_onRequestPost } from "C:\\User
 import { onRequestPut as __api_admin_products_js_onRequestPut } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\products.js"
 import { onRequestGet as __api_admin_settings_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\settings.js"
 import { onRequestPost as __api_admin_settings_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\settings.js"
+import { onRequestGet as __api_admin_shipping_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\shipping.js"
+import { onRequestPost as __api_admin_shipping_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\shipping.js"
 import { onRequestGet as __api_admin_stats_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\stats.js"
 import { onRequestDelete as __api_admin_users_js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\users.js"
 import { onRequestGet as __api_admin_users_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\users.js"
@@ -36,6 +38,9 @@ import { onRequestGet as __api_auth_me_js_onRequestGet } from "C:\\Users\\ASUS\\
 import { onRequestGet as __api_auth_profile_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\auth\\profile.js"
 import { onRequestPost as __api_auth_profile_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\auth\\profile.js"
 import { onRequestPost as __api_auth_register_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\auth\\register.js"
+import { onRequestPost as __api_shipping_calculate_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\calculate.js"
+import { onRequestGet as __api_shipping_methods_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\methods.js"
+import { onRequestGet as __api_shipping_provinces_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\provinces.js"
 import { onRequestGet as __api_catalog_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\catalog.js"
 import { onRequestGet as __api_products_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\products.js"
 import { onRequestOptions as __api_products_js_onRequestOptions } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\products.js"
@@ -225,6 +230,20 @@ export const routes = [
       modules: [__api_admin_settings_js_onRequestPost],
     },
   {
+      routePath: "/api/admin/shipping",
+      mountPath: "/api/admin",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_admin_shipping_js_onRequestGet],
+    },
+  {
+      routePath: "/api/admin/shipping",
+      mountPath: "/api/admin",
+      method: "POST",
+      middlewares: [],
+      modules: [__api_admin_shipping_js_onRequestPost],
+    },
+  {
       routePath: "/api/admin/stats",
       mountPath: "/api/admin",
       method: "GET",
@@ -307,6 +326,27 @@ export const routes = [
       method: "POST",
       middlewares: [],
       modules: [__api_auth_register_js_onRequestPost],
+    },
+  {
+      routePath: "/api/shipping/calculate",
+      mountPath: "/api/shipping",
+      method: "POST",
+      middlewares: [],
+      modules: [__api_shipping_calculate_js_onRequestPost],
+    },
+  {
+      routePath: "/api/shipping/methods",
+      mountPath: "/api/shipping",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_shipping_methods_js_onRequestGet],
+    },
+  {
+      routePath: "/api/shipping/provinces",
+      mountPath: "/api/shipping",
+      method: "GET",
+      middlewares: [],
+      modules: [__api_shipping_provinces_js_onRequestGet],
     },
   {
       routePath: "/api/catalog",

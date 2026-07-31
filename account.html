@@ -17,32 +17,32 @@
     .account-sidebar,
     .account-panel {
       background: #fff;
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border);
       border-radius: 24px;
-      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
     }
 
     .account-sidebarhead,
     .account-panelhead {
       padding: 24px;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid var(--border);
       background:
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%),
+        radial-gradient(circle at top right, rgba(33, 158, 188, 0.06), transparent 35%),
         linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }
 
     .account-sidebarhead h3,
     .account-panelhead h3 {
       margin: 0 0 8px;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1.08rem;
     }
 
     .account-sidebarhead p,
     .account-panelhead p {
       margin: 0;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.92rem;
       line-height: 1.9;
     }
@@ -63,10 +63,10 @@
       justify-content: space-between;
       gap: 12px;
       padding: 14px 16px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       border-radius: 16px;
       background: #fff;
-      color: #334155;
+      color: var(--text-soft);
       font: inherit;
       font-weight: 700;
       cursor: pointer;
@@ -74,27 +74,27 @@
     }
 
     .account-menubtn:hover {
-      border-color: rgba(37, 99, 235, 0.2);
+      border-color: rgba(33, 158, 188, 0.2);
       background: #f8fbff;
-      color: #1d4ed8;
+      color: var(--secondary);
     }
 
     .account-menubtn.is-active {
-      background: #eff6ff;
-      border-color: #bfdbfe;
-      color: #1d4ed8;
-      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+      background: rgba(33, 158, 188, 0.08);
+      border-color: rgba(33, 158, 188, 0.2);
+      color: var(--secondary);
+      box-shadow: inset 0 0 0 1px rgba(33, 158, 188, 0.08);
     }
 
     .account-menubtn.is-danger {
-      color: #b91c1c;
+      color: var(--danger);
       background: #fff;
     }
 
     .account-menubtn.is-danger:hover {
       background: #fef2f2;
       border-color: #fecaca;
-      color: #b91c1c;
+      color: var(--danger);
     }
 
     .account-menulabel {
@@ -110,14 +110,14 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: #f8fafc;
-      color: #0f172a;
+      background: var(--surface-2);
+      color: var(--primary);
       flex-shrink: 0;
     }
 
     .account-menubtn.is-active .account-menuicon {
-      background: #dbeafe;
-      color: #1d4ed8;
+      background: rgba(33, 158, 188, 0.12);
+      color: var(--secondary);
     }
 
     .account-panelbody {
@@ -134,13 +134,13 @@
 
     .account-sectiontitle {
       margin: 0 0 10px;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1.15rem;
     }
 
     .account-sectionlead {
       margin: 0 0 20px;
-      color: #64748b;
+      color: var(--muted);
       line-height: 1.9;
       font-size: 0.95rem;
     }
@@ -152,15 +152,15 @@
       margin-top: 12px;
       padding: 10px 14px;
       border-radius: 999px;
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: rgba(33, 158, 188, 0.08);
+      color: var(--secondary);
       font-size: 0.9rem;
       font-weight: 700;
       flex-wrap: wrap;
     }
 
     .account-user-chip strong {
-      color: #0f172a;
+      color: var(--primary);
       font-weight: 800;
     }
 
@@ -172,21 +172,21 @@
     }
 
     .stat-card {
-      background: #f8fafc;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
       border-radius: 20px;
       padding: 18px;
     }
 
     .stat-card span {
       display: block;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.88rem;
       margin-bottom: 10px;
     }
 
     .stat-card strong {
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1.2rem;
       font-variant-numeric: tabular-nums;
     }
@@ -198,7 +198,7 @@
     }
 
     .quick-card {
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       background: #fff;
       border-radius: 20px;
       padding: 18px;
@@ -206,20 +206,20 @@
 
     .quick-card h4 {
       margin: 0 0 10px;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1rem;
     }
 
     .quick-card p {
       margin: 0;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.92rem;
       line-height: 1.9;
     }
 
     .table-wrap {
       overflow-x: auto;
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border);
       border-radius: 20px;
       background: #fff;
     }
@@ -237,14 +237,14 @@
     .wallet-history-table td {
       padding: 16px 14px;
       text-align: right;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid var(--border);
       vertical-align: middle;
     }
 
     .account-table th,
     .wallet-history-table th {
-      background: #f8fafc;
-      color: #334155;
+      background: var(--surface-2);
+      color: var(--text-soft);
       font-size: 0.92rem;
       white-space: nowrap;
     }
@@ -271,9 +271,9 @@
       white-space: nowrap;
     }
 
-    .status-badge--success { background: #ecfdf5; color: #047857; }
-    .status-badge--warning { background: #fff7ed; color: #c2410c; }
-    .status-badge--info { background: #eff6ff; color: #1d4ed8; }
+    .status-badge--success { background: var(--secondary-soft); color: var(--success); }
+    .status-badge--warning { background: #fff7ed; color: var(--warning); }
+    .status-badge--info { background: rgba(33, 158, 188, 0.08); color: var(--secondary); }
 
     .wallet-type-badge {
       display: inline-flex;
@@ -287,9 +287,9 @@
       white-space: nowrap;
     }
 
-    .wallet-type-badge--cashback { background: #ecfdf5; color: #047857; }
-    .wallet-type-badge--credit { background: #eff6ff; color: #1d4ed8; }
-    .wallet-type-badge--debit { background: #fef2f2; color: #b91c1c; }
+    .wallet-type-badge--cashback { background: var(--secondary-soft); color: var(--success); }
+    .wallet-type-badge--credit { background: rgba(33, 158, 188, 0.08); color: var(--secondary); }
+    .wallet-type-badge--debit { background: #fef2f2; color: var(--danger); }
 
     .address-grid {
       display: grid;
@@ -298,7 +298,7 @@
     }
 
     .address-card {
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
       border-radius: 20px;
       background: #fff;
       padding: 20px;
@@ -306,13 +306,13 @@
 
     .address-card h4 {
       margin: 0 0 12px;
-      color: #0f172a;
+      color: var(--primary);
       font-size: 1rem;
     }
 
     .address-card p {
       margin: 0 0 14px;
-      color: #64748b;
+      color: var(--muted);
       line-height: 1.95;
       font-size: 0.92rem;
     }
@@ -324,15 +324,15 @@
       margin-bottom: 12px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: #f8fafc;
-      color: #475569;
+      background: var(--surface-2);
+      color: var(--muted);
       font-size: 0.82rem;
       font-weight: 700;
     }
 
     .address-cardmeta.is-default {
-      background: #ecfdf5;
-      color: #047857;
+      background: var(--secondary-soft);
+      color: var(--success);
     }
 
     .address-actions {
@@ -360,7 +360,7 @@
 
     .form-field label {
       font-weight: 700;
-      color: #334155;
+      color: var(--text-soft);
       font-size: 0.94rem;
     }
 
@@ -368,20 +368,21 @@
     .form-field textarea,
     .form-field select {
       width: 100%;
-      border: 1px solid #dbe2ea;
+      border: 1px solid var(--border);
       border-radius: 16px;
       background: #fff;
       padding: 14px 16px;
       font: inherit;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      color: var(--text);
     }
 
     .form-field input:focus,
     .form-field textarea:focus,
     .form-field select:focus {
       outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 4px rgba(33, 158, 188, 0.08);
     }
 
     .panel-actions {
@@ -392,7 +393,7 @@
     }
 
     .logout-box {
-      border: 1px dashed rgba(185, 28, 28, 0.24);
+      border: 1px dashed rgba(180, 35, 24, 0.24);
       background: #fef2f2;
       border-radius: 20px;
       padding: 20px;
@@ -400,7 +401,7 @@
 
     .logout-box h4 {
       margin: 0 0 10px;
-      color: #991b1b;
+      color: var(--danger);
       font-size: 1rem;
     }
 
@@ -412,12 +413,12 @@
     }
 
     .wallet-empty {
-      border: 1px solid rgba(15, 23, 42, 0.06);
-      background: #f8fafc;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
       border-radius: 18px;
       padding: 18px;
       margin-top: 16px;
-      color: #64748b;
+      color: var(--muted);
       line-height: 1.9;
       font-size: 0.92rem;
     }
@@ -425,9 +426,9 @@
     .account-loading {
       padding: 18px;
       border-radius: 18px;
-      background: #eff6ff;
-      color: #1d4ed8;
-      border: 1px solid #bfdbfe;
+      background: rgba(33, 158, 188, 0.08);
+      color: var(--secondary);
+      border: 1px solid rgba(33, 158, 188, 0.16);
       margin-bottom: 18px;
       line-height: 1.9;
     }
@@ -443,21 +444,21 @@
 
     .account-message.is-success {
       display: block;
-      background: #ecfdf5;
-      color: #047857;
+      background: var(--secondary-soft);
+      color: var(--success);
       border: 1px solid #bbf7d0;
     }
 
     .account-message.is-error {
       display: block;
       background: #fef2f2;
-      color: #b91c1c;
+      color: var(--danger);
       border: 1px solid #fecaca;
     }
 
     .account-help {
       margin-top: -6px;
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.88rem;
       line-height: 1.9;
     }
@@ -806,8 +807,6 @@
 
   <script src="assets/js/layout.js"></script>
   <script src="assets/js/products.js"></script>
-  <script src="price-overrides.js"></script>
-  <script src="price-loader.js"></script>
   <script src="assets/js/cart.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/auth.js"></script>

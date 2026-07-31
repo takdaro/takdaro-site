@@ -16,29 +16,29 @@
 
     .checkout-panel {
       background: #fff;
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border);
       border-radius: 24px;
-      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+      box-shadow: var(--shadow-sm);
       overflow: hidden;
     }
 
     .checkout-panel__head {
       padding: 24px;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid var(--border);
       background:
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 35%),
+        radial-gradient(circle at top right, rgba(33, 158, 188, 0.06), transparent 35%),
         linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }
 
     .checkout-panel__head h3 {
       margin: 0 0 8px;
       font-size: 1.15rem;
-      color: #0f172a;
+      color: var(--primary);
     }
 
     .checkout-panel__head p {
       margin: 0;
-      color: #64748b;
+      color: var(--muted);
       line-height: 1.9;
       font-size: 0.95rem;
     }
@@ -58,9 +58,9 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: #eff6ff;
-      color: #1d4ed8;
-      border: 1px solid #dbeafe;
+      background: var(--accent-blue-light);
+      color: var(--primary);
+      border: 1px solid rgba(33, 158, 188, 0.2);
       border-radius: 999px;
       padding: 8px 14px;
       font-size: 0.88rem;
@@ -69,7 +69,7 @@
 
     .invoice-table-wrap {
       overflow-x: auto;
-      border: 1px solid rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--border);
       border-radius: 20px;
       background: #fff;
     }
@@ -84,13 +84,13 @@
     .invoice-table td {
       padding: 16px 14px;
       text-align: right;
-      border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+      border-bottom: 1px solid var(--border);
       vertical-align: middle;
     }
 
     .invoice-table th {
-      background: #f8fafc;
-      color: #334155;
+      background: var(--surface-2);
+      color: var(--text-soft);
       font-size: 0.92rem;
       white-space: nowrap;
     }
@@ -111,20 +111,20 @@
       height: 62px;
       object-fit: cover;
       border-radius: 16px;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      background: #f8fafc;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
       flex-shrink: 0;
     }
 
     .invoice-product__info strong {
       display: block;
       margin-bottom: 4px;
-      color: #0f172a;
+      color: var(--text);
       font-size: 0.96rem;
     }
 
     .invoice-product__info span {
-      color: #64748b;
+      color: var(--muted);
       font-size: 0.84rem;
     }
 
@@ -150,15 +150,15 @@
     }
 
     .invoice-summary__row {
-      background: #f8fafc;
-      border: 1px solid rgba(15, 23, 42, 0.06);
-      color: #334155;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-soft);
     }
 
     .invoice-summary__total {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, var(--primary) 0%, #1a4a5a 100%);
       color: #fff;
-      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 16px 35px rgba(2, 48, 71, 0.18);
     }
 
     .invoice-summary strong,
@@ -170,7 +170,7 @@
     .checkout-empty {
       text-align: center;
       padding: 24px;
-      color: #64748b;
+      color: var(--muted);
     }
 
     .checkout-empty .btn {
@@ -196,7 +196,7 @@
 
     .form-field label {
       font-weight: 700;
-      color: #334155;
+      color: var(--text-soft);
       font-size: 0.95rem;
     }
 
@@ -204,24 +204,25 @@
     .form-field textarea,
     .form-field select {
       width: 100%;
-      border: 1px solid #dbe2ea;
+      border: 1px solid var(--border);
       border-radius: 16px;
       background: #fff;
       padding: 14px 16px;
       font: inherit;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      color: var(--text);
     }
 
     .form-field input:focus,
     .form-field textarea:focus,
     .form-field select:focus {
       outline: none;
-      border-color: #2563eb;
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 4px rgba(33, 158, 188, 0.08);
     }
 
     .form-field select:disabled {
-      background: #f1f5f9;
+      background: var(--surface-2);
       cursor: not-allowed;
       opacity: 0.7;
     }
@@ -235,7 +236,7 @@
 
     .checkout-note {
       margin: 0;
-      color: #64748b;
+      color: var(--muted);
       line-height: 1.9;
       font-size: 0.92rem;
     }
@@ -250,23 +251,23 @@
 
     .checkout-message.is-success {
       display: block;
-      background: #ecfdf5;
-      color: #047857;
+      background: var(--secondary-soft);
+      color: var(--success);
       border: 1px solid #bbf7d0;
     }
 
     .checkout-message.is-error {
       display: block;
       background: #fef2f2;
-      color: #b91c1c;
+      color: var(--danger);
       border: 1px solid #fecaca;
     }
 
     .checkout-message.is-info {
       display: block;
-      background: #eff6ff;
-      color: #1d4ed8;
-      border: 1px solid #bfdbfe;
+      background: rgba(33, 158, 188, 0.08);
+      color: var(--secondary);
+      border: 1px solid rgba(33, 158, 188, 0.16);
     }
 
     .wallet-inline-box {
@@ -294,7 +295,7 @@
     .wallet-toggle input {
       width: 18px;
       height: 18px;
-      accent-color: #2563eb;
+      accent-color: var(--secondary);
     }
 
     .wallet-subbox {
@@ -308,16 +309,16 @@
     }
 
     .wallet-summary-accent {
-      color: #047857;
+      color: var(--success);
       font-weight: 800;
     }
 
     .shipping-display-box {
       padding: 14px 16px;
-      border: 1px solid #dbe2ea;
+      border: 1px solid var(--border);
       border-radius: 16px;
-      background: #f8fafc;
-      color: #0f172a;
+      background: var(--surface-2);
+      color: var(--text);
       font-weight: 700;
       min-height: 54px;
       display: flex;
@@ -501,7 +502,6 @@
                   </div>
                 </div>
 
-                <!-- ✅ تغییر: روش ارسال به صورت نمایشی (غیرقابل انتخاب) -->
                 <div class="form-field" id="shipping-method-container" style="display:none;">
                   <label for="shipping-method">روش ارسال</label>
                   <div class="shipping-display-box" id="shipping-method-display">
@@ -605,7 +605,7 @@
       provinceList: [],
       currentProvince: "",
       currentCity: "",
-      shippingMethod: null, // فقط یک روش
+      shippingMethod: null,
       shippingCost: null,
       isLoading: false
     };

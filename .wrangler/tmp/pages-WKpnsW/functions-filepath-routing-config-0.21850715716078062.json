@@ -209,6 +209,22 @@
       ]
     },
     {
+      "routePath": "/api/admin/shipping",
+      "mountPath": "/api/admin",
+      "method": "GET",
+      "module": [
+        "api/admin/shipping.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/admin/shipping",
+      "mountPath": "/api/admin",
+      "method": "POST",
+      "module": [
+        "api/admin/shipping.js:onRequestPost"
+      ]
+    },
+    {
       "routePath": "/api/admin/stats",
       "mountPath": "/api/admin",
       "method": "GET",
@@ -302,6 +318,30 @@
       "method": "POST",
       "module": [
         "api/auth/register.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/shipping/calculate",
+      "mountPath": "/api/shipping",
+      "method": "POST",
+      "module": [
+        "api/shipping/calculate.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/shipping/methods",
+      "mountPath": "/api/shipping",
+      "method": "GET",
+      "module": [
+        "api/shipping/methods.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/shipping/provinces",
+      "mountPath": "/api/shipping",
+      "method": "GET",
+      "module": [
+        "api/shipping/provinces.js:onRequestGet"
       ]
     },
     {

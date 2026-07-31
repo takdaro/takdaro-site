@@ -3502,9 +3502,6 @@ __name(normalizeText4, "normalizeText");
 async function onRequestGet10(context) {
   try {
     const user = await getCurrentUser9(context);
-    if (!user || !isAdmin3(user)) {
-      return json12({ success: false, error: "unauthorized" }, 401);
-    }
     const result = await context.env.DB.prepare(`
       SELECT setting_key, setting_value
       FROM app_settings
@@ -3515,6 +3512,24 @@ async function onRequestGet10(context) {
     const settings = {};
     for (const row of rows) {
       settings[String(row.setting_key || "").trim()] = String(row.setting_value || "").trim();
+    }
+    const defaults = {
+      invoice_logo: "",
+      invoice_thankyou_text: "\u0633\u067E\u0627\u0633\u200C\u06AF\u0632\u0627\u0631\u06CC\u0645 \u06A9\u0647 \u0627\u0632 \u062A\u06A9 \u062A\u062C\u0627\u0631\u062A \u062E\u0631\u06CC\u062F \u06A9\u0631\u062F\u06CC\u062F. \u0633\u0641\u0627\u0631\u0634 \u0634\u0645\u0627 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062B\u0628\u062A \u0634\u062F.",
+      invoice_bank_account: "\u0628\u0627\u0646\u06A9 \u0645\u0644\u06CC - \u0634\u0645\u0627\u0631\u0647 \u062D\u0633\u0627\u0628: \u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9\u06F0",
+      invoice_card_number: "\u06F6\u06F0\u06F3\u06F7-\u06F7\u06F9\u06F9\u06F1-\u06F5\u06F0\u06F5\u06F4-\u06F4\u06F3\u06F4\u06F2",
+      invoice_sheba_number: "IR\u06F4\u06F5\u06F0\u06F1\u06F7\u06F0\u06F0\u06F0\u06F0\u06F0\u06F0\u06F0\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9\u06F0",
+      invoice_payment_deadline: "\u06F2\u06F4 \u0633\u0627\u0639\u062A",
+      invoice_payment_description: "\u0644\u0637\u0641\u0627\u064B \u0645\u0628\u0644\u063A \u0641\u0627\u06A9\u062A\u0648\u0631 \u0631\u0627 \u0628\u0647 \u0634\u0645\u0627\u0631\u0647 \u06A9\u0627\u0631\u062A \u062F\u0631\u062C \u0634\u062F\u0647 \u0648\u0627\u0631\u06CC\u0632 \u0648 \u062A\u0635\u0648\u06CC\u0631 \u0631\u0633\u06CC\u062F \u0631\u0627 \u0628\u0647 \u0634\u0645\u0627\u0631\u0647 \u0648\u0627\u062A\u0633\u0627\u067E \u067E\u0634\u062A\u06CC\u0628\u0627\u0646\u06CC \u0627\u0631\u0633\u0627\u0644 \u06A9\u0646\u06CC\u062F.",
+      invoice_whatsapp_number: "\u06F0\u06F9\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9",
+      invoice_company_name: "\u062A\u06A9 \u062A\u062C\u0627\u0631\u062A",
+      invoice_company_phone: "\u06F0\u06F2\u06F1-\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8",
+      invoice_company_address: "\u062A\u0647\u0631\u0627\u0646\u060C \u062E\u06CC\u0627\u0628\u0627\u0646 \u0648\u0644\u06CC\u0639\u0635\u0631\u060C \u067E\u0644\u0627\u06A9 \u06F1\u06F2\u06F3"
+    };
+    for (const [key, defaultValue] of Object.entries(defaults)) {
+      if (!settings[key] || settings[key] === "") {
+        settings[key] = defaultValue;
+      }
     }
     return json12({
       success: true,
@@ -3593,8 +3608,375 @@ async function onRequestPost8(context) {
 }
 __name(onRequestPost8, "onRequestPost");
 
-// api/admin/stats.js
+// api/admin/shipping.js
+function getCookie12(cookieString, key) {
+  if (!cookieString) return null;
+  const cookies = cookieString.split("; ");
+  const target = cookies.find((item) => item.startsWith(key + "="));
+  return target ? target.slice(key.length + 1) : null;
+}
+__name(getCookie12, "getCookie");
+function json13(data, status = 200) {
+  return Response.json(data, { status });
+}
+__name(json13, "json");
+function normalizeText5(value) {
+  return String(value ?? "").trim();
+}
+__name(normalizeText5, "normalizeText");
+function normalizeNumber4(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
+}
+__name(normalizeNumber4, "normalizeNumber");
+async function getCurrentUser10(context) {
+  const cookieString = context.request.headers.get("cookie") || "";
+  const sessionId = getCookie12(cookieString, "session_id");
+  if (!sessionId) return null;
+  return await context.env.DB.prepare(`
+    SELECT id, full_name, email, phone, role
+    FROM users
+    WHERE id = (SELECT user_id FROM sessions WHERE id = ? LIMIT 1)
+    LIMIT 1
+  `).bind(sessionId).first();
+}
+__name(getCurrentUser10, "getCurrentUser");
+function isAdmin4(user) {
+  const role = String(user?.role || "").toLowerCase();
+  return role === "admin" || role === "super_admin";
+}
+__name(isAdmin4, "isAdmin");
 async function onRequestGet11(context) {
+  try {
+    const user = await getCurrentUser10(context);
+    if (!user || !isAdmin4(user)) {
+      return json13({ success: false, error: "unauthorized" }, 401);
+    }
+    const url = new URL(context.request.url);
+    const action = url.searchParams.get("action");
+    if (action === "methods" || !action) {
+      const result = await context.env.DB.prepare(`
+        SELECT 
+          id, 
+          name, 
+          slug, 
+          description, 
+          delivery_time, 
+          default_cost,
+          is_active, 
+          sort_order,
+          created_at,
+          updated_at
+        FROM shipping_methods
+        ORDER BY sort_order ASC, id ASC
+      `).all();
+      const methods = Array.isArray(result?.results) ? result.results : [];
+      return json13({ success: true, methods });
+    }
+    if (action === "costs") {
+      const province = normalizeText5(url.searchParams.get("province"));
+      const city = normalizeText5(url.searchParams.get("city"));
+      if (!province || !city) {
+        return json13({ success: false, error: "province_and_city_required" }, 400);
+      }
+      const result = await context.env.DB.prepare(`
+        SELECT 
+          sc.id,
+          sc.province,
+          sc.city,
+          sc.shipping_method_id,
+          sc.cost_type,
+          sc.cost_amount,
+          sc.extra_cost,
+          sc.delivery_time,
+          sc.is_active,
+          sm.name as method_name,
+          sm.slug as method_slug,
+          sm.default_cost
+        FROM shipping_costs sc
+        INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+        WHERE sc.province = ? AND sc.city = ?
+        ORDER BY sm.sort_order ASC
+      `).bind(province, city).all();
+      const costs = Array.isArray(result?.results) ? result.results : [];
+      return json13({ success: true, costs });
+    }
+    if (action === "free-thresholds") {
+      const result = await context.env.DB.prepare(`
+        SELECT 
+          id,
+          shipping_method_id,
+          min_order_amount,
+          is_active,
+          created_at,
+          updated_at
+        FROM shipping_free_thresholds
+        ORDER BY shipping_method_id ASC
+      `).all();
+      const thresholds = Array.isArray(result?.results) ? result.results : [];
+      const methods = await context.env.DB.prepare(`
+        SELECT id, name FROM shipping_methods WHERE is_active = 1
+      `).all();
+      const methodMap = {};
+      for (const m of Array.isArray(methods?.results) ? methods.results : []) {
+        methodMap[m.id] = m.name;
+      }
+      const enriched = thresholds.map((t) => ({
+        ...t,
+        method_name: methodMap[t.shipping_method_id] || "\u0646\u0627\u0645\u0634\u062E\u0635"
+      }));
+      return json13({ success: true, thresholds: enriched });
+    }
+    return json13({ success: false, error: "invalid_action" }, 400);
+  } catch (error) {
+    return json13({ success: false, error: String(error?.message || error) }, 500);
+  }
+}
+__name(onRequestGet11, "onRequestGet");
+async function onRequestPost9(context) {
+  try {
+    const user = await getCurrentUser10(context);
+    if (!user || !isAdmin4(user)) {
+      return json13({ success: false, error: "unauthorized" }, 401);
+    }
+    const body = await context.request.json().catch(() => null);
+    if (!body) {
+      return json13({ success: false, error: "invalid_payload" }, 400);
+    }
+    const action = body.action || "create_method";
+    if (action === "create_method") {
+      const name = normalizeText5(body.name);
+      const slug = normalizeText5(body.slug).toLowerCase().replace(/\s+/g, "-");
+      const description = normalizeText5(body.description);
+      const delivery_time = normalizeText5(body.delivery_time);
+      const default_cost = normalizeNumber4(body.default_cost);
+      const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
+      const sort_order = normalizeNumber4(body.sort_order);
+      if (!name || !slug) {
+        return json13({ success: false, error: "name_and_slug_required" }, 400);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE slug = ?
+      `).bind(slug).first();
+      if (existing) {
+        return json13({ success: false, error: "slug_already_exists" }, 400);
+      }
+      const result = await context.env.DB.prepare(`
+        INSERT INTO shipping_methods (name, slug, description, delivery_time, default_cost, is_active, sort_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(name, slug, description, delivery_time, default_cost, is_active, sort_order).run();
+      const newId = result.meta?.last_row_id || null;
+      return json13({
+        success: true,
+        message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u06CC\u062C\u0627\u062F \u0634\u062F.",
+        method: { id: newId, name, slug, description, delivery_time, default_cost, is_active, sort_order }
+      });
+    }
+    if (action === "update_method") {
+      const id = normalizeNumber4(body.id);
+      const name = normalizeText5(body.name);
+      const slug = normalizeText5(body.slug).toLowerCase().replace(/\s+/g, "-");
+      const description = normalizeText5(body.description);
+      const delivery_time = normalizeText5(body.delivery_time);
+      const default_cost = normalizeNumber4(body.default_cost);
+      const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
+      const sort_order = normalizeNumber4(body.sort_order);
+      if (!id || !name || !slug) {
+        return json13({ success: false, error: "id_name_slug_required" }, 400);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE id = ?
+      `).bind(id).first();
+      if (!existing) {
+        return json13({ success: false, error: "method_not_found" }, 404);
+      }
+      const duplicate = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE slug = ? AND id != ?
+      `).bind(slug, id).first();
+      if (duplicate) {
+        return json13({ success: false, error: "slug_already_exists" }, 400);
+      }
+      await context.env.DB.prepare(`
+        UPDATE shipping_methods
+        SET name = ?, slug = ?, description = ?, delivery_time = ?, default_cost = ?, is_active = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(name, slug, description, delivery_time, default_cost, is_active, sort_order, id).run();
+      return json13({
+        success: true,
+        message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0647\u200C\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06CC \u0634\u062F."
+      });
+    }
+    if (action === "delete_method") {
+      const id = normalizeNumber4(body.id);
+      if (!id) {
+        return json13({ success: false, error: "id_required" }, 400);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE id = ?
+      `).bind(id).first();
+      if (!existing) {
+        return json13({ success: false, error: "method_not_found" }, 404);
+      }
+      await context.env.DB.prepare(`
+        DELETE FROM shipping_methods WHERE id = ?
+      `).bind(id).run();
+      return json13({
+        success: true,
+        message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
+      });
+    }
+    if (action === "delete_cost") {
+      const cost_id = normalizeNumber4(body.cost_id);
+      if (!cost_id) {
+        return json13({ success: false, error: "cost_id_required" }, 400);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_costs WHERE id = ?
+      `).bind(cost_id).first();
+      if (!existing) {
+        return json13({ success: false, error: "cost_not_found" }, 404);
+      }
+      await context.env.DB.prepare(`
+        DELETE FROM shipping_costs WHERE id = ?
+      `).bind(cost_id).run();
+      return json13({
+        success: true,
+        message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
+      });
+    }
+    if (action === "save_cost") {
+      const province = normalizeText5(body.province);
+      const city = normalizeText5(body.city);
+      const shipping_method_id = normalizeNumber4(body.shipping_method_id);
+      const cost_type = body.cost_type || "fixed";
+      const cost_amount = normalizeNumber4(body.cost_amount);
+      const extra_cost = normalizeNumber4(body.extra_cost);
+      const delivery_time = normalizeText5(body.delivery_time);
+      const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
+      if (!province || !city || !shipping_method_id) {
+        return json13({ success: false, error: "province_city_method_required" }, 400);
+      }
+      const method = await context.env.DB.prepare(`
+        SELECT id, default_cost FROM shipping_methods WHERE id = ?
+      `).bind(shipping_method_id).first();
+      if (!method) {
+        return json13({ success: false, error: "method_not_found" }, 404);
+      }
+      const defaultCost = method.default_cost || 0;
+      const finalCost = defaultCost + extra_cost;
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_costs 
+        WHERE province = ? AND city = ? AND shipping_method_id = ?
+      `).bind(province, city, shipping_method_id).first();
+      let result;
+      if (existing) {
+        result = await context.env.DB.prepare(`
+          UPDATE shipping_costs
+          SET cost_type = ?, cost_amount = ?, extra_cost = ?, delivery_time = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE province = ? AND city = ? AND shipping_method_id = ?
+        `).bind(cost_type, finalCost, extra_cost, delivery_time, is_active, province, city, shipping_method_id).run();
+      } else {
+        result = await context.env.DB.prepare(`
+          INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(province, city, shipping_method_id, cost_type, finalCost, extra_cost, delivery_time, is_active).run();
+      }
+      return json13({
+        success: true,
+        message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F.",
+        extra_cost,
+        final_cost: finalCost,
+        default_cost: defaultCost
+      });
+    }
+    if (action === "add_city") {
+      const province = normalizeText5(body.province);
+      const city = normalizeText5(body.city);
+      if (!province || !city) {
+        return json13({ success: false, error: "province_and_city_required" }, 400);
+      }
+      const defaultMethod = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE slug = 'freight' AND is_active = 1 LIMIT 1
+      `).first();
+      if (!defaultMethod) {
+        return json13({ success: false, error: "default_method_not_found" }, 404);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_costs 
+        WHERE province = ? AND city = ?
+        LIMIT 1
+      `).bind(province, city).first();
+      if (existing) {
+        return json13({ success: false, error: "city_already_exists" }, 400);
+      }
+      const result = await context.env.DB.prepare(`
+        INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
+        VALUES (?, ?, ?, 'extra', 0, 0, '', 1)
+      `).bind(province, city, defaultMethod.id).run();
+      return json13({
+        success: true,
+        message: "\u0634\u0647\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u0636\u0627\u0641\u0647 \u0634\u062F.",
+        city,
+        province
+      });
+    }
+    if (action === "delete_city") {
+      const province = normalizeText5(body.province);
+      const city = normalizeText5(body.city);
+      if (!province || !city) {
+        return json13({ success: false, error: "province_and_city_required" }, 400);
+      }
+      await context.env.DB.prepare(`
+        DELETE FROM shipping_costs 
+        WHERE province = ? AND city = ?
+      `).bind(province, city).run();
+      return json13({
+        success: true,
+        message: "\u0634\u0647\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
+      });
+    }
+    if (action === "save_free_threshold") {
+      const shipping_method_id = normalizeNumber4(body.shipping_method_id);
+      const min_order_amount = normalizeNumber4(body.min_order_amount);
+      const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
+      if (!shipping_method_id || !min_order_amount) {
+        return json13({ success: false, error: "method_and_amount_required" }, 400);
+      }
+      const method = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE id = ?
+      `).bind(shipping_method_id).first();
+      if (!method) {
+        return json13({ success: false, error: "method_not_found" }, 404);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_free_thresholds WHERE shipping_method_id = ?
+      `).bind(shipping_method_id).first();
+      if (existing) {
+        await context.env.DB.prepare(`
+          UPDATE shipping_free_thresholds
+          SET min_order_amount = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE shipping_method_id = ?
+        `).bind(min_order_amount, is_active, shipping_method_id).run();
+      } else {
+        await context.env.DB.prepare(`
+          INSERT INTO shipping_free_thresholds (shipping_method_id, min_order_amount, is_active)
+          VALUES (?, ?, ?)
+        `).bind(shipping_method_id, min_order_amount, is_active).run();
+      }
+      return json13({
+        success: true,
+        message: "\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u0627\u0631\u0633\u0627\u0644 \u0631\u0627\u06CC\u06AF\u0627\u0646 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F."
+      });
+    }
+    return json13({ success: false, error: "invalid_action" }, 400);
+  } catch (error) {
+    return json13({ success: false, error: String(error?.message || error) }, 500);
+  }
+}
+__name(onRequestPost9, "onRequestPost");
+
+// api/admin/stats.js
+async function onRequestGet12(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
@@ -3643,7 +4025,7 @@ async function onRequestGet11(context) {
     );
   }
 }
-__name(onRequestGet11, "onRequestGet");
+__name(onRequestGet12, "onRequestGet");
 
 // lib/password.js
 var PBKDF2_ITERATIONS = 1e5;
@@ -3697,10 +4079,10 @@ function toInt(value, fallback = 1) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 __name(toInt, "toInt");
-function normalizeText5(value) {
+function normalizeText6(value) {
   return String(value || "").trim();
 }
-__name(normalizeText5, "normalizeText");
+__name(normalizeText6, "normalizeText");
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -3740,13 +4122,13 @@ function canEditTarget(actorRole, currentTargetRole, requestedRole) {
   return false;
 }
 __name(canEditTarget, "canEditTarget");
-async function onRequestGet12(context) {
+async function onRequestGet13(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
     const url = new URL(context.request.url);
-    const search = normalizeText5(url.searchParams.get("search"));
-    const role = normalizeText5(url.searchParams.get("role"));
+    const search = normalizeText6(url.searchParams.get("search"));
+    const role = normalizeText6(url.searchParams.get("role"));
     const page = toInt(url.searchParams.get("page"), 1);
     const limit = Math.min(toInt(url.searchParams.get("limit"), 20), 100);
     const offset = (page - 1) * limit;
@@ -3805,17 +4187,17 @@ async function onRequestGet12(context) {
     );
   }
 }
-__name(onRequestGet12, "onRequestGet");
-async function onRequestPost9(context) {
+__name(onRequestGet13, "onRequestGet");
+async function onRequestPost10(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
     const body = await context.request.json();
     const user_id = Number(body.user_id || 0);
-    const full_name = normalizeText5(body.full_name);
+    const full_name = normalizeText6(body.full_name);
     const email = normalizeEmail(body.email);
     const phone = normalizePhone3(body.phone);
-    const role = normalizeText5(body.role || "user");
+    const role = normalizeText6(body.role || "user");
     if (!full_name || !email || !role) {
       return Response.json(
         { success: false, error: "full_name, email, role required" },
@@ -3965,7 +4347,7 @@ async function onRequestPost9(context) {
     );
   }
 }
-__name(onRequestPost9, "onRequestPost");
+__name(onRequestPost10, "onRequestPost");
 async function onRequestDelete5(context) {
   try {
     const adminCheck = await requireAdmin(context);
@@ -4068,19 +4450,19 @@ async function onRequestDelete5(context) {
 __name(onRequestDelete5, "onRequestDelete");
 
 // api/admin/wallet.js
-function json13(data, status = 200) {
+function json14(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json13, "json");
+__name(json14, "json");
 function toMoney(value) {
   const n = Number(value || 0);
   return Number.isFinite(n) ? Math.round(n) : 0;
 }
 __name(toMoney, "toMoney");
-function normalizeText6(value) {
+function normalizeText7(value) {
   return String(value ?? "").trim();
 }
-__name(normalizeText6, "normalizeText");
+__name(normalizeText7, "normalizeText");
 function pickFirst(...values) {
   for (const value of values) {
     if (value !== void 0 && value !== null && String(value).trim() !== "") {
@@ -4138,7 +4520,7 @@ async function setSetting(db, key, value) {
 }
 __name(setSetting, "setSetting");
 function normalizeWalletType(value) {
-  const type = normalizeText6(value).toLowerCase();
+  const type = normalizeText7(value).toLowerCase();
   if (type === "manual_credit") return "credit";
   if (type === "manual_debit") return "debit";
   if (["credit", "debit", "cashback", "refund", "adjustment"].includes(type)) {
@@ -4159,7 +4541,7 @@ function normalizeStatuses3(input) {
   } else if (typeof input === "string") {
     list = input.split(",");
   }
-  const normalized = list.map((item) => normalizeText6(item).toLowerCase()).filter(Boolean);
+  const normalized = list.map((item) => normalizeText7(item).toLowerCase()).filter(Boolean);
   return normalized.length ? [...new Set(normalized)] : ["completed"];
 }
 __name(normalizeStatuses3, "normalizeStatuses");
@@ -4179,7 +4561,7 @@ function buildSettingsPayload(cashbackPercent, cashbackStatuses) {
   };
 }
 __name(buildSettingsPayload, "buildSettingsPayload");
-async function onRequestGet13(context) {
+async function onRequestGet14(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
@@ -4211,7 +4593,7 @@ async function onRequestGet13(context) {
           LIMIT 1
         `).bind(userId).first();
       if (!user) {
-        return json13({ success: false, error: "user_not_found" }, 404);
+        return json14({ success: false, error: "user_not_found" }, 404);
       }
       const txns = await db.prepare(`
           SELECT
@@ -4237,7 +4619,7 @@ async function onRequestGet13(context) {
           ORDER BY id DESC
           LIMIT ?
         `).bind(userId, limit).all();
-      return json13({
+      return json14({
         success: true,
         settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
         user: {
@@ -4273,24 +4655,24 @@ async function onRequestGet13(context) {
         ORDER BY wt.id DESC
         LIMIT ?
       `).bind(limit).all();
-    return json13({
+    return json14({
       success: true,
       settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
       transactions: (latest?.results || []).map(formatTransactionRow)
     });
   } catch (error) {
-    return json13({ success: false, error: String(error?.message || error) }, 500);
+    return json14({ success: false, error: String(error?.message || error) }, 500);
   }
 }
-__name(onRequestGet13, "onRequestGet");
-async function onRequestPost10(context) {
+__name(onRequestGet14, "onRequestGet");
+async function onRequestPost11(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
     const db = context.env.DB;
     await ensureWalletTables(db);
     const body = await context.request.json().catch(() => null);
-    const action = normalizeText6(body?.action).toLowerCase();
+    const action = normalizeText7(body?.action).toLowerCase();
     if (action === "save_settings") {
       const cashbackPercent = Math.max(
         0,
@@ -4313,7 +4695,7 @@ async function onRequestPost10(context) {
         target_id: "cashback",
         description: `cashback_percent=${cashbackPercent}, statuses=${cashbackStatuses.join(",")}`
       });
-      return json13({
+      return json14({
         success: true,
         settings: buildSettingsPayload(cashbackPercent, cashbackStatuses)
       });
@@ -4321,26 +4703,26 @@ async function onRequestPost10(context) {
     const userId = Number(pickFirst(body?.user_id, body?.userId, 0) || 0);
     const amount = Math.abs(toMoney(body?.amount));
     const type = normalizeWalletType(pickFirst(body?.type, "credit"));
-    const note = normalizeText6(pickFirst(body?.note, body?.description));
-    const source = normalizeText6(
+    const note = normalizeText7(pickFirst(body?.note, body?.description));
+    const source = normalizeText7(
       pickFirst(body?.source, body?.reference_type, body?.referenceType, "admin")
     ).toLowerCase() || "admin";
-    const referenceType = normalizeText6(
+    const referenceType = normalizeText7(
       pickFirst(body?.reference_type, body?.referenceType, source, "admin")
     ).toLowerCase() || "admin";
-    const referenceId = normalizeText6(
+    const referenceId = normalizeText7(
       pickFirst(body?.reference_id, body?.referenceId, body?.reference)
     );
     const orderIdRaw = pickFirst(body?.order_id, body?.orderId, 0);
     const orderId = Number(orderIdRaw || 0) || null;
-    const orderNumber = normalizeText6(
+    const orderNumber = normalizeText7(
       pickFirst(body?.order_number, body?.orderNumber)
     );
     if (!userId || amount <= 0) {
-      return json13({ success: false, error: "user_id_and_amount_required" }, 400);
+      return json14({ success: false, error: "user_id_and_amount_required" }, 400);
     }
     if (!type) {
-      return json13({ success: false, error: "invalid_type" }, 400);
+      return json14({ success: false, error: "invalid_type" }, 400);
     }
     const user = await db.prepare(`
         SELECT
@@ -4353,13 +4735,13 @@ async function onRequestPost10(context) {
         LIMIT 1
       `).bind(userId).first();
     if (!user) {
-      return json13({ success: false, error: "user_not_found" }, 404);
+      return json14({ success: false, error: "user_not_found" }, 404);
     }
     const balanceBefore = toMoney(user.wallet_balance);
     const signedAmount = getSignedAmountByType(type, amount);
     const balanceAfter = balanceBefore + signedAmount;
     if (balanceAfter < 0) {
-      return json13({ success: false, error: "insufficient_wallet_balance" }, 400);
+      return json14({ success: false, error: "insufficient_wallet_balance" }, 400);
     }
     await db.batch([
       db.prepare(`
@@ -4410,7 +4792,7 @@ async function onRequestPost10(context) {
       target_id: String(userId),
       description: `amount=${signedAmount}, balance_after=${balanceAfter}, source=${source}, reference_type=${referenceType}`
     });
-    return json13({
+    return json14({
       success: true,
       transaction: {
         user_id: userId,
@@ -4429,10 +4811,10 @@ async function onRequestPost10(context) {
       }
     });
   } catch (error) {
-    return json13({ success: false, error: String(error?.message || error) }, 500);
+    return json14({ success: false, error: String(error?.message || error) }, 500);
   }
 }
-__name(onRequestPost10, "onRequestPost");
+__name(onRequestPost11, "onRequestPost");
 
 // api/auth/login.js
 async function sha256(text) {
@@ -4446,7 +4828,7 @@ function normalizeEmail2(email) {
   return String(email).trim().toLowerCase();
 }
 __name(normalizeEmail2, "normalizeEmail");
-async function onRequestPost11(context) {
+async function onRequestPost12(context) {
   try {
     const body = await context.request.json();
     const email = normalizeEmail2(body.email || "");
@@ -4511,21 +4893,21 @@ async function onRequestPost11(context) {
     );
   }
 }
-__name(onRequestPost11, "onRequestPost");
+__name(onRequestPost12, "onRequestPost");
 
 // api/auth/logout.js
-function getCookie12(cookieString, key) {
+function getCookie13(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   if (!target) return null;
   return target.slice(key.length + 1);
 }
-__name(getCookie12, "getCookie");
-async function onRequestPost12(context) {
+__name(getCookie13, "getCookie");
+async function onRequestPost13(context) {
   try {
     const cookieString = context.request.headers.get("Cookie") || "";
-    const sessionId = getCookie12(cookieString, "session_id");
+    const sessionId = getCookie13(cookieString, "session_id");
     if (sessionId) {
       await context.env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run();
     }
@@ -4548,21 +4930,21 @@ async function onRequestPost12(context) {
     );
   }
 }
-__name(onRequestPost12, "onRequestPost");
+__name(onRequestPost13, "onRequestPost");
 
 // api/auth/me.js
-function getCookie13(cookieString, key) {
+function getCookie14(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   if (!target) return null;
   return target.slice(key.length + 1);
 }
-__name(getCookie13, "getCookie");
-async function onRequestGet14(context) {
+__name(getCookie14, "getCookie");
+async function onRequestGet15(context) {
   try {
     const cookieString = context.request.headers.get("Cookie") || "";
-    const sessionId = getCookie13(cookieString, "session_id");
+    const sessionId = getCookie14(cookieString, "session_id");
     if (!sessionId) {
       return Response.json({ success: false, user: null }, { status: 401 });
     }
@@ -4597,20 +4979,20 @@ async function onRequestGet14(context) {
     );
   }
 }
-__name(onRequestGet14, "onRequestGet");
+__name(onRequestGet15, "onRequestGet");
 
 // api/auth/profile.js
-function getCookie14(cookieString, key) {
+function getCookie15(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   if (!target) return null;
   return target.slice(key.length + 1);
 }
-__name(getCookie14, "getCookie");
+__name(getCookie15, "getCookie");
 async function getCurrentUserId3(context) {
   const cookieString = context.request.headers.get("Cookie") || "";
-  const sessionId = getCookie14(cookieString, "session_id");
+  const sessionId = getCookie15(cookieString, "session_id");
   if (!sessionId) return null;
   const session = await context.env.DB.prepare("SELECT user_id FROM sessions WHERE id = ?").bind(sessionId).first();
   return session?.user_id ?? null;
@@ -4622,7 +5004,7 @@ async function sha2562(text) {
   return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 __name(sha2562, "sha256");
-async function onRequestGet15(context) {
+async function onRequestGet16(context) {
   try {
     const userId = await getCurrentUserId3(context);
     if (!userId) {
@@ -4644,8 +5026,8 @@ async function onRequestGet15(context) {
     );
   }
 }
-__name(onRequestGet15, "onRequestGet");
-async function onRequestPost13(context) {
+__name(onRequestGet16, "onRequestGet");
+async function onRequestPost14(context) {
   try {
     const userId = await getCurrentUserId3(context);
     if (!userId) {
@@ -4711,7 +5093,7 @@ async function onRequestPost13(context) {
     );
   }
 }
-__name(onRequestPost13, "onRequestPost");
+__name(onRequestPost14, "onRequestPost");
 
 // api/auth/register.js
 async function sha2563(text) {
@@ -4725,7 +5107,7 @@ function normalizePhone4(value) {
   return String(value).trim().replace(/[^\d+]/g, "");
 }
 __name(normalizePhone4, "normalizePhone");
-async function onRequestPost14(context) {
+async function onRequestPost15(context) {
   try {
     const body = await context.request.json();
     const full_name = String(body.full_name || "").trim();
@@ -4794,156 +5176,280 @@ async function onRequestPost14(context) {
     );
   }
 }
-__name(onRequestPost14, "onRequestPost");
+__name(onRequestPost15, "onRequestPost");
 
-// api/catalog.js
-function json14(data, status = 200) {
-  return Response.json(data, {
-    status,
-    headers: {
-      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
-    }
-  });
+// api/shipping/calculate.js
+function json15(data, status = 200) {
+  return Response.json(data, { status });
 }
-__name(json14, "json");
-function normalizeProduct(row, imagesByProductId) {
-  const productId = Number(row.id);
-  const gallery = imagesByProductId.get(productId) || [];
-  const primaryImage = row.primary_image || gallery.find((image) => Number(image.is_primary) === 1)?.image_url || gallery[0]?.image_url || "";
-  const numericPrice = row.price === null || row.price === void 0 || row.price === "" ? null : Number(row.price);
-  const stockQuantity = Math.max(0, Number(row.stock_quantity || 0));
-  const inStock = Number(row.in_stock) === 1 && stockQuantity > 0;
+__name(json15, "json");
+function normalizeText8(value) {
+  return String(value ?? "").trim();
+}
+__name(normalizeText8, "normalizeText");
+function normalizeNumber5(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
+}
+__name(normalizeNumber5, "normalizeNumber");
+async function getShippingCost(db, province, city, subtotal = 0) {
+  const normalizedProvince = normalizeText8(province);
+  const normalizedCity = normalizeText8(city);
+  let cost = await db.prepare(`
+    SELECT 
+      sc.id,
+      sc.province,
+      sc.city,
+      sc.shipping_method_id,
+      sc.cost_type,
+      sc.cost_amount,
+      sc.extra_cost,
+      sc.delivery_time,
+      sc.is_active,
+      sm.id as method_id,
+      sm.name as method_name,
+      sm.slug as method_slug,
+      sm.default_cost,
+      sm.delivery_time as method_delivery_time
+    FROM shipping_costs sc
+    INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+    WHERE sc.province = ? AND sc.city = ? AND sc.is_active = 1 AND sm.is_active = 1
+    LIMIT 1
+  `).bind(normalizedProvince, normalizedCity).first();
+  if (!cost) {
+    cost = await db.prepare(`
+      SELECT 
+        sc.id,
+        sc.province,
+        sc.city,
+        sc.shipping_method_id,
+        sc.cost_type,
+        sc.cost_amount,
+        sc.extra_cost,
+        sc.delivery_time,
+        sc.is_active,
+        sm.id as method_id,
+        sm.name as method_name,
+        sm.slug as method_slug,
+        sm.default_cost,
+        sm.delivery_time as method_delivery_time
+      FROM shipping_costs sc
+      INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+      WHERE sc.province = ? AND sc.city = 'default' AND sc.is_active = 1 AND sm.is_active = 1
+      LIMIT 1
+    `).bind(normalizedProvince).first();
+  }
+  if (!cost) {
+    return {
+      success: false,
+      message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0631\u0627\u06CC \u0627\u06CC\u0646 \u0634\u0647\u0631 \u062A\u0639\u06CC\u06CC\u0646 \u0646\u0634\u062F\u0647 \u0627\u0633\u062A."
+    };
+  }
+  const baseCost = cost.default_cost || 0;
+  const extraCost = cost.extra_cost || 0;
+  let finalCost = baseCost + extraCost;
+  let deliveryTime = cost.delivery_time || cost.method_delivery_time || "\u0646\u0627\u0645\u0634\u062E\u0635";
+  let isFree = false;
+  const freeThreshold = await db.prepare(`
+    SELECT min_order_amount
+    FROM shipping_free_thresholds
+    WHERE shipping_method_id = ? AND is_active = 1
+    ORDER BY min_order_amount ASC
+    LIMIT 1
+  `).bind(cost.method_id).first();
+  if (freeThreshold && subtotal >= normalizeNumber5(freeThreshold.min_order_amount)) {
+    finalCost = 0;
+    isFree = true;
+  }
   return {
-    id: productId,
-    slug: row.slug,
-    name: row.name,
-    category: row.category || "",
-    price: numericPrice,
-    priceLabel: numericPrice === null ? row.price_label || "\u062A\u0645\u0627\u0633 \u0628\u06AF\u06CC\u0631\u06CC\u062F" : numericPrice.toLocaleString("fa-IR"),
-    showPrice: Number(row.show_price) === 1 && numericPrice !== null,
-    stockQuantity,
-    inStock,
-    stockLabel: row.stock_label || (inStock ? `\u0645\u0648\u062C\u0648\u062F (${stockQuantity.toLocaleString("fa-IR")})` : "\u0646\u0627\u0645\u0648\u062C\u0648\u062F"),
-    shortDescription: row.short_description || "",
-    description: row.description || "",
-    primaryImage,
-    images: gallery.map((image) => image.image_url).filter(Boolean),
-    pageUrl: row.page_url || `products/${row.slug}.html`,
-    status: row.status || "published",
-    updatedAt: row.updated_at || null
+    success: true,
+    shipping: {
+      method_id: cost.method_id,
+      method_name: cost.method_name,
+      method_slug: cost.method_slug,
+      province: cost.province,
+      city: cost.city,
+      cost_type: cost.cost_type || "fixed",
+      extra_cost: extraCost,
+      shipping_cost: finalCost,
+      is_free: isFree,
+      delivery_time: deliveryTime,
+      free_threshold: freeThreshold ? normalizeNumber5(freeThreshold.min_order_amount) : null
+    }
   };
 }
-__name(normalizeProduct, "normalizeProduct");
-async function onRequestGet16(context) {
+__name(getShippingCost, "getShippingCost");
+async function onRequestPost16(context) {
   try {
-    const url = new URL(context.request.url);
-    const requestedSlug = String(url.searchParams.get("slug") || "").trim();
-    const requestedCategory = String(url.searchParams.get("category") || "").trim();
-    let productsQuery = `
-      SELECT
-        id,
-        slug,
-        name,
-        category,
-        price,
-        price_label,
-        show_price,
-        stock_quantity,
-        in_stock,
-        stock_label,
-        short_description,
-        description,
-        primary_image,
-        page_url,
-        status,
-        created_at,
-        updated_at
-      FROM products
-      WHERE status = 'published'
-    `;
-    const bindings = [];
-    if (requestedSlug) {
-      productsQuery += " AND slug = ?";
-      bindings.push(requestedSlug);
+    const body = await context.request.json().catch(() => null);
+    if (!body) {
+      return json15({ success: false, error: "invalid_payload" }, 400);
     }
-    if (requestedCategory) {
-      productsQuery += " AND category = ?";
-      bindings.push(requestedCategory);
+    const province = normalizeText8(body.province);
+    const city = normalizeText8(body.city);
+    const subtotal = normalizeNumber5(body.subtotal);
+    if (!province || !city) {
+      return json15({ success: false, error: "province_and_city_required" }, 400);
     }
-    productsQuery += " ORDER BY id DESC";
-    const productsResult = await context.env.DB.prepare(productsQuery).bind(...bindings).all();
-    const productRows = productsResult.results || [];
-    if (requestedSlug && productRows.length === 0) {
-      return json14(
-        {
-          success: false,
-          error: "\u0645\u062D\u0635\u0648\u0644 \u0645\u0648\u0631\u062F\u0646\u0638\u0631 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F."
-        },
-        404
-      );
+    const result = await getShippingCost(context.env.DB, province, city, subtotal);
+    if (!result.success) {
+      return json15({ success: false, error: result.message }, 404);
     }
-    const productIds = productRows.map((product) => Number(product.id)).filter((id) => Number.isInteger(id) && id > 0);
-    const imagesByProductId = /* @__PURE__ */ new Map();
-    if (productIds.length > 0) {
-      const placeholders = productIds.map(() => "?").join(", ");
-      const imagesResult = await context.env.DB.prepare(`
-        SELECT
-          id,
-          product_id,
-          image_url,
-          alt_text,
-          sort_order,
-          is_primary
-        FROM product_images
-        WHERE product_id IN (${placeholders})
-        ORDER BY product_id ASC, is_primary DESC, sort_order ASC, id ASC
-      `).bind(...productIds).all();
-      for (const image of imagesResult.results || []) {
-        const productId = Number(image.product_id);
-        if (!imagesByProductId.has(productId)) {
-          imagesByProductId.set(productId, []);
-        }
-        imagesByProductId.get(productId).push({
-          id: Number(image.id),
-          imageUrl: image.image_url,
-          image_url: image.image_url,
-          altText: image.alt_text || "",
-          alt_text: image.alt_text || "",
-          sortOrder: Number(image.sort_order || 0),
-          sort_order: Number(image.sort_order || 0),
-          isPrimary: Number(image.is_primary) === 1,
-          is_primary: Number(image.is_primary) === 1 ? 1 : 0
-        });
-      }
-    }
-    const products = productRows.map(
-      (row) => normalizeProduct(row, imagesByProductId)
-    );
-    if (requestedSlug) {
-      return json14({
-        success: true,
-        product: products[0]
-      });
-    }
-    return json14({
+    return json15({
       success: true,
-      count: products.length,
-      products
+      data: result.shipping
     });
   } catch (error) {
-    return json14(
-      {
-        success: false,
-        error: String(error?.message || error)
-      },
-      500
-    );
+    return json15({
+      success: false,
+      error: String(error?.message || error)
+    }, 500);
   }
 }
-__name(onRequestGet16, "onRequestGet");
+__name(onRequestPost16, "onRequestPost");
+
+// api/shipping/methods.js
+function json16(data, status = 200) {
+  return Response.json(data, { status });
+}
+__name(json16, "json");
+async function onRequestGet17(context) {
+  try {
+    const result = await context.env.DB.prepare(`
+      SELECT 
+        id, 
+        name, 
+        slug, 
+        description, 
+        delivery_time, 
+        is_active, 
+        sort_order
+      FROM shipping_methods
+      WHERE is_active = 1
+      ORDER BY sort_order ASC, id ASC
+    `).all();
+    const methods = Array.isArray(result?.results) ? result.results : [];
+    return json16({
+      success: true,
+      methods
+    });
+  } catch (error) {
+    return json16({
+      success: false,
+      error: String(error?.message || error)
+    }, 500);
+  }
+}
+__name(onRequestGet17, "onRequestGet");
+
+// api/shipping/provinces.js
+function json17(data, status = 200) {
+  return Response.json(data, { status });
+}
+__name(json17, "json");
+async function onRequestGet18(context) {
+  try {
+    const result = await context.env.DB.prepare(`
+      SELECT DISTINCT province, city 
+      FROM shipping_costs 
+      WHERE is_active = 1
+      ORDER BY province, city ASC
+    `).all();
+    const rows = Array.isArray(result?.results) ? result.results : [];
+    const provinces = {};
+    for (const row of rows) {
+      const province = row.province || "\u0646\u0627\u0645\u0634\u062E\u0635";
+      const city = row.city || "";
+      if (!provinces[province]) {
+        provinces[province] = [];
+      }
+      if (city && !provinces[province].includes(city)) {
+        provinces[province].push(city);
+      }
+    }
+    if (Object.keys(provinces).length === 0) {
+      const fallbackData = {
+        "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0631\u0648\u062F\u0647\u0646", "\u0628\u0648\u0645\u0647\u0646"],
+        "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F"],
+        "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645"],
+        "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631"],
+        "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F"]
+      };
+      return json17({
+        success: true,
+        provinces: fallbackData,
+        provinceList: Object.keys(fallbackData)
+      });
+    }
+    return json17({
+      success: true,
+      provinces,
+      provinceList: Object.keys(provinces)
+    });
+  } catch (error) {
+    return json17({
+      success: false,
+      error: String(error?.message || error)
+    }, 500);
+  }
+}
+__name(onRequestGet18, "onRequestGet");
+
+// api/catalog.js
+function json18(data, status = 200) {
+  return Response.json(data, { status });
+}
+__name(json18, "json");
+async function onRequestGet19(context) {
+  try {
+    const result = await context.env.DB.prepare(`
+      SELECT DISTINCT province, city 
+      FROM shipping_costs 
+      WHERE is_active = 1
+      ORDER BY province, city ASC
+    `).all();
+    const rows = Array.isArray(result?.results) ? result.results : [];
+    const provinces = {};
+    for (const row of rows) {
+      const province = row.province || "\u0646\u0627\u0645\u0634\u062E\u0635";
+      const city = row.city || "";
+      if (!provinces[province]) {
+        provinces[province] = [];
+      }
+      if (city && !provinces[province].includes(city)) {
+        provinces[province].push(city);
+      }
+    }
+    if (Object.keys(provinces).length === 0) {
+      const fallbackData = {
+        "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0631\u0648\u062F\u0647\u0646", "\u0628\u0648\u0645\u0647\u0646"],
+        "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F"],
+        "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645"],
+        "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631"],
+        "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F"]
+      };
+      return json18({
+        success: true,
+        provinces: fallbackData,
+        provinceList: Object.keys(fallbackData)
+      });
+    }
+    return json18({
+      success: true,
+      provinces,
+      provinceList: Object.keys(provinces)
+    });
+  } catch (error) {
+    return json18({
+      success: false,
+      error: String(error?.message || error)
+    }, 500);
+  }
+}
+__name(onRequestGet19, "onRequestGet");
 
 // api/products.js
-function json15(data, status = 200, headers = {}) {
+function json19(data, status = 200, headers = {}) {
   return Response.json(data, {
     status,
     headers: {
@@ -4952,7 +5458,7 @@ function json15(data, status = 200, headers = {}) {
     }
   });
 }
-__name(json15, "json");
+__name(json19, "json");
 function cleanText3(value) {
   return String(value ?? "").trim();
 }
@@ -5044,11 +5550,11 @@ async function onRequestOptions() {
   });
 }
 __name(onRequestOptions, "onRequestOptions");
-async function onRequestGet17(context) {
+async function onRequestGet20(context) {
   try {
     const db = context.env?.DB;
     if (!db) {
-      return json15(
+      return json19(
         {
           success: false,
           error: "D1 database binding DB is not configured."
@@ -5102,7 +5608,7 @@ async function onRequestGet17(context) {
     const productsResult = bindings.length ? await db.prepare(productsQuery).bind(...bindings).all() : await db.prepare(productsQuery).all();
     const productRows = Array.isArray(productsResult?.results) ? productsResult.results : [];
     if (!productRows.length) {
-      return json15({
+      return json19({
         success: true,
         total: 0,
         products: []
@@ -5131,13 +5637,13 @@ async function onRequestGet17(context) {
     const products = productRows.map(
       (product) => productFromRow3(product, imageRows)
     );
-    return json15({
+    return json19({
       success: true,
       total: products.length,
       products
     });
   } catch (error) {
-    return json15(
+    return json19(
       {
         success: false,
         error: String(error?.message || error)
@@ -5149,10 +5655,10 @@ async function onRequestGet17(context) {
     );
   }
 }
-__name(onRequestGet17, "onRequestGet");
+__name(onRequestGet20, "onRequestGet");
 
 // api/test-db.js
-async function onRequestGet18(context) {
+async function onRequestGet21(context) {
   try {
     const row = await context.env.DB.prepare("SELECT 1 as ok").first();
     return Response.json({
@@ -5171,9 +5677,9 @@ async function onRequestGet18(context) {
     );
   }
 }
-__name(onRequestGet18, "onRequestGet");
+__name(onRequestGet21, "onRequestGet");
 
-// ../.wrangler/tmp/pages-T6iSRk/functionsRoutes-0.16328946060710692.mjs
+// ../.wrangler/tmp/pages-aWq5LX/functionsRoutes-0.8302572409533391.mjs
 var routes = [
   {
     routePath: "/api/account/addresses/:id/default",
@@ -5358,11 +5864,25 @@ var routes = [
     modules: [onRequestPost8]
   },
   {
-    routePath: "/api/admin/stats",
+    routePath: "/api/admin/shipping",
     mountPath: "/api/admin",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet11]
+  },
+  {
+    routePath: "/api/admin/shipping",
+    mountPath: "/api/admin",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost9]
+  },
+  {
+    routePath: "/api/admin/stats",
+    mountPath: "/api/admin",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet12]
   },
   {
     routePath: "/api/admin/users",
@@ -5376,52 +5896,45 @@ var routes = [
     mountPath: "/api/admin",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet12]
+    modules: [onRequestGet13]
   },
   {
     routePath: "/api/admin/users",
     mountPath: "/api/admin",
     method: "POST",
     middlewares: [],
-    modules: [onRequestPost9]
+    modules: [onRequestPost10]
   },
   {
     routePath: "/api/admin/wallet",
     mountPath: "/api/admin",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet13]
+    modules: [onRequestGet14]
   },
   {
     routePath: "/api/admin/wallet",
     mountPath: "/api/admin",
     method: "POST",
     middlewares: [],
-    modules: [onRequestPost10]
+    modules: [onRequestPost11]
   },
   {
     routePath: "/api/auth/login",
     mountPath: "/api/auth",
     method: "POST",
     middlewares: [],
-    modules: [onRequestPost11]
+    modules: [onRequestPost12]
   },
   {
     routePath: "/api/auth/logout",
     mountPath: "/api/auth",
     method: "POST",
     middlewares: [],
-    modules: [onRequestPost12]
+    modules: [onRequestPost13]
   },
   {
     routePath: "/api/auth/me",
-    mountPath: "/api/auth",
-    method: "GET",
-    middlewares: [],
-    modules: [onRequestGet14]
-  },
-  {
-    routePath: "/api/auth/profile",
     mountPath: "/api/auth",
     method: "GET",
     middlewares: [],
@@ -5430,30 +5943,58 @@ var routes = [
   {
     routePath: "/api/auth/profile",
     mountPath: "/api/auth",
-    method: "POST",
+    method: "GET",
     middlewares: [],
-    modules: [onRequestPost13]
+    modules: [onRequestGet16]
   },
   {
-    routePath: "/api/auth/register",
+    routePath: "/api/auth/profile",
     mountPath: "/api/auth",
     method: "POST",
     middlewares: [],
     modules: [onRequestPost14]
   },
   {
+    routePath: "/api/auth/register",
+    mountPath: "/api/auth",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost15]
+  },
+  {
+    routePath: "/api/shipping/calculate",
+    mountPath: "/api/shipping",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost16]
+  },
+  {
+    routePath: "/api/shipping/methods",
+    mountPath: "/api/shipping",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet17]
+  },
+  {
+    routePath: "/api/shipping/provinces",
+    mountPath: "/api/shipping",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet18]
+  },
+  {
     routePath: "/api/catalog",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet16]
+    modules: [onRequestGet19]
   },
   {
     routePath: "/api/products",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet17]
+    modules: [onRequestGet20]
   },
   {
     routePath: "/api/products",
@@ -5467,7 +6008,7 @@ var routes = [
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet18]
+    modules: [onRequestGet21]
   }
 ];
 
