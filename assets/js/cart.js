@@ -225,15 +225,15 @@
   }
 
   function dispatchCartUpdated() {
-    document.dispatchEvent(
-      new CustomEvent(CART_EVENT_NAME, {
-        detail: {
-          cart: getCartDetails(),
-          itemCount: getItemCount(),
-          totalPrice: getTotalPrice()
-        }
-      })
-    );
+    const event = new CustomEvent(CART_EVENT_NAME, {
+      detail: {
+        cart: getCartDetails(),
+        itemCount: getItemCount(),
+        totalPrice: getTotalPrice()
+      },
+      bubbles: true
+    });
+    document.dispatchEvent(event);
   }
 
   function saveValidatedCart() {
@@ -290,7 +290,11 @@
     }
 
     writeCart(cart);
-    dispatchCartUpdated();
+
+    // ارسال رویداد با کمی تأخیر برای اطمینان از به‌روزرسانی DOM
+    setTimeout(() => {
+      dispatchCartUpdated();
+    }, 0);
 
     return {
       success: true,
@@ -362,17 +366,40 @@
     });
   }
 
+  // ============================================
+  // 🔹 به‌روزرسانی Badge‌ها - نسخه اصلاح‌شده
+  // ============================================
   function updateCartBadges() {
     const itemCount = getItemCount();
 
+    // به‌روزرسانی Badge هدر
     document.querySelectorAll("[data-cart-count]").forEach((element) => {
-      element.textContent = new Intl.NumberFormat("fa-IR").format(itemCount);
-      element.hidden = itemCount === 0;
+      const count = itemCount;
+      element.textContent = new Intl.NumberFormat("fa-IR").format(count);
+      element.hidden = count === 0;
       element.setAttribute(
         "aria-label",
-        itemCount > 0 ? `${itemCount} محصول در سبد خرید` : "سبد خرید خالی است"
+        count > 0 ? `${count} محصول در سبد خرید` : "سبد خرید خالی است"
       );
     });
+
+    // به‌روزرسانی Badge Bottom Navigation
+    document.querySelectorAll("[data-cart-count-badge]").forEach((element) => {
+      const count = itemCount;
+      element.textContent = count;
+      if (count > 0) {
+        element.classList.remove("bottom-nav__badge--hidden");
+      } else {
+        element.classList.add("bottom-nav__badge--hidden");
+      }
+    });
+  }
+
+  // ============================================
+  // تابع برای به‌روزرسانی اجباری از بیرون
+  // ============================================
+  function forceUpdateBadges() {
+    updateCartBadges();
   }
 
   const cartApi = {
@@ -387,7 +414,9 @@
     getTotalPrice,
     hasItem,
     formatPrice,
-    refresh: saveValidatedCart
+    refresh: saveValidatedCart,
+    updateBadges: updateCartBadges,
+    forceUpdate: forceUpdateBadges
   };
 
   window.Cart = cartApi;
@@ -404,24 +433,26 @@
     getTotalPrice,
     hasItem,
     formatPrice,
-    refresh: saveValidatedCart
+    refresh: saveValidatedCart,
+    updateBadges: updateCartBadges,
+    forceUpdate: forceUpdateBadges
   };
 
-  document.addEventListener(CART_EVENT_NAME, updateCartBadges);
+  // ============================================
+  // رویدادها
+  // ============================================
+  document.addEventListener(CART_EVENT_NAME, function() {
+    updateCartBadges();
+  });
 
   document.addEventListener("products:ready", function () {
     saveValidatedCart();
     updateCartBadges();
   });
 
-  if (hasUsableProducts()) {
-    saveValidatedCart();
-    updateCartBadges();
-  } else {
-    dispatchCartUpdated();
-    updateCartBadges();
-  }
-
+  // ============================================
+  // گوش دادن به تغییرات localStorage از سایر تب‌ها
+  // ============================================
   if (storageAvailable) {
     window.addEventListener("storage", function (event) {
       if (event.key === CART_STORAGE_KEY) {
@@ -429,4 +460,38 @@
       }
     });
   }
+
+  // ============================================
+  // اجرای اولیه با تأخیر برای اطمینان از DOM
+  // ============================================
+  function initialUpdate() {
+    if (hasUsableProducts()) {
+      saveValidatedCart();
+    } else {
+      dispatchCartUpdated();
+    }
+    updateCartBadges();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(initialUpdate, 100);
+    });
+  } else {
+    setTimeout(initialUpdate, 100);
+  }
+
+  // ============================================
+  // به‌روزرسانی پس از بارگذاری کامل صفحه
+  // ============================================
+  window.addEventListener("load", function() {
+    setTimeout(updateCartBadges, 200);
+  });
+
+  // ============================================
+  // اکسترنال API برای به‌روزرسانی از خارج
+  // ============================================
+  window.updateAllCartBadges = function() {
+    updateCartBadges();
+  };
 })();

@@ -154,7 +154,9 @@
         update: window.Cart.update,
         remove: window.Cart.remove,
         clear: window.Cart.clear,
-        formatPrice: window.Cart.formatPrice || formatPrice
+        formatPrice: window.Cart.formatPrice || formatPrice,
+        updateBadges: window.Cart.updateBadges || function() {},
+        forceUpdate: window.Cart.forceUpdate || function() {}
       };
     }
 
@@ -166,7 +168,9 @@
         update: window.CartStore.updateQuantity,
         remove: window.CartStore.removeFromCart,
         clear: window.CartStore.clearCart,
-        formatPrice: window.CartStore.formatPrice || formatPrice
+        formatPrice: window.CartStore.formatPrice || formatPrice,
+        updateBadges: window.CartStore.updateBadges || function() {},
+        forceUpdate: window.CartStore.forceUpdate || function() {}
       };
     }
 
@@ -282,6 +286,11 @@
     total.textContent = totalPrice === null ? "تماس بگیرید" : priceFormatter(totalPrice);
 
     bindCartItemActions();
+
+    // به‌روزرسانی Badge‌ها بعد از رندر
+    if (typeof cartApi.updateBadges === "function") {
+      cartApi.updateBadges();
+    }
   }
 
   function bindCartItemActions() {
@@ -375,7 +384,16 @@
     });
 
     renderCartDrawer();
-    document.addEventListener("cart:updated", renderCartDrawer);
+    document.addEventListener("cart:updated", function() {
+      renderCartDrawer();
+      // به‌روزرسانی اجباری Badge‌ها
+      const cartApi = getCartApi();
+      if (typeof cartApi?.updateBadges === "function") {
+        setTimeout(function() {
+          cartApi.updateBadges();
+        }, 50);
+      }
+    });
     document.addEventListener("products:ready", renderCartDrawer);
   }
 
@@ -390,7 +408,6 @@
       const href = item.getAttribute("href");
       if (!href) return;
 
-      // تشخیص صفحه فعال بر اساس مسیر
       const isActive = 
         (href === "/index.html" && (currentPath === "/" || currentPath === "/index.html")) ||
         (href !== "/index.html" && currentPath.includes(href.replace("/", "")));
@@ -400,9 +417,7 @@
         item.setAttribute("aria-current", "page");
       }
 
-      // کلیک روی آیتم
       item.addEventListener("click", function (e) {
-        // اگر لینک به صفحه فعلی باشد، از رفتن جلوگیری کن
         if (this.classList.contains("is-active")) {
           e.preventDefault();
         }
@@ -446,14 +461,25 @@
     setupCartDrawer();
     setupBottomNav();
 
-    // به‌روزرسانی اولیه Badge
-    setTimeout(() => {
+    // به‌روزرسانی اولیه Badge‌ها با تأخیر برای اطمینان از DOM
+    setTimeout(function() {
+      const cartApi = getCartApi();
+      if (typeof cartApi?.updateBadges === "function") {
+        cartApi.updateBadges();
+      }
       updateBottomCartBadge();
-    }, 100);
+    }, 200);
 
     // گوش دادن به رویداد به‌روزرسانی سبد
     document.addEventListener("cart:updated", function () {
       updateBottomCartBadge();
+      // اطمینان از به‌روزرسانی Badge‌های هدر
+      const cartApi = getCartApi();
+      if (typeof cartApi?.updateBadges === "function") {
+        setTimeout(function() {
+          cartApi.updateBadges();
+        }, 50);
+      }
     });
 
     document.dispatchEvent(new CustomEvent("layout:loaded"));
