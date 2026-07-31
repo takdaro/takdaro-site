@@ -673,7 +673,6 @@
       flex-wrap: wrap;
     }
 
-    /* Products manager */
     .products-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
     .product-image-thumb { width:58px; height:58px; border-radius:12px; object-fit:cover; border:1px solid rgba(15,23,42,.1); background:#f8fafc; }
     .product-empty-image { width:58px; height:58px; display:grid; place-items:center; border-radius:12px; background:#f8fafc; color:#94a3b8; border:1px dashed rgba(15,23,42,.16); }
@@ -685,6 +684,48 @@
     .product-gallery-actions { display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
     .product-gallery-actions label { display:flex; align-items:center; gap:5px; color:#475569; font-size:.82rem; font-weight:700; cursor:pointer; }
     .product-file-help { color:#64748b; font-size:.83rem; line-height:1.8; margin:0; }
+
+    /* Shipping panel styles */
+    .shipping-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid rgba(15,23,42,0.06);
+      padding-bottom: 16px;
+    }
+
+    .shipping-tab-btn {
+      padding: 10px 20px;
+      border: 1px solid rgba(15,23,42,0.08);
+      border-radius: 999px;
+      background: #fff;
+      color: #334155;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .shipping-tab-btn:hover {
+      border-color: rgba(16,185,129,0.25);
+      background: #f0fdf4;
+      color: #047857;
+    }
+
+    .shipping-tab-btn.is-active {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #047857;
+    }
+
+    .shipping-tab-content {
+      display: none;
+    }
+
+    .shipping-tab-content.is-active {
+      display: block;
+    }
 
     @media (max-width: 1280px) {
       .container {
@@ -775,6 +816,15 @@
       .admin-table {
         min-width: 900px;
       }
+
+      .shipping-tabs {
+        flex-direction: column;
+      }
+
+      .shipping-tab-btn {
+        width: 100%;
+        text-align: center;
+      }
     }
   </style>
 </head>
@@ -818,6 +868,7 @@
                 <button class="admin-menu-btn" type="button" data-admin-panel="users">کاربران</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="wallet">کیف پول</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="products">محصولات</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="shipping">🚚 حمل‌ونقل</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="invoice">تنظیمات فاکتور</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="logout">خروج</button>
               </nav>
@@ -1009,59 +1060,19 @@
                 <div id="product-edit-box" class="detail-card admin-hidden"></div>
               </div>
 
-              <!-- ==================== کیف پول ==================== -->
-              <div id="admin-panel-wallet" class="admin-section">
-                <div class="wallet-shell">
-                  <div class="wallet-toolbar">
-                    <div class="form-field">
-                      <label for="wallet-user-id">شناسه کاربر</label>
-                      <input id="wallet-user-id" type="number" min="1" placeholder="مثلاً 1" />
-                    </div>
-                    <div class="form-field">
-                      <label for="wallet-quick-type">نوع سریع</label>
-                      <select id="wallet-quick-type">
-                        <option value="">همه نوع‌ها</option>
-                        <option value="credit">واریز</option>
-                        <option value="debit">برداشت</option>
-                        <option value="cashback">کش‌بک</option>
-                        <option value="refund">بازگشت وجه</option>
-                        <option value="adjustment">تعدیل</option>
-                      </select>
-                    </div>
-                    <div class="form-field">
-                      <label for="wallet-limit">تعداد تراکنش</label>
-                      <select id="wallet-limit">
-                        <option value="20">20</option>
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                      </select>
-                    </div>
-                    <div class="form-field" style="justify-content:flex-end;">
-                      <label style="opacity:0;">اقدام</label>
-                      <button class="btn btn-primary" type="button" id="wallet-load-btn">بارگذاری کیف پول</button>
-                    </div>
-                  </div>
-
-                  <div id="wallet-empty-state" class="wallet-empty">
-                    برای مشاهده و مدیریت کیف پول، شناسه کاربر را وارد کن و روی «بارگذاری کیف پول» بزن.
-                  </div>
-
-                  <div id="wallet-content" class="admin-hidden">
-                    <div class="wallet-overview">
-                      <div id="wallet-hero-card" class="wallet-hero"></div>
-                      <div id="wallet-summary-cards" class="wallet-summary-grid"></div>
-                    </div>
-
-                    <div class="wallet-grid">
-                      <div id="wallet-user-box" class="wallet-user-card"></div>
-                      <div id="wallet-adjust-box" class="wallet-adjust-card"></div>
-                    </div>
-
-                    <div id="wallet-settings-box" class="wallet-settings-card"></div>
-                    <div id="wallet-history-box" class="wallet-history-card"></div>
-                  </div>
+              <!-- ==================== حمل‌ونقل ==================== -->
+              <div id="admin-panel-shipping" class="admin-section">
+                <div class="shipping-tabs">
+                  <button class="shipping-tab-btn is-active" type="button" data-shipping-tab="methods">🚛 روش‌های حمل‌ونقل</button>
+                  <button class="shipping-tab-btn" type="button" data-shipping-tab="costs">💰 هزینه ارسال</button>
+                  <button class="shipping-tab-btn" type="button" data-shipping-tab="free">🎁 ارسال رایگان</button>
                 </div>
+
+                <div id="shipping-tab-methods" class="shipping-tab-content is-active"></div>
+                <div id="shipping-tab-costs" class="shipping-tab-content"></div>
+                <div id="shipping-tab-free" class="shipping-tab-content"></div>
+
+                <div id="shipping-method-form-container"></div>
               </div>
 
               <!-- ==================== تنظیمات فاکتور ==================== -->
@@ -1184,6 +1195,7 @@
       users: { title: "کاربران", description: "مدیریت کاربران، نقش‌ها و اطلاعات حساب." },
       wallet: { title: "کیف پول", description: "مدیریت حرفه‌ای موجودی، تراکنش‌ها و تنظیمات کش‌بک کاربران." },
       products: { title: "محصولات", description: "مدیریت محصولات، قیمت، موجودی، انتشار و گالری تصاویر." },
+      shipping: { title: "🚚 حمل‌ونقل", description: "مدیریت روش‌های حمل‌ونقل، هزینه‌ها و ارسال رایگان." },
       invoice: { title: "تنظیمات فاکتور", description: "مدیریت اطلاعات نمایش داده شده در فاکتور و صفحه تشکر." },
       logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
     };
@@ -1209,8 +1221,35 @@
         adminHeading.textContent = panelMeta[panel].title;
         adminDescription.textContent = panelMeta[panel].description;
       }
+
       if (panel === "products") loadProducts();
       if (panel === "invoice") loadInvoiceSettingsToForm();
+      if (panel === "shipping") {
+  console.log("🔄 Opening shipping panel...");
+  // اطمینان از بارگذاری ShippingAdmin
+  if (typeof window.ShippingAdmin === 'undefined') {
+    console.warn("⚠️ ShippingAdmin not loaded, loading now...");
+    const script = document.createElement('script');
+    script.src = 'assets/js/shipping-admin.js';
+    script.onload = function() {
+      console.log("✅ ShippingAdmin loaded dynamically");
+      if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
+        window.ShippingAdmin.render();
+      } else {
+        console.error("❌ ShippingAdmin still not available");
+      }
+    };
+    script.onerror = function() {
+      console.error("❌ Failed to load shipping-admin.js");
+    };
+    document.head.appendChild(script);
+  } else if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
+    console.log("✅ ShippingAdmin already loaded, rendering...");
+    window.ShippingAdmin.render();
+  } else {
+    console.error("❌ ShippingAdmin.render is not a function");
+  }
+}
     }
 
     function esc(value) {
@@ -2451,99 +2490,216 @@
     }
 
     // ==========================================
-    // رویدادها
+    // مدیریت تب‌های حمل‌ونقل
     // ==========================================
-    adminPanels.forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const panel = btn.getAttribute("data-admin-panel");
-        openAdminPanel(panel);
+    function setupShippingTabs() {
+      const tabs = document.querySelectorAll('[data-shipping-tab]');
+      const contents = {
+        methods: document.getElementById('shipping-tab-methods'),
+        costs: document.getElementById('shipping-tab-costs'),
+        free: document.getElementById('shipping-tab-free')
+      };
 
-        if (panel === "dashboard") await loadDashboard();
-        if (panel === "orders") await loadOrders();
-        if (panel === "users") await loadUsers();
-        if (panel === "invoice") await loadInvoiceSettingsToForm();
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('is-active'));
+          tab.classList.add('is-active');
+
+          Object.keys(contents).forEach(key => {
+            contents[key].classList.toggle('is-active', key === tab.dataset.shippingTab);
+          });
+
+          // رندر محتوای تب انتخاب شده
+          if (tab.dataset.shippingTab === 'methods') {
+            renderMethodsContent();
+          } else if (tab.dataset.shippingTab === 'costs') {
+            renderCostsContent();
+          } else if (tab.dataset.shippingTab === 'free') {
+            renderFreeContent();
+          }
+        });
       });
-    });
+    }
 
-    document.getElementById("orders-filter-btn").addEventListener("click", loadOrders);
-    document.getElementById("users-filter-btn").addEventListener("click", loadUsers);
-    document.getElementById("wallet-load-btn").addEventListener("click", loadWalletUser);
-    document.getElementById("wallet-quick-type").addEventListener("change", () => {
-      if (currentWalletPayload?.transactions) {
-        renderWalletHistory(currentWalletPayload.transactions);
+    function renderMethodsContent() {
+      const container = document.getElementById('shipping-tab-methods');
+      if (container && window.ShippingAdmin) {
+        if (typeof window.ShippingAdmin.renderMethods === 'function') {
+          window.ShippingAdmin.renderMethods(container);
+        }
       }
-    });
-    document.getElementById("show-create-user-btn").addEventListener("click", openUserCreate);
-    document.getElementById("show-create-product-btn").addEventListener("click", openProductCreate);
-    document.getElementById("products-filter-btn").addEventListener("click", loadProducts);
-    document.getElementById("products-body").addEventListener("click", async (event) => {
-      const editBtn = event.target.closest("[data-edit-product]");
-      if (editBtn) { await openProductEdit(Number(editBtn.getAttribute("data-edit-product"))); return; }
-      const deleteBtn = event.target.closest("[data-delete-product]");
-      if (deleteBtn) await deleteProduct(Number(deleteBtn.getAttribute("data-delete-product")));
-    });
+    }
 
-    document.getElementById("orders-body").addEventListener("click", async (event) => {
-      const viewBtn = event.target.closest("[data-view-order]");
-      if (viewBtn) {
-        await loadOrderDetail(viewBtn.getAttribute("data-view-order"));
-        return;
+    function renderCostsContent() {
+      const container = document.getElementById('shipping-tab-costs');
+      if (container && window.ShippingAdmin) {
+        if (typeof window.ShippingAdmin.renderCosts === 'function') {
+          window.ShippingAdmin.renderCosts(container);
+        }
+      }
+    }
+
+    function renderFreeContent() {
+      const container = document.getElementById('shipping-tab-free');
+      if (container && window.ShippingAdmin) {
+        if (typeof window.ShippingAdmin.renderFree === 'function') {
+          window.ShippingAdmin.renderFree(container);
+        }
+      }
+    }
+
+    // ==========================================
+    // رویدادها - نسخه اصلاح‌شده با بررسی وجود عناصر
+    // ==========================================
+    document.addEventListener("DOMContentLoaded", function() {
+      
+      // دکمه‌های فیلتر
+      const ordersFilterBtn = document.getElementById("orders-filter-btn");
+      if (ordersFilterBtn) ordersFilterBtn.addEventListener("click", loadOrders);
+
+      const usersFilterBtn = document.getElementById("users-filter-btn");
+      if (usersFilterBtn) usersFilterBtn.addEventListener("click", loadUsers);
+
+      const walletLoadBtn = document.getElementById("wallet-load-btn");
+      if (walletLoadBtn) walletLoadBtn.addEventListener("click", loadWalletUser);
+
+      const showCreateUserBtn = document.getElementById("show-create-user-btn");
+      if (showCreateUserBtn) showCreateUserBtn.addEventListener("click", openUserCreate);
+
+      const showCreateProductBtn = document.getElementById("show-create-product-btn");
+      if (showCreateProductBtn) showCreateProductBtn.addEventListener("click", openProductCreate);
+
+      const productsFilterBtn = document.getElementById("products-filter-btn");
+      if (productsFilterBtn) productsFilterBtn.addEventListener("click", loadProducts);
+
+      // پنل‌های مدیریت
+      const adminPanels = document.querySelectorAll("[data-admin-panel]");
+      if (adminPanels && adminPanels.length) {
+        adminPanels.forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const panel = btn.getAttribute("data-admin-panel");
+            openAdminPanel(panel);
+
+            if (panel === "dashboard") await loadDashboard();
+            if (panel === "orders") await loadOrders();
+            if (panel === "users") await loadUsers();
+            if (panel === "invoice") await loadInvoiceSettingsToForm();
+            if (panel === "shipping") {
+              setupShippingTabs();
+              setTimeout(() => {
+                renderMethodsContent();
+              }, 100);
+            }
+          });
+        });
       }
 
-      const deleteBtn = event.target.closest("[data-delete-order]");
-      if (deleteBtn) {
-        await deleteOrder(deleteBtn.getAttribute("data-delete-order"));
-      }
-    });
+      // جدول سفارش‌ها
+      const ordersBody = document.getElementById("orders-body");
+      if (ordersBody) {
+        ordersBody.addEventListener("click", async (event) => {
+          const viewBtn = event.target.closest("[data-view-order]");
+          if (viewBtn) {
+            await loadOrderDetail(viewBtn.getAttribute("data-view-order"));
+            return;
+          }
 
-    document.getElementById("users-body").addEventListener("click", async (event) => {
-      const editBtn = event.target.closest("[data-edit-user]");
-      if (editBtn) {
-        const user = JSON.parse(editBtn.getAttribute("data-edit-user"));
-        openUserEdit(user);
-        return;
+          const deleteBtn = event.target.closest("[data-delete-order]");
+          if (deleteBtn) {
+            await deleteOrder(deleteBtn.getAttribute("data-delete-order"));
+          }
+        });
       }
 
-      const deleteBtn = event.target.closest("[data-delete-user]");
-      if (deleteBtn) {
-        const user = JSON.parse(deleteBtn.getAttribute("data-delete-user"));
-        await deleteUser(user);
-      }
-    });
+      // جدول کاربران
+      const usersBody = document.getElementById("users-body");
+      if (usersBody) {
+        usersBody.addEventListener("click", async (event) => {
+          const editBtn = event.target.closest("[data-edit-user]");
+          if (editBtn) {
+            const user = JSON.parse(editBtn.getAttribute("data-edit-user"));
+            openUserEdit(user);
+            return;
+          }
 
-    // رویدادهای تنظیمات فاکتور
-    document.addEventListener('click', function(event) {
-      if (event.target.id === 'save-invoice-settings-btn') {
-        saveInvoiceSettings();
+          const deleteBtn = event.target.closest("[data-delete-user]");
+          if (deleteBtn) {
+            const user = JSON.parse(deleteBtn.getAttribute("data-delete-user"));
+            await deleteUser(user);
+          }
+        });
       }
-      if (event.target.id === 'load-invoice-settings-btn') {
-        loadInvoiceSettingsToForm();
-        const msg = document.getElementById('invoice-settings-message');
-        msg.textContent = 'تنظیمات بارگذاری شد.';
-        msg.className = 'admin-message is-success';
-        setTimeout(() => { msg.className = 'admin-message'; }, 3000);
+
+      // جدول محصولات
+      const productsBody = document.getElementById("products-body");
+      if (productsBody) {
+        productsBody.addEventListener("click", async (event) => {
+          const editBtn = event.target.closest("[data-edit-product]");
+          if (editBtn) { 
+            await openProductEdit(Number(editBtn.getAttribute("data-edit-product"))); 
+            return; 
+          }
+          const deleteBtn = event.target.closest("[data-delete-product]");
+          if (deleteBtn) await deleteProduct(Number(deleteBtn.getAttribute("data-delete-product")));
+        });
       }
-    });
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      const adminUser = await window.Auth.requireAdmin({ redirectPath: "/admin.html" });
-      if (!adminUser) return;
-
-      window.Auth.fillUserFields(adminUser, {
-        nameSelector: "[data-user-full-name]",
-        roleSelector: "[data-user-role]"
+      // تنظیمات فاکتور
+      document.addEventListener('click', function(event) {
+        if (event.target.id === 'save-invoice-settings-btn') {
+          saveInvoiceSettings();
+        }
+        if (event.target.id === 'load-invoice-settings-btn') {
+          loadInvoiceSettingsToForm();
+          const msg = document.getElementById('invoice-settings-message');
+          if (msg) {
+            msg.textContent = 'تنظیمات بارگذاری شد.';
+            msg.className = 'admin-message is-success';
+            setTimeout(() => { msg.className = 'admin-message'; }, 3000);
+          }
+        }
       });
 
-      await loadDashboard();
-      await loadInvoiceSettingsToForm();
+      // کیف پول - فیلتر نوع
+      const walletQuickType = document.getElementById("wallet-quick-type");
+      if (walletQuickType) {
+        walletQuickType.addEventListener("change", () => {
+          if (currentWalletPayload?.transactions) {
+            renderWalletHistory(currentWalletPayload.transactions);
+          }
+        });
+      }
 
-      window.Auth.bindLogoutButton({
-        buttonSelector: "[data-auth-logout]",
-        redirectAfterSuccess: "/index.html"
-      });
+      // ==========================================
+      // بارگذاری اولیه
+      // ==========================================
+      (async function() {
+        const adminUser = await window.Auth.requireAdmin({ redirectPath: "/admin.html" });
+        if (!adminUser) return;
 
-      adminLoading.classList.add("admin-hidden");
-      adminApp.classList.remove("admin-hidden");
+        window.Auth.fillUserFields(adminUser, {
+          nameSelector: "[data-user-full-name]",
+          roleSelector: "[data-user-role]"
+        });
+
+        await loadDashboard();
+        await loadInvoiceSettingsToForm();
+
+        window.Auth.bindLogoutButton({
+          buttonSelector: "[data-auth-logout]",
+          redirectAfterSuccess: "/index.html"
+        });
+
+        if (adminLoading) adminLoading.classList.add("admin-hidden");
+        if (adminApp) adminApp.classList.remove("admin-hidden");
+
+        // بارگذاری shipping-admin.js
+        if (window.ShippingAdmin && typeof window.ShippingAdmin.init === 'function') {
+          window.ShippingAdmin.init();
+        }
+
+        console.log("✅ Admin page loaded successfully");
+      })();
     });
   </script>
 </body>

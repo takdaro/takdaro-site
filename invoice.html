@@ -708,7 +708,7 @@
                 🖨️ چاپ فاکتور
               </button>
               <button type="button" class="btn btn-whatsapp" id="whatsapp-btn">
-                📱 ارسال به واتساپ پشتیبانی
+                📱 ارسال فاکتور به واتساپ
               </button>
               <a href="/products.html" class="btn btn-secondary">
                 🛍️ ادامه خرید
@@ -810,7 +810,7 @@
         } catch (_) {
           return String(value);
         }
-    }
+      }
 
       function getStatusBadge(status, type) {
         const map = {
@@ -969,12 +969,12 @@
         els.summaryTotal.textContent = formatPrice(total);
         els.summaryPayable.textContent = formatPrice(payable);
 
-        // اطلاعات پرداخت (از تنظیمات)
-        els.paymentAccount.textContent = settings.account || '-';
-        els.paymentCard.textContent = settings.card || '-';
-        els.paymentSheba.textContent = settings.sheba || '-';
-        els.paymentDeadline.textContent = settings.deadline || '-';
-        els.paymentDescription.textContent = settings.description || '';
+        // ✅ اطلاعات پرداخت (از تنظیمات)
+        els.paymentAccount.textContent = settings.account || 'بانک ملی - شماره حساب: ۱۲۳۴۵۶۷۸۹۰';
+        els.paymentCard.textContent = settings.card || '۶۰۳۷-۷۹۹۱-۵۰۵۴-۴۳۴۲';
+        els.paymentSheba.textContent = settings.sheba || 'IR۴۵۰۱۷۰۰۰۰۰۰۰۰۱۲۳۴۵۶۷۸۹۰';
+        els.paymentDeadline.textContent = settings.deadline || '۲۴ ساعت';
+        els.paymentDescription.textContent = settings.description || 'لطفاً مبلغ فاکتور را به شماره کارت درج شده واریز و تصویر رسید را به شماره واتساپ پشتیبانی ارسال کنید.';
 
         // آدرس
         const address = order.shipping_address || order.address || {};

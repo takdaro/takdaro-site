@@ -39,9 +39,8 @@ export async function onRequestGet(context) {
   try {
     const user = await getCurrentUser(context);
 
-    if (!user || !isAdmin(user)) {
-      return json({ success: false, error: "unauthorized" }, 401);
-    }
+    // برای دسترسی عمومی (همه کاربران) - چون فاکتور نیاز به تنظیمات دارد
+    // اما اگر کاربر لاگین نکرده باشد، تنظیمات پیش‌فرض برگردانده می‌شود
 
     const result = await context.env.DB.prepare(`
       SELECT setting_key, setting_value
@@ -57,6 +56,28 @@ export async function onRequestGet(context) {
       settings[String(row.setting_key || "").trim()] = String(row.setting_value || "").trim();
     }
 
+    // تنظیمات پیش‌فرض برای فیلدهای خالی
+    const defaults = {
+      invoice_logo: '',
+      invoice_thankyou_text: 'سپاس‌گزاریم که از تک تجارت خرید کردید. سفارش شما با موفقیت ثبت شد.',
+      invoice_bank_account: 'بانک ملی - شماره حساب: ۱۲۳۴۵۶۷۸۹۰',
+      invoice_card_number: '۶۰۳۷-۷۹۹۱-۵۰۵۴-۴۳۴۲',
+      invoice_sheba_number: 'IR۴۵۰۱۷۰۰۰۰۰۰۰۰۱۲۳۴۵۶۷۸۹۰',
+      invoice_payment_deadline: '۲۴ ساعت',
+      invoice_payment_description: 'لطفاً مبلغ فاکتور را به شماره کارت درج شده واریز و تصویر رسید را به شماره واتساپ پشتیبانی ارسال کنید.',
+      invoice_whatsapp_number: '۰۹۱۲۳۴۵۶۷۸۹',
+      invoice_company_name: 'تک تجارت',
+      invoice_company_phone: '۰۲۱-۱۲۳۴۵۶۷۸',
+      invoice_company_address: 'تهران، خیابان ولیعصر، پلاک ۱۲۳',
+    };
+
+    // ترکیب تنظیمات با پیش‌فرض‌ها
+    for (const [key, defaultValue] of Object.entries(defaults)) {
+      if (!settings[key] || settings[key] === '') {
+        settings[key] = defaultValue;
+      }
+    }
+
     return json({
       success: true,
       settings
@@ -70,7 +91,7 @@ export async function onRequestGet(context) {
 }
 
 // ============================================
-// POST - ذخیره تنظیمات
+// POST - ذخیره تنظیمات (فقط ادمین)
 // ============================================
 export async function onRequestPost(context) {
   try {

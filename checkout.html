@@ -220,6 +220,12 @@
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
     }
 
+    .form-field select:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
     .checkout-actions {
       display: flex;
       flex-wrap: wrap;
@@ -304,6 +310,18 @@
     .wallet-summary-accent {
       color: #047857;
       font-weight: 800;
+    }
+
+    .shipping-display-box {
+      padding: 14px 16px;
+      border: 1px solid #dbe2ea;
+      border-radius: 16px;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
     }
 
     @media (max-width: 960px) {
@@ -471,17 +489,26 @@
                   <div class="form-field">
                     <label for="province">استان</label>
                     <select id="province" required>
-                      <option value="">انتخاب کنید</option>
-                      <option value="tehran">تهران</option>
-                      <option value="tehran-counties">شهرستان های تهران بزرگ</option>
-                      <option value="iran-provinces">استانهای ایران</option>
+                      <option value="">انتخاب استان</option>
                     </select>
                   </div>
 
                   <div class="form-field">
                     <label for="city">شهر</label>
-                    <input id="city" type="text" placeholder="مثلاً تهران" required />
+                    <select id="city" required disabled>
+                      <option value="">ابتدا استان را انتخاب کنید</option>
+                    </select>
                   </div>
+                </div>
+
+                <!-- ✅ تغییر: روش ارسال به صورت نمایشی (غیرقابل انتخاب) -->
+                <div class="form-field" id="shipping-method-container" style="display:none;">
+                  <label for="shipping-method">روش ارسال</label>
+                  <div class="shipping-display-box" id="shipping-method-display">
+                    انتخاب نشده
+                  </div>
+                  <input type="hidden" id="shipping-method" value="" />
+                  <p class="checkout-note" id="shipping-method-info">هزینه ارسال بر اساس شهر انتخابی محاسبه می‌شود.</p>
                 </div>
 
                 <div class="form-grid-2">
@@ -528,17 +555,9 @@
   <script src="/assets/js/auth.js"></script>
 
   <script>
-    const SHIPPING_FEES = {
-      tehran: 700000,
-      "tehran-counties": 1200000,
-      "iran-provinces": 800000
-    };
-
-    const SHIPPING_LABELS = {
-      tehran: "تهران",
-      "tehran-counties": "شهرستان های تهران بزرگ",
-      "iran-provinces": "استانهای ایران"
-    };
+    // ============================================
+    // ✅ سیستم جدید حمل‌ونقل - یک روش برای هر شهر
+    // ============================================
 
     const checkoutEmpty = document.getElementById("checkout-empty");
     const checkoutContent = document.getElementById("checkout-content");
@@ -553,6 +572,11 @@
     const summaryShipping = document.getElementById("summary-shipping");
     const summaryTotal = document.getElementById("summary-total");
     const provinceSelect = document.getElementById("province");
+    const citySelect = document.getElementById("city");
+    const shippingMethodDisplay = document.getElementById("shipping-method-display");
+    const shippingMethodHidden = document.getElementById("shipping-method");
+    const shippingMethodContainer = document.getElementById("shipping-method-container");
+    const shippingMethodInfo = document.getElementById("shipping-method-info");
 
     const walletBox = document.getElementById("wallet-box");
     const walletBalanceEl = document.getElementById("wallet-balance");
@@ -573,12 +597,27 @@
       cashbackPercent: 0
     };
 
+    // ============================================
+    // وضعیت حمل‌ونقل
+    // ============================================
+    const shippingState = {
+      provinces: {},
+      provinceList: [],
+      currentProvince: "",
+      currentCity: "",
+      shippingMethod: null, // فقط یک روش
+      shippingCost: null,
+      isLoading: false
+    };
+
+    // ============================================
+    // توابع کمکی
+    // ============================================
     function setCheckoutMessage(message, type = "info") {
       if (!checkoutMessage) return;
       checkoutMessage.textContent = message || "";
       checkoutMessage.className = "checkout-message";
       if (!message) return;
-
       if (type === "success") checkoutMessage.classList.add("is-success");
       else if (type === "error") checkoutMessage.classList.add("is-error");
       else checkoutMessage.classList.add("is-info");
@@ -609,14 +648,9 @@
       if (typeof rawPrice === "number" && Number.isFinite(rawPrice)) {
         return Math.max(0, Math.round(rawPrice));
       }
-
-      if (rawPrice === null || rawPrice === undefined || rawPrice === "") {
-        return null;
-      }
-
+      if (rawPrice === null || rawPrice === undefined || rawPrice === "") return null;
       const normalized = toEnglishDigits(String(rawPrice)).replace(/[^\d]/g, "");
       if (!normalized) return null;
-
       const amount = Number(normalized);
       return Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : null;
     }
@@ -635,42 +669,16 @@
         product?.price_label,
         product?.formatted_price
       ];
-
       for (const candidate of directCandidates) {
         const parsed = parsePrice(candidate);
         if (parsed !== null) return parsed;
       }
-
-      const nestedCandidates = [
-        product?.pricing?.price,
-        product?.pricing?.sale_price,
-        product?.pricing?.final_price,
-        product?.pricing?.regular_price,
-        product?.wallet_price,
-        product?.meta?.price
-      ];
-
-      for (const candidate of nestedCandidates) {
-        const parsed = parsePrice(candidate);
-        if (parsed !== null) return parsed;
-      }
-
       return null;
     }
 
     function formatProductPrice(product) {
       const parsed = getProductNumericPrice(product);
       return parsed === null ? "تماس بگیرید" : `${formatNumber(parsed)} تومان`;
-    }
-
-    function getSelectedShippingFee() {
-      const value = provinceSelect ? provinceSelect.value : "";
-      return SHIPPING_FEES[value] || 0;
-    }
-
-    function getSelectedShippingLabel() {
-      const value = provinceSelect ? provinceSelect.value : "";
-      return SHIPPING_LABELS[value] || "";
     }
 
     function getProducts() {
@@ -680,7 +688,6 @@
     function findLiveProduct(productId, slug) {
       const safeId = String(productId ?? "").trim();
       const safeSlug = String(slug ?? "").trim();
-
       return getProducts().find((product) => {
         return (
           (safeSlug && String(product.slug || "").trim() === safeSlug) ||
@@ -699,7 +706,6 @@
             fallbackProduct: item.product
           };
         }
-
         return {
           productId: item?.productId ?? item?.product_id ?? item?.id ?? null,
           slug: String(item?.slug || "").trim(),
@@ -711,7 +717,6 @@
 
     function getCartItems() {
       let rawItems = [];
-
       try {
         if (window.CartStore && typeof window.CartStore.getCartDetailed === "function") {
           rawItems = window.CartStore.getCartDetailed();
@@ -726,19 +731,13 @@
       } catch (_) {
         rawItems = [];
       }
-
       const normalized = normalizeStoredCartItems(rawItems);
-
       return normalized
         .map((item) => {
           const liveProduct = findLiveProduct(item.productId, item.slug);
           const product = item.fallbackProduct || liveProduct || null;
           if (!product) return null;
-
-          return {
-            product,
-            qty: Math.max(1, Number(item.qty || 1))
-          };
+          return { product, qty: Math.max(1, Number(item.qty || 1)) };
         })
         .filter(Boolean);
     }
@@ -748,7 +747,6 @@
         window.CartStore.clearCart();
         return;
       }
-
       try {
         localStorage.removeItem("takdaro_cart");
       } catch (_) {}
@@ -757,21 +755,132 @@
     function splitFullName(fullName) {
       const safeName = String(fullName || "").trim();
       const parts = safeName.split(/\s+/).filter(Boolean);
-      return {
-        firstName: parts[0] || "",
-        lastName: parts.slice(1).join(" ")
-      };
+      return { firstName: parts[0] || "", lastName: parts.slice(1).join(" ") };
     }
 
-    function provinceValueFromAddress(address) {
-      const state = String(address?.state || "").trim();
-      if (!state) return "";
-      if (state.includes("تهران")) return "tehran";
-      return "iran-provinces";
+    // ============================================
+    // API‌های حمل‌ونقل
+    // ============================================
+    async function fetchProvinces() {
+      try {
+        const response = await fetch("/api/shipping/provinces", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        });
+        const data = await response.json();
+        if (data?.success) {
+          shippingState.provinces = data.provinces || {};
+          shippingState.provinceList = data.provinceList || Object.keys(shippingState.provinces);
+          return true;
+        }
+        return false;
+      } catch (_) {
+        return false;
+      }
     }
 
+    async function fetchShippingCost(province, city, subtotal = 0) {
+      try {
+        const response = await fetch("/api/shipping/calculate", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ province, city, subtotal })
+        });
+        const data = await response.json();
+        if (data?.success) {
+          shippingState.shippingCost = data.data;
+          return true;
+        }
+        return false;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // ============================================
+    // بارگذاری استان‌ها
+    // ============================================
+    async function loadProvinces() {
+      const success = await fetchProvinces();
+      if (!success) return;
+      if (!provinceSelect) return;
+
+      provinceSelect.innerHTML = '<option value="">انتخاب استان</option>';
+      for (const province of shippingState.provinceList) {
+        provinceSelect.innerHTML += `<option value="${escapeHtml(province)}">${escapeHtml(province)}</option>`;
+      }
+    }
+
+    // ============================================
+    // بارگذاری شهرها بر اساس استان
+    // ============================================
+    function loadCities(province) {
+      if (!citySelect) return;
+      const cities = shippingState.provinces[province] || [];
+      citySelect.innerHTML = '<option value="">انتخاب شهر</option>';
+      for (const city of cities) {
+        citySelect.innerHTML += `<option value="${escapeHtml(city)}">${escapeHtml(city)}</option>`;
+      }
+      citySelect.disabled = cities.length === 0;
+    }
+
+    // ============================================
+    // محاسبه هزینه ارسال برای شهر انتخاب شده (فقط یک روش)
+    // ============================================
+    async function calculateShipping(province, city) {
+      if (!province || !city) {
+        shippingMethodContainer.style.display = "none";
+        shippingState.shippingMethod = null;
+        shippingState.shippingCost = null;
+        renderCheckout();
+        return;
+      }
+
+      shippingMethodContainer.style.display = "block";
+      shippingMethodDisplay.textContent = "در حال محاسبه...";
+      shippingMethodInfo.textContent = "در حال محاسبه هزینه ارسال...";
+
+      const pricing = getCartPricing();
+      const subtotal = pricing.subtotal || 0;
+      await fetchShippingCost(province, city, subtotal);
+
+      const cost = shippingState.shippingCost;
+      if (cost) {
+        const amount = cost.shipping_cost || 0;
+        const isFree = cost.is_free || false;
+        const methodName = cost.method_name || "روش ارسال";
+        const deliveryTime = cost.delivery_time || "نامشخص";
+
+        shippingState.shippingMethod = {
+          id: cost.method_id,
+          name: methodName,
+          amount: amount,
+          is_free: isFree,
+          delivery_time: deliveryTime
+        };
+
+        const displayText = isFree 
+          ? `${methodName} (🎁 رایگان) - ${deliveryTime}`
+          : `${methodName} - ${formatNumber(amount)} تومان - ${deliveryTime}`;
+        shippingMethodDisplay.textContent = displayText;
+        shippingMethodHidden.value = JSON.stringify(shippingState.shippingMethod);
+        shippingMethodInfo.textContent = `✅ روش ارسال: ${methodName} | هزینه: ${isFree ? 'رایگان' : formatNumber(amount) + ' تومان'} | تحویل: ${deliveryTime}`;
+      } else {
+        shippingMethodDisplay.textContent = "هزینه ارسال برای این شهر تعیین نشده است";
+        shippingMethodInfo.textContent = "لطفاً با پشتیبانی تماس بگیرید.";
+        shippingState.shippingMethod = null;
+        shippingState.shippingCost = null;
+      }
+
+      renderCheckout();
+    }
+
+    // ============================================
+    // محاسبه قیمت سبد خرید
+    // ============================================
     function getCartPricing(items = getCartItems()) {
-      const shippingFee = getSelectedShippingFee();
+      const shippingFee = shippingState.shippingMethod?.amount || 0;
 
       let totalQty = 0;
       let subtotal = 0;
@@ -780,12 +889,10 @@
       for (const { product, qty } of items) {
         totalQty += qty;
         const unitPrice = getProductNumericPrice(product);
-
         if (unitPrice === null) {
           hasNumericPrice = false;
           continue;
         }
-
         subtotal += unitPrice * qty;
       }
 
@@ -793,231 +900,9 @@
       return { totalQty, subtotal, shippingFee, total, hasNumericPrice };
     }
 
-    function getMaxWalletUsable(totalAmount) {
-      if (!walletState.available || totalAmount === null) return 0;
-      return Math.max(0, Math.min(Number(walletState.balance || 0), Number(totalAmount || 0)));
-    }
-
-    function getRequestedWalletAmount(totalAmount = getCartPricing().total) {
-      if (!walletState.available) return 0;
-      if (!walletUseToggle || !walletUseToggle.checked || !walletUseAmountInput) return 0;
-
-      const maxUsable = getMaxWalletUsable(totalAmount);
-      const raw = String(walletUseAmountInput.value || "").trim();
-
-      if (!raw) return maxUsable;
-
-      const amount = parsePrice(raw);
-      if (amount === null) return 0;
-
-      return Math.max(0, Math.min(amount, maxUsable));
-    }
-
-    function getWalletAppliedAmount(totalAmount) {
-      if (totalAmount === null) return 0;
-      return getRequestedWalletAmount(totalAmount);
-    }
-
-    function getCashbackAmount(baseAmount) {
-      const percent = Number(walletState.cashbackPercent || 0);
-      if (!baseAmount || baseAmount <= 0 || percent <= 0) return 0;
-      return Math.max(0, Math.round((baseAmount * percent) / 100));
-    }
-
-    function resetWalletState() {
-      walletState.loaded = false;
-      walletState.available = false;
-      walletState.balance = 0;
-      walletState.cashbackPercent = 0;
-    }
-
-    function applyWalletState(payload) {
-      const balanceCandidates = [
-        payload?.wallet_balance,
-        payload?.user?.wallet_balance,
-        payload?.wallet?.balance,
-        payload?.balance,
-        payload?.data?.wallet_balance,
-        payload?.data?.balance,
-        payload?.data?.wallet?.balance,
-        payload?.wallet_amount,
-        payload?.amount,
-        payload?.credit
-      ];
-
-      const cashbackCandidates = [
-        payload?.cashback_percent,
-        payload?.settings?.cashback_percent,
-        payload?.wallet?.cashback_percent,
-        payload?.data?.cashback_percent,
-        payload?.data?.settings?.cashback_percent,
-        payload?.data?.wallet?.cashback_percent
-      ];
-
-      let resolvedBalance = null;
-      for (const candidate of balanceCandidates) {
-        const parsed = parsePrice(candidate);
-        if (parsed !== null) {
-          resolvedBalance = parsed;
-          break;
-        }
-      }
-
-      let resolvedCashback = 0;
-      for (const candidate of cashbackCandidates) {
-        const parsed = Number(candidate);
-        if (Number.isFinite(parsed) && parsed >= 0) {
-          resolvedCashback = parsed;
-          break;
-        }
-      }
-
-      if (resolvedBalance === null) {
-        resetWalletState();
-        return false;
-      }
-
-      walletState.loaded = true;
-      walletState.available = true;
-      walletState.balance = resolvedBalance;
-      walletState.cashbackPercent = Math.max(0, resolvedCashback);
-      return true;
-    }
-
-    async function loadWalletData() {
-      resetWalletState();
-
-      if (!window.Auth) {
-        updateWalletUi();
-        return;
-      }
-
-      try {
-        const walletResponse = await fetch("/api/account/wallet", {
-          method: "GET",
-          credentials: "same-origin",
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-
-        let walletData = null;
-        try {
-          walletData = await walletResponse.json();
-        } catch (_) {
-          walletData = null;
-        }
-
-        if (!walletResponse.ok || !walletData?.success) {
-          updateWalletUi();
-          return;
-        }
-
-        applyWalletState(walletData);
-        updateWalletUi();
-      } catch (_) {
-        resetWalletState();
-        updateWalletUi();
-      }
-    }
-
-    function updateWalletUi() {
-      const pricing = getCartPricing();
-      const walletVisible = walletState.available;
-
-      if (walletBox) {
-        walletBox.hidden = !walletVisible;
-      }
-
-      if (!walletVisible) {
-        if (walletUseFields) walletUseFields.hidden = true;
-        if (walletDiscountRow) walletDiscountRow.hidden = true;
-        if (cashbackRow) cashbackRow.hidden = true;
-        if (walletBalanceEl) walletBalanceEl.textContent = "0 تومان";
-        if (summaryWalletUsed) summaryWalletUsed.textContent = "0 تومان";
-        if (summaryCashback) summaryCashback.textContent = "0 تومان";
-        if (walletHelpText) walletHelpText.textContent = "اطلاعات کیف پول در حال حاضر در دسترس نیست.";
-        if (summaryTotal) {
-          summaryTotal.textContent =
-            pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
-        }
-        return;
-      }
-
-      const baseTotal = pricing.total !== null ? pricing.total : 0;
-      const maxUsable = getMaxWalletUsable(baseTotal);
-      const walletUsed = getWalletAppliedAmount(baseTotal);
-      const payableAmount = Math.max(0, baseTotal - walletUsed);
-      const cashbackBase = baseTotal;
-      const cashbackAmount = getCashbackAmount(cashbackBase);
-
-      if (walletBalanceEl) walletBalanceEl.textContent = `${formatNumber(walletState.balance)} تومان`;
-      if (walletUseFields) walletUseFields.hidden = !(walletUseToggle && walletUseToggle.checked);
-      if (walletUseAmountInput) walletUseAmountInput.max = String(maxUsable);
-      if (walletDiscountRow) walletDiscountRow.hidden = walletUsed <= 0;
-      if (summaryWalletUsed) summaryWalletUsed.textContent = `${formatNumber(walletUsed)} تومان`;
-      if (cashbackRow) cashbackRow.hidden = cashbackAmount <= 0;
-      if (summaryCashback) summaryCashback.textContent = `${formatNumber(cashbackAmount)} تومان`;
-
-      if (summaryTotal) {
-        summaryTotal.textContent =
-          pricing.total !== null ? `${formatNumber(payableAmount)} تومان` : "تماس بگیرید";
-      }
-
-      if (walletHelpText) {
-        walletHelpText.textContent =
-          `حداکثر مبلغ قابل استفاده: ${formatNumber(maxUsable)} تومان — درصد بازگشت فعلی: ${formatNumber(walletState.cashbackPercent)}٪ — مبنای محاسبه کش‌بک: ${formatNumber(cashbackBase)} تومان`;
-      }
-    }
-
-    function buildOrderPayload(items, formData) {
-      const shippingFee = getSelectedShippingFee();
-      let subtotal = 0;
-
-      const normalizedItems = items.map(({ product, qty }) => {
-        const unitPrice = getProductNumericPrice(product) || 0;
-        const rowTotal = unitPrice * qty;
-        subtotal += rowTotal;
-
-        return {
-          product_id: product.id || null,
-          name: product.name || "",
-          qty,
-          unit_price: unitPrice,
-          row_total: rowTotal
-        };
-      });
-
-      const totalAmount = subtotal + shippingFee;
-      const walletUsedAmount = getWalletAppliedAmount(totalAmount);
-      const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
-      const cashbackBase = totalAmount;
-      const cashbackAmount = getCashbackAmount(cashbackBase);
-
-      return {
-        address: {
-          type: "shipping",
-          full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-          address_line: formData.address,
-          postal_code: toEnglishDigits(formData.postalCode).replace(/\D/g, ""),
-          phone: toEnglishDigits(formData.phone).replace(/\D/g, ""),
-          city: formData.city,
-          state: formData.provinceLabel
-        },
-        order: {
-          items: normalizedItems,
-          subtotal_amount: subtotal,
-          shipping_amount: shippingFee,
-          total_amount: totalAmount,
-          payable_amount: payableAmount,
-          use_wallet: walletUsedAmount > 0,
-          wallet_used_amount: walletUsedAmount,
-          cashback_base: cashbackBase,
-          cashback_amount: cashbackAmount
-        }
-      };
-    }
-
+    // ============================================
+    // رندر فاکتور
+    // ============================================
     function renderCheckout() {
       const items = getCartItems();
       const today = new Date();
@@ -1025,7 +910,17 @@
 
       invoiceDate.textContent = `تاریخ: ${today.toLocaleDateString("fa-IR")}`;
       invoiceItemsCount.textContent = `اقلام: ${items.length}`;
-      summaryShipping.textContent = pricing.shippingFee ? `${formatNumber(pricing.shippingFee)} تومان` : "-";
+
+      const shippingCost = shippingState.shippingMethod?.amount || 0;
+      const isFree = shippingState.shippingMethod?.is_free || false;
+
+      if (isFree && shippingCost === 0) {
+        summaryShipping.textContent = "🎁 رایگان";
+      } else if (pricing.hasNumericPrice) {
+        summaryShipping.textContent = `${formatNumber(shippingCost)} تومان`;
+      } else {
+        summaryShipping.textContent = "-";
+      }
 
       if (!items.length) {
         checkoutEmpty.hidden = false;
@@ -1044,15 +939,8 @@
       invoiceItemsBody.innerHTML = items.map(({ product, qty }) => {
         const unitPrice = getProductNumericPrice(product);
         const rowTotal = unitPrice !== null ? unitPrice * qty : null;
-
-        const firstImage =
-          Array.isArray(product.images) && product.images.length ? String(product.images[0] || "") : "";
-
-        const imageSrc = firstImage.startsWith("/")
-          ? firstImage
-          : firstImage
-            ? `/${firstImage.replace(/^\/+/, "")}`
-            : "/assets/images/placeholder.png";
+        const firstImage = Array.isArray(product.images) && product.images.length ? String(product.images[0] || "") : "";
+        const imageSrc = firstImage.startsWith("/") ? firstImage : firstImage ? `/${firstImage.replace(/^\/+/, "")}` : "/assets/images/placeholder.png";
 
         return `
           <tr>
@@ -1076,16 +964,223 @@
       summarySubtotal.textContent = pricing.hasNumericPrice ? `${formatNumber(pricing.subtotal)} تومان` : "تماس بگیرید";
 
       if (!walletState.available && summaryTotal) {
-        summaryTotal.textContent =
-          pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
+        summaryTotal.textContent = pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
       }
 
       updateWalletUi();
     }
 
+    // ============================================
+    // کیف پول
+    // ============================================
+    function resetWalletState() {
+      walletState.loaded = false;
+      walletState.available = false;
+      walletState.balance = 0;
+      walletState.cashbackPercent = 0;
+    }
+
+    function applyWalletState(payload) {
+      const balanceCandidates = [
+        payload?.wallet_balance,
+        payload?.user?.wallet_balance,
+        payload?.wallet?.balance,
+        payload?.balance,
+        payload?.data?.wallet_balance,
+        payload?.data?.balance,
+        payload?.data?.wallet?.balance,
+        payload?.wallet_amount,
+        payload?.amount,
+        payload?.credit
+      ];
+      const cashbackCandidates = [
+        payload?.cashback_percent,
+        payload?.settings?.cashback_percent,
+        payload?.wallet?.cashback_percent,
+        payload?.data?.cashback_percent,
+        payload?.data?.settings?.cashback_percent,
+        payload?.data?.wallet?.cashback_percent
+      ];
+
+      let resolvedBalance = null;
+      for (const candidate of balanceCandidates) {
+        const parsed = parsePrice(candidate);
+        if (parsed !== null) { resolvedBalance = parsed; break; }
+      }
+
+      let resolvedCashback = 0;
+      for (const candidate of cashbackCandidates) {
+        const parsed = Number(candidate);
+        if (Number.isFinite(parsed) && parsed >= 0) { resolvedCashback = parsed; break; }
+      }
+
+      if (resolvedBalance === null) { resetWalletState(); return false; }
+
+      walletState.loaded = true;
+      walletState.available = true;
+      walletState.balance = resolvedBalance;
+      walletState.cashbackPercent = Math.max(0, resolvedCashback);
+      return true;
+    }
+
+    async function loadWalletData() {
+      resetWalletState();
+      if (!window.Auth) { updateWalletUi(); return; }
+
+      try {
+        const walletResponse = await fetch("/api/account/wallet", {
+          method: "GET",
+          credentials: "same-origin",
+          headers: { "Accept": "application/json" }
+        });
+
+        let walletData = null;
+        try { walletData = await walletResponse.json(); } catch (_) { walletData = null; }
+
+        if (!walletResponse.ok || !walletData?.success) { updateWalletUi(); return; }
+
+        applyWalletState(walletData);
+        updateWalletUi();
+      } catch (_) {
+        resetWalletState();
+        updateWalletUi();
+      }
+    }
+
+    function getMaxWalletUsable(totalAmount) {
+      if (!walletState.available || totalAmount === null) return 0;
+      return Math.max(0, Math.min(Number(walletState.balance || 0), Number(totalAmount || 0)));
+    }
+
+    function getRequestedWalletAmount(totalAmount = getCartPricing().total) {
+      if (!walletState.available) return 0;
+      if (!walletUseToggle || !walletUseToggle.checked || !walletUseAmountInput) return 0;
+      const maxUsable = getMaxWalletUsable(totalAmount);
+      const raw = String(walletUseAmountInput.value || "").trim();
+      if (!raw) return maxUsable;
+      const amount = parsePrice(raw);
+      if (amount === null) return 0;
+      return Math.max(0, Math.min(amount, maxUsable));
+    }
+
+    function getWalletAppliedAmount(totalAmount) {
+      if (totalAmount === null) return 0;
+      return getRequestedWalletAmount(totalAmount);
+    }
+
+    function getCashbackAmount(baseAmount) {
+      const percent = Number(walletState.cashbackPercent || 0);
+      if (!baseAmount || baseAmount <= 0 || percent <= 0) return 0;
+      return Math.max(0, Math.round((baseAmount * percent) / 100));
+    }
+
+    function updateWalletUi() {
+      const pricing = getCartPricing();
+      const walletVisible = walletState.available;
+
+      if (walletBox) { walletBox.hidden = !walletVisible; }
+
+      if (!walletVisible) {
+        if (walletUseFields) walletUseFields.hidden = true;
+        if (walletDiscountRow) walletDiscountRow.hidden = true;
+        if (cashbackRow) cashbackRow.hidden = true;
+        if (walletBalanceEl) walletBalanceEl.textContent = "0 تومان";
+        if (summaryWalletUsed) summaryWalletUsed.textContent = "0 تومان";
+        if (summaryCashback) summaryCashback.textContent = "0 تومان";
+        if (walletHelpText) walletHelpText.textContent = "اطلاعات کیف پول در حال حاضر در دسترس نیست.";
+        return;
+      }
+
+      const baseTotal = pricing.total !== null ? pricing.total : 0;
+      const maxUsable = getMaxWalletUsable(baseTotal);
+      const walletUsed = getWalletAppliedAmount(baseTotal);
+      const payableAmount = Math.max(0, baseTotal - walletUsed);
+      const cashbackBase = baseTotal;
+      const cashbackAmount = getCashbackAmount(cashbackBase);
+
+      if (walletBalanceEl) walletBalanceEl.textContent = `${formatNumber(walletState.balance)} تومان`;
+      if (walletUseFields) walletUseFields.hidden = !(walletUseToggle && walletUseToggle.checked);
+      if (walletUseAmountInput) walletUseAmountInput.max = String(maxUsable);
+      if (walletDiscountRow) walletDiscountRow.hidden = walletUsed <= 0;
+      if (summaryWalletUsed) summaryWalletUsed.textContent = `${formatNumber(walletUsed)} تومان`;
+      if (cashbackRow) cashbackRow.hidden = cashbackAmount <= 0;
+      if (summaryCashback) summaryCashback.textContent = `${formatNumber(cashbackAmount)} تومان`;
+
+      if (summaryTotal) {
+        summaryTotal.textContent = pricing.total !== null ? `${formatNumber(payableAmount)} تومان` : "تماس بگیرید";
+      }
+
+      if (walletHelpText) {
+        walletHelpText.textContent = `حداکثر مبلغ قابل استفاده: ${formatNumber(maxUsable)} تومان — درصد بازگشت فعلی: ${formatNumber(walletState.cashbackPercent)}٪`;
+      }
+    }
+
+    // ============================================
+    // ساخت payload سفارش
+    // ============================================
+    function buildOrderPayload(items, formData) {
+      const shippingMethod = shippingState.shippingMethod || {};
+      const shippingCost = shippingMethod.amount || 0;
+      const shippingMethodName = shippingMethod.name || "پیش‌فرض";
+      const deliveryTime = shippingMethod.delivery_time || "";
+
+      let subtotal = 0;
+      const normalizedItems = items.map(({ product, qty }) => {
+        const unitPrice = getProductNumericPrice(product) || 0;
+        const rowTotal = unitPrice * qty;
+        subtotal += rowTotal;
+        return {
+          product_id: product.id || null,
+          name: product.name || "",
+          qty,
+          unit_price: unitPrice,
+          row_total: rowTotal
+        };
+      });
+
+      const totalAmount = subtotal + shippingCost;
+      const walletUsedAmount = getWalletAppliedAmount(totalAmount);
+      const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
+      const cashbackBase = totalAmount;
+      const cashbackAmount = getCashbackAmount(cashbackBase);
+
+      return {
+        address: {
+          type: "shipping",
+          full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+          address_line: formData.address,
+          postal_code: toEnglishDigits(formData.postalCode).replace(/\D/g, ""),
+          phone: toEnglishDigits(formData.phone).replace(/\D/g, ""),
+          city: formData.city,
+          state: formData.province
+        },
+        order: {
+          items: normalizedItems,
+          subtotal_amount: subtotal,
+          shipping_amount: shippingCost,
+          shipping_method: shippingMethodName,
+          shipping_delivery_time: deliveryTime,
+          total_amount: totalAmount,
+          payable_amount: payableAmount,
+          use_wallet: walletUsedAmount > 0,
+          wallet_used_amount: walletUsedAmount,
+          cashback_base: cashbackBase,
+          cashback_amount: cashbackAmount
+        }
+      };
+    }
+
+    // ============================================
+    // اعتبارسنجی فرم
+    // ============================================
     function validateForm(data) {
-      if (!data.firstName || !data.lastName || !data.province || !data.provinceLabel || !data.city || !data.postalCode || !data.phone || !data.address) {
+      if (!data.firstName || !data.lastName || !data.province || !data.city || !data.postalCode || !data.phone || !data.address) {
         setCheckoutMessage("لطفاً تمام اطلاعات خریدار را کامل وارد کنید.", "error");
+        return false;
+      }
+
+      if (!shippingState.shippingMethod) {
+        setCheckoutMessage("لطفاً ابتدا استان و شهر را انتخاب کنید.", "error");
         return false;
       }
 
@@ -1105,6 +1200,9 @@
       return true;
     }
 
+    // ============================================
+    // پر کردن اطلاعات کاربر
+    // ============================================
     async function tryFillUserData() {
       if (!window.Auth) return;
 
@@ -1124,16 +1222,10 @@
         if (lastNameInput && !lastNameInput.value) lastNameInput.value = nameParts.lastName;
         if (phoneInput && !phoneInput.value) phoneInput.value = profileUser.phone || "";
 
-        const addressesResponse = await fetch("/api/account/addresses", {
-          credentials: "same-origin"
-        });
+        const addressesResponse = await fetch("/api/account/addresses", { credentials: "same-origin" });
 
         let addressesData = null;
-        try {
-          addressesData = await addressesResponse.json();
-        } catch (_) {
-          addressesData = null;
-        }
+        try { addressesData = await addressesResponse.json(); } catch (_) { addressesData = null; }
 
         if (!addressesResponse.ok || !addressesData?.success) return;
 
@@ -1151,19 +1243,30 @@
         const postalCodeInput = document.getElementById("postal-code");
         const addressInput = document.getElementById("address");
 
-        if (provinceInput && !provinceInput.value) provinceInput.value = provinceValueFromAddress(shippingAddress);
+        if (provinceInput && !provinceInput.value) {
+          const province = shippingAddress.state || "";
+          if (province && shippingState.provinceList.includes(province)) {
+            provinceInput.value = province;
+            loadCities(province);
+            if (cityInput) cityInput.value = shippingAddress.city || "";
+          }
+        }
         if (cityInput && !cityInput.value) cityInput.value = shippingAddress.city || "";
         if (postalCodeInput && !postalCodeInput.value) postalCodeInput.value = shippingAddress.postal_code || "";
         if (phoneInput && !phoneInput.value) phoneInput.value = shippingAddress.phone || "";
         if (addressInput && !addressInput.value) addressInput.value = shippingAddress.address_line || "";
 
+        if (provinceInput?.value && cityInput?.value) {
+          await calculateShipping(provinceInput.value, cityInput.value);
+        }
+
         renderCheckout();
       } catch (_) {}
     }
 
-    // =============================================
-    // ✅ بخش اصلی اصلاح‌شده - ثبت سفارش و هدایت به فاکتور
-    // =============================================
+    // ============================================
+    // ثبت سفارش
+    // ============================================
     if (checkoutForm) {
       checkoutForm.addEventListener("submit", async function (event) {
         event.preventDefault();
@@ -1175,15 +1278,10 @@
           return;
         }
 
-        const provinceValue = provinceSelect ? provinceSelect.value : "";
-        const shippingFee = getSelectedShippingFee();
-        const shippingLabel = getSelectedShippingLabel();
-
         const formData = {
           firstName: document.getElementById("first-name").value.trim(),
           lastName: document.getElementById("last-name").value.trim(),
-          province: provinceValue,
-          provinceLabel: shippingLabel,
+          province: document.getElementById("province").value.trim(),
           city: document.getElementById("city").value.trim(),
           postalCode: document.getElementById("postal-code").value.trim(),
           phone: document.getElementById("phone").value.trim(),
@@ -1219,20 +1317,16 @@
           const createdOrder = data.order || {};
           const orderNumber = createdOrder.order_number || "-";
 
-          // ✅ پاک کردن سبد خرید
           clearCart();
 
-          // ✅ ریست کردن کیف پول
           if (walletUseToggle) walletUseToggle.checked = false;
           if (walletUseAmountInput) walletUseAmountInput.value = "";
           resetWalletState();
           renderCheckout();
           await loadWalletData();
 
-          // ✅ نمایش پیام موفقیت
           setCheckoutMessage(`سفارش ${orderNumber} با موفقیت ثبت شد. در حال انتقال به صفحه فاکتور...`, "success");
 
-          // ✅ هدایت به صفحه فاکتور با تاخیر ۱ ثانیه
           setTimeout(() => {
             window.location.href = `/invoice.html?order=${encodeURIComponent(orderNumber)}`;
           }, 1000);
@@ -1245,47 +1339,74 @@
       });
     }
 
-    if (provinceSelect) {
-      provinceSelect.addEventListener("change", function () {
+    // ============================================
+    // رویدادها
+    // ============================================
+
+    provinceSelect?.addEventListener("change", async function () {
+      const province = this.value;
+      shippingState.currentProvince = province;
+
+      if (!province) {
+        citySelect.innerHTML = '<option value="">ابتدا استان را انتخاب کنید</option>';
+        citySelect.disabled = true;
+        shippingMethodContainer.style.display = "none";
+        shippingState.shippingMethod = null;
+        shippingState.shippingCost = null;
         renderCheckout();
-      });
-    }
+        return;
+      }
 
-    if (walletUseToggle) {
-      walletUseToggle.addEventListener("change", function () {
-        const pricing = getCartPricing();
-        const baseTotal = pricing.total !== null ? pricing.total : 0;
-        const maxUsable = getMaxWalletUsable(baseTotal);
+      loadCities(province);
+      citySelect.disabled = false;
+    });
 
-        if (walletUseToggle.checked && walletUseAmountInput && !String(walletUseAmountInput.value || "").trim() && maxUsable > 0) {
-          walletUseAmountInput.value = String(maxUsable);
-        }
+    citySelect?.addEventListener("change", async function () {
+      const city = this.value;
+      const province = provinceSelect?.value;
 
-        updateWalletUi();
-      });
-    }
+      if (!province || !city) {
+        shippingMethodContainer.style.display = "none";
+        shippingState.shippingMethod = null;
+        shippingState.shippingCost = null;
+        renderCheckout();
+        return;
+      }
 
-    if (walletUseAmountInput) {
-      walletUseAmountInput.addEventListener("input", updateWalletUi);
-      walletUseAmountInput.addEventListener("blur", function () {
-        const pricing = getCartPricing();
-        const baseTotal = pricing.total !== null ? pricing.total : 0;
-        const maxUsable = getMaxWalletUsable(baseTotal);
-        const current = parsePrice(walletUseAmountInput.value) || 0;
-        walletUseAmountInput.value = String(Math.max(0, Math.min(current, maxUsable)));
-        updateWalletUi();
-      });
-    }
+      shippingState.currentCity = city;
+      await calculateShipping(province, city);
+    });
 
+    walletUseToggle?.addEventListener("change", function () {
+      const pricing = getCartPricing();
+      const baseTotal = pricing.total !== null ? pricing.total : 0;
+      const maxUsable = getMaxWalletUsable(baseTotal);
+      if (this.checked && walletUseAmountInput && !String(walletUseAmountInput.value || "").trim() && maxUsable > 0) {
+        walletUseAmountInput.value = String(maxUsable);
+      }
+      updateWalletUi();
+    });
+
+    walletUseAmountInput?.addEventListener("input", updateWalletUi);
+    walletUseAmountInput?.addEventListener("blur", function () {
+      const pricing = getCartPricing();
+      const baseTotal = pricing.total !== null ? pricing.total : 0;
+      const maxUsable = getMaxWalletUsable(baseTotal);
+      const current = parsePrice(this.value) || 0;
+      this.value = String(Math.max(0, Math.min(current, maxUsable)));
+      updateWalletUi();
+    });
+
+    // ============================================
+    // مقداردهی اولیه
+    // ============================================
     document.addEventListener("DOMContentLoaded", async function () {
       if (window.Auth && typeof window.Auth.requireAuth === "function") {
-        const user = await window.Auth.requireAuth({
-          redirectTo: "/login.html"
-        });
+        const user = await window.Auth.requireAuth({ redirectTo: "/login.html" });
         if (!user) return;
       }
 
-      renderCheckout();
+      await loadProvinces();
       await tryFillUserData();
       await loadWalletData();
       renderCheckout();
