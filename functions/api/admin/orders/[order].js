@@ -47,6 +47,9 @@ function isAdmin(user) {
   return role === "admin" || role === "super_admin";
 }
 
+// ============================================
+// ✅ اصلاح شده: استفاده از جدول addresses
+// ============================================
 async function getOrderByNumber(db, orderNumber) {
   return await db.prepare(`
     SELECT
@@ -76,7 +79,7 @@ async function getOrderByNumber(db, orderNumber) {
       a.state
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
-    LEFT JOIN user_addresses a ON a.id = o.address_id
+    LEFT JOIN addresses a ON a.id = o.address_id
     WHERE o.order_number = ?
     LIMIT 1
   `).bind(orderNumber).first();
@@ -434,6 +437,9 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
   };
 }
 
+// ============================================
+// GET - دریافت جزئیات سفارش
+// ============================================
 export async function onRequestGet(context) {
   try {
     const user = await getCurrentUser(context);
@@ -465,6 +471,9 @@ export async function onRequestGet(context) {
   }
 }
 
+// ============================================
+// POST - به‌روزرسانی سفارش
+// ============================================
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
@@ -492,6 +501,9 @@ export async function onRequestPost(context) {
   }
 }
 
+// ============================================
+// PATCH - به‌روزرسانی سفارش
+// ============================================
 export async function onRequestPatch(context) {
   try {
     const user = await getCurrentUser(context);
