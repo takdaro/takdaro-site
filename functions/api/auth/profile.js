@@ -9,12 +9,12 @@ function json(data, status = 200) {
 // ✅ تابع بررسی رمز عبور با پشتیبانی از هر دو روش
 // ============================================
 async function verifyPasswordCompatible(password, storedHash) {
-  // اگر هش با PBKDF2 شروع شود (روش جدید - ادمین)
+  // اگر هش با PBKDF2 شروع شود (روش جدید - ادمین و کاربران جدید)
   if (storedHash && storedHash.startsWith('pbkdf2$')) {
     return await verifyPassword(password, storedHash);
   }
   
-  // اگر هش با SHA-256 باشد (روش قدیمی - ثبت‌نام معمولی)
+  // اگر هش با SHA-256 باشد (روش قدیمی - کاربران قدیمی)
   if (storedHash && storedHash.match(/^[a-f0-9]{64}$/)) {
     const sha256 = async (text) => {
       const data = new TextEncoder().encode(text);
