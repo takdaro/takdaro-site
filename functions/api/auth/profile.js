@@ -6,15 +6,15 @@ function json(data, status = 200) {
 }
 
 // ============================================
-// تابع بررسی رمز عبور با پشتیبانی از هر دو روش
+// ✅ تابع بررسی رمز عبور با پشتیبانی از هر دو روش
 // ============================================
 async function verifyPasswordCompatible(password, storedHash) {
-  // اگر هش با PBKDF2 شروع شود
+  // اگر هش با PBKDF2 شروع شود (روش جدید - ادمین)
   if (storedHash && storedHash.startsWith('pbkdf2$')) {
     return await verifyPassword(password, storedHash);
   }
   
-  // اگر هش با SHA-256 باشد (روش قدیمی)
+  // اگر هش با SHA-256 باشد (روش قدیمی - ثبت‌نام معمولی)
   if (storedHash && storedHash.match(/^[a-f0-9]{64}$/)) {
     const sha256 = async (text) => {
       const data = new TextEncoder().encode(text);
@@ -128,7 +128,7 @@ export async function onRequestPost(context) {
         );
       }
 
-      // بررسی رمز فعلی با پشتیبانی از هر دو روش
+      // ✅ بررسی رمز فعلی با پشتیبانی از هر دو روش
       const isPasswordValid = await verifyPasswordCompatible(current_password, currentUser.password_hash);
       
       if (!isPasswordValid) {
@@ -153,7 +153,7 @@ export async function onRequestPost(context) {
         );
       }
 
-      // هش کردن رمز جدید با روش استاندارد PBKDF2
+      // ✅ هش کردن رمز جدید با روش استاندارد PBKDF2
       const newPasswordHash = await hashPassword(password);
 
       // به‌روزرسانی با رمز جدید
