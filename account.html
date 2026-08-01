@@ -1557,26 +1557,40 @@
           try {
             const result = await window.Auth.updateProfile(payload);
 
-            if (!result?.success) {
-              setFormMessage("error", result?.error || "ذخیره تغییرات با خطا مواجه شد.");
+            // ==========================================
+            // ✅ اصلاح پیام موفقیت
+            // ==========================================
+            
+            // اگر نتیجه موفق بود
+            if (result?.success === true) {
+              setFormMessage("success", "✅ رمز عبور با موفقیت تغییر کرد.");
+              
+              const passwordInput = document.getElementById("account-password");
+              const confirmInput = document.getElementById("account-password-confirm");
+              if (passwordInput) passwordInput.value = "";
+              if (confirmInput) confirmInput.value = "";
+
+              if (result.user) {
+                currentUser = {
+                  ...currentUser,
+                  ...result.user
+                };
+                renderUserInfo(currentUser);
+              }
               return;
             }
 
-            setFormMessage("success", "اطلاعات حساب با موفقیت به‌روزرسانی شد.");
-
-            const passwordInput = document.getElementById("account-password");
-            const confirmInput = document.getElementById("account-password-confirm");
-
-            if (passwordInput) passwordInput.value = "";
-            if (confirmInput) confirmInput.value = "";
-
-            if (result.user) {
-              currentUser = {
-                ...currentUser,
-                ...result.user
-              };
-              renderUserInfo(currentUser);
+            // اگر خطا داشت و پیام خطا مربوط به رمز بود
+            if (result?.success === false && result?.error) {
+              if (result.error.includes("رمز") || result.error.includes("password") || result.error.includes("کاراکتر")) {
+                setFormMessage("error", result.error);
+                return;
+              }
             }
+
+            // هر خطای دیگه‌ای
+            setFormMessage("error", result?.error || "ذخیره تغییرات با خطا مواجه شد.");
+
           } catch (error) {
             setFormMessage("error", "ذخیره تغییرات با خطا مواجه شد.");
           }
