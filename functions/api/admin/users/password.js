@@ -1,37 +1,8 @@
 import { requireAdmin, logAdminAction } from "../../../lib/admin";
+import { hashPassword } from "../../../lib/password";
 
-function bytesToHex(bytes) {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function hashPassword(password, iterations = 100000) {
-  const encoder = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(String(password)),
-    { name: "PBKDF2" },
-    false,
-    ["deriveBits"]
-  );
-
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      salt,
-      iterations,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    256
-  );
-
-  const hashBytes = new Uint8Array(derivedBits);
-  const saltHex = bytesToHex(salt);
-  const hashHex = bytesToHex(hashBytes);
-
-  return `pbkdf2_sha256$${iterations}$${saltHex}$${hashHex}`;
+function json(data, status = 200) {
+  return Response.json(data, { status });
 }
 
 export async function onRequestPost(context) {
@@ -44,49 +15,32 @@ export async function onRequestPost(context) {
     const password = String(body.password || "");
     const password_confirm = String(body.password_confirm || "");
 
-    if (!user_id || !password || !password_confirm) {
-      return Response.json(
-        { success: false, error: "user_id, password, password_confirm required" },
-        { status: 400 }
-      );
+    if (!user_id) {
+      return json({ success: false, error: "user_id required" }, 400);
+    }
+
+    if (!password || !password_confirm) {
+      return json({ success: false, error: "password and password_confirm required" }, 400);
     }
 
     if (password.length < 8) {
-      return Response.json(
-        { success: false, error: "password must be at least 8 characters" },
-        { status: 400 }
-      );
+      return json({ success: false, error: "password must be at least 8 characters" }, 400);
     }
 
     if (password !== password_confirm) {
-      return Response.json(
-        { success: false, error: "password confirmation mismatch" },
-        { status: 400 }
-      );
+      return json({ success: false, error: "password confirmation does not match" }, 400);
     }
 
     const targetUser = await context.env.DB
-      .prepare(`SELECT id, role, email FROM users WHERE id = ?`)
+      .prepare("SELECT id, role FROM users WHERE id = ?")
       .bind(user_id)
       .first();
 
     if (!targetUser) {
-      return Response.json(
-        { success: false, error: "user not found" },
-        { status: 404 }
-      );
+      return json({ success: false, error: "user not found" }, 404);
     }
 
-    if (
-      String(targetUser.role || "") === "super_admin" &&
-      String(adminCheck.user.role || "") !== "super_admin"
-    ) {
-      return Response.json(
-        { success: false, error: "cannot change super admin password" },
-        { status: 403 }
-      );
-    }
-
+    // ✅ استفاده از hashPassword استاندارد (PBKDF2)
     const password_hash = await hashPassword(password);
 
     await context.env.DB
@@ -100,20 +54,20 @@ export async function onRequestPost(context) {
 
     await logAdminAction(context, {
       admin_user_id: adminCheck.user.id,
-      action: "change_user_password",
+      action: "update_user_password",
       target_type: "user",
       target_id: String(user_id),
-      description: `password changed for ${targetUser.email || `user#${user_id}`}`
+      description: `password updated for user #${user_id}`
     });
 
-    return Response.json({
+    return json({
       success: true,
       message: "password updated successfully"
     });
   } catch (error) {
-    return Response.json(
+    return json(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }

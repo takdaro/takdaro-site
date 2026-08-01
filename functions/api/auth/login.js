@@ -1,14 +1,33 @@
-﻿async function sha256(text) {
-  const data = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hashBuffer)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+﻿import { verifyPassword } from "../../lib/password";
 
 function normalizeEmail(email) {
   if (!email) return "";
   return String(email).trim().toLowerCase();
+}
+
+// ============================================
+// تابع بررسی رمز عبور با پشتیبانی از هر دو روش
+// ============================================
+async function verifyPasswordCompatible(password, storedHash) {
+  // اگر هش با PBKDF2 شروع شود (روش جدید)
+  if (storedHash && storedHash.startsWith('pbkdf2$')) {
+    return await verifyPassword(password, storedHash);
+  }
+  
+  // اگر هش با SHA-256 باشد (روش قدیمی)
+  if (storedHash && storedHash.match(/^[a-f0-9]{64}$/)) {
+    const sha256 = async (text) => {
+      const data = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      return [...new Uint8Array(hashBuffer)]
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    };
+    const hashed = await sha256(password);
+    return hashed === storedHash;
+  }
+  
+  return false;
 }
 
 export async function onRequestPost(context) {
@@ -23,8 +42,6 @@ export async function onRequestPost(context) {
         { status: 400 }
       );
     }
-
-    const password_hash = await sha256(password);
 
     const user = await context.env.DB
       .prepare(`
@@ -44,7 +61,17 @@ export async function onRequestPost(context) {
       .bind(email)
       .first();
 
-    if (!user || user.password_hash !== password_hash) {
+    if (!user) {
+      return Response.json(
+        { success: false, error: "invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    // ✅ استفاده از تابع جدید برای بررسی رمز
+    const isPasswordValid = await verifyPasswordCompatible(password, user.password_hash);
+
+    if (!isPasswordValid) {
       return Response.json(
         { success: false, error: "invalid credentials" },
         { status: 401 }

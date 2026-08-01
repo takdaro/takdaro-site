@@ -1,37 +1,26 @@
-﻿async function sha256(text) {
-  const data = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hashBuffer)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+﻿import { hashPassword } from "../../lib/password";
 
 function normalizePhone(value) {
   if (!value) return "";
   return String(value).trim().replace(/[^\d+]/g, "");
 }
 
-// ============================================
-// تابع بررسی وضعیت ثبت‌نام عمومی
-// ============================================
 async function isPublicRegistrationEnabled(env) {
   try {
     const result = await env.DB
       .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = 'allow_public_registration'`)
       .first();
 
-    if (!result) return true; // پیش‌فرض: فعال
+    if (!result) return true;
     return String(result.setting_value || 'true').toLowerCase() === 'true';
   } catch (_) {
-    return true; // در صورت خطا، پیش‌فرض فعال
+    return true;
   }
 }
 
 export async function onRequestPost(context) {
   try {
-    // ============================================
-    // ✅ بررسی وضعیت ثبت‌نام عمومی
-    // ============================================
+    // بررسی وضعیت ثبت‌نام عمومی
     const publicRegistrationEnabled = await isPublicRegistrationEnabled(context.env);
 
     if (!publicRegistrationEnabled) {
@@ -97,7 +86,8 @@ export async function onRequestPost(context) {
       );
     }
 
-    const password_hash = await sha256(password);
+    // ✅ استفاده از hashPassword استاندارد (PBKDF2)
+    const password_hash = await hashPassword(password);
 
     const result = await context.env.DB
       .prepare(
