@@ -1535,14 +1535,12 @@
             full_name: String(formData.get("full_name") || "").trim(),
             phone: String(formData.get("phone") || "").trim(),
             email: String(formData.get("email") || "").trim(),
-            // current_password حذف شد
             password: String(formData.get("password") || ""),
             password_confirm: String(formData.get("password_confirm") || "")
           };
 
           // اگر رمز عبور جدید وارد شده
           if (payload.password || payload.password_confirm) {
-            // ✅ حداقل 8 کاراکتر
             if (payload.password.length < 8) {
               setFormMessage("error", "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.");
               return;
@@ -1556,13 +1554,11 @@
 
           try {
             const result = await window.Auth.updateProfile(payload);
-
-            // ==========================================
-            // ✅ اصلاح پیام موفقیت
-            // ==========================================
             
-            // اگر نتیجه موفق بود
-            if (result?.success === true) {
+            console.log("Result from updateProfile:", result);
+
+            // ✅ اگر نتیجه موفق بود
+            if (result && result.success === true) {
               setFormMessage("success", "✅ رمز عبور با موفقیت تغییر کرد.");
               
               const passwordInput = document.getElementById("account-password");
@@ -1581,17 +1577,16 @@
             }
 
             // اگر خطا داشت و پیام خطا مربوط به رمز بود
-            if (result?.success === false && result?.error) {
-              if (result.error.includes("رمز") || result.error.includes("password") || result.error.includes("کاراکتر")) {
-                setFormMessage("error", result.error);
-                return;
-              }
+            if (result && result.success === false && result.error) {
+              setFormMessage("error", result.error);
+              return;
             }
 
             // هر خطای دیگه‌ای
             setFormMessage("error", result?.error || "ذخیره تغییرات با خطا مواجه شد.");
 
           } catch (error) {
+            console.error("Error:", error);
             setFormMessage("error", "ذخیره تغییرات با خطا مواجه شد.");
           }
         });

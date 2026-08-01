@@ -67,20 +67,34 @@
   }
 
   // ==========================================
-  // ✅ اصلاح شده: حذف current_password
+  // ✅ اصلاح شده: تابع updateProfile
   // ==========================================
   async function updateProfile(payload) {
-    return request(endpoints.profile, {
+    const result = await request(endpoints.profile, {
       method: "POST",
       body: JSON.stringify({
         full_name: String(payload.full_name || "").trim(),
         email: String(payload.email || "").trim(),
         phone: String(payload.phone || "").trim(),
-        // current_password حذف شد
         password: String(payload.password || ""),
         password_confirm: String(payload.password_confirm || "")
       })
     });
+
+    // ✅ اگر پاسخ موفق بود
+    if (result.ok && result.data?.success === true) {
+      return {
+        success: true,
+        user: result.data.user,
+        message: result.data.message
+      };
+    }
+
+    // ✅ اگر خطا بود
+    return {
+      success: false,
+      error: result.data?.error || "خطا در ارتباط با سرور"
+    };
   }
 
   function setMessage(element, message, type = "error") {
