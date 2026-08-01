@@ -22,7 +22,6 @@
     return num.toLocaleString("fa-IR");
   }
 
-  // ✅ تبدیل اعداد فارسی به انگلیسی
   function toEnglishDigits(value) {
     const map = {
       "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
@@ -31,7 +30,6 @@
     return String(value ?? "").replace(/[۰-۹]/g, (d) => map[d]);
   }
 
-  // ✅ parse مقدار با پشتیبانی از اعداد فارسی
   function parseToman(value) {
     const raw = toEnglishDigits(String(value || "0")).replace(/,/g, "").replace(/[^\d]/g, "");
     return Number(raw) || 0;
@@ -63,7 +61,6 @@
   let SHIPPING_METHODS = [];
   let currentProvince = "";
 
-  // ✅ گروه تهران و شهرهای نزدیک (پیش‌فرض: اسنپ‌باکس)
   const TEHRAN_GROUP = ["تهران", "کرج", "فردیس", "رودهن", "بومهن"];
 
   async function loadProvinces() {
@@ -71,6 +68,7 @@
       const result = await api("/api/shipping/provinces");
       if (result.ok && result.data?.success) {
         PROVINCES_DATA = result.data.provinces || {};
+        console.log("✅ Provinces loaded:", Object.keys(PROVINCES_DATA).length);
         return true;
       }
     } catch (e) {
@@ -84,6 +82,7 @@
       const result = await api("/api/admin/shipping?action=methods");
       if (result.ok && result.data?.success) {
         SHIPPING_METHODS = result.data.methods || [];
+        console.log("✅ Shipping methods loaded:", SHIPPING_METHODS.length);
         return true;
       }
     } catch (e) {
@@ -104,9 +103,6 @@
     return [];
   }
 
-  // ============================================
-  // ✅ تعیین روش ارسال پیش‌فرض بر اساس شهر
-  // ============================================
   function getDefaultShippingMethodForCity(city) {
     if (TEHRAN_GROUP.includes(city)) {
       return "اسنپ‌باکس";
@@ -119,7 +115,12 @@
   // رندر تب روش‌های حمل‌ونقل
   // ============================================
   function renderMethods(container) {
-    if (!container) return;
+    if (!container) {
+      console.warn("renderMethods: container not found");
+      return;
+    }
+
+    console.log("renderMethods: rendering...");
 
     container.innerHTML = `
       <div class="detail-card">
@@ -153,6 +154,8 @@
   // رندر جدول روش‌ها
   // ============================================
   function renderMethodsTable(table) {
+    if (!table) return;
+
     let html = `
       <div class="table-wrap">
         <table class="admin-table">
@@ -324,8 +327,6 @@
       const sort_order = Number(document.getElementById("method-sort").value || 0);
       const is_active = document.getElementById("method-active").checked;
 
-      console.log("Saving method with cost:", default_cost);
-
       if (!name || !slug) {
         alert("نام و شناسه روش الزامی است.");
         return;
@@ -380,10 +381,15 @@
   }
 
   // ============================================
-  // ✅ رندر تب هزینه ارسال (با هزینه مازاد، افزودن و حذف شهر)
+  // ✅ رندر تب هزینه ارسال
   // ============================================
   function renderCosts(container) {
-    if (!container) return;
+    if (!container) {
+      console.warn("renderCosts: container not found");
+      return;
+    }
+
+    console.log("renderCosts: rendering...");
 
     container.innerHTML = `
       <div class="detail-card">
@@ -414,6 +420,7 @@
     const loadBtn = document.getElementById("load-costs-btn");
     const resultDiv = document.getElementById("cost-result");
 
+    // پر کردن استان‌ها
     const provinceList = Object.keys(PROVINCES_DATA);
     if (provinceList.length === 0) {
       loadProvinces().then(() => {
@@ -600,9 +607,9 @@
 
       resultDiv.innerHTML = html;
 
-      // ============================================
-      // ✅ رویداد افزودن شهر جدید
-      // ============================================
+      attachCostEvents(province);
+
+      // رویداد افزودن شهر جدید
       document.getElementById("add-city-btn")?.addEventListener("click", function() {
         const form = document.getElementById("add-city-form");
         if (form) form.style.display = "block";
@@ -623,18 +630,15 @@
           return;
         }
 
-        // بررسی تکراری نبودن شهر
         const cities = PROVINCES_DATA[province] || [];
         if (cities.includes(cityName)) {
           alert(`شهر "${cityName}" قبلاً در این استان وجود دارد.`);
           return;
         }
 
-        // اضافه کردن شهر به لیست
         cities.push(cityName);
         PROVINCES_DATA[province] = cities;
 
-        // ذخیره در دیتابیس (از طریق API)
         const result = await api("/api/admin/shipping", {
           method: "POST",
           body: JSON.stringify({
@@ -648,15 +652,11 @@
           alert(`شهر "${cityName}" با موفقیت اضافه شد.`);
           document.getElementById("add-city-form").style.display = "none";
           document.getElementById("new-city-name").value = "";
-          // به‌روزرسانی جدول
           await refreshCurrentCosts(province);
         } else {
           alert(result.data?.error || "افزودن شهر انجام نشد.");
         }
       });
-
-      // ✅ اتصال رویدادها با تابع جداگانه
-      attachCostEvents(province);
     });
   }
 
@@ -829,10 +829,8 @@
 
     resultDiv.innerHTML = html;
 
-    // ✅ اتصال مجدد رویدادها
     attachCostEvents(province);
 
-    // ✅ اتصال رویداد افزودن شهر جدید
     document.getElementById("add-city-btn")?.addEventListener("click", function() {
       const form = document.getElementById("add-city-form");
       if (form) form.style.display = "block";
@@ -883,7 +881,7 @@
   }
 
   // ============================================
-  // ✅ اتصال رویدادها به المان‌های هزینه (با دکمه حذف شهر)
+  // ✅ اتصال رویدادها به المان‌های هزینه
   // ============================================
   function attachCostEvents(province) {
     function updateTotalCost(row) {
@@ -960,7 +958,6 @@
       });
     });
 
-    // ✅ دکمه حذف شهر
     document.querySelectorAll(".delete-city-btn").forEach(btn => {
       btn.addEventListener("click", async function() {
         const city = this.getAttribute("data-city");
@@ -980,7 +977,6 @@
 
           if (result.ok && result.data?.success) {
             alert(`شهر "${city}" با موفقیت حذف شد.`);
-            // حذف از لیست محلی
             const cities = PROVINCES_DATA[province] || [];
             const index = cities.indexOf(city);
             if (index > -1) {
@@ -1004,7 +1000,7 @@
   }
 
   // ============================================
-  // ✅ تابع ذخیره هزینه یک شهر (اصلاح‌شده با به‌روزرسانی خودکار)
+  // ✅ تابع ذخیره هزینه یک شهر
   // ============================================
   async function saveSingleCityCost(row, city, province) {
     const methodSelect = row.querySelector(".shipping-method-select");
@@ -1014,14 +1010,14 @@
     const extraCost = parseToman(row.querySelector(".cost-extra-input").value);
     const isActive = row.querySelector(".cost-active-checkbox").checked;
 
-    console.log("🟢 Saving extra cost - Province:", province, "City:", city, "extraCost:", extraCost);
+    const method = SHIPPING_METHODS.find(m => m.id === methodId);
+    const defaultCost = method ? method.default_cost || 0 : 0;
 
     if (!methodId) {
       alert("روش ارسال برای این شهر مشخص نیست.");
       return;
     }
 
-    // حذف هزینه‌های قبلی این شهر
     const existingCosts = await loadShippingCosts(province, city);
     for (const cost of existingCosts) {
       if (cost.shipping_method_id !== methodId) {
@@ -1043,7 +1039,6 @@
         city: city,
         shipping_method_id: methodId,
         cost_type: "extra",
-        cost_amount: 0,
         extra_cost: extraCost,
         delivery_time: "",
         is_active: isActive
@@ -1052,11 +1047,9 @@
 
     const msgDiv = document.getElementById("cost-save-message");
     if (result.ok && result.data?.success) {
-      msgDiv.innerHTML = `<p style="color:#047857;">✅ هزینه مازاد شهر ${esc(city)} با روش ${esc(methodName)} ذخیره شد.</p>`;
-      
-      // ✅ به‌روزرسانی خودکار جدول بدون نیاز به تغییر استان
+      const finalCost = defaultCost + extraCost;
+      msgDiv.innerHTML = `<p style="color:#047857;">✅ هزینه نهایی شهر ${esc(city)}: ${formatToman(finalCost)} تومان (ثابت: ${formatToman(defaultCost)} + مازاد: ${formatToman(extraCost)})</p>`;
       await refreshCurrentCosts(province);
-      
       setTimeout(() => { msgDiv.innerHTML = ""; }, 3000);
     } else {
       msgDiv.innerHTML = `<p style="color:#b91c1c;">❌ ${result.data?.error || "ذخیره انجام نشد."}</p>`;
@@ -1064,7 +1057,7 @@
   }
 
   // ============================================
-  // تابع ذخیره همه هزینه‌ها (اصلاح‌شده)
+  // تابع ذخیره همه هزینه‌ها
   // ============================================
   async function saveAllCityCosts(province) {
     const rows = document.querySelectorAll("#cost-result tbody tr");
@@ -1076,12 +1069,14 @@
       const city = row.getAttribute("data-city");
       const methodSelect = row.querySelector(".shipping-method-select");
       const methodId = Number(methodSelect.value);
-      const methodName = methodSelect.options[methodSelect.selectedIndex].text;
       
       const extraCost = parseToman(row.querySelector(".cost-extra-input").value);
       const isActive = row.querySelector(".cost-active-checkbox").checked;
 
       if (!methodId) continue;
+
+      const method = SHIPPING_METHODS.find(m => m.id === methodId);
+      const defaultCost = method ? method.default_cost || 0 : 0;
 
       const existingCosts = await loadShippingCosts(province, city);
       for (const cost of existingCosts) {
@@ -1104,7 +1099,6 @@
           city: city,
           shipping_method_id: methodId,
           cost_type: "extra",
-          cost_amount: 0,
           extra_cost: extraCost,
           delivery_time: "",
           is_active: isActive
@@ -1124,9 +1118,7 @@
       msgDiv.innerHTML = `<p style="color:#b91c1c;">⚠️ ${successCount} مورد ذخیره شد، ${errorCount} مورد خطا داشت.</p>`;
     }
     
-    // ✅ به‌روزرسانی خودکار بعد از ذخیره همه
     await refreshCurrentCosts(province);
-    
     setTimeout(() => { msgDiv.innerHTML = ""; }, 4000);
   }
 
@@ -1134,7 +1126,10 @@
   // رندر تب ارسال رایگان
   // ============================================
   function renderFree(container) {
-    if (!container) return;
+    if (!container) {
+      console.warn("renderFree: container not found");
+      return;
+    }
 
     container.innerHTML = `
       <div class="detail-card">
@@ -1155,30 +1150,66 @@
   }
 
   // ============================================
-  // رندر اصلی
+  // رندر اصلی - اصلاح شده با try/catch و تاخیر
   // ============================================
   function render() {
-    console.log("Rendering shipping panel...");
+    console.log("🎨 Rendering shipping panel...");
     
-    const methodsContainer = document.getElementById("shipping-tab-methods");
-    const costsContainer = document.getElementById("shipping-tab-costs");
-    const freeContainer = document.getElementById("shipping-tab-free");
+    try {
+      const methodsContainer = document.getElementById("shipping-tab-methods");
+      const costsContainer = document.getElementById("shipping-tab-costs");
+      const freeContainer = document.getElementById("shipping-tab-free");
 
-    if (methodsContainer) renderMethods(methodsContainer);
-    if (costsContainer) renderCosts(costsContainer);
-    if (freeContainer) renderFree(freeContainer);
+      console.log("📦 Containers found:", {
+        methods: !!methodsContainer,
+        costs: !!costsContainer,
+        free: !!freeContainer
+      });
+
+      if (methodsContainer) {
+        console.log("📦 Rendering methods...");
+        renderMethods(methodsContainer);
+      } else {
+        console.warn("⚠️ methodsContainer not found!");
+      }
+      
+      if (costsContainer) {
+        console.log("💰 Rendering costs...");
+        renderCosts(costsContainer);
+      } else {
+        console.warn("⚠️ costsContainer not found!");
+      }
+      
+      if (freeContainer) {
+        console.log("🎁 Rendering free...");
+        renderFree(freeContainer);
+      } else {
+        console.warn("⚠️ freeContainer not found!");
+      }
+      
+      console.log("✅ Shipping panel rendered successfully");
+    } catch (error) {
+      console.error("❌ Error in render:", error);
+    }
   }
 
   // ============================================
-  // مقداردهی اولیه
+  // مقداردهی اولیه - اصلاح شده با تاخیر
   // ============================================
   function init() {
-    console.log("Shipping Admin initialized");
+    console.log("🔄 Shipping Admin initializing...");
+    
     loadProvinces().then(() => {
-      const shippingPanel = document.getElementById("admin-panel-shipping");
-      if (shippingPanel && !shippingPanel.classList.contains("admin-hidden")) {
-        setTimeout(render, 200);
-      }
+      console.log("✅ Provinces loaded");
+      return loadShippingMethods();
+    }).then(() => {
+      console.log("✅ Shipping methods loaded");
+      // ✅ با تاخیر 300 میلی‌ثانیه اجرا کن تا DOM کامل لود بشه
+      setTimeout(function() {
+        render();
+      }, 300);
+    }).catch((err) => {
+      console.error("❌ Error in init:", err);
     });
   }
 
