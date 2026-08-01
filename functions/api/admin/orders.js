@@ -67,9 +67,16 @@ async function getOrderByNumber(db, orderNumber) {
       o.updated_at,
       u.full_name,
       u.email,
-      u.phone
+      u.phone,
+      a.full_name AS address_full_name,
+      a.address_line AS address_address_line,
+      a.postal_code AS address_postal_code,
+      a.phone AS address_phone,
+      a.city AS address_city,
+      a.state AS address_state
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
+    LEFT JOIN addresses a ON a.id = o.address_id
     WHERE o.order_number = ?
     LIMIT 1
   `).bind(orderNumber).first();
@@ -325,6 +332,9 @@ async function reverseCashbackIfNeeded(db, order, actorUserId) {
   return { reversed: true, amount: reversalAmount };
 }
 
+// ============================================
+// GET - دریافت لیست سفارش‌ها با آدرس
+// ============================================
 export async function onRequestGet(context) {
   try {
     const user = await getCurrentUser(context);
@@ -364,6 +374,9 @@ export async function onRequestGet(context) {
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
+    // ============================================
+    // ✅ اضافه کردن آدرس به کوئری
+    // ============================================
     const result = await context.env.DB.prepare(`
       SELECT
         o.id,
@@ -381,30 +394,53 @@ export async function onRequestGet(context) {
         ) AS payable_amount,
         o.created_at,
         u.full_name,
-        u.email
+        u.email,
+        u.phone AS user_phone,
+        a.full_name AS address_full_name,
+        a.address_line AS address_line,
+        a.postal_code AS address_postal_code,
+        a.phone AS address_phone,
+        a.city AS address_city,
+        a.state AS address_state
       FROM orders o
       LEFT JOIN users u ON u.id = o.user_id
+      LEFT JOIN addresses a ON a.id = o.address_id
       ${whereClause}
       ORDER BY o.id DESC
       LIMIT 300
     `).bind(...bindings).all();
 
-    const orders = (Array.isArray(result?.results) ? result.results : []).map((order) => ({
-      ...order,
-      subtotal_amount: normalizeNumber(order.subtotal_amount),
-      shipping_amount: normalizeNumber(order.shipping_amount),
-      total_amount: normalizeNumber(order.total_amount),
-      wallet_used_amount: normalizeNumber(order.wallet_used_amount),
-      cashback_amount: normalizeNumber(order.cashback_amount),
-      payable_amount: Math.max(
-        0,
-        normalizeNumber(
-          order.payable_amount != null
-            ? order.payable_amount
-            : normalizeNumber(order.total_amount) - normalizeNumber(order.wallet_used_amount)
-        )
-      )
-    }));
+    const orders = (Array.isArray(result?.results) ? result.results : []).map((order) => {
+      // ساخت آبجکت آدرس
+      const address = order.address_id ? {
+        full_name: order.address_full_name || "",
+        address_line: order.address_line || "",
+        postal_code: order.address_postal_code || "",
+        phone: order.address_phone || "",
+        city: order.address_city || "",
+        state: order.address_state || ""
+      } : null;
+
+      return {
+        ...order,
+        subtotal_amount: normalizeNumber(order.subtotal_amount),
+        shipping_amount: normalizeNumber(order.shipping_amount),
+        total_amount: normalizeNumber(order.total_amount),
+        wallet_used_amount: normalizeNumber(order.wallet_used_amount),
+        cashback_amount: normalizeNumber(order.cashback_amount),
+        payable_amount: Math.max(
+          0,
+          normalizeNumber(
+            order.payable_amount != null
+              ? order.payable_amount
+              : normalizeNumber(order.total_amount) - normalizeNumber(order.wallet_used_amount)
+          )
+        ),
+        address: address,
+        // برای سازگاری با نسخه قبلی
+        shipping_address: address
+      };
+    });
 
     return json({ success: true, orders });
   } catch (error) {
@@ -412,6 +448,9 @@ export async function onRequestGet(context) {
   }
 }
 
+// ============================================
+// POST - به‌روزرسانی سفارش
+// ============================================
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
@@ -498,6 +537,9 @@ export async function onRequestPost(context) {
   }
 }
 
+// ============================================
+// DELETE - حذف سفارش
+// ============================================
 export async function onRequestDelete(context) {
   try {
     const user = await getCurrentUser(context);
