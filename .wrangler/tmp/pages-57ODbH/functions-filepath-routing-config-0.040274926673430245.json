@@ -91,6 +91,14 @@
     {
       "routePath": "/api/account/addresses",
       "mountPath": "/api/account",
+      "method": "DELETE",
+      "module": [
+        "api/account/addresses.js:onRequestDelete"
+      ]
+    },
+    {
+      "routePath": "/api/account/addresses",
+      "mountPath": "/api/account",
       "method": "GET",
       "module": [
         "api/account/addresses.js:onRequestGet"
@@ -102,6 +110,14 @@
       "method": "POST",
       "module": [
         "api/account/addresses.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/account/addresses",
+      "mountPath": "/api/account",
+      "method": "PUT",
+      "module": [
+        "api/account/addresses.js:onRequestPut"
       ]
     },
     {
