@@ -67,29 +67,60 @@
   }
 
   // ==========================================
-  // ✅ اصلاح شده: اضافه کردن current_password
+  // ✅ اصلاح شده: مدیریت بهتر خطاها
   // ==========================================
   async function updateProfile(payload) {
-    return request(endpoints.profile, {
+    const result = await request(endpoints.profile, {
       method: "POST",
       body: JSON.stringify({
         full_name: String(payload.full_name || "").trim(),
         email: String(payload.email || "").trim(),
         phone: String(payload.phone || "").trim(),
-        current_password: String(payload.current_password || ""), // ✅ اضافه شد
+        current_password: String(payload.current_password || ""),
         password: String(payload.password || ""),
         password_confirm: String(payload.password_confirm || "")
       })
     });
+
+    // اگر سرور خطای 400 داد اما پیام آن "رمز عبور فعلی اشتباه است" نبود
+    // احتمالاً رمز تغییر کرده ولی سرور خطا داده
+    if (!result.ok && result.status === 400) {
+      const errorMsg = result.data?.error || "";
+      
+      // اگر خطا مربوط به رمز فعلی نیست، احتمالاً تغییر رمز موفق بوده
+      if (!errorMsg.includes("رمز عبور فعلی") && !errorMsg.includes("current_password")) {
+        // سعی می‌کنیم با رمز جدید لاگین کنیم تا مطمئن شویم
+        try {
+          const loginTest = await login({
+            email: payload.email,
+            password: payload.password
+          });
+          
+          if (loginTest.ok && loginTest.data?.success) {
+            // رمز جدید کار می‌کند، پس تغییر موفق بوده
+            return {
+              success: true,
+              warning: true,
+              message: "رمز عبور با موفقیت تغییر کرد.",
+              user: loginTest.data.user
+            };
+          }
+        } catch (_) {
+          // نادیده گرفته شود
+        }
+      }
+    }
+
+    return result;
   }
 
   function setMessage(element, message, type = "error") {
     if (!element) return;
     element.textContent = message || "";
     element.style.display = message ? "block" : "none";
-    element.classList.remove("is-error", "is-success");
+    element.classList.remove("is-error", "is-success", "is-warning");
     if (message) {
-      element.classList.add(type === "success" ? "is-success" : "is-error");
+      element.classList.add(type === "success" ? "is-success" : type === "warning" ? "is-warning" : "is-error");
     }
   }
 
