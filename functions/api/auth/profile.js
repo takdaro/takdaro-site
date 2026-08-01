@@ -1,31 +1,8 @@
 import { getCurrentUser } from "../../lib/admin";
-import { hashPassword, verifyPassword } from "../../lib/password";
+import { hashPassword } from "../../lib/password";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
-}
-
-// ============================================
-// ✅ تابع بررسی رمز عبور با پشتیبانی از هر دو روش
-// ============================================
-async function verifyPasswordCompatible(password, storedHash) {
-  if (storedHash && storedHash.startsWith('pbkdf2$')) {
-    return await verifyPassword(password, storedHash);
-  }
-  
-  if (storedHash && storedHash.match(/^[a-f0-9]{64}$/)) {
-    const sha256 = async (text) => {
-      const data = new TextEncoder().encode(text);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      return [...new Uint8Array(hashBuffer)]
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-    };
-    const hashed = await sha256(password);
-    return hashed === storedHash;
-  }
-  
-  return false;
 }
 
 // ============================================
@@ -61,7 +38,7 @@ export async function onRequestGet(context) {
 }
 
 // ============================================
-// POST - به‌روزرسانی پروفایل کاربر
+// POST - به‌روزرسانی پروفایل کاربر (بدون نیاز به رمز فعلی)
 // ============================================
 export async function onRequestPost(context) {
   try {
@@ -76,7 +53,6 @@ export async function onRequestPost(context) {
     const full_name = String(body.full_name ?? body.name ?? "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
-    const current_password = String(body.current_password || "");
     const password = String(body.password || "");
     const password_confirm = String(body.password_confirm || "");
 
@@ -102,41 +78,10 @@ export async function onRequestPost(context) {
     }
 
     // ============================================
-    // تغییر رمز عبور
+    // تغییر رمز عبور (بدون نیاز به رمز فعلی)
     // ============================================
     if (password) {
-      // اگر رمز فعلی وارد نشده باشد
-      if (!current_password) {
-        return json(
-          { success: false, error: "برای تغییر رمز عبور، رمز فعلی را وارد کنید." },
-          400
-        );
-      }
-
-      // دریافت رمز فعلی از دیتابیس
-      const currentUser = await context.env.DB
-        .prepare("SELECT password_hash FROM users WHERE id = ?")
-        .bind(user.id)
-        .first();
-
-      if (!currentUser) {
-        return json(
-          { success: false, error: "کاربر یافت نشد." },
-          404
-        );
-      }
-
-      // بررسی رمز فعلی
-      const isPasswordValid = await verifyPasswordCompatible(current_password, currentUser.password_hash);
-      
-      if (!isPasswordValid) {
-        return json(
-          { success: false, error: "رمز عبور فعلی اشتباه است." },
-          400
-        );
-      }
-
-      // ✅ اعتبارسنجی رمز جدید - حداقل 8 کاراکتر با پیام فارسی
+      // اعتبارسنجی رمز جدید - حداقل 8 کاراکتر
       if (password.length < 8) {
         return json(
           { success: false, error: "رمز عبور جدید باید حداقل ۸ کاراکتر باشد." },

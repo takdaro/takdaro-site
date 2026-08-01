@@ -864,18 +864,13 @@
                   </div>
 
                   <!-- ==========================================
-                  فیلد جدید: رمز عبور فعلی (برای تغییر رمز)
+                  ❌ فیلد رمز عبور فعلی حذف شد
                   ========================================== -->
-                  <div class="form-field">
-                    <label for="account-current-password">رمز عبور فعلی <span style="color:var(--danger);">*</span></label>
-                    <input type="password" id="account-current-password" name="current_password" autocomplete="current-password" placeholder="برای تغییر رمز عبور، رمز فعلی را وارد کنید" />
-                    <span class="account-help">وارد کردن رمز عبور فعلی برای تغییر رمز عبور الزامی است.</span>
-                  </div>
 
                   <div class="form-grid-2">
                     <div class="form-field">
                       <label for="account-password">رمز عبور جدید</label>
-                      <input type="password" id="account-password" name="password" autocomplete="new-password" placeholder="حداقل ۶ کاراکتر" />
+                      <input type="password" id="account-password" name="password" autocomplete="new-password" placeholder="حداقل ۸ کاراکتر" />
                     </div>
 
                     <div class="form-field">
@@ -1540,20 +1535,16 @@
             full_name: String(formData.get("full_name") || "").trim(),
             phone: String(formData.get("phone") || "").trim(),
             email: String(formData.get("email") || "").trim(),
-            current_password: String(formData.get("current_password") || ""),
+            // current_password حذف شد
             password: String(formData.get("password") || ""),
             password_confirm: String(formData.get("password_confirm") || "")
           };
 
-          // اگر رمز عبور جدید وارد شده، باید رمز فعلی هم وارد شود
+          // اگر رمز عبور جدید وارد شده
           if (payload.password || payload.password_confirm) {
-            if (!payload.current_password) {
-              setFormMessage("error", "برای تغییر رمز عبور، رمز عبور فعلی را وارد کنید.");
-              return;
-            }
-
-            if (payload.password.length < 6) {
-              setFormMessage("error", "رمز عبور جدید باید حداقل ۶ کاراکتر باشد.");
+            // ✅ حداقل 8 کاراکتر
+            if (payload.password.length < 8) {
+              setFormMessage("error", "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.");
               return;
             }
 
@@ -1573,11 +1564,9 @@
 
             setFormMessage("success", "اطلاعات حساب با موفقیت به‌روزرسانی شد.");
 
-            const currentPasswordInput = document.getElementById("account-current-password");
             const passwordInput = document.getElementById("account-password");
             const confirmInput = document.getElementById("account-password-confirm");
 
-            if (currentPasswordInput) currentPasswordInput.value = "";
             if (passwordInput) passwordInput.value = "";
             if (confirmInput) confirmInput.value = "";
 

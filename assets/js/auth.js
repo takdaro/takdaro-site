@@ -67,51 +67,20 @@
   }
 
   // ==========================================
-  // ✅ اصلاح شده: مدیریت بهتر خطاها
+  // ✅ اصلاح شده: حذف current_password
   // ==========================================
   async function updateProfile(payload) {
-    const result = await request(endpoints.profile, {
+    return request(endpoints.profile, {
       method: "POST",
       body: JSON.stringify({
         full_name: String(payload.full_name || "").trim(),
         email: String(payload.email || "").trim(),
         phone: String(payload.phone || "").trim(),
-        current_password: String(payload.current_password || ""),
+        // current_password حذف شد
         password: String(payload.password || ""),
         password_confirm: String(payload.password_confirm || "")
       })
     });
-
-    // اگر سرور خطای 400 داد اما پیام آن "رمز عبور فعلی اشتباه است" نبود
-    // احتمالاً رمز تغییر کرده ولی سرور خطا داده
-    if (!result.ok && result.status === 400) {
-      const errorMsg = result.data?.error || "";
-      
-      // اگر خطا مربوط به رمز فعلی نیست، احتمالاً تغییر رمز موفق بوده
-      if (!errorMsg.includes("رمز عبور فعلی") && !errorMsg.includes("current_password")) {
-        // سعی می‌کنیم با رمز جدید لاگین کنیم تا مطمئن شویم
-        try {
-          const loginTest = await login({
-            email: payload.email,
-            password: payload.password
-          });
-          
-          if (loginTest.ok && loginTest.data?.success) {
-            // رمز جدید کار می‌کند، پس تغییر موفق بوده
-            return {
-              success: true,
-              warning: true,
-              message: "رمز عبور با موفقیت تغییر کرد.",
-              user: loginTest.data.user
-            };
-          }
-        } catch (_) {
-          // نادیده گرفته شود
-        }
-      }
-    }
-
-    return result;
   }
 
   function setMessage(element, message, type = "error") {
