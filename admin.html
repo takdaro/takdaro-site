@@ -1508,7 +1508,7 @@
         if (panel === "invoice") loadInvoiceSettingsToForm();
         if (panel === "shipping") {
           // ==========================================
-          // ✅ اصلاح شده: بارگذاری shipping-admin.js و اجرای render با تاخیر مناسب
+          // ✅ اصلاح شده: استفاده از ShippingAdmin.init() به جای render()
           // ==========================================
           console.log("🚚 Opening shipping panel...");
           
@@ -1518,27 +1518,29 @@
             script.src = 'assets/js/shipping-admin.js';
             script.onload = function() {
               console.log("✅ shipping-admin.js loaded");
-              if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
-                // ✅ تاخیر 500 میلی‌ثانیه برای اطمینان از کامل شدن DOM
+              if (window.ShippingAdmin && typeof window.ShippingAdmin.init === "function") {
+                // ✅ اصلاح: استفاده از init به جای render
                 setTimeout(function() {
-                  console.log("🎨 Calling ShippingAdmin.render()");
-                  window.ShippingAdmin.render();
+                  console.log("🎨 Calling ShippingAdmin.init()");
+                  window.ShippingAdmin.init();
                 }, 500);
+              } else {
+                console.warn("⚠️ ShippingAdmin.init not available after load");
               }
             };
             script.onerror = function() {
               console.error("❌ Failed to load shipping-admin.js");
             };
             document.head.appendChild(script);
-          } else if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
-            console.log("✅ ShippingAdmin already loaded, calling render()");
-            // ✅ تاخیر 300 میلی‌ثانیه برای اطمینان از کامل شدن DOM
+          } else if (window.ShippingAdmin && typeof window.ShippingAdmin.init === "function") {
+            console.log("✅ ShippingAdmin already loaded, calling init()");
+            // ✅ اصلاح: استفاده از init به جای render
             setTimeout(function() {
-              console.log("🎨 Calling ShippingAdmin.render()");
-              window.ShippingAdmin.render();
+              console.log("🎨 Calling ShippingAdmin.init()");
+              window.ShippingAdmin.init();
             }, 300);
           } else {
-            console.warn("⚠️ ShippingAdmin not available");
+            console.warn("⚠️ ShippingAdmin.init not available");
           }
         }
 
@@ -2759,7 +2761,7 @@
       }
 
       // ==========================================
-      // ✅ اصلاح شده: renderMethodsContent با بارگذاری مجدد
+      // توابع رندر تب‌های حمل‌ونقل - اصلاح شده
       // ==========================================
       function renderMethodsContent() {
         console.log("🔄 renderMethodsContent called");
@@ -2784,9 +2786,6 @@
         }
       }
 
-      // ==========================================
-      // ✅ اصلاح شده: renderCostsContent با بارگذاری مجدد
-      // ==========================================
       function renderCostsContent() {
         console.log("🔄 renderCostsContent called");
         const container = document.getElementById('shipping-tab-costs');
@@ -2796,7 +2795,6 @@
           return;
         }
         
-        // اگر ShippingAdmin وجود دارد و renderCosts در دسترس است
         if (window.ShippingAdmin && typeof window.ShippingAdmin.renderCosts === 'function') {
           console.log("✅ Rendering costs via ShippingAdmin");
           try {
@@ -2807,8 +2805,6 @@
           }
         } else {
           console.warn("⚠️ ShippingAdmin.renderCosts not available, loading script...");
-          
-          // اگر ShippingAdmin وجود ندارد، اسکریپت را بارگذاری کن
           if (typeof window.ShippingAdmin === 'undefined') {
             const script = document.createElement('script');
             script.src = 'assets/js/shipping-admin.js';
@@ -2835,9 +2831,6 @@
         }
       }
 
-      // ==========================================
-      // ✅ اصلاح شده: renderFreeContent با بارگذاری مجدد
-      // ==========================================
       function renderFreeContent() {
         console.log("🔄 renderFreeContent called");
         const container = document.getElementById('shipping-tab-free');
