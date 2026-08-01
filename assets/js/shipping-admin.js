@@ -1227,4 +1227,4 @@
   };
 
   console.log("ShippingAdmin available:", !!window.ShippingAdmin);
-})();
+})(); 
