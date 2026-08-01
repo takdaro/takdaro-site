@@ -1507,17 +1507,38 @@
         }
         if (panel === "invoice") loadInvoiceSettingsToForm();
         if (panel === "shipping") {
+          // ==========================================
+          // ✅ اصلاح شده: بارگذاری shipping-admin.js و اجرای render با تاخیر مناسب
+          // ==========================================
+          console.log("🚚 Opening shipping panel...");
+          
           if (typeof window.ShippingAdmin === 'undefined') {
+            console.log("📦 Loading shipping-admin.js...");
             const script = document.createElement('script');
             script.src = 'assets/js/shipping-admin.js';
             script.onload = function() {
+              console.log("✅ shipping-admin.js loaded");
               if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
-                window.ShippingAdmin.render();
+                // ✅ تاخیر 500 میلی‌ثانیه برای اطمینان از کامل شدن DOM
+                setTimeout(function() {
+                  console.log("🎨 Calling ShippingAdmin.render()");
+                  window.ShippingAdmin.render();
+                }, 500);
               }
+            };
+            script.onerror = function() {
+              console.error("❌ Failed to load shipping-admin.js");
             };
             document.head.appendChild(script);
           } else if (window.ShippingAdmin && typeof window.ShippingAdmin.render === "function") {
-            window.ShippingAdmin.render();
+            console.log("✅ ShippingAdmin already loaded, calling render()");
+            // ✅ تاخیر 300 میلی‌ثانیه برای اطمینان از کامل شدن DOM
+            setTimeout(function() {
+              console.log("🎨 Calling ShippingAdmin.render()");
+              window.ShippingAdmin.render();
+            }, 300);
+          } else {
+            console.warn("⚠️ ShippingAdmin not available");
           }
         }
 
