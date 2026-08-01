@@ -42,6 +42,9 @@ export async function onRequestGet(context) {
       return json({ success: false, error: "order_number_required" }, 400);
     }
 
+    // ============================================
+    // ✅ اصلاح شده: استفاده از جدول addresses
+    // ============================================
     const order = await context.env.DB
       .prepare(`
         SELECT
@@ -68,7 +71,7 @@ export async function onRequestGet(context) {
           a.city AS shipping_city,
           a.state AS shipping_state
         FROM orders o
-        LEFT JOIN user_addresses a ON a.id = o.address_id
+        LEFT JOIN addresses a ON a.id = o.address_id
         WHERE o.user_id = ?
           AND o.order_number = ?
         LIMIT 1
