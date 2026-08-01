@@ -136,7 +136,7 @@ export async function onRequestPost(context) {
         );
       }
 
-      // ✅ اعتبارسنجی رمز جدید - حداقل 8 کاراکتر
+      // ✅ اعتبارسنجی رمز جدید - حداقل 8 کاراکتر با پیام فارسی
       if (password.length < 8) {
         return json(
           { success: false, error: "رمز عبور جدید باید حداقل ۸ کاراکتر باشد." },
