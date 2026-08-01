@@ -105,10 +105,6 @@ export async function onRequestPost(context) {
     // تغییر رمز عبور
     // ============================================
     if (password) {
-      // ============================================
-      // 🔥 نسخه تست: بررسی رمز فعلی غیرفعال است
-      // ============================================
-      /*
       // اگر رمز فعلی وارد نشده باشد
       if (!current_password) {
         return json(
@@ -139,12 +135,11 @@ export async function onRequestPost(context) {
           400
         );
       }
-      */
 
-      // اعتبارسنجی رمز جدید
-      if (password.length < 6) {
+      // ✅ اعتبارسنجی رمز جدید - حداقل 8 کاراکتر
+      if (password.length < 8) {
         return json(
-          { success: false, error: "رمز عبور جدید باید حداقل 6 کاراکتر باشد." },
+          { success: false, error: "رمز عبور جدید باید حداقل ۸ کاراکتر باشد." },
           400
         );
       }
