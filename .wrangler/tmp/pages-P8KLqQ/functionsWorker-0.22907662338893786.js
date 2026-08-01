@@ -186,37 +186,83 @@ async function logAdminAction(context, payload = {}) {
 }
 __name(logAdminAction, "logAdminAction");
 
-// api/admin/users/password.js
-function bytesToHex(bytes) {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+// lib/password.js
+var PBKDF2_ITERATIONS = 1e5;
+var SALT_LENGTH = 16;
+var KEY_LENGTH = 32;
+var DIGEST = "SHA-256";
+function encoder() {
+  return new TextEncoder();
 }
-__name(bytesToHex, "bytesToHex");
-async function hashPassword(password, iterations = 1e5) {
-  const encoder2 = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
+__name(encoder, "encoder");
+function toBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+__name(toBase64, "toBase64");
+function fromBase64(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+__name(fromBase64, "fromBase64");
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+__name(timingSafeEqual, "timingSafeEqual");
+async function deriveBits(password, salt, iterations = PBKDF2_ITERATIONS) {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
-    encoder2.encode(String(password)),
-    { name: "PBKDF2" },
+    encoder().encode(password),
+    "PBKDF2",
     false,
     ["deriveBits"]
   );
-  const derivedBits = await crypto.subtle.deriveBits(
+  return crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
+      hash: DIGEST,
       salt,
-      iterations,
-      hash: "SHA-256"
+      iterations
     },
     keyMaterial,
-    256
+    KEY_LENGTH * 8
   );
-  const hashBytes = new Uint8Array(derivedBits);
-  const saltHex = bytesToHex(salt);
-  const hashHex = bytesToHex(hashBytes);
-  return `pbkdf2_sha256$${iterations}$${saltHex}$${hashHex}`;
+}
+__name(deriveBits, "deriveBits");
+async function hashPassword(password) {
+  if (typeof password !== "string" || password.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  const hash = await deriveBits(password, salt, PBKDF2_ITERATIONS);
+  return ["pbkdf2", DIGEST.toLowerCase(), PBKDF2_ITERATIONS, toBase64(salt), toBase64(hash)].join("$");
 }
 __name(hashPassword, "hashPassword");
+async function verifyPassword(password, storedHash) {
+  if (!password || !storedHash) return false;
+  const [algorithm, digest, iterations, saltB64, hashB64] = String(storedHash).split("$");
+  if (algorithm !== "pbkdf2" || digest !== DIGEST.toLowerCase()) return false;
+  const salt = fromBase64(saltB64);
+  const expectedHash = fromBase64(hashB64);
+  const actualHash = new Uint8Array(await deriveBits(password, salt, Number(iterations)));
+  return timingSafeEqual(actualHash, expectedHash);
+}
+__name(verifyPassword, "verifyPassword");
+
+// api/admin/users/password.js
+function json3(data, status = 200) {
+  return Response.json(data, { status });
+}
+__name(json3, "json");
 async function onRequestPost2(context) {
   try {
     const adminCheck = await requireAdmin(context);
@@ -225,36 +271,21 @@ async function onRequestPost2(context) {
     const user_id = Number(body.user_id || 0);
     const password = String(body.password || "");
     const password_confirm = String(body.password_confirm || "");
-    if (!user_id || !password || !password_confirm) {
-      return Response.json(
-        { success: false, error: "user_id, password, password_confirm required" },
-        { status: 400 }
-      );
+    if (!user_id) {
+      return json3({ success: false, error: "user_id required" }, 400);
+    }
+    if (!password || !password_confirm) {
+      return json3({ success: false, error: "password and password_confirm required" }, 400);
     }
     if (password.length < 8) {
-      return Response.json(
-        { success: false, error: "password must be at least 8 characters" },
-        { status: 400 }
-      );
+      return json3({ success: false, error: "password must be at least 8 characters" }, 400);
     }
     if (password !== password_confirm) {
-      return Response.json(
-        { success: false, error: "password confirmation mismatch" },
-        { status: 400 }
-      );
+      return json3({ success: false, error: "password confirmation does not match" }, 400);
     }
-    const targetUser = await context.env.DB.prepare(`SELECT id, role, email FROM users WHERE id = ?`).bind(user_id).first();
+    const targetUser = await context.env.DB.prepare("SELECT id, role FROM users WHERE id = ?").bind(user_id).first();
     if (!targetUser) {
-      return Response.json(
-        { success: false, error: "user not found" },
-        { status: 404 }
-      );
-    }
-    if (String(targetUser.role || "") === "super_admin" && String(adminCheck.user.role || "") !== "super_admin") {
-      return Response.json(
-        { success: false, error: "cannot change super admin password" },
-        { status: 403 }
-      );
+      return json3({ success: false, error: "user not found" }, 404);
     }
     const password_hash = await hashPassword(password);
     await context.env.DB.prepare(`
@@ -264,19 +295,19 @@ async function onRequestPost2(context) {
       `).bind(password_hash, user_id).run();
     await logAdminAction(context, {
       admin_user_id: adminCheck.user.id,
-      action: "change_user_password",
+      action: "update_user_password",
       target_type: "user",
       target_id: String(user_id),
-      description: `password changed for ${targetUser.email || `user#${user_id}`}`
+      description: `password updated for user #${user_id}`
     });
-    return Response.json({
+    return json3({
       success: true,
       message: "password updated successfully"
     });
   } catch (error) {
-    return Response.json(
+    return json3(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }
@@ -308,10 +339,10 @@ async function getCurrentUser3(request, env) {
   return row || null;
 }
 __name(getCurrentUser3, "getCurrentUser");
-function json3(data, status = 200) {
+function json4(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json3, "json");
+__name(json4, "json");
 function normalizeAddressInput(body = {}) {
   return {
     type: String(body.type || "shipping").trim().toLowerCase(),
@@ -363,21 +394,21 @@ async function onRequestPut(context) {
   try {
     const user = await getCurrentUser3(context.request, context.env);
     if (!user) {
-      return json3({ success: false, error: "Unauthorized" }, 401);
+      return json4({ success: false, error: "Unauthorized" }, 401);
     }
     const addressId = Number(context.params.id);
     if (!addressId) {
-      return json3({ success: false, error: "\u0634\u0646\u0627\u0633\u0647 \u0622\u062F\u0631\u0633 \u0646\u0627\u0645\u0639\u062A\u0628\u0631 \u0627\u0633\u062A." }, 400);
+      return json4({ success: false, error: "\u0634\u0646\u0627\u0633\u0647 \u0622\u062F\u0631\u0633 \u0646\u0627\u0645\u0639\u062A\u0628\u0631 \u0627\u0633\u062A." }, 400);
     }
     const existing = await getOwnedAddress(context.env, user.id, addressId);
     if (!existing) {
-      return json3({ success: false, error: "\u0622\u062F\u0631\u0633 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
+      return json4({ success: false, error: "\u0622\u062F\u0631\u0633 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
     }
     const body = await context.request.json();
     const data = normalizeAddressInput(body);
     const validationError = validateAddressInput(data);
     if (validationError) {
-      return json3({ success: false, error: validationError }, 400);
+      return json4({ success: false, error: validationError }, 400);
     }
     if (data.is_default === 1) {
       await context.env.DB.prepare(`
@@ -412,12 +443,12 @@ async function onRequestPut(context) {
       user.id
     ).run();
     const address = await getOwnedAddress(context.env, user.id, addressId);
-    return json3({
+    return json4({
       success: true,
       address
     });
   } catch (error) {
-    return json3(
+    return json4(
       { success: false, error: String(error?.message || error) },
       500
     );
@@ -428,15 +459,15 @@ async function onRequestDelete(context) {
   try {
     const user = await getCurrentUser3(context.request, context.env);
     if (!user) {
-      return json3({ success: false, error: "Unauthorized" }, 401);
+      return json4({ success: false, error: "Unauthorized" }, 401);
     }
     const addressId = Number(context.params.id);
     if (!addressId) {
-      return json3({ success: false, error: "\u0634\u0646\u0627\u0633\u0647 \u0622\u062F\u0631\u0633 \u0646\u0627\u0645\u0639\u062A\u0628\u0631 \u0627\u0633\u062A." }, 400);
+      return json4({ success: false, error: "\u0634\u0646\u0627\u0633\u0647 \u0622\u062F\u0631\u0633 \u0646\u0627\u0645\u0639\u062A\u0628\u0631 \u0627\u0633\u062A." }, 400);
     }
     const existing = await getOwnedAddress(context.env, user.id, addressId);
     if (!existing) {
-      return json3({ success: false, error: "\u0622\u062F\u0631\u0633 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
+      return json4({ success: false, error: "\u0622\u062F\u0631\u0633 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
     }
     await context.env.DB.prepare(`
       DELETE FROM addresses
@@ -458,11 +489,11 @@ async function onRequestDelete(context) {
         `).bind(fallback.id, user.id).run();
       }
     }
-    return json3({
+    return json4({
       success: true
     });
   } catch (error) {
-    return json3(
+    return json4(
       { success: false, error: String(error?.message || error) },
       500
     );
@@ -478,10 +509,10 @@ function getCookie4(cookieString, key) {
   return target ? target.slice(key.length + 1) : null;
 }
 __name(getCookie4, "getCookie");
-function json4(data, status = 200) {
+function json5(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json4, "json");
+__name(json5, "json");
 async function getCurrentUserId(context) {
   const cookieString = context.request.headers.get("cookie") || "";
   const sessionId = getCookie4(cookieString, "session_id");
@@ -499,11 +530,11 @@ async function onRequestGet(context) {
   try {
     const userId = await getCurrentUserId(context);
     if (!userId) {
-      return json4({ success: false, error: "unauthorized" }, 401);
+      return json5({ success: false, error: "unauthorized" }, 401);
     }
     const orderNumber = decodeURIComponent(String(context.params?.order || "")).trim();
     if (!orderNumber) {
-      return json4({ success: false, error: "order_number_required" }, 400);
+      return json5({ success: false, error: "order_number_required" }, 400);
     }
     const order = await context.env.DB.prepare(`
         SELECT
@@ -536,7 +567,7 @@ async function onRequestGet(context) {
         LIMIT 1
       `).bind(userId, orderNumber).first();
     if (!order) {
-      return json4({ success: false, error: "order_not_found" }, 404);
+      return json5({ success: false, error: "order_not_found" }, 404);
     }
     const itemsResult = await context.env.DB.prepare(`
         SELECT
@@ -570,7 +601,7 @@ async function onRequestGet(context) {
       city: order.shipping_city || "",
       state: order.shipping_state || ""
     } : null;
-    return json4({
+    return json5({
       success: true,
       order: {
         id: Number(order.id || 0),
@@ -595,7 +626,7 @@ async function onRequestGet(context) {
       }
     });
   } catch (error) {
-    return json4(
+    return json5(
       { success: false, error: String(error?.message || error) },
       500
     );
@@ -611,10 +642,10 @@ function getCookie5(cookieString, key) {
   return target ? target.slice(key.length + 1) : null;
 }
 __name(getCookie5, "getCookie");
-function json5(data, status = 200) {
+function json6(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json5, "json");
+__name(json6, "json");
 function normalizeText(value) {
   return String(value ?? "").trim();
 }
@@ -945,14 +976,14 @@ async function updateOrderAndCashback(db, orderNumber, payload, actorUserId) {
   const allowedOrderStatuses = ["pending", "processing", "shipped", "completed", "cancelled"];
   const allowedPaymentStatuses = ["pending", "paid", "completed", "failed"];
   if (nextStatus && !allowedOrderStatuses.includes(nextStatus)) {
-    return { ok: false, response: json5({ success: false, error: "invalid_order_status" }, 400) };
+    return { ok: false, response: json6({ success: false, error: "invalid_order_status" }, 400) };
   }
   if (nextPaymentStatus && !allowedPaymentStatuses.includes(nextPaymentStatus)) {
-    return { ok: false, response: json5({ success: false, error: "invalid_payment_status" }, 400) };
+    return { ok: false, response: json6({ success: false, error: "invalid_payment_status" }, 400) };
   }
   const currentOrder = await getOrderByNumber(db, orderNumber);
   if (!currentOrder) {
-    return { ok: false, response: json5({ success: false, error: "order_not_found" }, 404) };
+    return { ok: false, response: json6({ success: false, error: "order_not_found" }, 404) };
   }
   const oldStatus = String(currentOrder.status || "pending").toLowerCase();
   const oldPaymentStatus = String(currentOrder.payment_status || "pending").toLowerCase();
@@ -992,23 +1023,23 @@ async function onRequestGet2(context) {
   try {
     const user = await getCurrentUser4(context);
     if (!user || !isAdmin(user)) {
-      return json5({ success: false, error: "unauthorized" }, 401);
+      return json6({ success: false, error: "unauthorized" }, 401);
     }
     const orderNumber = decodeURIComponent(context.params.order || "").trim();
     if (!orderNumber) {
-      return json5({ success: false, error: "order_number_required" }, 400);
+      return json6({ success: false, error: "order_number_required" }, 400);
     }
     const order = await getOrderByNumber(context.env.DB, orderNumber);
     if (!order) {
-      return json5({ success: false, error: "order_not_found" }, 404);
+      return json6({ success: false, error: "order_not_found" }, 404);
     }
     const items = await getOrderItems(context.env.DB, order.id);
-    return json5({
+    return json6({
       success: true,
       order: buildOrderPayload(order, items)
     });
   } catch (error) {
-    return json5({ success: false, error: String(error?.message || error) }, 500);
+    return json6({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestGet2, "onRequestGet");
@@ -1016,20 +1047,20 @@ async function onRequestPost3(context) {
   try {
     const user = await getCurrentUser4(context);
     if (!user || !isAdmin(user)) {
-      return json5({ success: false, error: "unauthorized" }, 401);
+      return json6({ success: false, error: "unauthorized" }, 401);
     }
     const orderNumber = decodeURIComponent(context.params.order || "").trim();
     if (!orderNumber) {
-      return json5({ success: false, error: "order_number_required" }, 400);
+      return json6({ success: false, error: "order_number_required" }, 400);
     }
     const body = await context.request.json().catch(() => null);
     const result = await updateOrderAndCashback(context.env.DB, orderNumber, body, user.id);
     if (!result.ok) {
       return result.response;
     }
-    return json5(result.data);
+    return json6(result.data);
   } catch (error) {
-    return json5({ success: false, error: String(error?.message || error) }, 500);
+    return json6({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestPost3, "onRequestPost");
@@ -1037,26 +1068,26 @@ async function onRequestPatch(context) {
   try {
     const user = await getCurrentUser4(context);
     if (!user || !isAdmin(user)) {
-      return json5({ success: false, error: "unauthorized" }, 401);
+      return json6({ success: false, error: "unauthorized" }, 401);
     }
     const orderNumber = decodeURIComponent(context.params.order || "").trim();
     if (!orderNumber) {
-      return json5({ success: false, error: "order_number_required" }, 400);
+      return json6({ success: false, error: "order_number_required" }, 400);
     }
     const body = await context.request.json().catch(() => null);
     const result = await updateOrderAndCashback(context.env.DB, orderNumber, body, user.id);
     if (!result.ok) {
       return result.response;
     }
-    return json5(result.data);
+    return json6(result.data);
   } catch (error) {
-    return json5({ success: false, error: String(error?.message || error) }, 500);
+    return json6({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestPatch, "onRequestPatch");
 
 // api/admin/products/[id].js
-function json6(data, status = 200) {
+function json7(data, status = 200) {
   return Response.json(data, {
     status,
     headers: {
@@ -1064,7 +1095,7 @@ function json6(data, status = 200) {
     }
   });
 }
-__name(json6, "json");
+__name(json7, "json");
 function cleanText(value, maxLength = 1e4) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
@@ -1237,15 +1268,15 @@ async function onRequestGet3(context) {
     }
     const productId = getProductId(context);
     if (!productId) {
-      return json6({ success: false, error: "invalid_product_id" }, 400);
+      return json7({ success: false, error: "invalid_product_id" }, 400);
     }
     const product = await getProduct(context, productId);
     if (!product) {
-      return json6({ success: false, error: "\u0645\u062D\u0635\u0648\u0644 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
+      return json7({ success: false, error: "\u0645\u062D\u0635\u0648\u0644 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
     }
-    return json6({ success: true, product });
+    return json7({ success: true, product });
   } catch (error) {
-    return json6(
+    return json7(
       {
         success: false,
         error: String(error?.message || error)
@@ -1263,23 +1294,23 @@ async function onRequestPut2(context) {
     }
     const productId = getProductId(context);
     if (!productId) {
-      return json6({ success: false, error: "invalid_product_id" }, 400);
+      return json7({ success: false, error: "invalid_product_id" }, 400);
     }
     const currentProduct = await getProduct(context, productId);
     if (!currentProduct) {
-      return json6({ success: false, error: "\u0645\u062D\u0635\u0648\u0644 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
+      return json7({ success: false, error: "\u0645\u062D\u0635\u0648\u0644 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
     }
     const body = await context.request.json().catch(() => null);
     if (!body || typeof body !== "object") {
-      return json6({ success: false, error: "invalid_request_body" }, 400);
+      return json7({ success: false, error: "invalid_request_body" }, 400);
     }
     const name = cleanText(body.name ?? currentProduct.name, 250);
     const slug = cleanSlug(body.slug ?? currentProduct.slug);
     if (!name) {
-      return json6({ success: false, error: "\u0646\u0627\u0645 \u0645\u062D\u0635\u0648\u0644 \u0627\u0644\u0632\u0627\u0645\u06CC \u0627\u0633\u062A." }, 400);
+      return json7({ success: false, error: "\u0646\u0627\u0645 \u0645\u062D\u0635\u0648\u0644 \u0627\u0644\u0632\u0627\u0645\u06CC \u0627\u0633\u062A." }, 400);
     }
     if (!slug) {
-      return json6(
+      return json7(
         {
           success: false,
           error: "slug \u0645\u062D\u0635\u0648\u0644 \u0645\u0639\u062A\u0628\u0631 \u0646\u06CC\u0633\u062A."
@@ -1289,7 +1320,7 @@ async function onRequestPut2(context) {
     }
     const duplicateSlug = await context.env.DB.prepare("SELECT id FROM products WHERE slug = ? AND id != ? LIMIT 1").bind(slug, productId).first();
     if (duplicateSlug) {
-      return json6(
+      return json7(
         {
           success: false,
           error: "\u0627\u06CC\u0646 slug \u0642\u0628\u0644\u0627\u064B \u0628\u0631\u0627\u06CC \u06CC\u06A9 \u0645\u062D\u0635\u0648\u0644 \u062F\u06CC\u06AF\u0631 \u0627\u0633\u062A\u0641\u0627\u062F\u0647 \u0634\u062F\u0647 \u0627\u0633\u062A."
@@ -1401,13 +1432,13 @@ async function onRequestPut2(context) {
       target_id: productId,
       description: `Updated product: ${name} (${slug})`
     });
-    return json6({
+    return json7({
       success: true,
       message: "\u0645\u062D\u0635\u0648\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0648\u06CC\u0631\u0627\u06CC\u0634 \u0634\u062F.",
       product: updatedProduct
     });
   } catch (error) {
-    return json6(
+    return json7(
       {
         success: false,
         error: String(error?.message || error)
@@ -1425,11 +1456,11 @@ async function onRequestDelete2(context) {
     }
     const productId = getProductId(context);
     if (!productId) {
-      return json6({ success: false, error: "invalid_product_id" }, 400);
+      return json7({ success: false, error: "invalid_product_id" }, 400);
     }
     const product = await getProduct(context, productId);
     if (!product) {
-      return json6({ success: false, error: "\u0645\u062D\u0635\u0648\u0644 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
+      return json7({ success: false, error: "\u0645\u062D\u0635\u0648\u0644 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F." }, 404);
     }
     await context.env.DB.prepare("DELETE FROM product_images WHERE product_id = ?").bind(productId).run();
     await context.env.DB.prepare("DELETE FROM products WHERE id = ?").bind(productId).run();
@@ -1440,7 +1471,7 @@ async function onRequestDelete2(context) {
       target_id: productId,
       description: `Deleted product: ${product.name} (${product.slug})`
     });
-    return json6({
+    return json7({
       success: true,
       message: "\u0645\u062D\u0635\u0648\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F.",
       deleted_product: {
@@ -1450,7 +1481,7 @@ async function onRequestDelete2(context) {
       }
     });
   } catch (error) {
-    return json6(
+    return json7(
       {
         success: false,
         error: String(error?.message || error)
@@ -1462,35 +1493,15 @@ async function onRequestDelete2(context) {
 __name(onRequestDelete2, "onRequestDelete");
 
 // api/account/addresses.js
-function getCookie6(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
-__name(getCookie6, "getCookie");
 function normalizePhone2(phone) {
   if (!phone) return null;
   return String(phone).trim().replace(/\s+/g, "");
 }
 __name(normalizePhone2, "normalizePhone");
-async function getCurrentUser5(request, env) {
-  const sessionId = getCookie6(request.headers.get("cookie"), "session_id");
-  if (!sessionId) return null;
-  const row = await env.DB.prepare(`
-    SELECT users.id, users.email, users.full_name, users.phone
-    FROM sessions
-    JOIN users ON users.id = sessions.user_id
-    WHERE sessions.id = ?
-    LIMIT 1
-  `).bind(sessionId).first();
-  return row || null;
-}
-__name(getCurrentUser5, "getCurrentUser");
-function json7(data, status = 200) {
+function json8(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json7, "json");
+__name(json8, "json");
 function normalizeAddressInput2(body = {}) {
   return {
     type: String(body.type || "shipping").trim().toLowerCase(),
@@ -1517,29 +1528,29 @@ function validateAddressInput2(data) {
 __name(validateAddressInput2, "validateAddressInput");
 async function onRequestGet4(context) {
   try {
-    const user = await getCurrentUser5(context.request, context.env);
-    if (!user) return json7({ success: false, error: "Unauthorized" }, 401);
+    const user = await getCurrentUser2(context);
+    if (!user) return json8({ success: false, error: "Unauthorized" }, 401);
     const result = await context.env.DB.prepare(`
       SELECT id, user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
       FROM addresses
       WHERE user_id = ?
       ORDER BY is_default DESC, id DESC
     `).bind(user.id).all();
-    return json7({ success: true, addresses: result.results || [] });
+    return json8({ success: true, addresses: result.results || [] });
   } catch (error) {
-    return json7({ success: false, error: String(error?.message || error) }, 500);
+    return json8({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestGet4, "onRequestGet");
 async function onRequestPost4(context) {
   try {
-    const user = await getCurrentUser5(context.request, context.env);
-    if (!user) return json7({ success: false, error: "Unauthorized" }, 401);
+    const user = await getCurrentUser2(context);
+    if (!user) return json8({ success: false, error: "Unauthorized" }, 401);
     const body = await context.request.json();
     const data = normalizeAddressInput2(body);
     const validationError = validateAddressInput2(data);
     if (validationError) {
-      return json7({ success: false, error: validationError }, 400);
+      return json8({ success: false, error: validationError }, 400);
     }
     if (data.is_default === 1) {
       await context.env.DB.prepare(`
@@ -1570,48 +1581,117 @@ async function onRequestPost4(context) {
           WHERE id = ? AND user_id = ?
           LIMIT 1
         `).bind(insertedId, user.id).first() : null;
-    return json7({ success: true, id: insertedId, address });
+    return json8({ success: true, id: insertedId, address });
   } catch (error) {
-    return json7({ success: false, error: String(error?.message || error) }, 500);
+    return json8({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestPost4, "onRequestPost");
+async function onRequestPut3(context) {
+  try {
+    const user = await getCurrentUser2(context);
+    if (!user) return json8({ success: false, error: "Unauthorized" }, 401);
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get("id") || url.pathname.split("/").pop();
+    if (!id) {
+      return json8({ success: false, error: "\u0622\u062F\u0631\u0633 \u0645\u0648\u0631\u062F \u0646\u0638\u0631 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F." }, 400);
+    }
+    const body = await context.request.json();
+    const data = normalizeAddressInput2(body);
+    const validationError = validateAddressInput2(data);
+    if (validationError) {
+      return json8({ success: false, error: validationError }, 400);
+    }
+    const existing = await context.env.DB.prepare(`
+      SELECT id FROM addresses WHERE id = ? AND user_id = ?
+    `).bind(id, user.id).first();
+    if (!existing) {
+      return json8({ success: false, error: "\u0622\u062F\u0631\u0633 \u0645\u0648\u0631\u062F \u0646\u0638\u0631 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F." }, 404);
+    }
+    if (data.is_default === 1) {
+      await context.env.DB.prepare(`
+        UPDATE addresses
+        SET is_default = 0, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND id != ?
+      `).bind(user.id, id).run();
+    }
+    await context.env.DB.prepare(`
+      UPDATE addresses
+      SET
+        type = ?,
+        full_name = ?,
+        address_line = ?,
+        postal_code = ?,
+        phone = ?,
+        city = ?,
+        state = ?,
+        is_default = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ?
+    `).bind(
+      data.type,
+      data.full_name,
+      data.address_line,
+      data.postal_code,
+      data.phone,
+      data.city,
+      data.state,
+      data.is_default,
+      id,
+      user.id
+    ).run();
+    const updated = await context.env.DB.prepare(`
+      SELECT id, user_id, type, full_name, address_line, postal_code, phone, city, state, is_default, created_at, updated_at
+      FROM addresses
+      WHERE id = ? AND user_id = ?
+      LIMIT 1
+    `).bind(id, user.id).first();
+    return json8({ success: true, address: updated });
+  } catch (error) {
+    return json8({ success: false, error: String(error?.message || error) }, 500);
+  }
+}
+__name(onRequestPut3, "onRequestPut");
+async function onRequestDelete3(context) {
+  try {
+    const user = await getCurrentUser2(context);
+    if (!user) return json8({ success: false, error: "Unauthorized" }, 401);
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get("id") || url.pathname.split("/").pop();
+    if (!id) {
+      return json8({ success: false, error: "\u0622\u062F\u0631\u0633 \u0645\u0648\u0631\u062F \u0646\u0638\u0631 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F." }, 400);
+    }
+    const existing = await context.env.DB.prepare(`
+      SELECT id, is_default FROM addresses WHERE id = ? AND user_id = ?
+    `).bind(id, user.id).first();
+    if (!existing) {
+      return json8({ success: false, error: "\u0622\u062F\u0631\u0633 \u0645\u0648\u0631\u062F \u0646\u0638\u0631 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F." }, 404);
+    }
+    await context.env.DB.prepare(`
+      DELETE FROM addresses WHERE id = ? AND user_id = ?
+    `).bind(id, user.id).run();
+    if (existing.is_default === 1) {
+      const nextDefault = await context.env.DB.prepare(`
+        SELECT id FROM addresses WHERE user_id = ? ORDER BY id DESC LIMIT 1
+      `).bind(user.id).first();
+      if (nextDefault) {
+        await context.env.DB.prepare(`
+          UPDATE addresses SET is_default = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+        `).bind(nextDefault.id).run();
+      }
+    }
+    return json8({ success: true, message: "\u0622\u062F\u0631\u0633 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F." });
+  } catch (error) {
+    return json8({ success: false, error: String(error?.message || error) }, 500);
+  }
+}
+__name(onRequestDelete3, "onRequestDelete");
 
 // api/account/create-order.js
-function getCookie7(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
-__name(getCookie7, "getCookie");
-function json8(data, status = 200) {
+function json9(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json8, "json");
-async function getCurrentUser6(context) {
-  const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie7(cookieString, "session_id");
-  if (!sessionId) return null;
-  return await context.env.DB.prepare(`
-    SELECT
-      id,
-      full_name,
-      email,
-      phone,
-      role,
-      COALESCE(wallet_balance, 0) AS wallet_balance
-    FROM users
-    WHERE id = (
-      SELECT user_id
-      FROM sessions
-      WHERE id = ?
-      LIMIT 1
-    )
-    LIMIT 1
-  `).bind(sessionId).first();
-}
-__name(getCurrentUser6, "getCurrentUser");
+__name(json9, "json");
 function normalizeDigits(value) {
   const map = {
     "\u06F0": "0",
@@ -1771,14 +1851,14 @@ async function createOrUpdateAddress(context, user, address) {
   const state = normalizeText2(address.state);
   const existingAddress = await context.env.DB.prepare(`
     SELECT id
-    FROM user_addresses
+    FROM addresses
     WHERE user_id = ?
     ORDER BY is_default DESC, id DESC
     LIMIT 1
   `).bind(user.id).first();
   if (existingAddress?.id) {
     await context.env.DB.prepare(`
-      UPDATE user_addresses
+      UPDATE addresses
       SET
         type = 'shipping',
         full_name = ?,
@@ -1811,13 +1891,13 @@ async function createOrUpdateAddress(context, user, address) {
     };
   }
   await context.env.DB.prepare(`
-    UPDATE user_addresses
+    UPDATE addresses
     SET is_default = 0,
         updated_at = CURRENT_TIMESTAMP
     WHERE user_id = ?
   `).bind(user.id).run();
   const addressInsert = await context.env.DB.prepare(`
-    INSERT INTO user_addresses (
+    INSERT INTO addresses (
       user_id,
       type,
       full_name,
@@ -1887,14 +1967,14 @@ async function hasWalletUseTransaction(db, userId, orderId) {
 __name(hasWalletUseTransaction, "hasWalletUseTransaction");
 async function onRequestPost5(context) {
   try {
-    const user = await getCurrentUser6(context);
+    const user = await getCurrentUser2(context);
     if (!user) {
-      return json8({ success: false, error: "unauthorized" }, 401);
+      return json9({ success: false, error: "unauthorized" }, 401);
     }
     const body = await context.request.json().catch(() => null);
     const validationError = validatePayload(body);
     if (validationError) {
-      return json8({ success: false, error: validationError }, 400);
+      return json9({ success: false, error: validationError }, 400);
     }
     const address = body.address || {};
     const order = body.order || {};
@@ -1921,7 +2001,7 @@ async function onRequestPost5(context) {
     const subtotalAmount = recalculatedSubtotal > 0 ? recalculatedSubtotal : submittedSubtotalAmount;
     const totalAmount = subtotalAmount + shippingAmount;
     if (submittedTotalAmount > 0 && totalAmount !== submittedTotalAmount) {
-      return json8({ success: false, error: "total-mismatch" }, 400);
+      return json9({ success: false, error: "total-mismatch" }, 400);
     }
     const requestedWalletUse = normalizeNumber2(
       order.wallet_used_amount ?? order.wallet_amount ?? body.wallet_used_amount
@@ -1969,7 +2049,7 @@ async function onRequestPost5(context) {
     ).run();
     const orderId = orderInsert.meta?.last_row_id ?? null;
     if (!orderId) {
-      return json8({ success: false, error: "order-create-failed" }, 500);
+      return json9({ success: false, error: "order-create-failed" }, 500);
     }
     for (const item of normalizedItems) {
       await context.env.DB.prepare(`
@@ -2038,7 +2118,7 @@ async function onRequestPost5(context) {
         ]);
       }
     }
-    return json8({
+    return json9({
       success: true,
       order: {
         id: orderId,
@@ -2067,7 +2147,7 @@ async function onRequestPost5(context) {
       }
     });
   } catch (error) {
-    return json8(
+    return json9(
       { success: false, error: String(error?.message || error) },
       500
     );
@@ -2076,71 +2156,61 @@ async function onRequestPost5(context) {
 __name(onRequestPost5, "onRequestPost");
 
 // api/account/orders.js
-function getCookie8(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
+function json10(data, status = 200) {
+  return Response.json(data, { status });
 }
-__name(getCookie8, "getCookie");
-async function getCurrentUserId2(context) {
-  const cookieString = context.request.headers.get("Cookie") || "";
-  const sessionId = getCookie8(cookieString, "session_id");
-  if (!sessionId) return null;
-  const session = await context.env.DB.prepare("SELECT user_id FROM sessions WHERE id = ?").bind(sessionId).first();
-  return session?.user_id ?? null;
-}
-__name(getCurrentUserId2, "getCurrentUserId");
+__name(json10, "json");
 async function onRequestGet5(context) {
   try {
-    const userId = await getCurrentUserId2(context);
-    if (!userId) {
-      return Response.json(
-        { success: false, error: "unauthorized" },
-        { status: 401 }
-      );
+    const user = await getCurrentUser2(context);
+    if (!user) {
+      return json10({ success: false, error: "unauthorized" }, 401);
     }
     const orders = await context.env.DB.prepare(`
         SELECT
           id,
           order_number,
           status,
+          payment_status,
           total_amount,
           shipping_amount,
-          discount_amount,
-          payment_status,
-          created_at
+          wallet_used_amount,
+          payable_amount,
+          cashback_amount,
+          cashback_status,
+          created_at,
+          updated_at
         FROM orders
         WHERE user_id = ?
         ORDER BY created_at DESC
-      `).bind(userId).all();
-    return Response.json({
+      `).bind(user.id).all();
+    return json10({
       success: true,
       orders: orders.results || []
     });
   } catch (error) {
-    return Response.json(
+    return json10(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }
 __name(onRequestGet5, "onRequestGet");
 
 // api/account/wallet.js
-function getCookie9(cookieString, key) {
+function getCookie6(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   return target ? target.slice(key.length + 1) : null;
 }
-__name(getCookie9, "getCookie");
-function json9(data, status = 200) {
+__name(getCookie6, "getCookie");
+function json11(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json9, "json");
-async function getCurrentUser7(request, env) {
-  const sessionId = getCookie9(request.headers.get("cookie") || "", "session_id");
+__name(json11, "json");
+async function getCurrentUser5(request, env) {
+  const sessionId = getCookie6(request.headers.get("cookie") || "", "session_id");
   if (!sessionId) return null;
   return await env.DB.prepare(`
     SELECT
@@ -2160,7 +2230,7 @@ async function getCurrentUser7(request, env) {
     LIMIT 1
   `).bind(sessionId).first();
 }
-__name(getCurrentUser7, "getCurrentUser");
+__name(getCurrentUser5, "getCurrentUser");
 function normalizeStatuses2(rawValue) {
   if (!rawValue) return ["completed"];
   try {
@@ -2226,9 +2296,9 @@ async function getWalletSettings(env) {
 __name(getWalletSettings, "getWalletSettings");
 async function onRequestGet6(context) {
   try {
-    const user = await getCurrentUser7(context.request, context.env);
+    const user = await getCurrentUser5(context.request, context.env);
     if (!user) {
-      return json9({ success: false, error: "unauthorized" }, 401);
+      return json11({ success: false, error: "unauthorized" }, 401);
     }
     const [transactionsQuery, settings] = await Promise.all([
       context.env.DB.prepare(`
@@ -2264,7 +2334,7 @@ async function onRequestGet6(context) {
       created_by_user_id: tx.created_by_user_id ? Number(tx.created_by_user_id) : null,
       created_at: tx.created_at || null
     })) : [];
-    return json9({
+    return json11({
       success: true,
       user: {
         id: Number(user.id || 0),
@@ -2283,7 +2353,7 @@ async function onRequestGet6(context) {
       transactions
     });
   } catch (error) {
-    return json9(
+    return json11(
       { success: false, error: String(error?.message || error) },
       500
     );
@@ -2310,17 +2380,17 @@ async function onRequestGet7(context) {
 __name(onRequestGet7, "onRequestGet");
 
 // api/admin/orders.js
-function getCookie10(cookieString, key) {
+function getCookie7(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   return target ? target.slice(key.length + 1) : null;
 }
-__name(getCookie10, "getCookie");
-function json10(data, status = 200) {
+__name(getCookie7, "getCookie");
+function json12(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json10, "json");
+__name(json12, "json");
 function normalizeText3(value) {
   return String(value ?? "").trim();
 }
@@ -2330,9 +2400,9 @@ function normalizeNumber3(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 __name(normalizeNumber3, "normalizeNumber");
-async function getCurrentUser8(context) {
+async function getCurrentUser6(context) {
   const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie10(cookieString, "session_id");
+  const sessionId = getCookie7(cookieString, "session_id");
   if (!sessionId) return null;
   return await context.env.DB.prepare(`
     SELECT
@@ -2351,7 +2421,7 @@ async function getCurrentUser8(context) {
     LIMIT 1
   `).bind(sessionId).first();
 }
-__name(getCurrentUser8, "getCurrentUser");
+__name(getCurrentUser6, "getCurrentUser");
 function isAdmin2(user) {
   const role = String(user?.role || "").toLowerCase();
   return role === "admin" || role === "super_admin";
@@ -2609,9 +2679,9 @@ async function reverseCashbackIfNeeded2(db, order, actorUserId) {
 __name(reverseCashbackIfNeeded2, "reverseCashbackIfNeeded");
 async function onRequestGet8(context) {
   try {
-    const user = await getCurrentUser8(context);
+    const user = await getCurrentUser6(context);
     if (!user || !isAdmin2(user)) {
-      return json10({ success: false, error: "unauthorized" }, 401);
+      return json12({ success: false, error: "unauthorized" }, 401);
     }
     const url = new URL(context.request.url);
     const search = normalizeText3(url.searchParams.get("search"));
@@ -2676,36 +2746,36 @@ async function onRequestGet8(context) {
         )
       )
     }));
-    return json10({ success: true, orders });
+    return json12({ success: true, orders });
   } catch (error) {
-    return json10({ success: false, error: String(error?.message || error) }, 500);
+    return json12({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestGet8, "onRequestGet");
 async function onRequestPost6(context) {
   try {
-    const user = await getCurrentUser8(context);
+    const user = await getCurrentUser6(context);
     if (!user || !isAdmin2(user)) {
-      return json10({ success: false, error: "unauthorized" }, 401);
+      return json12({ success: false, error: "unauthorized" }, 401);
     }
     const body = await context.request.json().catch(() => null);
     const orderNumber = normalizeText3(body?.order_number);
     const nextStatus = normalizeText3(body?.status).toLowerCase();
     const nextPaymentStatus = normalizeText3(body?.payment_status).toLowerCase();
     if (!orderNumber) {
-      return json10({ success: false, error: "order_number_required" }, 400);
+      return json12({ success: false, error: "order_number_required" }, 400);
     }
     const allowedOrderStatuses = ["pending", "processing", "shipped", "completed", "cancelled"];
     const allowedPaymentStatuses = ["pending", "paid", "completed", "failed"];
     if (nextStatus && !allowedOrderStatuses.includes(nextStatus)) {
-      return json10({ success: false, error: "invalid_order_status" }, 400);
+      return json12({ success: false, error: "invalid_order_status" }, 400);
     }
     if (nextPaymentStatus && !allowedPaymentStatuses.includes(nextPaymentStatus)) {
-      return json10({ success: false, error: "invalid_payment_status" }, 400);
+      return json12({ success: false, error: "invalid_payment_status" }, 400);
     }
     const currentOrder = await getOrderByNumber2(context.env.DB, orderNumber);
     if (!currentOrder) {
-      return json10({ success: false, error: "order_not_found" }, 404);
+      return json12({ success: false, error: "order_not_found" }, 404);
     }
     const finalStatus = nextStatus || String(currentOrder.status || "pending").toLowerCase();
     const finalPaymentStatus = nextPaymentStatus || String(currentOrder.payment_status || "pending").toLowerCase();
@@ -2730,7 +2800,7 @@ async function onRequestPost6(context) {
       0,
       normalizeNumber3(finalOrder.total_amount) - normalizeNumber3(finalOrder.wallet_used_amount)
     );
-    return json10({
+    return json12({
       success: true,
       message: "order_updated",
       cashback_result: cashbackResult,
@@ -2746,38 +2816,38 @@ async function onRequestPost6(context) {
       }
     });
   } catch (error) {
-    return json10({ success: false, error: String(error?.message || error) }, 500);
+    return json12({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestPost6, "onRequestPost");
-async function onRequestDelete3(context) {
+async function onRequestDelete4(context) {
   try {
-    const user = await getCurrentUser8(context);
+    const user = await getCurrentUser6(context);
     if (!user || !isAdmin2(user)) {
-      return json10({ success: false, error: "unauthorized" }, 401);
+      return json12({ success: false, error: "unauthorized" }, 401);
     }
     const body = await context.request.json().catch(() => null);
     const orderNumber = normalizeText3(body?.order_number);
     if (!orderNumber) {
-      return json10({ success: false, error: "order_number_required" }, 400);
+      return json12({ success: false, error: "order_number_required" }, 400);
     }
     const order = await getOrderByNumber2(context.env.DB, orderNumber);
     if (!order) {
-      return json10({ success: false, error: "order_not_found" }, 404);
+      return json12({ success: false, error: "order_not_found" }, 404);
     }
     await context.env.DB.batch([
       context.env.DB.prepare(`DELETE FROM order_items WHERE order_id = ?`).bind(order.id),
       context.env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(order.id)
     ]);
-    return json10({ success: true, message: "order_deleted" });
+    return json12({ success: true, message: "order_deleted" });
   } catch (error) {
-    return json10({ success: false, error: String(error?.message || error) }, 500);
+    return json12({ success: false, error: String(error?.message || error) }, 500);
   }
 }
-__name(onRequestDelete3, "onRequestDelete");
+__name(onRequestDelete4, "onRequestDelete");
 
 // api/admin/products.js
-function json11(data, status = 200) {
+function json13(data, status = 200) {
   return Response.json(data, {
     status,
     headers: {
@@ -2785,7 +2855,7 @@ function json11(data, status = 200) {
     }
   });
 }
-__name(json11, "json");
+__name(json13, "json");
 function cleanText2(value, maxLength = 1e4) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
@@ -3141,7 +3211,7 @@ async function onRequestGet9(context) {
         ORDER BY category COLLATE NOCASE ASC
       `).all();
     const total = Number(countRow?.total || 0);
-    return json11({
+    return json13({
       success: true,
       page,
       limit,
@@ -3151,7 +3221,7 @@ async function onRequestGet9(context) {
       products: rows.map((row) => productFromRow2(row, imagesByProductId))
     });
   } catch (error) {
-    return json11(
+    return json13(
       {
         success: false,
         error: String(error?.message || error)
@@ -3169,11 +3239,11 @@ async function onRequestPost7(context) {
     }
     const body = await context.request.json().catch(() => null);
     if (!body || typeof body !== "object") {
-      return json11({ success: false, error: "invalid_request_body" }, 400);
+      return json13({ success: false, error: "invalid_request_body" }, 400);
     }
     const input = getProductInput(body);
     if (!input.name) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0646\u0627\u0645 \u0645\u062D\u0635\u0648\u0644 \u0627\u0644\u0632\u0627\u0645\u06CC \u0627\u0633\u062A."
@@ -3182,7 +3252,7 @@ async function onRequestPost7(context) {
       );
     }
     if (!input.slug) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "slug \u0645\u062D\u0635\u0648\u0644 \u0645\u0639\u062A\u0628\u0631 \u0646\u06CC\u0633\u062A. slug \u0628\u0627\u06CC\u062F \u0641\u0642\u0637 \u0634\u0627\u0645\u0644 \u062D\u0631\u0648\u0641 \u0627\u0646\u06AF\u0644\u06CC\u0633\u06CC\u060C \u0639\u062F\u062F \u0648 \u062E\u0637 \u062A\u06CC\u0631\u0647 \u0628\u0627\u0634\u062F."
@@ -3192,7 +3262,7 @@ async function onRequestPost7(context) {
     }
     const existing = await context.env.DB.prepare("SELECT id FROM products WHERE slug = ? LIMIT 1").bind(input.slug).first();
     if (existing) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0627\u06CC\u0646 slug \u0642\u0628\u0644\u0627\u064B \u0628\u0631\u0627\u06CC \u06CC\u06A9 \u0645\u062D\u0635\u0648\u0644 \u062F\u06CC\u06AF\u0631 \u0627\u0633\u062A\u0641\u0627\u062F\u0647 \u0634\u062F\u0647 \u0627\u0633\u062A."
@@ -3237,7 +3307,7 @@ async function onRequestPost7(context) {
     ).run();
     const productId = Number(insertResult.meta?.last_row_id || 0);
     if (!productId) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u062B\u0628\u062A \u0645\u062D\u0635\u0648\u0644 \u0646\u0627\u0645\u0648\u0641\u0642 \u0628\u0648\u062F."
@@ -3259,7 +3329,7 @@ async function onRequestPost7(context) {
       target_id: productId,
       description: `Created product: ${input.name} (${input.slug})`
     });
-    return json11(
+    return json13(
       {
         success: true,
         message: "\u0645\u062D\u0635\u0648\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u06CC\u062C\u0627\u062F \u0634\u062F.",
@@ -3268,7 +3338,7 @@ async function onRequestPost7(context) {
       201
     );
   } catch (error) {
-    return json11(
+    return json13(
       {
         success: false,
         error: String(error?.message || error)
@@ -3278,7 +3348,7 @@ async function onRequestPost7(context) {
   }
 }
 __name(onRequestPost7, "onRequestPost");
-async function onRequestPut3(context) {
+async function onRequestPut4(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) {
@@ -3286,11 +3356,11 @@ async function onRequestPut3(context) {
     }
     const body = await context.request.json().catch(() => null);
     if (!body || typeof body !== "object") {
-      return json11({ success: false, error: "invalid_request_body" }, 400);
+      return json13({ success: false, error: "invalid_request_body" }, 400);
     }
     const productId = toPositiveId(body.id ?? body.product_id ?? body.productId);
     if (!productId) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0634\u0646\u0627\u0633\u0647 \u0645\u062D\u0635\u0648\u0644 \u0645\u0639\u062A\u0628\u0631 \u0646\u06CC\u0633\u062A."
@@ -3300,7 +3370,7 @@ async function onRequestPut3(context) {
     }
     const currentProduct = await getProductRow(context.env.DB, productId);
     if (!currentProduct) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0645\u062D\u0635\u0648\u0644 \u0645\u0648\u0631\u062F\u0646\u0638\u0631 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F."
@@ -3310,7 +3380,7 @@ async function onRequestPut3(context) {
     }
     const input = getProductInput(body);
     if (!input.name) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0646\u0627\u0645 \u0645\u062D\u0635\u0648\u0644 \u0627\u0644\u0632\u0627\u0645\u06CC \u0627\u0633\u062A."
@@ -3319,7 +3389,7 @@ async function onRequestPut3(context) {
       );
     }
     if (!input.slug) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "slug \u0645\u062D\u0635\u0648\u0644 \u0645\u0639\u062A\u0628\u0631 \u0646\u06CC\u0633\u062A. slug \u0628\u0627\u06CC\u062F \u0641\u0642\u0637 \u0634\u0627\u0645\u0644 \u062D\u0631\u0648\u0641 \u0627\u0646\u06AF\u0644\u06CC\u0633\u06CC\u060C \u0639\u062F\u062F \u0648 \u062E\u0637 \u062A\u06CC\u0631\u0647 \u0628\u0627\u0634\u062F."
@@ -3329,7 +3399,7 @@ async function onRequestPut3(context) {
     }
     const duplicate = await context.env.DB.prepare("SELECT id FROM products WHERE slug = ? AND id != ? LIMIT 1").bind(input.slug, productId).first();
     if (duplicate) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0627\u06CC\u0646 slug \u0642\u0628\u0644\u0627\u064B \u0628\u0631\u0627\u06CC \u0645\u062D\u0635\u0648\u0644 \u062F\u06CC\u06AF\u0631\u06CC \u0627\u0633\u062A\u0641\u0627\u062F\u0647 \u0634\u062F\u0647 \u0627\u0633\u062A."
@@ -3387,13 +3457,13 @@ async function onRequestPut3(context) {
       target_id: productId,
       description: `Updated product: ${input.name} (${input.slug})`
     });
-    return json11({
+    return json13({
       success: true,
       message: "\u0627\u0637\u0644\u0627\u0639\u0627\u062A \u0645\u062D\u0635\u0648\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F.",
       product
     });
   } catch (error) {
-    return json11(
+    return json13(
       {
         success: false,
         error: String(error?.message || error)
@@ -3402,8 +3472,8 @@ async function onRequestPut3(context) {
     );
   }
 }
-__name(onRequestPut3, "onRequestPut");
-async function onRequestDelete4(context) {
+__name(onRequestPut4, "onRequestPut");
+async function onRequestDelete5(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) {
@@ -3416,7 +3486,7 @@ async function onRequestDelete4(context) {
       productId = toPositiveId(body?.id ?? body?.product_id ?? body?.productId);
     }
     if (!productId) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0634\u0646\u0627\u0633\u0647 \u0645\u062D\u0635\u0648\u0644 \u0645\u0639\u062A\u0628\u0631 \u0646\u06CC\u0633\u062A."
@@ -3426,7 +3496,7 @@ async function onRequestDelete4(context) {
     }
     const product = await getProductRow(context.env.DB, productId);
     if (!product) {
-      return json11(
+      return json13(
         {
           success: false,
           error: "\u0645\u062D\u0635\u0648\u0644 \u0645\u0648\u0631\u062F\u0646\u0638\u0631 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F \u06CC\u0627 \u0642\u0628\u0644\u0627\u064B \u062D\u0630\u0641 \u0634\u062F\u0647 \u0627\u0633\u062A."
@@ -3445,7 +3515,7 @@ async function onRequestDelete4(context) {
       target_id: productId,
       description: `Deleted product: ${product.name} (${product.slug})`
     });
-    return json11({
+    return json13({
       success: true,
       message: "\u0645\u062D\u0635\u0648\u0644 \u0648 \u06AF\u0627\u0644\u0631\u06CC \u062A\u0635\u0627\u0648\u06CC\u0631 \u0622\u0646 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F.",
       deleted_product: {
@@ -3455,7 +3525,7 @@ async function onRequestDelete4(context) {
       }
     });
   } catch (error) {
-    return json11(
+    return json13(
       {
         success: false,
         error: String(error?.message || error)
@@ -3464,49 +3534,25 @@ async function onRequestDelete4(context) {
     );
   }
 }
-__name(onRequestDelete4, "onRequestDelete");
+__name(onRequestDelete5, "onRequestDelete");
 
 // api/admin/settings.js
-function getCookie11(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
-__name(getCookie11, "getCookie");
-function json12(data, status = 200) {
+function json14(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json12, "json");
-async function getCurrentUser9(context) {
-  const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie11(cookieString, "session_id");
-  if (!sessionId) return null;
-  return await context.env.DB.prepare(`
-    SELECT id, full_name, email, phone, role
-    FROM users
-    WHERE id = (SELECT user_id FROM sessions WHERE id = ? LIMIT 1)
-    LIMIT 1
-  `).bind(sessionId).first();
-}
-__name(getCurrentUser9, "getCurrentUser");
-function isAdmin3(user) {
-  const role = String(user?.role || "").toLowerCase();
-  return role === "admin" || role === "super_admin";
-}
-__name(isAdmin3, "isAdmin");
+__name(json14, "json");
 function normalizeText4(value) {
   return String(value ?? "").trim();
 }
 __name(normalizeText4, "normalizeText");
 async function onRequestGet10(context) {
   try {
-    const user = await getCurrentUser9(context);
+    const user = await getCurrentUser2(context);
     const result = await context.env.DB.prepare(`
       SELECT setting_key, setting_value
       FROM app_settings
       WHERE setting_key LIKE 'invoice_%'
-         OR setting_key IN ('cashback_percent', 'cashback_statuses')
+         OR setting_key IN ('cashback_percent', 'cashback_statuses', 'allow_public_registration')
     `).all();
     const rows = Array.isArray(result?.results) ? result.results : [];
     const settings = {};
@@ -3524,19 +3570,20 @@ async function onRequestGet10(context) {
       invoice_whatsapp_number: "\u06F0\u06F9\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9",
       invoice_company_name: "\u062A\u06A9 \u062A\u062C\u0627\u0631\u062A",
       invoice_company_phone: "\u06F0\u06F2\u06F1-\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8",
-      invoice_company_address: "\u062A\u0647\u0631\u0627\u0646\u060C \u062E\u06CC\u0627\u0628\u0627\u0646 \u0648\u0644\u06CC\u0639\u0635\u0631\u060C \u067E\u0644\u0627\u06A9 \u06F1\u06F2\u06F3"
+      invoice_company_address: "\u062A\u0647\u0631\u0627\u0646\u060C \u062E\u06CC\u0627\u0628\u0627\u0646 \u0648\u0644\u06CC\u0639\u0635\u0631\u060C \u067E\u0644\u0627\u06A9 \u06F1\u06F2\u06F3",
+      allow_public_registration: "true"
     };
     for (const [key, defaultValue] of Object.entries(defaults)) {
       if (!settings[key] || settings[key] === "") {
         settings[key] = defaultValue;
       }
     }
-    return json12({
+    return json14({
       success: true,
       settings
     });
   } catch (error) {
-    return json12({
+    return json14({
       success: false,
       error: String(error?.message || error)
     }, 500);
@@ -3545,13 +3592,11 @@ async function onRequestGet10(context) {
 __name(onRequestGet10, "onRequestGet");
 async function onRequestPost8(context) {
   try {
-    const user = await getCurrentUser9(context);
-    if (!user || !isAdmin3(user)) {
-      return json12({ success: false, error: "unauthorized" }, 401);
-    }
+    const adminCheck = await requireAdmin(context);
+    if (!adminCheck.ok) return adminCheck.response;
     const body = await context.request.json().catch(() => null);
     if (!body || typeof body !== "object") {
-      return json12({ success: false, error: "invalid_payload" }, 400);
+      return json14({ success: false, error: "invalid_payload" }, 400);
     }
     const allowedKeys = [
       "invoice_logo",
@@ -3564,7 +3609,8 @@ async function onRequestPost8(context) {
       "invoice_whatsapp_number",
       "invoice_company_name",
       "invoice_company_phone",
-      "invoice_company_address"
+      "invoice_company_address",
+      "allow_public_registration"
     ];
     const operations = [];
     for (const key of allowedKeys) {
@@ -3588,19 +3634,20 @@ async function onRequestPost8(context) {
       SELECT setting_key, setting_value
       FROM app_settings
       WHERE setting_key LIKE 'invoice_%'
+         OR setting_key IN ('cashback_percent', 'cashback_statuses', 'allow_public_registration')
     `).all();
     const rows = Array.isArray(result?.results) ? result.results : [];
     const settings = {};
     for (const row of rows) {
       settings[String(row.setting_key || "").trim()] = String(row.setting_value || "").trim();
     }
-    return json12({
+    return json14({
       success: true,
       message: "settings_saved",
       settings
     });
   } catch (error) {
-    return json12({
+    return json14({
       success: false,
       error: String(error?.message || error)
     }, 500);
@@ -3609,17 +3656,17 @@ async function onRequestPost8(context) {
 __name(onRequestPost8, "onRequestPost");
 
 // api/admin/shipping.js
-function getCookie12(cookieString, key) {
+function getCookie8(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   return target ? target.slice(key.length + 1) : null;
 }
-__name(getCookie12, "getCookie");
-function json13(data, status = 200) {
+__name(getCookie8, "getCookie");
+function json15(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json13, "json");
+__name(json15, "json");
 function normalizeText5(value) {
   return String(value ?? "").trim();
 }
@@ -3629,9 +3676,9 @@ function normalizeNumber4(value) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
 }
 __name(normalizeNumber4, "normalizeNumber");
-async function getCurrentUser10(context) {
+async function getCurrentUser7(context) {
   const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie12(cookieString, "session_id");
+  const sessionId = getCookie8(cookieString, "session_id");
   if (!sessionId) return null;
   return await context.env.DB.prepare(`
     SELECT id, full_name, email, phone, role
@@ -3640,17 +3687,17 @@ async function getCurrentUser10(context) {
     LIMIT 1
   `).bind(sessionId).first();
 }
-__name(getCurrentUser10, "getCurrentUser");
-function isAdmin4(user) {
+__name(getCurrentUser7, "getCurrentUser");
+function isAdmin3(user) {
   const role = String(user?.role || "").toLowerCase();
   return role === "admin" || role === "super_admin";
 }
-__name(isAdmin4, "isAdmin");
+__name(isAdmin3, "isAdmin");
 async function onRequestGet11(context) {
   try {
-    const user = await getCurrentUser10(context);
-    if (!user || !isAdmin4(user)) {
-      return json13({ success: false, error: "unauthorized" }, 401);
+    const user = await getCurrentUser7(context);
+    if (!user || !isAdmin3(user)) {
+      return json15({ success: false, error: "unauthorized" }, 401);
     }
     const url = new URL(context.request.url);
     const action = url.searchParams.get("action");
@@ -3671,13 +3718,13 @@ async function onRequestGet11(context) {
         ORDER BY sort_order ASC, id ASC
       `).all();
       const methods = Array.isArray(result?.results) ? result.results : [];
-      return json13({ success: true, methods });
+      return json15({ success: true, methods });
     }
     if (action === "costs") {
       const province = normalizeText5(url.searchParams.get("province"));
       const city = normalizeText5(url.searchParams.get("city"));
       if (!province || !city) {
-        return json13({ success: false, error: "province_and_city_required" }, 400);
+        return json15({ success: false, error: "province_and_city_required" }, 400);
       }
       const result = await context.env.DB.prepare(`
         SELECT 
@@ -3699,7 +3746,7 @@ async function onRequestGet11(context) {
         ORDER BY sm.sort_order ASC
       `).bind(province, city).all();
       const costs = Array.isArray(result?.results) ? result.results : [];
-      return json13({ success: true, costs });
+      return json15({ success: true, costs });
     }
     if (action === "free-thresholds") {
       const result = await context.env.DB.prepare(`
@@ -3725,23 +3772,23 @@ async function onRequestGet11(context) {
         ...t,
         method_name: methodMap[t.shipping_method_id] || "\u0646\u0627\u0645\u0634\u062E\u0635"
       }));
-      return json13({ success: true, thresholds: enriched });
+      return json15({ success: true, thresholds: enriched });
     }
-    return json13({ success: false, error: "invalid_action" }, 400);
+    return json15({ success: false, error: "invalid_action" }, 400);
   } catch (error) {
-    return json13({ success: false, error: String(error?.message || error) }, 500);
+    return json15({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestGet11, "onRequestGet");
 async function onRequestPost9(context) {
   try {
-    const user = await getCurrentUser10(context);
-    if (!user || !isAdmin4(user)) {
-      return json13({ success: false, error: "unauthorized" }, 401);
+    const user = await getCurrentUser7(context);
+    if (!user || !isAdmin3(user)) {
+      return json15({ success: false, error: "unauthorized" }, 401);
     }
     const body = await context.request.json().catch(() => null);
     if (!body) {
-      return json13({ success: false, error: "invalid_payload" }, 400);
+      return json15({ success: false, error: "invalid_payload" }, 400);
     }
     const action = body.action || "create_method";
     if (action === "create_method") {
@@ -3753,20 +3800,20 @@ async function onRequestPost9(context) {
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       const sort_order = normalizeNumber4(body.sort_order);
       if (!name || !slug) {
-        return json13({ success: false, error: "name_and_slug_required" }, 400);
+        return json15({ success: false, error: "name_and_slug_required" }, 400);
       }
       const existing = await context.env.DB.prepare(`
         SELECT id FROM shipping_methods WHERE slug = ?
       `).bind(slug).first();
       if (existing) {
-        return json13({ success: false, error: "slug_already_exists" }, 400);
+        return json15({ success: false, error: "slug_already_exists" }, 400);
       }
       const result = await context.env.DB.prepare(`
         INSERT INTO shipping_methods (name, slug, description, delivery_time, default_cost, is_active, sort_order)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(name, slug, description, delivery_time, default_cost, is_active, sort_order).run();
       const newId = result.meta?.last_row_id || null;
-      return json13({
+      return json15({
         success: true,
         message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u06CC\u062C\u0627\u062F \u0634\u062F.",
         method: { id: newId, name, slug, description, delivery_time, default_cost, is_active, sort_order }
@@ -3782,26 +3829,26 @@ async function onRequestPost9(context) {
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       const sort_order = normalizeNumber4(body.sort_order);
       if (!id || !name || !slug) {
-        return json13({ success: false, error: "id_name_slug_required" }, 400);
+        return json15({ success: false, error: "id_name_slug_required" }, 400);
       }
       const existing = await context.env.DB.prepare(`
         SELECT id FROM shipping_methods WHERE id = ?
       `).bind(id).first();
       if (!existing) {
-        return json13({ success: false, error: "method_not_found" }, 404);
+        return json15({ success: false, error: "method_not_found" }, 404);
       }
       const duplicate = await context.env.DB.prepare(`
         SELECT id FROM shipping_methods WHERE slug = ? AND id != ?
       `).bind(slug, id).first();
       if (duplicate) {
-        return json13({ success: false, error: "slug_already_exists" }, 400);
+        return json15({ success: false, error: "slug_already_exists" }, 400);
       }
       await context.env.DB.prepare(`
         UPDATE shipping_methods
         SET name = ?, slug = ?, description = ?, delivery_time = ?, default_cost = ?, is_active = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(name, slug, description, delivery_time, default_cost, is_active, sort_order, id).run();
-      return json13({
+      return json15({
         success: true,
         message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0647\u200C\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06CC \u0634\u062F."
       });
@@ -3809,18 +3856,18 @@ async function onRequestPost9(context) {
     if (action === "delete_method") {
       const id = normalizeNumber4(body.id);
       if (!id) {
-        return json13({ success: false, error: "id_required" }, 400);
+        return json15({ success: false, error: "id_required" }, 400);
       }
       const existing = await context.env.DB.prepare(`
         SELECT id FROM shipping_methods WHERE id = ?
       `).bind(id).first();
       if (!existing) {
-        return json13({ success: false, error: "method_not_found" }, 404);
+        return json15({ success: false, error: "method_not_found" }, 404);
       }
       await context.env.DB.prepare(`
         DELETE FROM shipping_methods WHERE id = ?
       `).bind(id).run();
-      return json13({
+      return json15({
         success: true,
         message: "\u0631\u0648\u0634 \u062D\u0645\u0644\u200C\u0648\u0646\u0642\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
       });
@@ -3828,18 +3875,18 @@ async function onRequestPost9(context) {
     if (action === "delete_cost") {
       const cost_id = normalizeNumber4(body.cost_id);
       if (!cost_id) {
-        return json13({ success: false, error: "cost_id_required" }, 400);
+        return json15({ success: false, error: "cost_id_required" }, 400);
       }
       const existing = await context.env.DB.prepare(`
         SELECT id FROM shipping_costs WHERE id = ?
       `).bind(cost_id).first();
       if (!existing) {
-        return json13({ success: false, error: "cost_not_found" }, 404);
+        return json15({ success: false, error: "cost_not_found" }, 404);
       }
       await context.env.DB.prepare(`
         DELETE FROM shipping_costs WHERE id = ?
       `).bind(cost_id).run();
-      return json13({
+      return json15({
         success: true,
         message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
       });
@@ -3854,13 +3901,13 @@ async function onRequestPost9(context) {
       const delivery_time = normalizeText5(body.delivery_time);
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       if (!province || !city || !shipping_method_id) {
-        return json13({ success: false, error: "province_city_method_required" }, 400);
+        return json15({ success: false, error: "province_city_method_required" }, 400);
       }
       const method = await context.env.DB.prepare(`
         SELECT id, default_cost FROM shipping_methods WHERE id = ?
       `).bind(shipping_method_id).first();
       if (!method) {
-        return json13({ success: false, error: "method_not_found" }, 404);
+        return json15({ success: false, error: "method_not_found" }, 404);
       }
       const defaultCost = method.default_cost || 0;
       const finalCost = defaultCost + extra_cost;
@@ -3881,7 +3928,7 @@ async function onRequestPost9(context) {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(province, city, shipping_method_id, cost_type, finalCost, extra_cost, delivery_time, is_active).run();
       }
-      return json13({
+      return json15({
         success: true,
         message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F.",
         extra_cost,
@@ -3889,18 +3936,64 @@ async function onRequestPost9(context) {
         default_cost: defaultCost
       });
     }
+    if (action === "add_city") {
+      const province = normalizeText5(body.province);
+      const city = normalizeText5(body.city);
+      if (!province || !city) {
+        return json15({ success: false, error: "province_and_city_required" }, 400);
+      }
+      const defaultMethod = await context.env.DB.prepare(`
+        SELECT id FROM shipping_methods WHERE slug = 'freight' AND is_active = 1 LIMIT 1
+      `).first();
+      if (!defaultMethod) {
+        return json15({ success: false, error: "default_method_not_found" }, 404);
+      }
+      const existing = await context.env.DB.prepare(`
+        SELECT id FROM shipping_costs 
+        WHERE province = ? AND city = ?
+        LIMIT 1
+      `).bind(province, city).first();
+      if (existing) {
+        return json15({ success: false, error: "city_already_exists" }, 400);
+      }
+      const result = await context.env.DB.prepare(`
+        INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
+        VALUES (?, ?, ?, 'extra', 0, 0, '', 1)
+      `).bind(province, city, defaultMethod.id).run();
+      return json15({
+        success: true,
+        message: "\u0634\u0647\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u0636\u0627\u0641\u0647 \u0634\u062F.",
+        city,
+        province
+      });
+    }
+    if (action === "delete_city") {
+      const province = normalizeText5(body.province);
+      const city = normalizeText5(body.city);
+      if (!province || !city) {
+        return json15({ success: false, error: "province_and_city_required" }, 400);
+      }
+      await context.env.DB.prepare(`
+        DELETE FROM shipping_costs 
+        WHERE province = ? AND city = ?
+      `).bind(province, city).run();
+      return json15({
+        success: true,
+        message: "\u0634\u0647\u0631 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u062D\u0630\u0641 \u0634\u062F."
+      });
+    }
     if (action === "save_free_threshold") {
       const shipping_method_id = normalizeNumber4(body.shipping_method_id);
       const min_order_amount = normalizeNumber4(body.min_order_amount);
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       if (!shipping_method_id || !min_order_amount) {
-        return json13({ success: false, error: "method_and_amount_required" }, 400);
+        return json15({ success: false, error: "method_and_amount_required" }, 400);
       }
       const method = await context.env.DB.prepare(`
         SELECT id FROM shipping_methods WHERE id = ?
       `).bind(shipping_method_id).first();
       if (!method) {
-        return json13({ success: false, error: "method_not_found" }, 404);
+        return json15({ success: false, error: "method_not_found" }, 404);
       }
       const existing = await context.env.DB.prepare(`
         SELECT id FROM shipping_free_thresholds WHERE shipping_method_id = ?
@@ -3917,14 +4010,14 @@ async function onRequestPost9(context) {
           VALUES (?, ?, ?)
         `).bind(shipping_method_id, min_order_amount, is_active).run();
       }
-      return json13({
+      return json15({
         success: true,
         message: "\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u0627\u0631\u0633\u0627\u0644 \u0631\u0627\u06CC\u06AF\u0627\u0646 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F."
       });
     }
-    return json13({ success: false, error: "invalid_action" }, 400);
+    return json15({ success: false, error: "invalid_action" }, 400);
   } catch (error) {
-    return json13({ success: false, error: String(error?.message || error) }, 500);
+    return json15({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestPost9, "onRequestPost");
@@ -3980,52 +4073,6 @@ async function onRequestGet12(context) {
   }
 }
 __name(onRequestGet12, "onRequestGet");
-
-// lib/password.js
-var PBKDF2_ITERATIONS = 1e5;
-var SALT_LENGTH = 16;
-var KEY_LENGTH = 32;
-var DIGEST = "SHA-256";
-function encoder() {
-  return new TextEncoder();
-}
-__name(encoder, "encoder");
-function toBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-__name(toBase64, "toBase64");
-async function deriveBits(password, salt, iterations = PBKDF2_ITERATIONS) {
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    encoder().encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  return crypto.subtle.deriveBits(
-    {
-      name: "PBKDF2",
-      hash: DIGEST,
-      salt,
-      iterations
-    },
-    keyMaterial,
-    KEY_LENGTH * 8
-  );
-}
-__name(deriveBits, "deriveBits");
-async function hashPassword2(password) {
-  if (typeof password !== "string" || password.length < 8) {
-    throw new Error("Password must be at least 8 characters long");
-  }
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
-  const hash = await deriveBits(password, salt, PBKDF2_ITERATIONS);
-  return ["pbkdf2", DIGEST.toLowerCase(), PBKDF2_ITERATIONS, toBase64(salt), toBase64(hash)].join("$");
-}
-__name(hashPassword2, "hashPassword");
 
 // api/admin/users.js
 function toInt(value, fallback = 1) {
@@ -4254,7 +4301,7 @@ async function onRequestPost10(context) {
         { status: 409 }
       );
     }
-    const password_hash = await hashPassword2(password);
+    const password_hash = await hashPassword(password);
     const insertResult = await context.env.DB.prepare(`
         INSERT INTO users (
           full_name,
@@ -4302,7 +4349,7 @@ async function onRequestPost10(context) {
   }
 }
 __name(onRequestPost10, "onRequestPost");
-async function onRequestDelete5(context) {
+async function onRequestDelete6(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
@@ -4401,13 +4448,13 @@ async function onRequestDelete5(context) {
     );
   }
 }
-__name(onRequestDelete5, "onRequestDelete");
+__name(onRequestDelete6, "onRequestDelete");
 
 // api/admin/wallet.js
-function json14(data, status = 200) {
+function json16(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json14, "json");
+__name(json16, "json");
 function toMoney(value) {
   const n = Number(value || 0);
   return Number.isFinite(n) ? Math.round(n) : 0;
@@ -4547,7 +4594,7 @@ async function onRequestGet14(context) {
           LIMIT 1
         `).bind(userId).first();
       if (!user) {
-        return json14({ success: false, error: "user_not_found" }, 404);
+        return json16({ success: false, error: "user_not_found" }, 404);
       }
       const txns = await db.prepare(`
           SELECT
@@ -4573,7 +4620,7 @@ async function onRequestGet14(context) {
           ORDER BY id DESC
           LIMIT ?
         `).bind(userId, limit).all();
-      return json14({
+      return json16({
         success: true,
         settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
         user: {
@@ -4609,13 +4656,13 @@ async function onRequestGet14(context) {
         ORDER BY wt.id DESC
         LIMIT ?
       `).bind(limit).all();
-    return json14({
+    return json16({
       success: true,
       settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
       transactions: (latest?.results || []).map(formatTransactionRow)
     });
   } catch (error) {
-    return json14({ success: false, error: String(error?.message || error) }, 500);
+    return json16({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestGet14, "onRequestGet");
@@ -4649,7 +4696,7 @@ async function onRequestPost11(context) {
         target_id: "cashback",
         description: `cashback_percent=${cashbackPercent}, statuses=${cashbackStatuses.join(",")}`
       });
-      return json14({
+      return json16({
         success: true,
         settings: buildSettingsPayload(cashbackPercent, cashbackStatuses)
       });
@@ -4673,10 +4720,10 @@ async function onRequestPost11(context) {
       pickFirst(body?.order_number, body?.orderNumber)
     );
     if (!userId || amount <= 0) {
-      return json14({ success: false, error: "user_id_and_amount_required" }, 400);
+      return json16({ success: false, error: "user_id_and_amount_required" }, 400);
     }
     if (!type) {
-      return json14({ success: false, error: "invalid_type" }, 400);
+      return json16({ success: false, error: "invalid_type" }, 400);
     }
     const user = await db.prepare(`
         SELECT
@@ -4689,13 +4736,13 @@ async function onRequestPost11(context) {
         LIMIT 1
       `).bind(userId).first();
     if (!user) {
-      return json14({ success: false, error: "user_not_found" }, 404);
+      return json16({ success: false, error: "user_not_found" }, 404);
     }
     const balanceBefore = toMoney(user.wallet_balance);
     const signedAmount = getSignedAmountByType(type, amount);
     const balanceAfter = balanceBefore + signedAmount;
     if (balanceAfter < 0) {
-      return json14({ success: false, error: "insufficient_wallet_balance" }, 400);
+      return json16({ success: false, error: "insufficient_wallet_balance" }, 400);
     }
     await db.batch([
       db.prepare(`
@@ -4746,7 +4793,7 @@ async function onRequestPost11(context) {
       target_id: String(userId),
       description: `amount=${signedAmount}, balance_after=${balanceAfter}, source=${source}, reference_type=${referenceType}`
     });
-    return json14({
+    return json16({
       success: true,
       transaction: {
         user_id: userId,
@@ -4765,23 +4812,33 @@ async function onRequestPost11(context) {
       }
     });
   } catch (error) {
-    return json14({ success: false, error: String(error?.message || error) }, 500);
+    return json16({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 __name(onRequestPost11, "onRequestPost");
 
 // api/auth/login.js
-async function sha256(text) {
-  const data = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-__name(sha256, "sha256");
 function normalizeEmail2(email) {
   if (!email) return "";
   return String(email).trim().toLowerCase();
 }
 __name(normalizeEmail2, "normalizeEmail");
+async function verifyPasswordCompatible(password, storedHash) {
+  if (storedHash && storedHash.startsWith("pbkdf2$")) {
+    return await verifyPassword(password, storedHash);
+  }
+  if (storedHash && storedHash.match(/^[a-f0-9]{64}$/)) {
+    const sha256 = /* @__PURE__ */ __name(async (text) => {
+      const data = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }, "sha256");
+    const hashed = await sha256(password);
+    return hashed === storedHash;
+  }
+  return false;
+}
+__name(verifyPasswordCompatible, "verifyPasswordCompatible");
 async function onRequestPost12(context) {
   try {
     const body = await context.request.json();
@@ -4793,7 +4850,6 @@ async function onRequestPost12(context) {
         { status: 400 }
       );
     }
-    const password_hash = await sha256(password);
     const user = await context.env.DB.prepare(`
         SELECT
           id,
@@ -4808,7 +4864,14 @@ async function onRequestPost12(context) {
         FROM users
         WHERE email = ?
       `).bind(email).first();
-    if (!user || user.password_hash !== password_hash) {
+    if (!user) {
+      return Response.json(
+        { success: false, error: "invalid credentials" },
+        { status: 401 }
+      );
+    }
+    const isPasswordValid = await verifyPasswordCompatible(password, user.password_hash);
+    if (!isPasswordValid) {
       return Response.json(
         { success: false, error: "invalid credentials" },
         { status: 401 }
@@ -4850,18 +4913,18 @@ async function onRequestPost12(context) {
 __name(onRequestPost12, "onRequestPost");
 
 // api/auth/logout.js
-function getCookie13(cookieString, key) {
+function getCookie9(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   if (!target) return null;
   return target.slice(key.length + 1);
 }
-__name(getCookie13, "getCookie");
+__name(getCookie9, "getCookie");
 async function onRequestPost13(context) {
   try {
     const cookieString = context.request.headers.get("Cookie") || "";
-    const sessionId = getCookie13(cookieString, "session_id");
+    const sessionId = getCookie9(cookieString, "session_id");
     if (sessionId) {
       await context.env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run();
     }
@@ -4887,18 +4950,18 @@ async function onRequestPost13(context) {
 __name(onRequestPost13, "onRequestPost");
 
 // api/auth/me.js
-function getCookie14(cookieString, key) {
+function getCookie10(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
   if (!target) return null;
   return target.slice(key.length + 1);
 }
-__name(getCookie14, "getCookie");
+__name(getCookie10, "getCookie");
 async function onRequestGet15(context) {
   try {
     const cookieString = context.request.headers.get("Cookie") || "";
-    const sessionId = getCookie14(cookieString, "session_id");
+    const sessionId = getCookie10(cookieString, "session_id");
     if (!sessionId) {
       return Response.json({ success: false, user: null }, { status: 401 });
     }
@@ -4936,133 +4999,172 @@ async function onRequestGet15(context) {
 __name(onRequestGet15, "onRequestGet");
 
 // api/auth/profile.js
-function getCookie15(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  if (!target) return null;
-  return target.slice(key.length + 1);
+function json17(data, status = 200) {
+  return Response.json(data, { status });
 }
-__name(getCookie15, "getCookie");
-async function getCurrentUserId3(context) {
-  const cookieString = context.request.headers.get("Cookie") || "";
-  const sessionId = getCookie15(cookieString, "session_id");
-  if (!sessionId) return null;
-  const session = await context.env.DB.prepare("SELECT user_id FROM sessions WHERE id = ?").bind(sessionId).first();
-  return session?.user_id ?? null;
+__name(json17, "json");
+async function verifyPasswordCompatible2(password, storedHash) {
+  if (storedHash && storedHash.startsWith("pbkdf2$")) {
+    return await verifyPassword(password, storedHash);
+  }
+  if (storedHash && storedHash.match(/^[a-f0-9]{64}$/)) {
+    const sha256 = /* @__PURE__ */ __name(async (text) => {
+      const data = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }, "sha256");
+    const hashed = await sha256(password);
+    return hashed === storedHash;
+  }
+  return false;
 }
-__name(getCurrentUserId3, "getCurrentUserId");
-async function sha2562(text) {
-  const data = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-__name(sha2562, "sha256");
+__name(verifyPasswordCompatible2, "verifyPasswordCompatible");
 async function onRequestGet16(context) {
   try {
-    const userId = await getCurrentUserId3(context);
-    if (!userId) {
-      return Response.json({ success: false, error: "unauthorized" }, { status: 401 });
-    }
-    const user = await context.env.DB.prepare(`
-        SELECT id, full_name, email, phone, created_at, updated_at
-        FROM users
-        WHERE id = ?
-      `).bind(userId).first();
+    const user = await getCurrentUser2(context);
     if (!user) {
-      return Response.json({ success: false, error: "user not found" }, { status: 404 });
+      return json17({ success: false, error: "unauthorized" }, 401);
     }
-    return Response.json({ success: true, user });
+    return json17({
+      success: true,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        wallet_balance: user.wallet_balance,
+        created_at: user.created_at,
+        updated_at: user.updated_at
+      }
+    });
   } catch (error) {
-    return Response.json(
+    return json17(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }
 __name(onRequestGet16, "onRequestGet");
 async function onRequestPost14(context) {
   try {
-    const userId = await getCurrentUserId3(context);
-    if (!userId) {
-      return Response.json({ success: false, error: "unauthorized" }, { status: 401 });
+    const user = await getCurrentUser2(context);
+    if (!user) {
+      return json17({ success: false, error: "unauthorized" }, 401);
     }
     const body = await context.request.json();
     const full_name = String(body.full_name ?? body.name ?? "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
+    const current_password = String(body.current_password || "");
     const password = String(body.password || "");
     const password_confirm = String(body.password_confirm || "");
     if (!full_name || !email) {
-      return Response.json(
+      return json17(
         { success: false, error: "full_name and email required" },
-        { status: 400 }
+        400
+      );
+    }
+    const existingUser = await context.env.DB.prepare("SELECT id FROM users WHERE email = ? AND id != ?").bind(email, user.id).first();
+    if (existingUser) {
+      return json17(
+        { success: false, error: "email already exists" },
+        409
       );
     }
     if (password) {
+      if (!current_password) {
+        return json17(
+          { success: false, error: "\u0628\u0631\u0627\u06CC \u062A\u063A\u06CC\u06CC\u0631 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631\u060C \u0631\u0645\u0632 \u0641\u0639\u0644\u06CC \u0631\u0627 \u0648\u0627\u0631\u062F \u06A9\u0646\u06CC\u062F." },
+          400
+        );
+      }
+      const currentUser = await context.env.DB.prepare("SELECT password_hash FROM users WHERE id = ?").bind(user.id).first();
+      if (!currentUser) {
+        return json17(
+          { success: false, error: "\u06A9\u0627\u0631\u0628\u0631 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F." },
+          404
+        );
+      }
+      const isPasswordValid = await verifyPasswordCompatible2(current_password, currentUser.password_hash);
+      if (!isPasswordValid) {
+        return json17(
+          { success: false, error: "\u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0641\u0639\u0644\u06CC \u0627\u0634\u062A\u0628\u0627\u0647 \u0627\u0633\u062A." },
+          400
+        );
+      }
       if (password.length < 6) {
-        return Response.json(
-          { success: false, error: "password must be at least 6 characters" },
-          { status: 400 }
+        return json17(
+          { success: false, error: "\u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u062C\u062F\u06CC\u062F \u0628\u0627\u06CC\u062F \u062D\u062F\u0627\u0642\u0644 6 \u06A9\u0627\u0631\u0627\u06A9\u062A\u0631 \u0628\u0627\u0634\u062F." },
+          400
         );
       }
       if (password !== password_confirm) {
-        return Response.json(
-          { success: false, error: "password confirmation does not match" },
-          { status: 400 }
+        return json17(
+          { success: false, error: "\u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0648 \u062A\u06A9\u0631\u0627\u0631 \u0622\u0646 \u06CC\u06A9\u0633\u0627\u0646 \u0646\u06CC\u0633\u062A." },
+          400
         );
       }
-    }
-    const existingUser = await context.env.DB.prepare("SELECT id FROM users WHERE email = ? AND id != ?").bind(email, userId).first();
-    if (existingUser) {
-      return Response.json(
-        { success: false, error: "email already exists" },
-        { status: 409 }
-      );
-    }
-    if (password) {
-      const password_hash = await sha2562(password);
+      const newPasswordHash = await hashPassword(password);
       await context.env.DB.prepare(`
           UPDATE users
           SET full_name = ?, email = ?, phone = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
-        `).bind(full_name, email, phone || null, password_hash, userId).run();
+        `).bind(full_name, email, phone || null, newPasswordHash, user.id).run();
     } else {
       await context.env.DB.prepare(`
           UPDATE users
           SET full_name = ?, email = ?, phone = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
-        `).bind(full_name, email, phone || null, userId).run();
+        `).bind(full_name, email, phone || null, user.id).run();
     }
-    const user = await context.env.DB.prepare(`
-        SELECT id, full_name, email, phone, created_at, updated_at
+    const updatedUser = await context.env.DB.prepare(`
+        SELECT id, full_name, email, phone, role, wallet_balance, created_at, updated_at
         FROM users
         WHERE id = ?
-      `).bind(userId).first();
-    return Response.json({ success: true, user });
+      `).bind(user.id).first();
+    return json17({
+      success: true,
+      message: "\u067E\u0631\u0648\u0641\u0627\u06CC\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0647\u200C\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06CC \u0634\u062F.",
+      user: updatedUser
+    });
   } catch (error) {
-    return Response.json(
+    return json17(
       { success: false, error: String(error?.message || error) },
-      { status: 500 }
+      500
     );
   }
 }
 __name(onRequestPost14, "onRequestPost");
 
 // api/auth/register.js
-async function sha2563(text) {
-  const data = new TextEncoder().encode(text);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-__name(sha2563, "sha256");
 function normalizePhone4(value) {
   if (!value) return "";
   return String(value).trim().replace(/[^\d+]/g, "");
 }
 __name(normalizePhone4, "normalizePhone");
+async function isPublicRegistrationEnabled(env) {
+  try {
+    const result = await env.DB.prepare(`SELECT setting_value FROM app_settings WHERE setting_key = 'allow_public_registration'`).first();
+    if (!result) return true;
+    return String(result.setting_value || "true").toLowerCase() === "true";
+  } catch (_) {
+    return true;
+  }
+}
+__name(isPublicRegistrationEnabled, "isPublicRegistrationEnabled");
 async function onRequestPost15(context) {
   try {
+    const publicRegistrationEnabled = await isPublicRegistrationEnabled(context.env);
+    if (!publicRegistrationEnabled) {
+      return Response.json(
+        {
+          success: false,
+          error: "\u062B\u0628\u062A\u200C\u0646\u0627\u0645 \u06A9\u0627\u0631\u0628\u0631 \u062A\u0648\u0633\u0637 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0633\u0627\u06CC\u062A \u0627\u0646\u062C\u0627\u0645 \u0645\u06CC\u200C\u0634\u0648\u062F. \u0644\u0637\u0641\u0627\u064B \u0628\u0627 \u067E\u0634\u062A\u06CC\u0628\u0627\u0646\u06CC \u0628\u0627 \u0634\u0645\u0627\u0631\u0647 09214147070 \u062A\u0645\u0627\u0633 \u062D\u0627\u0635\u0644 \u0641\u0631\u0645\u0627\u06CC\u06CC\u062F."
+        },
+        { status: 403 }
+      );
+    }
     const body = await context.request.json();
     const full_name = String(body.full_name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
@@ -5101,7 +5203,7 @@ async function onRequestPost15(context) {
         { status: 409 }
       );
     }
-    const password_hash = await sha2563(password);
+    const password_hash = await hashPassword(password);
     const result = await context.env.DB.prepare(
       "INSERT INTO users (full_name, email, phone, password_hash) VALUES (?, ?, ?, ?)"
     ).bind(full_name, email, phone, password_hash).run();
@@ -5133,10 +5235,10 @@ async function onRequestPost15(context) {
 __name(onRequestPost15, "onRequestPost");
 
 // api/shipping/calculate.js
-function json15(data, status = 200) {
+function json18(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json15, "json");
+__name(json18, "json");
 function normalizeText8(value) {
   return String(value ?? "").trim();
 }
@@ -5146,76 +5248,63 @@ function normalizeNumber5(value) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
 }
 __name(normalizeNumber5, "normalizeNumber");
-var TEHRAN_GROUP = ["\u062A\u0647\u0631\u0627\u0646", "\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0631\u0648\u062F\u0647\u0646", "\u0628\u0648\u0645\u0647\u0646"];
-function getShippingMethodSlug(city) {
-  if (TEHRAN_GROUP.includes(city)) {
-    return "motor";
-  } else {
-    return "freight";
-  }
-}
-__name(getShippingMethodSlug, "getShippingMethodSlug");
 async function getShippingCost(db, province, city, subtotal = 0) {
   const normalizedProvince = normalizeText8(province);
   const normalizedCity = normalizeText8(city);
-  const methodSlug = getShippingMethodSlug(normalizedCity);
-  const method = await db.prepare(`
-    SELECT 
-      id, 
-      name, 
-      slug, 
-      description, 
-      delivery_time, 
-      default_cost,
-      is_active
-    FROM shipping_methods
-    WHERE slug = ? AND is_active = 1
-    LIMIT 1
-  `).bind(methodSlug).first();
-  if (!method) {
-    return {
-      success: false,
-      message: "\u0631\u0648\u0634 \u0627\u0631\u0633\u0627\u0644 \u0628\u0631\u0627\u06CC \u0627\u06CC\u0646 \u0634\u0647\u0631 \u0641\u0639\u0627\u0644 \u0646\u06CC\u0633\u062A."
-    };
-  }
   let cost = await db.prepare(`
     SELECT 
-      id,
-      province,
-      city,
-      cost_type,
-      cost_amount,
-      extra_cost,
-      delivery_time,
-      is_active
-    FROM shipping_costs
-    WHERE province = ? AND city = ? AND shipping_method_id = ? AND is_active = 1
+      sc.id,
+      sc.province,
+      sc.city,
+      sc.shipping_method_id,
+      sc.cost_type,
+      sc.cost_amount,
+      sc.extra_cost,
+      sc.delivery_time,
+      sc.is_active,
+      sm.id as method_id,
+      sm.name as method_name,
+      sm.slug as method_slug,
+      sm.default_cost,
+      sm.delivery_time as method_delivery_time
+    FROM shipping_costs sc
+    INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+    WHERE sc.province = ? AND sc.city = ? AND sc.is_active = 1 AND sm.is_active = 1
     LIMIT 1
-  `).bind(normalizedProvince, normalizedCity, method.id).first();
+  `).bind(normalizedProvince, normalizedCity).first();
   if (!cost) {
     cost = await db.prepare(`
       SELECT 
-        id,
-        province,
-        city,
-        cost_type,
-        cost_amount,
-        extra_cost,
-        delivery_time,
-        is_active
-      FROM shipping_costs
-      WHERE province = ? AND city = 'default' AND shipping_method_id = ? AND is_active = 1
+        sc.id,
+        sc.province,
+        sc.city,
+        sc.shipping_method_id,
+        sc.cost_type,
+        sc.cost_amount,
+        sc.extra_cost,
+        sc.delivery_time,
+        sc.is_active,
+        sm.id as method_id,
+        sm.name as method_name,
+        sm.slug as method_slug,
+        sm.default_cost,
+        sm.delivery_time as method_delivery_time
+      FROM shipping_costs sc
+      INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+      WHERE sc.province = ? AND sc.city = 'default' AND sc.is_active = 1 AND sm.is_active = 1
       LIMIT 1
-    `).bind(normalizedProvince, method.id).first();
+    `).bind(normalizedProvince).first();
   }
-  let finalCost = method.default_cost || 0;
-  let extraCost = 0;
-  let deliveryTime = method.delivery_time || "\u0646\u0627\u0645\u0634\u062E\u0635";
-  if (cost) {
-    extraCost = cost.extra_cost || 0;
-    finalCost = method.default_cost + extraCost;
-    deliveryTime = cost.delivery_time || method.delivery_time || "\u0646\u0627\u0645\u0634\u062E\u0635";
+  if (!cost) {
+    return {
+      success: false,
+      message: "\u0647\u0632\u06CC\u0646\u0647 \u0627\u0631\u0633\u0627\u0644 \u0628\u0631\u0627\u06CC \u0627\u06CC\u0646 \u0634\u0647\u0631 \u062A\u0639\u06CC\u06CC\u0646 \u0646\u0634\u062F\u0647 \u0627\u0633\u062A."
+    };
   }
+  const baseCost = cost.default_cost || 0;
+  const extraCost = cost.extra_cost || 0;
+  let finalCost = baseCost + extraCost;
+  let deliveryTime = cost.delivery_time || cost.method_delivery_time || "\u0646\u0627\u0645\u0634\u062E\u0635";
   let isFree = false;
   const freeThreshold = await db.prepare(`
     SELECT min_order_amount
@@ -5223,7 +5312,7 @@ async function getShippingCost(db, province, city, subtotal = 0) {
     WHERE shipping_method_id = ? AND is_active = 1
     ORDER BY min_order_amount ASC
     LIMIT 1
-  `).bind(method.id).first();
+  `).bind(cost.method_id).first();
   if (freeThreshold && subtotal >= normalizeNumber5(freeThreshold.min_order_amount)) {
     finalCost = 0;
     isFree = true;
@@ -5231,12 +5320,12 @@ async function getShippingCost(db, province, city, subtotal = 0) {
   return {
     success: true,
     shipping: {
-      method_id: method.id,
-      method_name: method.name,
-      method_slug: method.slug,
-      province: normalizedProvince,
-      city: normalizedCity,
-      cost_type: cost?.cost_type || "fixed",
+      method_id: cost.method_id,
+      method_name: cost.method_name,
+      method_slug: cost.method_slug,
+      province: cost.province,
+      city: cost.city,
+      cost_type: cost.cost_type || "fixed",
       extra_cost: extraCost,
       shipping_cost: finalCost,
       is_free: isFree,
@@ -5250,24 +5339,24 @@ async function onRequestPost16(context) {
   try {
     const body = await context.request.json().catch(() => null);
     if (!body) {
-      return json15({ success: false, error: "invalid_payload" }, 400);
+      return json18({ success: false, error: "invalid_payload" }, 400);
     }
     const province = normalizeText8(body.province);
     const city = normalizeText8(body.city);
     const subtotal = normalizeNumber5(body.subtotal);
     if (!province || !city) {
-      return json15({ success: false, error: "province_and_city_required" }, 400);
+      return json18({ success: false, error: "province_and_city_required" }, 400);
     }
     const result = await getShippingCost(context.env.DB, province, city, subtotal);
     if (!result.success) {
-      return json15({ success: false, error: result.message }, 404);
+      return json18({ success: false, error: result.message }, 404);
     }
-    return json15({
+    return json18({
       success: true,
       data: result.shipping
     });
   } catch (error) {
-    return json15({
+    return json18({
       success: false,
       error: String(error?.message || error)
     }, 500);
@@ -5276,10 +5365,10 @@ async function onRequestPost16(context) {
 __name(onRequestPost16, "onRequestPost");
 
 // api/shipping/methods.js
-function json16(data, status = 200) {
+function json19(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json16, "json");
+__name(json19, "json");
 async function onRequestGet17(context) {
   try {
     const result = await context.env.DB.prepare(`
@@ -5296,12 +5385,12 @@ async function onRequestGet17(context) {
       ORDER BY sort_order ASC, id ASC
     `).all();
     const methods = Array.isArray(result?.results) ? result.results : [];
-    return json16({
+    return json19({
       success: true,
       methods
     });
   } catch (error) {
-    return json16({
+    return json19({
       success: false,
       error: String(error?.message || error)
     }, 500);
@@ -5310,62 +5399,51 @@ async function onRequestGet17(context) {
 __name(onRequestGet17, "onRequestGet");
 
 // api/shipping/provinces.js
-function json17(data, status = 200) {
+function json20(data, status = 200) {
   return Response.json(data, { status });
 }
-__name(json17, "json");
-var PROVINCES = {
-  "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F", "\u0645\u06CC\u0627\u0646\u0647", "\u0627\u0647\u0631", "\u0628\u0646\u0627\u0628", "\u0633\u0631\u0627\u0628", "\u0634\u0628\u0633\u062A\u0631", "\u062C\u0644\u0641\u0627", "\u0627\u0633\u06A9\u0648"],
-  "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u063A\u0631\u0628\u06CC": ["\u0627\u0631\u0648\u0645\u06CC\u0647", "\u062E\u0648\u06CC", "\u0645\u0647\u0627\u0628\u0627\u062F", "\u0645\u06CC\u0627\u0646\u062F\u0648\u0622\u0628", "\u0628\u0648\u06A9\u0627\u0646", "\u0633\u0644\u0645\u0627\u0633", "\u067E\u06CC\u0631\u0627\u0646\u0634\u0647\u0631", "\u0646\u0642\u062F\u0647", "\u0645\u0627\u06A9\u0648", "\u0634\u0627\u0647\u06CC\u0646\u200C\u062F\u0698"],
-  "\u0627\u0631\u062F\u0628\u06CC\u0644": ["\u0627\u0631\u062F\u0628\u06CC\u0644", "\u067E\u0627\u0631\u0633\u200C\u0622\u0628\u0627\u062F", "\u0645\u0634\u06AF\u06CC\u0646\u200C\u0634\u0647\u0631", "\u062E\u0644\u062E\u0627\u0644", "\u06AF\u0631\u0645\u06CC", "\u0646\u0645\u06CC\u0646", "\u0646\u06CC\u0631", "\u0628\u06CC\u0644\u0647\u200C\u0633\u0648\u0627\u0631"],
-  "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u062E\u0645\u06CC\u0646\u06CC\u200C\u0634\u0647\u0631", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F", "\u0634\u0627\u0647\u06CC\u0646\u200C\u0634\u0647\u0631", "\u0634\u0647\u0631\u0636\u0627", "\u0641\u0644\u0627\u0648\u0631\u062C\u0627\u0646", "\u0645\u0628\u0627\u0631\u06A9\u0647", "\u0644\u0646\u062C\u0627\u0646", "\u06AF\u0644\u067E\u0627\u06CC\u06AF\u0627\u0646", "\u0646\u0637\u0646\u0632", "\u0633\u0645\u06CC\u0631\u0645"],
-  "\u0627\u0644\u0628\u0631\u0632": ["\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0646\u0638\u0631\u0622\u0628\u0627\u062F", "\u0647\u0634\u062A\u06AF\u0631\u062F", "\u0645\u062D\u0645\u062F\u0634\u0647\u0631", "\u06A9\u0645\u0627\u0644\u0634\u0647\u0631", "\u0645\u0627\u0647\u062F\u0634\u062A", "\u0627\u0634\u062A\u0647\u0627\u0631\u062F"],
-  "\u0627\u06CC\u0644\u0627\u0645": ["\u0627\u06CC\u0644\u0627\u0645", "\u062F\u0647\u0644\u0631\u0627\u0646", "\u0645\u0647\u0631\u0627\u0646", "\u0622\u0628\u062F\u0627\u0646\u0627\u0646", "\u062F\u0631\u0647\u200C\u0634\u0647\u0631", "\u0627\u06CC\u0648\u0627\u0646", "\u0633\u0631\u0627\u0628\u0644\u0647"],
-  "\u0628\u0648\u0634\u0647\u0631": ["\u0628\u0648\u0634\u0647\u0631", "\u0628\u0631\u0627\u0632\u062C\u0627\u0646", "\u06AF\u0646\u0627\u0648\u0647", "\u06A9\u0646\u06AF\u0627\u0646", "\u062F\u06CC\u0631", "\u0639\u0633\u0644\u0648\u06CC\u0647", "\u062E\u0648\u0631\u0645\u0648\u062C", "\u062C\u0645"],
-  "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u0631\u06CC", "\u0634\u0645\u06CC\u0631\u0627\u0646\u0627\u062A", "\u0634\u0647\u0631\u06CC\u0627\u0631", "\u0627\u0633\u0644\u0627\u0645\u0634\u0647\u0631", "\u0631\u0628\u0627\u0637\u200C\u06A9\u0631\u06CC\u0645", "\u0648\u0631\u0627\u0645\u06CC\u0646", "\u067E\u0627\u06A9\u062F\u0634\u062A", "\u062F\u0645\u0627\u0648\u0646\u062F", "\u0641\u06CC\u0631\u0648\u0632\u06A9\u0648\u0647", "\u0642\u062F\u0633", "\u0645\u0644\u0627\u0631\u062F", "\u0642\u0631\u0686\u06A9", "\u067E\u0631\u062F\u06CC\u0633"],
-  "\u0686\u0647\u0627\u0631\u0645\u062D\u0627\u0644 \u0648 \u0628\u062E\u062A\u06CC\u0627\u0631\u06CC": ["\u0634\u0647\u0631\u06A9\u0631\u062F", "\u0628\u0631\u0648\u062C\u0646", "\u0641\u0627\u0631\u0633\u0627\u0646", "\u0644\u0631\u062F\u06AF\u0627\u0646", "\u0633\u0627\u0645\u0627\u0646", "\u0641\u0631\u062E\u200C\u0634\u0647\u0631", "\u0647\u0641\u0634\u062C\u0627\u0646", "\u0627\u0631\u062F\u0644"],
-  "\u062E\u0631\u0627\u0633\u0627\u0646 \u062C\u0646\u0648\u0628\u06CC": ["\u0628\u06CC\u0631\u062C\u0646\u062F", "\u0642\u0627\u0626\u0646", "\u0637\u0628\u0633", "\u0641\u0631\u062F\u0648\u0633", "\u0646\u0647\u0628\u0646\u062F\u0627\u0646", "\u0633\u0631\u0628\u06CC\u0634\u0647", "\u0628\u0634\u0631\u0648\u06CC\u0647", "\u0633\u0631\u0627\u06CC\u0627\u0646"],
-  "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631", "\u062A\u0631\u0628\u062A \u062D\u06CC\u062F\u0631\u06CC\u0647", "\u0642\u0648\u0686\u0627\u0646", "\u06A9\u0627\u0634\u0645\u0631", "\u062A\u0631\u0628\u062A \u062C\u0627\u0645", "\u06AF\u0646\u0627\u0628\u0627\u062F", "\u0686\u0646\u0627\u0631\u0627\u0646", "\u0641\u0631\u06CC\u0645\u0627\u0646", "\u062F\u0631\u06AF\u0632", "\u062E\u0648\u0627\u0641"],
-  "\u062E\u0631\u0627\u0633\u0627\u0646 \u0634\u0645\u0627\u0644\u06CC": ["\u0628\u062C\u0646\u0648\u0631\u062F", "\u0634\u06CC\u0631\u0648\u0627\u0646", "\u0627\u0633\u0641\u0631\u0627\u06CC\u0646", "\u062C\u0627\u062C\u0631\u0645", "\u0622\u0634\u062E\u0627\u0646\u0647", "\u0641\u0627\u0631\u0648\u062C", "\u06AF\u0631\u0645\u0647"],
-  "\u062E\u0648\u0632\u0633\u062A\u0627\u0646": ["\u0627\u0647\u0648\u0627\u0632", "\u0622\u0628\u0627\u062F\u0627\u0646", "\u062E\u0631\u0645\u0634\u0647\u0631", "\u062F\u0632\u0641\u0648\u0644", "\u0627\u0646\u062F\u06CC\u0645\u0634\u06A9", "\u0645\u0627\u0647\u0634\u0647\u0631", "\u0628\u0646\u062F\u0631 \u0627\u0645\u0627\u0645 \u062E\u0645\u06CC\u0646\u06CC", "\u0634\u0648\u0634\u062A\u0631", "\u0634\u0648\u0634", "\u0628\u0647\u0628\u0647\u0627\u0646", "\u0627\u06CC\u0630\u0647", "\u0645\u0633\u062C\u062F\u0633\u0644\u06CC\u0645\u0627\u0646", "\u0631\u0627\u0645\u0647\u0631\u0645\u0632"],
-  "\u0632\u0646\u062C\u0627\u0646": ["\u0632\u0646\u062C\u0627\u0646", "\u0627\u0628\u0647\u0631", "\u062E\u0631\u0645\u062F\u0631\u0647", "\u0642\u06CC\u062F\u0627\u0631", "\u0637\u0627\u0631\u0645", "\u0645\u0627\u0647\u0646\u0634\u0627\u0646", "\u0633\u0644\u0637\u0627\u0646\u06CC\u0647"],
-  "\u0633\u0645\u0646\u0627\u0646": ["\u0633\u0645\u0646\u0627\u0646", "\u0634\u0627\u0647\u0631\u0648\u062F", "\u062F\u0627\u0645\u063A\u0627\u0646", "\u06AF\u0631\u0645\u0633\u0627\u0631", "\u0645\u0647\u062F\u06CC\u200C\u0634\u0647\u0631", "\u0622\u0631\u0627\u062F\u0627\u0646", "\u0633\u0631\u062E\u0647"],
-  "\u0633\u06CC\u0633\u062A\u0627\u0646 \u0648 \u0628\u0644\u0648\u0686\u0633\u062A\u0627\u0646": ["\u0632\u0627\u0647\u062F\u0627\u0646", "\u0686\u0627\u0628\u0647\u0627\u0631", "\u0632\u0627\u0628\u0644", "\u0627\u06CC\u0631\u0627\u0646\u0634\u0647\u0631", "\u0633\u0631\u0627\u0648\u0627\u0646", "\u062E\u0627\u0634", "\u06A9\u0646\u0627\u0631\u06A9", "\u0646\u06CC\u06A9\u200C\u0634\u0647\u0631", "\u0631\u0627\u0633\u06A9", "\u0628\u0645\u067E\u0648\u0631"],
-  "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645", "\u0641\u0633\u0627", "\u06A9\u0627\u0632\u0631\u0648\u0646", "\u0644\u0627\u0631", "\u062F\u0627\u0631\u0627\u0628", "\u0622\u0628\u0627\u062F\u0647", "\u0646\u0648\u0631\u0622\u0628\u0627\u062F", "\u0641\u06CC\u0631\u0648\u0632\u0622\u0628\u0627\u062F", "\u0627\u0633\u062A\u0647\u0628\u0627\u0646", "\u0627\u0642\u0644\u06CC\u062F", "\u0646\u06CC\u200C\u0631\u06CC\u0632"],
-  "\u0642\u0632\u0648\u06CC\u0646": ["\u0642\u0632\u0648\u06CC\u0646", "\u062A\u0627\u06A9\u0633\u062A\u0627\u0646", "\u0622\u0628\u06CC\u06A9", "\u0627\u0644\u0648\u0646\u062F", "\u0645\u062D\u0645\u062F\u06CC\u0647", "\u0628\u0648\u0626\u06CC\u0646\u200C\u0632\u0647\u0631\u0627", "\u0622\u0628\u06AF\u0631\u0645"],
-  "\u0642\u0645": ["\u0642\u0645", "\u062C\u0639\u0641\u0631\u06CC\u0647", "\u06A9\u0647\u06A9", "\u0633\u0644\u0641\u0686\u06AF\u0627\u0646"],
-  "\u06A9\u0631\u062F\u0633\u062A\u0627\u0646": ["\u0633\u0646\u0646\u062F\u062C", "\u0633\u0642\u0632", "\u0645\u0631\u06CC\u0648\u0627\u0646", "\u0628\u0627\u0646\u0647", "\u0642\u0631\u0648\u0647", "\u0628\u06CC\u062C\u0627\u0631", "\u06A9\u0627\u0645\u06CC\u0627\u0631\u0627\u0646", "\u062F\u06CC\u0648\u0627\u0646\u062F\u0631\u0647"],
-  "\u06A9\u0631\u0645\u0627\u0646": ["\u06A9\u0631\u0645\u0627\u0646", "\u0633\u06CC\u0631\u062C\u0627\u0646", "\u0631\u0641\u0633\u0646\u062C\u0627\u0646", "\u062C\u06CC\u0631\u0641\u062A", "\u0628\u0645", "\u0632\u0631\u0646\u062F", "\u0634\u0647\u0631\u0628\u0627\u0628\u06A9", "\u0628\u0627\u0641\u062A", "\u0628\u0631\u062F\u0633\u06CC\u0631", "\u06A9\u0647\u0646\u0648\u062C", "\u0639\u0646\u0628\u0631\u0622\u0628\u0627\u062F"],
-  "\u06A9\u0631\u0645\u0627\u0646\u0634\u0627\u0647": ["\u06A9\u0631\u0645\u0627\u0646\u0634\u0627\u0647", "\u0627\u0633\u0644\u0627\u0645\u200C\u0622\u0628\u0627\u062F \u063A\u0631\u0628", "\u067E\u0627\u0648\u0647", "\u062C\u0648\u0627\u0646\u0631\u0648\u062F", "\u0633\u0631\u067E\u0644\u200C\u0630\u0647\u0627\u0628", "\u06A9\u0646\u06AF\u0627\u0648\u0631", "\u0635\u062D\u0646\u0647", "\u0647\u0631\u0633\u06CC\u0646", "\u0642\u0635\u0631\u0634\u06CC\u0631\u06CC\u0646"],
-  "\u06A9\u0647\u06AF\u06CC\u0644\u0648\u06CC\u0647 \u0648 \u0628\u0648\u06CC\u0631\u0627\u062D\u0645\u062F": ["\u06CC\u0627\u0633\u0648\u062C", "\u062F\u0648\u06AF\u0646\u0628\u062F\u0627\u0646", "\u062F\u0647\u062F\u0634\u062A", "\u0644\u06CC\u06A9\u06A9", "\u0633\u06CC\u200C\u0633\u062E\u062A"],
-  "\u06AF\u0644\u0633\u062A\u0627\u0646": ["\u06AF\u0631\u06AF\u0627\u0646", "\u06AF\u0646\u0628\u062F \u06A9\u0627\u0648\u0648\u0633", "\u0639\u0644\u06CC\u200C\u0622\u0628\u0627\u062F \u06A9\u062A\u0648\u0644", "\u0628\u0646\u062F\u0631 \u062A\u0631\u06A9\u0645\u0646", "\u06A9\u0631\u062F\u06A9\u0648\u06CC", "\u0622\u0632\u0627\u062F\u0634\u0647\u0631", "\u0645\u06CC\u0646\u0648\u062F\u0634\u062A", "\u0622\u0642\u200C\u0642\u0644\u0627", "\u06A9\u0644\u0627\u0644\u0647"],
-  "\u06AF\u06CC\u0644\u0627\u0646": ["\u0631\u0634\u062A", "\u0628\u0646\u062F\u0631 \u0627\u0646\u0632\u0644\u06CC", "\u0644\u0627\u0647\u06CC\u062C\u0627\u0646", "\u0644\u0646\u06AF\u0631\u0648\u062F", "\u0622\u0633\u062A\u0627\u0631\u0627", "\u0631\u0648\u062F\u0633\u0631", "\u062A\u0627\u0644\u0634", "\u0635\u0648\u0645\u0639\u0647\u200C\u0633\u0631\u0627", "\u0641\u0648\u0645\u0646", "\u0631\u0648\u062F\u0628\u0627\u0631", "\u0622\u0633\u062A\u0627\u0646\u0647 \u0627\u0634\u0631\u0641\u06CC\u0647"],
-  "\u0644\u0631\u0633\u062A\u0627\u0646": ["\u062E\u0631\u0645\u200C\u0622\u0628\u0627\u062F", "\u0628\u0631\u0648\u062C\u0631\u062F", "\u062F\u0648\u0631\u0648\u062F", "\u06A9\u0648\u0647\u062F\u0634\u062A", "\u0627\u0644\u06CC\u06AF\u0648\u062F\u0631\u0632", "\u0646\u0648\u0631\u0622\u0628\u0627\u062F", "\u0627\u0644\u0634\u062A\u0631", "\u067E\u0644\u062F\u062E\u062A\u0631", "\u0627\u0632\u0646\u0627"],
-  "\u0645\u0627\u0632\u0646\u062F\u0631\u0627\u0646": ["\u0633\u0627\u0631\u06CC", "\u0628\u0627\u0628\u0644", "\u0622\u0645\u0644", "\u0642\u0627\u0626\u0645\u200C\u0634\u0647\u0631", "\u0628\u0647\u0634\u0647\u0631", "\u0686\u0627\u0644\u0648\u0633", "\u0646\u0648\u0634\u0647\u0631", "\u062A\u0646\u06A9\u0627\u0628\u0646", "\u0631\u0627\u0645\u0633\u0631", "\u0628\u0627\u0628\u0644\u0633\u0631", "\u0645\u062D\u0645\u0648\u062F\u0622\u0628\u0627\u062F", "\u0646\u06A9\u0627", "\u0646\u0648\u0631", "\u0641\u0631\u06CC\u062F\u0648\u0646\u06A9\u0646\u0627\u0631"],
-  "\u0645\u0631\u06A9\u0632\u06CC": ["\u0627\u0631\u0627\u06A9", "\u0633\u0627\u0648\u0647", "\u062E\u0645\u06CC\u0646", "\u0645\u062D\u0644\u0627\u062A", "\u062F\u0644\u06CC\u062C\u0627\u0646", "\u0634\u0627\u0632\u0646\u062F", "\u062A\u0641\u0631\u0634", "\u0622\u0634\u062A\u06CC\u0627\u0646", "\u0632\u0631\u0646\u062F\u06CC\u0647"],
-  "\u0647\u0631\u0645\u0632\u06AF\u0627\u0646": ["\u0628\u0646\u062F\u0631\u0639\u0628\u0627\u0633", "\u0645\u06CC\u0646\u0627\u0628", "\u0628\u0646\u062F\u0631\u0644\u0646\u06AF\u0647", "\u0642\u0634\u0645", "\u06A9\u06CC\u0634", "\u0631\u0648\u062F\u0627\u0646", "\u062D\u0627\u062C\u06CC\u200C\u0622\u0628\u0627\u062F", "\u062C\u0627\u0633\u06A9", "\u067E\u0627\u0631\u0633\u06CC\u0627\u0646", "\u0628\u0633\u062A\u06A9"],
-  "\u0647\u0645\u062F\u0627\u0646": ["\u0647\u0645\u062F\u0627\u0646", "\u0645\u0644\u0627\u06CC\u0631", "\u0646\u0647\u0627\u0648\u0646\u062F", "\u062A\u0648\u06CC\u0633\u0631\u06A9\u0627\u0646", "\u0627\u0633\u062F\u0622\u0628\u0627\u062F", "\u06A9\u0628\u0648\u062F\u0631\u0622\u0647\u0646\u06AF", "\u0631\u0632\u0646", "\u0641\u0627\u0645\u0646\u06CC\u0646"],
-  "\u06CC\u0632\u062F": ["\u06CC\u0632\u062F", "\u0645\u06CC\u0628\u062F", "\u0627\u0631\u062F\u06A9\u0627\u0646", "\u0628\u0627\u0641\u0642", "\u0645\u0647\u0631\u06CC\u0632", "\u062A\u0641\u062A", "\u0627\u0628\u0631\u06A9\u0648\u0647", "\u0627\u0634\u06A9\u0630\u0631", "\u0628\u0647\u0627\u0628\u0627\u062F"]
-};
+__name(json20, "json");
 async function onRequestGet18(context) {
   try {
-    const url = new URL(context.request.url);
-    const province = url.searchParams.get("province");
-    if (province) {
-      const cities = PROVINCES[province] || [];
-      return json17({
+    const result = await context.env.DB.prepare(`
+      SELECT DISTINCT province, city 
+      FROM shipping_costs 
+      WHERE is_active = 1
+      ORDER BY province, city ASC
+    `).all();
+    const rows = Array.isArray(result?.results) ? result.results : [];
+    const provinces = {};
+    for (const row of rows) {
+      const province = row.province || "\u0646\u0627\u0645\u0634\u062E\u0635";
+      const city = row.city || "";
+      if (!provinces[province]) {
+        provinces[province] = [];
+      }
+      if (city && !provinces[province].includes(city)) {
+        provinces[province].push(city);
+      }
+    }
+    if (Object.keys(provinces).length === 0) {
+      const fallbackData = {
+        "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0631\u0648\u062F\u0647\u0646", "\u0628\u0648\u0645\u0647\u0646"],
+        "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F"],
+        "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645"],
+        "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631"],
+        "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F"]
+      };
+      return json20({
         success: true,
-        province,
-        cities
+        provinces: fallbackData,
+        provinceList: Object.keys(fallbackData)
       });
     }
-    return json17({
+    return json20({
       success: true,
-      provinces: PROVINCES,
-      provinceList: Object.keys(PROVINCES)
+      provinces,
+      provinceList: Object.keys(provinces)
     });
   } catch (error) {
-    return json17({
+    return json20({
       success: false,
       error: String(error?.message || error)
     }, 500);
@@ -5374,153 +5452,60 @@ async function onRequestGet18(context) {
 __name(onRequestGet18, "onRequestGet");
 
 // api/catalog.js
-function json18(data, status = 200) {
-  return Response.json(data, {
-    status,
-    headers: {
-      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
-    }
-  });
+function json21(data, status = 200) {
+  return Response.json(data, { status });
 }
-__name(json18, "json");
-function normalizeProduct(row, imagesByProductId) {
-  const productId = Number(row.id);
-  const gallery = imagesByProductId.get(productId) || [];
-  const primaryImage = row.primary_image || gallery.find((image) => Number(image.is_primary) === 1)?.image_url || gallery[0]?.image_url || "";
-  const numericPrice = row.price === null || row.price === void 0 || row.price === "" ? null : Number(row.price);
-  const stockQuantity = Math.max(0, Number(row.stock_quantity || 0));
-  const inStock = Number(row.in_stock) === 1 && stockQuantity > 0;
-  return {
-    id: productId,
-    slug: row.slug,
-    name: row.name,
-    category: row.category || "",
-    price: numericPrice,
-    priceLabel: numericPrice === null ? row.price_label || "\u062A\u0645\u0627\u0633 \u0628\u06AF\u06CC\u0631\u06CC\u062F" : numericPrice.toLocaleString("fa-IR"),
-    showPrice: Number(row.show_price) === 1 && numericPrice !== null,
-    stockQuantity,
-    inStock,
-    stockLabel: row.stock_label || (inStock ? `\u0645\u0648\u062C\u0648\u062F (${stockQuantity.toLocaleString("fa-IR")})` : "\u0646\u0627\u0645\u0648\u062C\u0648\u062F"),
-    shortDescription: row.short_description || "",
-    description: row.description || "",
-    primaryImage,
-    images: gallery.map((image) => image.image_url).filter(Boolean),
-    pageUrl: row.page_url || `products/${row.slug}.html`,
-    status: row.status || "published",
-    updatedAt: row.updated_at || null
-  };
-}
-__name(normalizeProduct, "normalizeProduct");
+__name(json21, "json");
 async function onRequestGet19(context) {
   try {
-    const url = new URL(context.request.url);
-    const requestedSlug = String(url.searchParams.get("slug") || "").trim();
-    const requestedCategory = String(url.searchParams.get("category") || "").trim();
-    let productsQuery = `
-      SELECT
-        id,
-        slug,
-        name,
-        category,
-        price,
-        price_label,
-        show_price,
-        stock_quantity,
-        in_stock,
-        stock_label,
-        short_description,
-        description,
-        primary_image,
-        page_url,
-        status,
-        created_at,
-        updated_at
-      FROM products
-      WHERE status = 'published'
-    `;
-    const bindings = [];
-    if (requestedSlug) {
-      productsQuery += " AND slug = ?";
-      bindings.push(requestedSlug);
-    }
-    if (requestedCategory) {
-      productsQuery += " AND category = ?";
-      bindings.push(requestedCategory);
-    }
-    productsQuery += " ORDER BY id DESC";
-    const productsResult = await context.env.DB.prepare(productsQuery).bind(...bindings).all();
-    const productRows = productsResult.results || [];
-    if (requestedSlug && productRows.length === 0) {
-      return json18(
-        {
-          success: false,
-          error: "\u0645\u062D\u0635\u0648\u0644 \u0645\u0648\u0631\u062F\u0646\u0638\u0631 \u067E\u06CC\u062F\u0627 \u0646\u0634\u062F."
-        },
-        404
-      );
-    }
-    const productIds = productRows.map((product) => Number(product.id)).filter((id) => Number.isInteger(id) && id > 0);
-    const imagesByProductId = /* @__PURE__ */ new Map();
-    if (productIds.length > 0) {
-      const placeholders = productIds.map(() => "?").join(", ");
-      const imagesResult = await context.env.DB.prepare(`
-        SELECT
-          id,
-          product_id,
-          image_url,
-          alt_text,
-          sort_order,
-          is_primary
-        FROM product_images
-        WHERE product_id IN (${placeholders})
-        ORDER BY product_id ASC, is_primary DESC, sort_order ASC, id ASC
-      `).bind(...productIds).all();
-      for (const image of imagesResult.results || []) {
-        const productId = Number(image.product_id);
-        if (!imagesByProductId.has(productId)) {
-          imagesByProductId.set(productId, []);
-        }
-        imagesByProductId.get(productId).push({
-          id: Number(image.id),
-          imageUrl: image.image_url,
-          image_url: image.image_url,
-          altText: image.alt_text || "",
-          alt_text: image.alt_text || "",
-          sortOrder: Number(image.sort_order || 0),
-          sort_order: Number(image.sort_order || 0),
-          isPrimary: Number(image.is_primary) === 1,
-          is_primary: Number(image.is_primary) === 1 ? 1 : 0
-        });
+    const result = await context.env.DB.prepare(`
+      SELECT DISTINCT province, city 
+      FROM shipping_costs 
+      WHERE is_active = 1
+      ORDER BY province, city ASC
+    `).all();
+    const rows = Array.isArray(result?.results) ? result.results : [];
+    const provinces = {};
+    for (const row of rows) {
+      const province = row.province || "\u0646\u0627\u0645\u0634\u062E\u0635";
+      const city = row.city || "";
+      if (!provinces[province]) {
+        provinces[province] = [];
+      }
+      if (city && !provinces[province].includes(city)) {
+        provinces[province].push(city);
       }
     }
-    const products = productRows.map(
-      (row) => normalizeProduct(row, imagesByProductId)
-    );
-    if (requestedSlug) {
-      return json18({
+    if (Object.keys(provinces).length === 0) {
+      const fallbackData = {
+        "\u062A\u0647\u0631\u0627\u0646": ["\u062A\u0647\u0631\u0627\u0646", "\u06A9\u0631\u062C", "\u0641\u0631\u062F\u06CC\u0633", "\u0631\u0648\u062F\u0647\u0646", "\u0628\u0648\u0645\u0647\u0646"],
+        "\u0627\u0635\u0641\u0647\u0627\u0646": ["\u0627\u0635\u0641\u0647\u0627\u0646", "\u06A9\u0627\u0634\u0627\u0646", "\u0646\u062C\u0641\u200C\u0622\u0628\u0627\u062F"],
+        "\u0641\u0627\u0631\u0633": ["\u0634\u06CC\u0631\u0627\u0632", "\u0645\u0631\u0648\u062F\u0634\u062A", "\u062C\u0647\u0631\u0645"],
+        "\u062E\u0631\u0627\u0633\u0627\u0646 \u0631\u0636\u0648\u06CC": ["\u0645\u0634\u0647\u062F", "\u0646\u06CC\u0634\u0627\u0628\u0648\u0631", "\u0633\u0628\u0632\u0648\u0627\u0631"],
+        "\u0622\u0630\u0631\u0628\u0627\u06CC\u062C\u0627\u0646 \u0634\u0631\u0642\u06CC": ["\u062A\u0628\u0631\u06CC\u0632", "\u0645\u0631\u0627\u063A\u0647", "\u0645\u0631\u0646\u062F"]
+      };
+      return json21({
         success: true,
-        product: products[0]
+        provinces: fallbackData,
+        provinceList: Object.keys(fallbackData)
       });
     }
-    return json18({
+    return json21({
       success: true,
-      count: products.length,
-      products
+      provinces,
+      provinceList: Object.keys(provinces)
     });
   } catch (error) {
-    return json18(
-      {
-        success: false,
-        error: String(error?.message || error)
-      },
-      500
-    );
+    return json21({
+      success: false,
+      error: String(error?.message || error)
+    }, 500);
   }
 }
 __name(onRequestGet19, "onRequestGet");
 
 // api/products.js
-function json19(data, status = 200, headers = {}) {
+function json22(data, status = 200, headers = {}) {
   return Response.json(data, {
     status,
     headers: {
@@ -5529,7 +5514,7 @@ function json19(data, status = 200, headers = {}) {
     }
   });
 }
-__name(json19, "json");
+__name(json22, "json");
 function cleanText3(value) {
   return String(value ?? "").trim();
 }
@@ -5625,7 +5610,7 @@ async function onRequestGet20(context) {
   try {
     const db = context.env?.DB;
     if (!db) {
-      return json19(
+      return json22(
         {
           success: false,
           error: "D1 database binding DB is not configured."
@@ -5679,7 +5664,7 @@ async function onRequestGet20(context) {
     const productsResult = bindings.length ? await db.prepare(productsQuery).bind(...bindings).all() : await db.prepare(productsQuery).all();
     const productRows = Array.isArray(productsResult?.results) ? productsResult.results : [];
     if (!productRows.length) {
-      return json19({
+      return json22({
         success: true,
         total: 0,
         products: []
@@ -5708,13 +5693,13 @@ async function onRequestGet20(context) {
     const products = productRows.map(
       (product) => productFromRow3(product, imageRows)
     );
-    return json19({
+    return json22({
       success: true,
       total: products.length,
       products
     });
   } catch (error) {
-    return json19(
+    return json22(
       {
         success: false,
         error: String(error?.message || error)
@@ -5750,7 +5735,7 @@ async function onRequestGet21(context) {
 }
 __name(onRequestGet21, "onRequestGet");
 
-// ../.wrangler/tmp/pages-lsVbwL/functionsRoutes-0.46977935211745225.mjs
+// ../.wrangler/tmp/pages-P8KLqQ/functionsRoutes-0.4490438044141629.mjs
 var routes = [
   {
     routePath: "/api/account/addresses/:id/default",
@@ -5832,6 +5817,13 @@ var routes = [
   {
     routePath: "/api/account/addresses",
     mountPath: "/api/account",
+    method: "DELETE",
+    middlewares: [],
+    modules: [onRequestDelete3]
+  },
+  {
+    routePath: "/api/account/addresses",
+    mountPath: "/api/account",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet4]
@@ -5842,6 +5834,13 @@ var routes = [
     method: "POST",
     middlewares: [],
     modules: [onRequestPost4]
+  },
+  {
+    routePath: "/api/account/addresses",
+    mountPath: "/api/account",
+    method: "PUT",
+    middlewares: [],
+    modules: [onRequestPut3]
   },
   {
     routePath: "/api/account/create-order",
@@ -5876,7 +5875,7 @@ var routes = [
     mountPath: "/api/admin",
     method: "DELETE",
     middlewares: [],
-    modules: [onRequestDelete3]
+    modules: [onRequestDelete4]
   },
   {
     routePath: "/api/admin/orders",
@@ -5897,7 +5896,7 @@ var routes = [
     mountPath: "/api/admin",
     method: "DELETE",
     middlewares: [],
-    modules: [onRequestDelete4]
+    modules: [onRequestDelete5]
   },
   {
     routePath: "/api/admin/products",
@@ -5918,7 +5917,7 @@ var routes = [
     mountPath: "/api/admin",
     method: "PUT",
     middlewares: [],
-    modules: [onRequestPut3]
+    modules: [onRequestPut4]
   },
   {
     routePath: "/api/admin/settings",
@@ -5960,7 +5959,7 @@ var routes = [
     mountPath: "/api/admin",
     method: "DELETE",
     middlewares: [],
-    modules: [onRequestDelete5]
+    modules: [onRequestDelete6]
   },
   {
     routePath: "/api/admin/users",
