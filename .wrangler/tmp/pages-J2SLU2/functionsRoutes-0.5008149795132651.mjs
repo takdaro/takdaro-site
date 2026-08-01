@@ -9,8 +9,10 @@ import { onRequestPost as __api_admin_orders__order__js_onRequestPost } from "C:
 import { onRequestDelete as __api_admin_products__id__js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\products\\[id].js"
 import { onRequestGet as __api_admin_products__id__js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\products\\[id].js"
 import { onRequestPut as __api_admin_products__id__js_onRequestPut } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\products\\[id].js"
+import { onRequestDelete as __api_account_addresses_js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\addresses.js"
 import { onRequestGet as __api_account_addresses_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\addresses.js"
 import { onRequestPost as __api_account_addresses_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\addresses.js"
+import { onRequestPut as __api_account_addresses_js_onRequestPut } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\addresses.js"
 import { onRequestPost as __api_account_create_order_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\create-order.js"
 import { onRequestGet as __api_account_orders_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\orders.js"
 import { onRequestGet as __api_account_wallet_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\wallet.js"
@@ -127,6 +129,13 @@ export const routes = [
   {
       routePath: "/api/account/addresses",
       mountPath: "/api/account",
+      method: "DELETE",
+      middlewares: [],
+      modules: [__api_account_addresses_js_onRequestDelete],
+    },
+  {
+      routePath: "/api/account/addresses",
+      mountPath: "/api/account",
       method: "GET",
       middlewares: [],
       modules: [__api_account_addresses_js_onRequestGet],
@@ -137,6 +146,13 @@ export const routes = [
       method: "POST",
       middlewares: [],
       modules: [__api_account_addresses_js_onRequestPost],
+    },
+  {
+      routePath: "/api/account/addresses",
+      mountPath: "/api/account",
+      method: "PUT",
+      middlewares: [],
+      modules: [__api_account_addresses_js_onRequestPut],
     },
   {
       routePath: "/api/account/create-order",
