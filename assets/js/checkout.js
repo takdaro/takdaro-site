@@ -49,6 +49,7 @@
 
   const state = {
     currentUser: null,
+    currentRate: null,
     wallet: {
       loaded: false,
       available: false,
@@ -82,14 +83,11 @@
     if (typeof raw === "number" && Number.isFinite(raw)) {
       return Math.max(0, Math.round(raw));
     }
-
     if (raw === null || raw === undefined || raw === "") {
       return null;
     }
-
     const normalized = toEnglishDigits(String(raw)).replace(/[^\d]/g, "");
     if (!normalized) return null;
-
     const amount = Number(normalized);
     return Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : null;
   }
@@ -111,7 +109,6 @@
   function findProductByIdentifiers(productId, slug) {
     const safeId = String(productId ?? "").trim();
     const safeSlug = String(slug ?? "").trim();
-
     return (
       getProducts().find((product) => {
         return (
@@ -124,12 +121,9 @@
 
   function setCheckoutMessage(message, type = "info") {
     if (!els.checkoutMessage) return;
-
     els.checkoutMessage.textContent = message || "";
     els.checkoutMessage.className = "checkout-message";
-
     if (!message) return;
-
     if (type === "success") {
       els.checkoutMessage.classList.add("is-success");
     } else if (type === "error") {
@@ -140,14 +134,11 @@
   }
 
   function getProductImage(product) {
-    const firstImage =
-      Array.isArray(product?.images) && product.images.length
-        ? String(product.images[0] || "").trim()
-        : "";
-
+    const firstImage = Array.isArray(product?.images) && product.images.length
+      ? String(product.images[0] || "").trim()
+      : "";
     const primaryImage = String(product?.primaryImage || "").trim();
     const resolved = primaryImage || firstImage;
-
     if (!resolved) return "./assets/images/placeholder.png";
     if (resolved.startsWith("http://") || resolved.startsWith("https://")) return resolved;
     if (resolved.startsWith("/")) return `.${resolved}`;
@@ -171,21 +162,18 @@
         if (Array.isArray(items)) return items;
       }
     } catch (_) {}
-
     try {
       if (window.CartStore?.getItems) {
         const items = window.CartStore.getItems();
         if (Array.isArray(items)) return items;
       }
     } catch (_) {}
-
     try {
       if (window.Cart?.getItems) {
         const items = window.Cart.getItems();
         if (Array.isArray(items)) return items;
       }
     } catch (_) {}
-
     return [];
   }
 
@@ -196,7 +184,6 @@
         return;
       }
     } catch (_) {}
-
     try {
       if (window.Cart?.clear) {
         window.Cart.clear();
@@ -215,13 +202,18 @@
         const quantity = Math.max(1, Number(item?.quantity ?? item?.qty ?? 1) || 1);
 
         const product = liveProduct || detailedProduct || {};
-        const unitPrice = parsePrice(
-          liveProduct?.price ??
-          detailedProduct?.price ??
-          item?.unitPrice ??
-          item?.unit_price ??
-          item?.price
-        );
+        
+        // ⭐ اولویت با displayPrice (قیمت محاسبه‌شده)
+        let unitPrice = null;
+        if (liveProduct?.displayPrice !== undefined && liveProduct?.displayPrice !== null) {
+          unitPrice = parsePrice(liveProduct.displayPrice);
+        } else if (liveProduct?.price !== undefined && liveProduct?.price !== null) {
+          unitPrice = parsePrice(liveProduct.price);
+        } else if (detailedProduct?.price !== undefined && detailedProduct?.price !== null) {
+          unitPrice = parsePrice(detailedProduct.price);
+        } else {
+          unitPrice = parsePrice(item?.unitPrice ?? item?.unit_price ?? item?.price);
+        }
 
         const totalPrice = unitPrice !== null ? unitPrice * quantity : null;
 
@@ -247,19 +239,16 @@
 
   function getCartPricing(items = normalizeCartItems(getCartItems())) {
     const shippingFee = getSelectedShippingFee();
-
     let totalQty = 0;
     let subtotal = 0;
     let hasNumericPrice = true;
 
     for (const item of items) {
       totalQty += item.quantity;
-
       if (item.unitPrice === null) {
         hasNumericPrice = false;
         continue;
       }
-
       subtotal += item.unitPrice * item.quantity;
     }
 
@@ -283,15 +272,11 @@
   function getRequestedWalletAmount(totalAmount) {
     if (!state.wallet.available) return 0;
     if (!els.walletUseToggle?.checked || !els.walletUseAmount) return 0;
-
     const maxUsable = getMaxWalletUsable(totalAmount);
     const raw = String(els.walletUseAmount.value || "").trim();
-
     if (!raw) return maxUsable;
-
     const amount = parsePrice(raw);
     if (amount === null) return 0;
-
     return Math.max(0, Math.min(amount, maxUsable));
   }
 
@@ -320,7 +305,6 @@
       payload?.wallet?.balance,
       payload?.balance
     ];
-
     const cashbackCandidates = [
       payload?.cashback_percent,
       payload?.settings?.cashback_percent,
@@ -357,28 +341,39 @@
     return true;
   }
 
+  async function loadCurrentRate() {
+    try {
+      const response = await fetch("/api/rate/current", {
+        method: "GET",
+        credentials: "same-origin"
+      });
+      const data = await response.json();
+      if (data.success) {
+        state.currentRate = data.rate;
+      }
+    } catch (_) {
+      state.currentRate = null;
+    }
+  }
+
   async function loadWalletData() {
     resetWalletState();
-
     try {
       const response = await fetch("/api/account/wallet", {
         method: "GET",
         credentials: "same-origin",
         headers: { Accept: "application/json" }
       });
-
       let data = null;
       try {
         data = await response.json();
       } catch (_) {
         data = null;
       }
-
       if (!response.ok || !data?.success) {
         updateWalletUi();
         return;
       }
-
       applyWalletState(data);
       updateWalletUi();
     } catch (_) {
@@ -404,8 +399,9 @@
       if (els.summaryCashback) els.summaryCashback.textContent = "0 تومان";
       if (els.walletHelpText) els.walletHelpText.textContent = "کیف پول برای این سفارش در دسترس نیست.";
       if (els.summaryTotal) {
-        els.summaryTotal.textContent =
-          pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
+        els.summaryTotal.textContent = pricing.total !== null
+          ? `${formatNumber(pricing.total)} تومان`
+          : "تماس بگیرید";
       }
       return;
     }
@@ -542,7 +538,6 @@
   function splitFullName(fullName) {
     const safe = String(fullName || "").trim();
     const parts = safe.split(/\s+/).filter(Boolean);
-
     return {
       firstName: parts[0] || "",
       lastName: parts.slice(1).join(" ")
@@ -558,12 +553,10 @@
 
   async function tryFillUserData() {
     if (!window.Auth) return;
-
     try {
       const profileResult = await window.Auth.getProfile();
       const profileUser = profileResult?.data?.user || null;
       if (!profileUser) return;
-
       state.currentUser = profileUser;
 
       const nameParts = splitFullName(profileUser.full_name || profileUser.fullname);
@@ -618,16 +611,7 @@
   }
 
   function validateForm(data) {
-    if (
-      !data.firstName ||
-      !data.lastName ||
-      !data.province ||
-      !data.provinceLabel ||
-      !data.city ||
-      !data.postalCode ||
-      !data.phone ||
-      !data.address
-    ) {
+    if (!data.firstName || !data.lastName || !data.province || !data.provinceLabel || !data.city || !data.postalCode || !data.phone || !data.address) {
       setCheckoutMessage("لطفاً همه فیلدهای ضروری را کامل کنید.", "error");
       return false;
     }
@@ -674,7 +658,10 @@
           name: item.product?.name || item.slug || "محصول",
           qty: item.quantity,
           unit_price: item.unitPrice || 0,
-          row_total: item.totalPrice || 0
+          row_total: item.totalPrice || 0,
+          // ⭐ ذخیره نرخ دلار در زمان ثبت
+          rate_at_purchase: state.currentRate?.rate || null,
+          currency_code: state.currentRate?.currency_code || 'USD'
         })),
         subtotal_amount: subtotal,
         shipping_amount: shippingAmount,
@@ -688,9 +675,6 @@
     };
   }
 
-  // =============================================
-  // ✅ ثبت سفارش - بدون ارسال به واتساپ
-  // =============================================
   async function submitCheckout(event) {
     event.preventDefault();
     setCheckoutMessage("");
@@ -747,23 +731,18 @@
         return;
       }
 
-      // پاک کردن سبد خرید
       clearCart();
 
-      // ریست کردن کیف پول
       if (els.walletUseToggle) els.walletUseToggle.checked = false;
       if (els.walletUseAmount) els.walletUseAmount.value = "";
       resetWalletState();
       renderCheckout();
 
-      // دریافت شماره سفارش
       const createdOrder = data.order || {};
       const orderNumber = createdOrder.order_number || "-";
 
-      // نمایش پیام موفقیت
       setCheckoutMessage(`سفارش ${orderNumber} با موفقیت ثبت شد. در حال انتقال...`, "success");
 
-      // ✅ هدایت به صفحه تشکر با تاخیر ۱ ثانیه
       setTimeout(() => {
         window.location.href = `/invoice.html?order=${encodeURIComponent(orderNumber)}`;
       }, 1000);
@@ -789,16 +768,9 @@
       els.walletUseToggle.addEventListener("change", () => {
         const pricing = getCartPricing();
         const maxUsable = getMaxWalletUsable(pricing.total);
-
-        if (
-          els.walletUseToggle.checked &&
-          els.walletUseAmount &&
-          !String(els.walletUseAmount.value || "").trim() &&
-          maxUsable > 0
-        ) {
+        if (els.walletUseToggle.checked && els.walletUseAmount && !String(els.walletUseAmount.value || "").trim() && maxUsable > 0) {
           els.walletUseAmount.value = String(maxUsable);
         }
-
         updateWalletUi();
       });
     }
@@ -836,6 +808,7 @@
 
   async function init() {
     await waitForProductsReady();
+    await loadCurrentRate();
     renderCheckout();
     await tryFillUserData();
     await loadWalletData();

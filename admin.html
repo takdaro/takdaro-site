@@ -377,9 +377,6 @@
       display: none !important;
     }
 
-    /* ==========================================
-       استایل Toggle Switch جدید
-       ========================================== */
     .toggle-wrapper {
       display: flex;
       align-items: center;
@@ -817,7 +814,6 @@
     .product-gallery-actions label { display:flex; align-items:center; gap:5px; color:var(--muted); font-size:.82rem; font-weight:700; cursor:pointer; }
     .product-file-help { color:var(--muted); font-size:.83rem; line-height:1.8; margin:0; }
 
-    /* Shipping panel styles */
     .shipping-tabs {
       display: flex;
       gap: 8px;
@@ -859,9 +855,6 @@
       display: block !important;
     }
 
-    /* ==========================================
-       استایل بخش مدیریت نرخ ارز (جدید)
-       ========================================== */
     .rate-change-positive {
       color: var(--success);
     }
@@ -872,7 +865,6 @@
       color: var(--muted);
     }
 
-    /* استایل دکمه دریافت از API */
     .btn-api-fetch {
       background: #8b5cf6;
       color: #fff;
@@ -882,7 +874,6 @@
       background: #7c3aed;
     }
 
-    /* استایل فیلد قیمت پایه و نوع قیمت در فرم محصول */
     .price-type-selector {
       display: flex;
       gap: 12px;
@@ -1085,7 +1076,6 @@
             <div class="admin-panel-body">
               <div id="admin-message" class="admin-message"></div>
 
-              <!-- ==================== داشبورد ==================== -->
               <div id="admin-panel-dashboard" class="admin-section is-active" role="tabpanel" aria-labelledby="admin-tab-dashboard">
                 <div class="stats-grid">
                   <div class="stat-card"><span>کل کاربران</span><strong id="stat-users">0</strong></div>
@@ -1132,7 +1122,6 @@
                 </div>
               </div>
 
-              <!-- ==================== سفارش‌ها ==================== -->
               <div id="admin-panel-orders" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-orders">
                 <div class="filters-grid">
                   <div class="form-field">
@@ -1189,16 +1178,12 @@
                 <div id="order-detail" class="detail-card admin-hidden"></div>
               </div>
 
-              <!-- ==================== کاربران ==================== -->
               <div id="admin-panel-users" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-users">
                 <div class="users-toolbar">
                   <h4 style="margin:0;color:var(--primary);">مدیریت کاربران</h4>
                   <button class="btn btn-primary" type="button" id="show-create-user-btn">افزودن کاربر</button>
                 </div>
 
-                <!-- ==========================================
-                گزینه جدید: عدم ثبت‌نام توسط کاربر
-                ========================================== -->
                 <div class="toggle-wrapper" id="registration-toggle-wrapper">
                   <span class="toggle-label">عدم ثبت‌نام توسط کاربر</span>
                   <label class="toggle-switch">
@@ -1308,7 +1293,6 @@
                 </div>
               </div>
 
-              <!-- ==================== محصولات ==================== -->
               <div id="admin-panel-products" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-products">
                 <div class="products-toolbar">
                   <div>
@@ -1330,7 +1314,6 @@
                 <div id="product-edit-box" class="detail-card admin-hidden"></div>
               </div>
 
-              <!-- ==================== حمل‌ونقل ==================== -->
               <div id="admin-panel-shipping" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-shipping">
                 <div class="shipping-tabs">
                   <button class="shipping-tab-btn is-active" type="button" data-shipping-tab="methods">🚛 روش‌های حمل‌ونقل</button>
@@ -1345,7 +1328,6 @@
                 <div id="shipping-method-form-container"></div>
               </div>
 
-              <!-- ==================== مدیریت نرخ ارز (جدید) ==================== -->
               <div id="admin-panel-rates" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-rates">
                 <div class="detail-card">
                   <h4>مدیریت نرخ ارز</h4>
@@ -1353,7 +1335,6 @@
 
                   <div id="rates-message" class="admin-message"></div>
 
-                  <!-- وضعیت فعلی نرخ -->
                   <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
                     <div class="stat-card">
                       <span>نرخ فعلی دلار</span>
@@ -1373,7 +1354,6 @@
                     </div>
                   </div>
 
-                  <!-- تنظیم نرخ دستی -->
                   <div class="detail-card" style="margin-top:16px;">
                     <h4>تنظیم نرخ دستی</h4>
                     <div class="filters-grid filters-grid-3">
@@ -1396,7 +1376,6 @@
                     </div>
                   </div>
 
-                  <!-- تنظیمات API (برای مرحله بعد) -->
                   <div class="detail-card" style="margin-top:16px; opacity:0.7; border-style:dashed;">
                     <h4>تنظیمات دریافت خودکار از API <span style="font-size:0.8rem;color:var(--muted);">(مرحله بعد)</span></h4>
                     <p class="admin-help">در نسخه فعلی فقط نرخ دستی قابل تنظیم است. امکان دریافت خودکار از API در بروزرسانی بعدی اضافه می‌شود.</p>
@@ -1421,7 +1400,6 @@
                     </div>
                   </div>
 
-                  <!-- دکمه بروزرسانی قیمت محصولات -->
                   <div class="detail-card" style="margin-top:16px; background:var(--surface-2);">
                     <h4>بروزرسانی قیمت محصولات</h4>
                     <p class="admin-help">با تغییر نرخ دلار، قیمت تمام محصولات وابسته به نرخ ارز به‌روزرسانی می‌شود.</p>
@@ -1431,7 +1409,6 @@
                     </div>
                   </div>
 
-                  <!-- تاریخچه نرخ‌ها -->
                   <div class="detail-card" style="margin-top:16px;">
                     <h4>تاریخچه تغییرات نرخ</h4>
                     <div class="table-wrap">
@@ -1453,7 +1430,6 @@
                 </div>
               </div>
 
-              <!-- ==================== تنظیمات فاکتور ==================== -->
               <div id="admin-panel-invoice" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-invoice">
                 <div class="detail-card">
                   <h4>تنظیمات فاکتور و پرداخت</h4>
@@ -1520,7 +1496,6 @@
                 </div>
               </div>
 
-              <!-- ==================== خروج ==================== -->
               <div id="admin-panel-logout" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-logout">
                 <div class="detail-card">
                   <h4>خروج از پنل مدیریت</h4>
@@ -1560,9 +1535,6 @@
       const productCreateBox = document.getElementById("product-create-box");
       const productEditBox = document.getElementById("product-edit-box");
 
-      // ==========================================
-      // عناصر Toggle
-      // ==========================================
       const toggleInput = document.getElementById("registration-toggle-input");
       const toggleStatus = document.getElementById("registration-toggle-status");
 
@@ -1592,9 +1564,6 @@
         logout: { title: "خروج", description: "پایان نشست فعلی مدیریت." }
       };
 
-      // ==========================================
-      // توابع کمکی
-      // ==========================================
       function getAdminHeaderOffset() {
         const header = document.querySelector('.site-header');
         if (!header) return 100;
@@ -1759,9 +1728,6 @@
         });
       }
 
-      // ==========================================
-      // توابع مدیریت Toggle
-      // ==========================================
       async function loadRegistrationSetting() {
         try {
           const result = await api("/api/admin/settings", { method: "GET" });
@@ -1805,9 +1771,6 @@
         }
       }
 
-      // ==========================================
-      // توابع اصلی Admin
-      // ==========================================
       function setAdminMessage(message, type = "error") {
         adminMessage.textContent = message || "";
         adminMessage.className = "admin-message";
@@ -1932,9 +1895,6 @@
         return { ok: response.ok, data };
       }
 
-      // ==========================================
-      // توابع مدیریت کاربران و سایر بخش‌ها
-      // ==========================================
       function closeUserCreateBox() {
         userCreateBox.classList.add("admin-hidden");
         userCreateBox.innerHTML = "";
@@ -2720,6 +2680,7 @@
       function closeProductCreateBox() { productCreateBox.classList.add("admin-hidden"); productCreateBox.innerHTML = ""; }
       function closeProductEditBox() { productEditBox.classList.add("admin-hidden"); productEditBox.innerHTML = ""; }
 
+      // ⭐⭐⭐ فرم محصول - اصلاح شده برای ارسال درست قیمت دلاری
       function productFormHtml(product = {}) {
         const images = Array.isArray(product.images) ? product.images : [];
         const imageRows = images.map((image, index) => productGalleryHtml(image, index)).join("");
@@ -2734,7 +2695,7 @@
             <div class="form-field"><label>دسته‌بندی</label><input data-product-field="category" type="text" value="${esc(product.category || "")}" placeholder="مثلاً پپتاید" /></div>
           </div>
           
-          <!-- ⭐ انتخاب نوع قیمت‌گذاری -->
+          <!-- انتخاب نوع قیمت‌گذاری -->
           <div class="price-type-selector">
             <label>
               <input type="radio" name="price_type_radio" value="fixed" ${!isRateBased ? 'checked' : ''} data-price-type-radio /> 
@@ -2753,7 +2714,7 @@
             <div class="form-field"><label><input data-product-field="show_price" type="checkbox" ${product.show_price ? "checked" : ""} /> نمایش قیمت به مشتری</label></div>
           </div>
           
-          <!-- ⭐ فیلدهای قیمت وابسته به نرخ ارز -->
+          <!-- فیلدهای قیمت وابسته به نرخ ارز -->
           <div id="rate-price-fields" class="price-fields-rate" style="${isRateBased ? '' : 'display:none;'}">
             <div class="filters-grid filters-grid-3">
               <div class="form-field">
@@ -2832,11 +2793,12 @@
         return `<div class="product-gallery-item" data-gallery-item><img data-gallery-preview src="${esc(url)}" alt="${esc(alt)}" onerror="this.style.display='none'" /><div class="form-field"><label>مسیر تصویر</label><input data-gallery-url type="text" value="${esc(url)}" placeholder="/assets/images/..." /></div><div class="form-field"><label>متن جایگزین</label><input data-gallery-alt type="text" value="${esc(alt)}" placeholder="نام تصویر" /></div><div class="product-gallery-actions"><label><input data-gallery-primary type="radio" name="product-primary-image" ${primary ? "checked" : ""} /> تصویر اصلی</label><button class="btn btn-secondary" type="button" data-remove-product-image>حذف</button></div></div>`;
       }
 
+      // ⭐⭐⭐ تابع bindProductForm - اصلاح شده برای ارسال درست داده‌ها
       function bindProductForm(box, product = {}) {
         const statusField = box.querySelector('[data-product-field="status"]');
         if (statusField) statusField.value = product.status || "draft";
         
-        // ⭐ مدیریت رادیو باتن‌های نوع قیمت‌گذاری
+        // مدیریت رادیو باتن‌های نوع قیمت‌گذاری
         const radioButtons = box.querySelectorAll('[data-price-type-radio]');
         const fixedFields = box.querySelector('#fixed-price-fields');
         const rateFields = box.querySelector('#rate-price-fields');
@@ -2901,7 +2863,7 @@
           });
         }
         
-        // ذخیره محصول
+        // ⭐⭐⭐ ذخیره محصول - اصلاح شده
         const saveBtn = box.querySelector('[data-save-product]');
         if (saveBtn) {
           saveBtn.addEventListener("click", async () => {
@@ -2920,6 +2882,7 @@
               is_primary: item.querySelector('[data-gallery-primary]').checked
             })).filter(image => image.image_url && !image.image_url.startsWith("data:"));
             
+            // ⭐ ساختن payload با همه فیلدها
             const payload = {
               name: get("name")?.value.trim() || "",
               slug: get("slug")?.value.trim() || "",
@@ -2935,7 +2898,7 @@
               page_url: get("page_url")?.value.trim() || "",
               status: get("status")?.value || "draft",
               images: images,
-              // ⭐ فیلدهای جدید
+              // ⭐ فیلدهای جدید قیمت دلاری - اینا مهم هستند
               price_type: priceType,
               base_price: get("base_price")?.value.trim() || null,
               profit_type: get("profit_type")?.value || "none",
@@ -2945,6 +2908,7 @@
               rounding_method: get("rounding_method")?.value || "nearest"
             };
             
+            // اعتبارسنجی
             if (!payload.name) {
               setAdminMessage("نام محصول الزامی است.");
               return;
@@ -2957,9 +2921,14 @@
               }
             }
             
+            // آدرس API
             const url = product.id ? `/api/admin/products/${encodeURIComponent(product.id)}` : "/api/admin/products";
+            const method = product.id ? "PUT" : "POST";
+            
+            console.log("📤 ارسال به سرور:", { url, method, payload });
+            
             const result = await api(url, { 
-              method: product.id ? "PUT" : "POST", 
+              method: method, 
               body: JSON.stringify(payload) 
             });
             
@@ -3172,9 +3141,6 @@
         }
       }
 
-      // ==========================================
-      // ⭐ توابع مدیریت نرخ ارز (جدید)
-      // ==========================================
       function setRatesMessage(message, type = "error") {
         const msg = document.getElementById("rates-message");
         if (!msg) return;
@@ -3187,7 +3153,6 @@
 
       async function loadRates() {
         try {
-          // دریافت نرخ فعلی
           const rateResult = await api("/api/rate/current");
           if (rateResult.ok && rateResult.data?.success) {
             const rate = rateResult.data.rate;
@@ -3195,7 +3160,6 @@
             document.getElementById("rate-source-display").textContent = rate.source_label || 'دستی';
             document.getElementById("rate-updated-display").textContent = rate.updated_at ? formatDate(rate.updated_at) : '—';
             
-            // نمایش تغییرات
             const changeDisplay = document.getElementById("rate-change-display");
             if (rate.change_percent !== null && rate.change_percent !== undefined) {
               const changeText = `${rate.change_percent > 0 ? '+' : ''}${rate.change_percent.toFixed(1)}%`;
@@ -3209,7 +3173,6 @@
             document.getElementById("current-rate-display").textContent = 'خطا در دریافت';
           }
 
-          // دریافت تاریخچه
           const historyResult = await api("/api/rate/history");
           const historyBody = document.getElementById("rate-history-body");
           if (historyResult.ok && historyResult.data?.success) {
@@ -3230,7 +3193,6 @@
             historyBody.innerHTML = '<tr><td colspan="4">خطا در دریافت تاریخچه.</td></tr>';
           }
 
-          // پر کردن فیلد نرخ دستی با نرخ فعلی
           if (rateResult.ok && rateResult.data?.success) {
             const rate = rateResult.data.rate;
             document.getElementById("rate-manual-value").value = rate.rate || '';
@@ -3245,9 +3207,6 @@
         }
       }
 
-      // ==========================================
-      // تنظیم تب‌های حمل‌ونقل
-      // ==========================================
       let shippingTabsInitialized = false;
 
       function setupShippingTabs() {
@@ -3338,9 +3297,6 @@
         }
       }
 
-      // ==========================================
-      // رویدادها و بارگذاری اولیه
-      // ==========================================
       document.addEventListener("DOMContentLoaded", function() {
         const ordersFilterBtn = document.getElementById("orders-filter-btn");
         if (ordersFilterBtn) ordersFilterBtn.addEventListener("click", loadOrders);
@@ -3360,7 +3316,6 @@
         const productsFilterBtn = document.getElementById("products-filter-btn");
         if (productsFilterBtn) productsFilterBtn.addEventListener("click", loadProducts);
 
-        // ⭐ رویدادهای مدیریت نرخ ارز
         const rateManualSaveBtn = document.getElementById("rate-manual-save-btn");
         if (rateManualSaveBtn) {
           rateManualSaveBtn.addEventListener("click", async () => {
@@ -3385,7 +3340,6 @@
               setRatesMessage(`نرخ با موفقیت به ${money(rate)} تومان به‌روزرسانی شد.`, "success");
               await loadRates();
               
-              // بروزرسانی قیمت محصولات
               const recalcBtn = document.getElementById("rate-recalculate-btn");
               if (recalcBtn) {
                 recalcBtn.textContent = "🔄 در حال بروزرسانی...";
@@ -3417,7 +3371,6 @@
           });
         }
 
-        // ⭐ دکمه بروزرسانی قیمت محصولات
         const recalcBtn = document.getElementById("rate-recalculate-btn");
         if (recalcBtn) {
           recalcBtn.addEventListener("click", async () => {
@@ -3448,7 +3401,6 @@
           });
         }
 
-        // رویداد Toggle
         if (toggleInput) {
           toggleInput.addEventListener("change", async function() {
             const isChecked = this.checked;
@@ -3538,9 +3490,6 @@
           });
         }
 
-        // ==========================================
-        // بارگذاری اولیه
-        // ==========================================
         (async function() {
           const adminUser = await window.Auth.requireAdmin({ redirectPath: "/admin.html" });
           if (!adminUser) return;

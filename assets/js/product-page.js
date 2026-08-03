@@ -24,8 +24,15 @@
 
   function formatPrice(product) {
     if (!product) return "تماس بگیرید";
+    
+    // ⭐ اولویت با displayPriceLabel (قیمت محاسبه‌شده)
+    if (product.displayPriceLabel) {
+      return product.displayPriceLabel;
+    }
+    
+    // رفتار قبلی
     if (product.priceLabel) return product.priceLabel;
-    if (typeof product.price === "number" && Number.isFinite(product.price)) {
+    if (typeof product.price === "number" && Number.isFinite(product.price) && product.price > 0) {
       return `${formatNumber(product.price)} تومان`;
     }
     return "تماس بگیرید";
@@ -201,17 +208,11 @@
 
   function getCartApi() {
     if (window.CartStore && typeof window.CartStore.addToCart === "function") {
-      return {
-        addToCart: window.CartStore.addToCart
-      };
+      return { addToCart: window.CartStore.addToCart };
     }
-
     if (window.Cart && typeof window.Cart.add === "function") {
-      return {
-        addToCart: window.Cart.add
-      };
+      return { addToCart: window.Cart.add };
     }
-
     return null;
   }
 
@@ -225,7 +226,6 @@
       increaseBtn.addEventListener("click", () => {
         const product = findProduct();
         if (!isAvailable(product) || !quantityInput) return;
-
         const current = normalizeQty(product);
         const stockQty = getStockQty(product);
         quantityInput.value = Math.min(current + 1, stockQty);
@@ -237,7 +237,6 @@
       decreaseBtn.addEventListener("click", () => {
         const product = findProduct();
         if (!quantityInput || quantityInput.disabled) return;
-
         const current = normalizeQty(product);
         quantityInput.value = Math.max(1, current - 1);
         quantityInput.focus();
@@ -249,7 +248,6 @@
         const product = findProduct();
         if (!quantityInput.disabled) normalizeQty(product);
       });
-
       quantityInput.addEventListener("blur", () => {
         const product = findProduct();
         if (!quantityInput.disabled) normalizeQty(product);
@@ -282,7 +280,6 @@
         }
 
         const result = cartApi.addToCart(slug, qty);
-
         if (result && result.success === false && result.message) {
           alert(result.message);
           return;

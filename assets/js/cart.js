@@ -26,7 +26,6 @@
 
   function findProduct(identifier) {
     const value = String(identifier ?? "").trim();
-
     return (
       getProducts().find((product) => {
         return String(product.id) === value || String(product.slug) === value;
@@ -53,6 +52,13 @@
   }
 
   function getProductNumericPrice(product) {
+    // ⭐ اولویت با displayPrice (قیمت محاسبه‌شده)
+    if (product.displayPrice !== undefined && product.displayPrice !== null) {
+      const parsed = Number(product.displayPrice);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+    
+    // رفتار قبلی
     const raw = product?.price;
     const parsed = Number(raw);
     if (Number.isFinite(parsed) && parsed > 0) return parsed;
@@ -69,7 +75,6 @@
     if (!storageAvailable) {
       return Array.isArray(memoryCart) ? memoryCart : [];
     }
-
     try {
       const rawCart = localStorage.getItem(CART_STORAGE_KEY);
       if (!rawCart) return [];
@@ -86,7 +91,6 @@
       memoryCart = Array.isArray(cart) ? [...cart] : [];
       return;
     }
-
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(Array.isArray(cart) ? cart : []));
     } catch (error) {
@@ -107,13 +111,10 @@
   function getValidatedCart() {
     const cart = normalizeRawCart(readCart());
     const products = getProducts();
-
     if (!hasUsableProducts()) {
       return cart;
     }
-
     const validItems = [];
-
     cart.forEach((item) => {
       const product = products.find((currentProduct) => {
         return (
@@ -121,7 +122,6 @@
           String(currentProduct.slug) === String(item.slug)
         );
       });
-
       if (!product) {
         validItems.push({
           productId: item.productId,
@@ -130,23 +130,19 @@
         });
         return;
       }
-
       if (!isProductInStock(product)) {
         return;
       }
-
       const quantity = Math.min(
         normalizeQuantity(item.quantity),
         getProductStockQty(product)
       );
-
       validItems.push({
         productId: product.id,
         slug: product.slug,
         quantity
       });
     });
-
     return validItems;
   }
 
@@ -157,15 +153,14 @@
 
     return cart
       .map((item) => {
-        const product =
-          productsAvailable
-            ? products.find((currentProduct) => {
-                return (
-                  String(currentProduct.id) === String(item.productId) ||
-                  String(currentProduct.slug) === String(item.slug)
-                );
-              }) || null
-            : null;
+        const product = productsAvailable
+          ? products.find((currentProduct) => {
+              return (
+                String(currentProduct.id) === String(item.productId) ||
+                String(currentProduct.slug) === String(item.slug)
+              );
+            }) || null
+          : null;
 
         if (!product) {
           return {
@@ -189,6 +184,7 @@
           };
         }
 
+        // ⭐ استفاده از displayPrice
         const unitPrice = getProductNumericPrice(product);
         const totalPrice = unitPrice === null ? null : unitPrice * item.quantity;
 
@@ -197,15 +193,13 @@
           qty: item.quantity,
           product,
           unitPrice,
-          unitPriceLabel:
-            unitPrice === null
-              ? product.priceLabel || "تماس بگیرید"
-              : formatPrice(unitPrice),
+          unitPriceLabel: unitPrice === null
+            ? product.priceLabel || "تماس بگیرید"
+            : formatPrice(unitPrice),
           totalPrice,
-          totalPriceLabel:
-            totalPrice === null
-              ? product.priceLabel || "تماس بگیرید"
-              : formatPrice(totalPrice)
+          totalPriceLabel: totalPrice === null
+            ? product.priceLabel || "تماس بگیرید"
+            : formatPrice(totalPrice)
         };
       })
       .filter((item) => item && item.product);
@@ -218,9 +212,7 @@
   function getTotalPrice() {
     const items = getCartDetails();
     const pricedItems = items.filter((item) => item.totalPrice !== null);
-
     if (!pricedItems.length) return null;
-
     return pricedItems.reduce((total, item) => total + item.totalPrice, 0);
   }
 
@@ -238,19 +230,15 @@
 
   function saveValidatedCart() {
     const rawCart = normalizeRawCart(readCart());
-
     if (!hasUsableProducts()) {
       dispatchCartUpdated();
       return rawCart;
     }
-
     const validCart = getValidatedCart();
-
     if (rawCart.length > 0 && validCart.length === 0) {
       dispatchCartUpdated();
       return rawCart;
     }
-
     writeCart(validCart);
     dispatchCartUpdated();
     return validCart;
@@ -258,15 +246,12 @@
 
   function addItem(identifier, quantity = 1) {
     const product = findProduct(identifier);
-
     if (!product) {
       return { success: false, message: "محصول موردنظر پیدا نشد." };
     }
-
     if (!isProductInStock(product)) {
       return { success: false, message: "این محصول در حال حاضر ناموجود است." };
     }
-
     const cart = getValidatedCart();
     const requestedQuantity = normalizeQuantity(quantity);
     const existingItem = cart.find((item) => {
@@ -275,7 +260,6 @@
         String(item.slug) === String(product.slug)
       );
     });
-
     if (existingItem) {
       existingItem.quantity = Math.min(
         existingItem.quantity + requestedQuantity,
@@ -288,14 +272,10 @@
         quantity: Math.min(requestedQuantity, getProductStockQty(product))
       });
     }
-
     writeCart(cart);
-
-    // ارسال رویداد با کمی تأخیر برای اطمینان از به‌روزرسانی DOM
     setTimeout(() => {
       dispatchCartUpdated();
     }, 0);
-
     return {
       success: true,
       message: "محصول به سبد خرید اضافه شد.",
@@ -306,24 +286,19 @@
   function updateItemQuantity(identifier, quantity) {
     const product = findProduct(identifier);
     const cart = getValidatedCart();
-
     if (!product) {
       return { success: false, message: "محصول موردنظر پیدا نشد." };
     }
-
     const itemIndex = cart.findIndex((item) => {
       return (
         String(item.productId) === String(product.id) ||
         String(item.slug) === String(product.slug)
       );
     });
-
     if (itemIndex === -1) {
       return { success: false, message: "این محصول در سبد خرید نیست." };
     }
-
     const safeQuantity = Number.parseInt(quantity, 10);
-
     if (!Number.isFinite(safeQuantity) || safeQuantity < 1) {
       cart.splice(itemIndex, 1);
     } else if (!isProductInStock(product)) {
@@ -331,24 +306,19 @@
     } else {
       cart[itemIndex].quantity = Math.min(safeQuantity, getProductStockQty(product));
     }
-
     writeCart(cart);
     dispatchCartUpdated();
-
     return { success: true, cart: getCartDetails() };
   }
 
   function removeItem(identifier) {
     const value = String(identifier ?? "").trim();
     const cart = getValidatedCart();
-
     const filteredCart = cart.filter((item) => {
       return String(item.productId) !== value && String(item.slug) !== value;
     });
-
     writeCart(filteredCart);
     dispatchCartUpdated();
-
     return { success: true, cart: getCartDetails() };
   }
 
@@ -360,19 +330,13 @@
 
   function hasItem(identifier) {
     const value = String(identifier ?? "").trim();
-
     return getValidatedCart().some((item) => {
       return String(item.productId) === value || String(item.slug) === value;
     });
   }
 
-  // ============================================
-  // 🔹 به‌روزرسانی Badge‌ها - نسخه اصلاح‌شده
-  // ============================================
   function updateCartBadges() {
     const itemCount = getItemCount();
-
-    // به‌روزرسانی Badge هدر
     document.querySelectorAll("[data-cart-count]").forEach((element) => {
       const count = itemCount;
       element.textContent = new Intl.NumberFormat("fa-IR").format(count);
@@ -382,8 +346,6 @@
         count > 0 ? `${count} محصول در سبد خرید` : "سبد خرید خالی است"
       );
     });
-
-    // به‌روزرسانی Badge Bottom Navigation
     document.querySelectorAll("[data-cart-count-badge]").forEach((element) => {
       const count = itemCount;
       element.textContent = count;
@@ -395,9 +357,6 @@
     });
   }
 
-  // ============================================
-  // تابع برای به‌روزرسانی اجباری از بیرون
-  // ============================================
   function forceUpdateBadges() {
     updateCartBadges();
   }
@@ -438,9 +397,6 @@
     forceUpdate: forceUpdateBadges
   };
 
-  // ============================================
-  // رویدادها
-  // ============================================
   document.addEventListener(CART_EVENT_NAME, function() {
     updateCartBadges();
   });
@@ -450,9 +406,6 @@
     updateCartBadges();
   });
 
-  // ============================================
-  // گوش دادن به تغییرات localStorage از سایر تب‌ها
-  // ============================================
   if (storageAvailable) {
     window.addEventListener("storage", function (event) {
       if (event.key === CART_STORAGE_KEY) {
@@ -461,9 +414,6 @@
     });
   }
 
-  // ============================================
-  // اجرای اولیه با تأخیر برای اطمینان از DOM
-  // ============================================
   function initialUpdate() {
     if (hasUsableProducts()) {
       saveValidatedCart();
@@ -481,16 +431,10 @@
     setTimeout(initialUpdate, 100);
   }
 
-  // ============================================
-  // به‌روزرسانی پس از بارگذاری کامل صفحه
-  // ============================================
   window.addEventListener("load", function() {
     setTimeout(updateCartBadges, 200);
   });
 
-  // ============================================
-  // اکسترنال API برای به‌روزرسانی از خارج
-  // ============================================
   window.updateAllCartBadges = function() {
     updateCartBadges();
   };

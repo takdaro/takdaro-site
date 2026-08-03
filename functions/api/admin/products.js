@@ -145,7 +145,7 @@ function formatNumber(value) {
   return new Intl.NumberFormat("fa-IR").format(value);
 }
 
-function productFromRow(row, imagesByProductId) {
+function productFromRow(row, imagesByProductId, currentRate = null) {
   if (!row) return null;
 
   const productId = Number(row.id);
@@ -157,7 +157,7 @@ function productFromRow(row, imagesByProductId) {
     images[0]?.image_url ||
     "";
 
-  // ⭐ قیمت نمایشی
+  // ⭐ قیمت نمایشی - اصلاح شده با currentRate
   let displayPrice = null;
   const priceType = row.price_type || 'fixed';
   
@@ -166,9 +166,9 @@ function productFromRow(row, imagesByProductId) {
     if (row.calculated_price !== null && row.calculated_price !== undefined) {
       displayPrice = Number(row.calculated_price);
     } else if (row.base_price !== null && row.base_price !== undefined && row.base_price > 0) {
-      // اگر calculated_price وجود ندارد، اما base_price دارد، با نرخ پیش‌فرض محاسبه کن
-      // (این برای نمایش در پنل مدیریت است)
-      displayPrice = Number(row.base_price) * 196000; // نرخ پیش‌فرض
+      // ⭐ استفاده از نرخ واقعی به جای Hard Code
+      const rate = currentRate || 196000;
+      displayPrice = Number(row.base_price) * rate;
     }
   } else {
     // محصول ثابت
@@ -488,6 +488,17 @@ export async function onRequestGet(context) {
       return adminCheck.response;
     }
 
+    // ⭐ دریافت نرخ فعلی دلار برای نمایش صحیح قیمت‌ها
+    let currentRate = null;
+    try {
+      const rateResult = await getCurrentRate(context.env, 'USD');
+      if (rateResult) {
+        currentRate = rateResult.rate;
+      }
+    } catch (_) {
+      currentRate = 196000; // fallback
+    }
+
     const url = new URL(context.request.url);
     const search = cleanText(url.searchParams.get("search"), 160);
     const status = cleanText(url.searchParams.get("status"), 30).toLowerCase();
@@ -586,6 +597,7 @@ export async function onRequestGet(context) {
 
     const total = Number(countRow?.total || 0);
 
+    // ⭐ ارسال currentRate به productFromRow
     return json({
       success: true,
       page,
@@ -595,7 +607,7 @@ export async function onRequestGet(context) {
       categories: (categoriesResult.results || [])
         .map((row) => row.category)
         .filter(Boolean),
-      products: rows.map((row) => productFromRow(row, imagesByProductId))
+      products: rows.map((row) => productFromRow(row, imagesByProductId, currentRate))
     });
   } catch (error) {
     return json(
