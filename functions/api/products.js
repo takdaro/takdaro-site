@@ -1,3 +1,5 @@
+import { getCurrentRate, calculateProductPrice } from "../lib/rate";
+
 function json(data, status = 200, headers = {}) {
   return Response.json(data, {
     status,
@@ -50,12 +52,22 @@ function normalizePageUrl(value, slug) {
   return `/products/${encodeURIComponent(slug)}.html`;
 }
 
-function buildPriceLabel(product) {
+function formatNumber(value) {
+  return new Intl.NumberFormat("fa-IR").format(value);
+}
+
+function buildPriceLabel(product, displayPrice) {
+  // اگر محصول وابسته به نرخ است و قیمت محاسبه شده دارد
+  if (product.price_type === 'rate_based' && displayPrice !== null && displayPrice > 0) {
+    return `${formatNumber(displayPrice)} تومان`;
+  }
+
+  // اگر محصول ثابت است و قیمت دارد
   const price = Number(product.price);
   const hasValidPrice = Number.isFinite(price) && price > 0;
 
   if (toBoolean(product.show_price) && hasValidPrice) {
-    return `${new Intl.NumberFormat("fa-IR").format(price)} تومان`;
+    return `${formatNumber(price)} تومان`;
   }
 
   return cleanText(product.price_label) || "تماس بگیرید";
@@ -72,7 +84,7 @@ function buildStockLabel(product) {
   return cleanText(product.stock_label) || "موجود";
 }
 
-function productFromRow(product, imageRows) {
+function productFromRow(product, imageRows, rate) {
   const stockQty = Math.max(
     0,
     Number.parseInt(product.stock_quantity, 10) || 0
@@ -94,16 +106,47 @@ function productFromRow(product, imageRows) {
     ].filter(Boolean))
   );
 
+  // ⭐ محاسبه قیمت نهایی برای محصولات وابسته به نرخ
+  let displayPrice = null;
+  let priceType = product.price_type || 'fixed';
+  let basePrice = product.base_price !== null && product.base_price !== undefined ? Number(product.base_price) : null;
+  let calculatedPrice = product.calculated_price !== null && product.calculated_price !== undefined ? Number(product.calculated_price) : null;
+  
+  // اگر محصول وابسته به نرخ است و نرخ موجود است
+  if (priceType === 'rate_based' && basePrice !== null && basePrice > 0 && rate !== null) {
+    // از calculated_price استفاده کن (اگر وجود دارد و به‌روز است)
+    // یا دوباره محاسبه کن
+    if (calculatedPrice !== null && calculatedPrice > 0) {
+      displayPrice = calculatedPrice;
+    } else {
+      // محاسبه مجدد
+      displayPrice = calculateProductPrice(product, rate);
+    }
+  } else if (priceType === 'fixed') {
+    // محصول ثابت - از price استفاده کن
+    const price = Number(product.price);
+    if (Number.isFinite(price) && price > 0) {
+      displayPrice = price;
+    }
+  }
+
+  // اگر displayPrice هنوز null است، از price استفاده کن (برای سازگاری)
+  if (displayPrice === null) {
+    const price = Number(product.price);
+    if (Number.isFinite(price) && price > 0) {
+      displayPrice = price;
+    }
+  }
+
   return {
     id: Number(product.id),
     slug: cleanText(product.slug),
     name: cleanText(product.name),
     category: cleanText(product.category),
-    price: toBoolean(product.show_price) && Number(product.price) > 0
-      ? Number(product.price)
-      : null,
-    priceLabel: buildPriceLabel(product),
-    displayPrice: buildPriceLabel(product),
+    price: Number(product.price) || null,
+    displayPrice: displayPrice,
+    priceLabel: buildPriceLabel(product, displayPrice),
+    displayPriceLabel: buildPriceLabel(product, displayPrice),
     showPrice: toBoolean(product.show_price),
     inStock,
     stockQty,
@@ -112,7 +155,16 @@ function productFromRow(product, imageRows) {
     description: cleanText(product.description),
     primaryImage: primaryImage || images[0] || "",
     images,
-    pageUrl: normalizePageUrl(product.page_url, product.slug)
+    pageUrl: normalizePageUrl(product.page_url, product.slug),
+    // ⭐ فیلدهای جدید برای سیستم نرخ ارز
+    priceType: priceType,
+    basePrice: basePrice,
+    profitType: product.profit_type || 'none',
+    profitValue: product.profit_value !== null && product.profit_value !== undefined ? Number(product.profit_value) : null,
+    fixedFee: product.fixed_fee !== null && product.fixed_fee !== undefined ? Number(product.fixed_fee) : null,
+    roundingType: product.rounding_type || 'none',
+    roundingMethod: product.rounding_method || 'nearest',
+    calculatedPrice: calculatedPrice
   };
 }
 
@@ -145,6 +197,19 @@ export async function onRequestGet(context) {
     const requestedSlug = cleanText(url.searchParams.get("slug"));
     const requestedCategory = cleanText(url.searchParams.get("category"));
     const includeOutOfStock = url.searchParams.get("include_out_of_stock") === "1";
+
+    // ⭐ دریافت نرخ فعلی دلار
+    let currentRate = null;
+    try {
+      const rateResult = await getCurrentRate(context.env, 'USD');
+      if (rateResult) {
+        currentRate = rateResult.rate;
+      }
+    } catch (rateError) {
+      // اگر نرخ دریافت نشد، از مقدار پیش‌فرض استفاده کن
+      console.warn("Could not fetch current rate, using fallback:", rateError);
+      currentRate = 196000; // نرخ پیش‌فرض
+    }
 
     const conditions = ["p.status = 'published'"];
     const bindings = [];
@@ -183,7 +248,17 @@ export async function onRequestGet(context) {
         p.page_url,
         p.status,
         p.created_at,
-        p.updated_at
+        p.updated_at,
+        -- ⭐ فیلدهای جدید سیستم نرخ ارز
+        p.price_type,
+        p.base_price,
+        p.profit_type,
+        p.profit_value,
+        p.fixed_fee,
+        p.rounding_type,
+        p.rounding_method,
+        p.calculated_price,
+        p.price_calculated_at
       FROM products p
       ${whereClause}
       ORDER BY
@@ -203,7 +278,8 @@ export async function onRequestGet(context) {
       return json({
         success: true,
         total: 0,
-        products: []
+        products: [],
+        rate: currentRate
       });
     }
 
@@ -237,13 +313,14 @@ export async function onRequestGet(context) {
       : [];
 
     const products = productRows.map((product) =>
-      productFromRow(product, imageRows)
+      productFromRow(product, imageRows, currentRate)
     );
 
     return json({
       success: true,
       total: products.length,
-      products
+      products,
+      rate: currentRate
     });
   } catch (error) {
     return json(

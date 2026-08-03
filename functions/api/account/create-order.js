@@ -1,4 +1,5 @@
 import { getCurrentUser } from "../../lib/admin";
+import { getCurrentRate } from "../../lib/rate";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -85,15 +86,22 @@ function extractItemQuantity(item) {
 }
 
 function extractItemUnitPrice(item) {
+  // ⭐ اولویت با displayPrice (قیمت محاسبه‌شده از نرخ دلار)
+  if (item?.displayPrice !== undefined && item?.displayPrice !== null) {
+    const displayPrice = normalizeNumber(item.displayPrice);
+    if (displayPrice > 0) return displayPrice;
+  }
+  
+  // رفتار قبلی
   const directPrice = normalizeNumber(item?.unit_price);
   if (directPrice > 0) return directPrice;
-
+  
   const price = normalizeNumber(item?.price);
   if (price > 0) return price;
-
+  
   const productPrice = normalizeNumber(item?.product?.price);
   if (productPrice > 0) return productPrice;
-
+  
   const rowTotal = normalizeNumber(
     item?.row_total ??
     item?.total_price ??
@@ -127,6 +135,23 @@ function extractProductId(item) {
   const raw = item?.product_id ?? item?.product?.id ?? null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function extractRateAtPurchase(item) {
+  const rate = normalizeNumber(
+    item?.rate_at_purchase ??
+    item?.rateAtPurchase ??
+    item?.rate
+  );
+  return rate > 0 ? rate : null;
+}
+
+function extractCurrencyCode(item) {
+  return normalizeText(
+    item?.currency_code ??
+    item?.currencyCode ??
+    'USD'
+  ) || 'USD';
 }
 
 function normalizeStatuses(rawValue) {
@@ -189,9 +214,6 @@ async function getCashbackSettings(db) {
   }
 }
 
-// ============================================
-// ✅ اصلاح شده: استفاده از جدول addresses
-// ============================================
 async function createOrUpdateAddress(context, user, address) {
   const fullName = normalizeText(address.full_name) || normalizeText(user.full_name);
   const addressLine = normalizeText(address.address_line);
@@ -346,6 +368,18 @@ export async function onRequestPost(context) {
       return json({ success: false, error: validationError }, 400);
     }
 
+    // ⭐ دریافت نرخ فعلی دلار برای ذخیره در سفارش
+    let currentRate = null;
+    try {
+      const rateResult = await getCurrentRate(context.env, 'USD');
+      if (rateResult) {
+        currentRate = rateResult.rate;
+      }
+    } catch (_) {
+      // اگر نرخ دریافت نشد، از مقدار پیش‌فرض استفاده کن
+      currentRate = 196000;
+    }
+
     const address = body.address || {};
     const order = body.order || {};
     const items = Array.isArray(order.items) ? order.items : [];
@@ -361,6 +395,8 @@ export async function onRequestPost(context) {
       const quantity = extractItemQuantity(item);
       const unitPrice = extractItemUnitPrice(item);
       const totalPrice = extractItemTotalPrice(item);
+      const rateAtPurchase = extractRateAtPurchase(item) || currentRate;
+      const currencyCode = extractCurrencyCode(item);
 
       recalculatedSubtotal += totalPrice;
 
@@ -369,7 +405,10 @@ export async function onRequestPost(context) {
         product_name: productName,
         quantity,
         unit_price: unitPrice,
-        total_price: totalPrice
+        total_price: totalPrice,
+        // ⭐ فیلدهای جدید برای ذخیره نرخ لحظه‌ای
+        rate_at_purchase: rateAtPurchase,
+        currency_code: currencyCode
       };
     });
 
@@ -440,6 +479,7 @@ export async function onRequestPost(context) {
       return json({ success: false, error: "order-create-failed" }, 500);
     }
 
+    // ⭐ ذخیره آیتم‌های سفارش با نرخ لحظه‌ای
     for (const item of normalizedItems) {
       await context.env.DB.prepare(`
         INSERT INTO order_items (
@@ -449,17 +489,21 @@ export async function onRequestPost(context) {
           quantity,
           unit_price,
           total_price,
+          rate_at_purchase,
+          currency_code,
           created_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `).bind(
         orderId,
         item.product_id,
         item.product_name,
         item.quantity,
         item.unit_price,
-        item.total_price
+        item.total_price,
+        item.rate_at_purchase,
+        item.currency_code
       ).run();
     }
 
@@ -537,7 +581,9 @@ export async function onRequestPost(context) {
         cashback_base: cashbackBase,
         cashback_amount: cashbackAmount,
         cashback_status: cashbackAmount > 0 ? 'pending' : 'none',
-        items_count: normalizedItems.length
+        items_count: normalizedItems.length,
+        // ⭐ نرخ لحظه‌ای ثبت شده در سفارش
+        rate_at_purchase: currentRate
       }
     });
   } catch (error) {

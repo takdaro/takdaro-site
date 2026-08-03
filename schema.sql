@@ -92,6 +92,9 @@ CREATE TABLE IF NOT EXISTS order_items (
   quantity INTEGER NOT NULL DEFAULT 1,
   unit_price INTEGER NOT NULL DEFAULT 0,
   total_price INTEGER NOT NULL DEFAULT 0,
+  -- ⭐ فیلدهای جدید برای ذخیره نرخ لحظه‌ای
+  rate_at_purchase INTEGER,
+  currency_code TEXT DEFAULT 'USD',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
@@ -148,7 +151,7 @@ CREATE TABLE IF NOT EXISTS admin_logs (
 );
 
 -- ============================================
--- 9. محصولات
+-- 9. محصولات (نسخه به‌روز شده با قیمت‌گذاری وابسته به نرخ ارز)
 -- ============================================
 CREATE TABLE IF NOT EXISTS products (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -165,8 +168,18 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT,
   page_url TEXT,
   status TEXT NOT NULL DEFAULT 'draft',
-  images TEXT, -- JSON array of image URLs
+  images TEXT,
   primary_image TEXT,
+  -- ⭐ فیلدهای جدید سیستم نرخ ارز
+  price_type TEXT DEFAULT 'fixed',
+  base_price INTEGER,
+  profit_type TEXT DEFAULT 'none',
+  profit_value INTEGER,
+  fixed_fee INTEGER,
+  rounding_type TEXT DEFAULT 'none',
+  rounding_method TEXT DEFAULT 'nearest',
+  calculated_price INTEGER,
+  price_calculated_at TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -232,6 +245,37 @@ CREATE TABLE IF NOT EXISTS shipping_free_thresholds (
 );
 
 -- ============================================
+-- 14. نرخ‌های ارز (جدید)
+-- ============================================
+CREATE TABLE IF NOT EXISTS rates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  currency_code TEXT NOT NULL UNIQUE,
+  currency_name TEXT NOT NULL,
+  rate INTEGER NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  is_active INTEGER NOT NULL DEFAULT 1,
+  updated_by_user_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CHECK (is_active IN (0, 1))
+);
+
+-- ============================================
+-- 15. تاریخچه نرخ‌های ارز (جدید)
+-- ============================================
+CREATE TABLE IF NOT EXISTS rate_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rate_id INTEGER NOT NULL,
+  rate INTEGER NOT NULL,
+  source_type TEXT NOT NULL,
+  changed_by_user_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (rate_id) REFERENCES rates(id) ON DELETE CASCADE,
+  FOREIGN KEY (changed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- ============================================
 -- ایندکس‌ها
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
@@ -254,12 +298,19 @@ CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id)
 CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
+CREATE INDEX IF NOT EXISTS idx_products_price_type ON products(price_type);
+CREATE INDEX IF NOT EXISTS idx_products_calculated_price ON products(calculated_price);
 
 CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id);
 
 CREATE INDEX IF NOT EXISTS idx_shipping_costs_province_city ON shipping_costs(province, city);
 CREATE INDEX IF NOT EXISTS idx_shipping_costs_method ON shipping_costs(shipping_method_id);
 CREATE INDEX IF NOT EXISTS idx_shipping_methods_active ON shipping_methods(is_active);
+
+CREATE INDEX IF NOT EXISTS idx_rates_currency_code ON rates(currency_code);
+CREATE INDEX IF NOT EXISTS idx_rates_is_active ON rates(is_active);
+CREATE INDEX IF NOT EXISTS idx_rate_history_rate_id ON rate_history(rate_id);
+CREATE INDEX IF NOT EXISTS idx_rate_history_created_at ON rate_history(created_at);
 
 -- ============================================
 -- تنظیمات پیش‌فرض فاکتور و پرداخت
@@ -278,5 +329,10 @@ INSERT OR IGNORE INTO app_settings (setting_key, setting_value) VALUES
   ('invoice_company_address', 'تهران، خیابان ولیعصر، پلاک ۱۲۳'),
   ('cashback_percent', '0'),
   ('cashback_statuses', 'completed'),
-  -- تنظیم جدید: ثبت‌نام عمومی (پیش‌فرض: فعال)
   ('allow_public_registration', 'true');
+
+-- ============================================
+-- درج نرخ پیش‌فرض دلار
+-- ============================================
+INSERT OR IGNORE INTO rates (currency_code, currency_name, rate, source_type, is_active)
+VALUES ('USD', 'دلار آمریکا', 196000, 'manual', 1);
