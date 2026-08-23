@@ -1,0 +1,61 @@
+<!-- ========================================== -->
+<!-- USERS                                     -->
+<!-- ========================================== -->
+<div class="users-toolbar">
+  <h4 style="margin:0;color:var(--primary);">مدیریت کاربران</h4>
+  <button class="btn btn-primary" type="button" id="show-create-user-btn">افزودن کاربر</button>
+</div>
+
+<div class="toggle-wrapper" id="registration-toggle-wrapper">
+  <span class="toggle-label">عدم ثبت‌نام توسط کاربر</span>
+  <label class="toggle-switch">
+    <input type="checkbox" id="registration-toggle-input" />
+    <span class="toggle-slider"></span>
+  </label>
+  <span class="toggle-status" id="registration-toggle-status">فعال</span>
+  <span style="color:var(--muted);font-size:0.85rem;margin-right:auto;">
+    (غیرفعال = ثبت‌نام عمومی بسته است)
+  </span>
+</div>
+
+<div class="filters-grid">
+  <div class="form-field">
+    <label for="users-search">جستجو</label>
+    <input id="users-search" type="text" placeholder="نام، ایمیل یا شماره" />
+  </div>
+  <div class="form-field">
+    <label for="users-role">نقش</label>
+    <select id="users-role">
+      <option value="">همه</option>
+      <option value="user">مشتری</option>
+      <option value="admin">ادمین</option>
+      <option value="super_admin">مدیر کل</option>
+    </select>
+  </div>
+  <div class="form-field" style="justify-content:flex-end;">
+    <label style="opacity:0;">اقدام</label>
+    <button class="btn btn-primary" type="button" id="users-filter-btn">اعمال فیلتر</button>
+  </div>
+</div>
+
+<div id="user-create-box" class="detail-card admin-hidden"></div>
+
+<div class="table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>شناسه</th>
+        <th>نام</th>
+        <th>ایمیل</th>
+        <th>شماره</th>
+        <th>نقش</th>
+        <th>کیف پول</th>
+        <th>سفارش‌ها</th>
+        <th>اقدام</th>
+      </tr>
+    </thead>
+    <tbody id="users-body"></tbody>
+  </table>
+</div>
+
+<div id="user-edit-box" class="detail-card admin-hidden"></div>

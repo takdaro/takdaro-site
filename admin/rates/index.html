@@ -1,0 +1,102 @@
+<!-- ========================================== -->
+<!-- RATES                                     -->
+<!-- ========================================== -->
+<div class="detail-card">
+  <h4>مدیریت نرخ ارز</h4>
+  <p class="admin-help">مدیریت نرخ دلار، مشاهده تاریخچه تغییرات و بروزرسانی قیمت محصولات.</p>
+
+  <div id="rates-message" class="admin-message"></div>
+
+  <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="stat-card">
+      <span>نرخ فعلی دلار</span>
+      <strong id="current-rate-display">—</strong>
+    </div>
+    <div class="stat-card">
+      <span>روش دریافت</span>
+      <strong id="rate-source-display">—</strong>
+    </div>
+    <div class="stat-card">
+      <span>آخرین بروزرسانی</span>
+      <strong id="rate-updated-display">—</strong>
+    </div>
+    <div class="stat-card">
+      <span>تغییر نسبت به قبل</span>
+      <strong id="rate-change-display">—</strong>
+    </div>
+  </div>
+
+  <div class="detail-card" style="margin-top:16px;">
+    <h4>تنظیم نرخ دستی</h4>
+    <div class="filters-grid filters-grid-3">
+      <div class="form-field">
+        <label for="rate-manual-currency">واحد ارز</label>
+        <select id="rate-manual-currency">
+          <option value="USD">دلار آمریکا (USD)</option>
+          <option value="EUR">یورو (EUR)</option>
+          <option value="GBP">پوند (GBP)</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="rate-manual-value">نرخ (تومان)</label>
+        <input id="rate-manual-value" type="number" min="1" placeholder="مثلاً 196000" />
+      </div>
+      <div class="form-field" style="justify-content:flex-end;">
+        <label style="opacity:0;">اقدام</label>
+        <button class="btn btn-primary" type="button" id="rate-manual-save-btn">ذخیره نرخ دستی</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="detail-card" style="margin-top:16px; opacity:0.7; border-style:dashed;">
+    <h4>تنظیمات دریافت خودکار از API <span style="font-size:0.8rem;color:var(--muted);">(مرحله بعد)</span></h4>
+    <p class="admin-help">در نسخه فعلی فقط نرخ دستی قابل تنظیم است. امکان دریافت خودکار از API در بروزرسانی بعدی اضافه می‌شود.</p>
+    <div class="filters-grid filters-grid-2">
+      <div class="form-field">
+        <label for="rate-api-provider">سرویس API</label>
+        <select id="rate-api-provider" disabled>
+          <option value="tgju">TGJU (نرخ‌های بازار آزاد)</option>
+          <option value="exchangerate">ExchangeRate-API</option>
+          <option value="currencyapi">CurrencyAPI</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="rate-api-key">API Key</label>
+        <input id="rate-api-key" type="password" placeholder="کلید API را وارد کنید" disabled />
+        <small class="admin-help">کلید API در سمت سرور ذخیره می‌شود.</small>
+      </div>
+    </div>
+    <div class="panel-actions">
+      <button class="btn btn-secondary" type="button" disabled>ذخیره تنظیمات API (مرحله بعد)</button>
+      <button class="btn btn-secondary" type="button" disabled>دریافت از API (مرحله بعد)</button>
+    </div>
+  </div>
+
+  <div class="detail-card" style="margin-top:16px; background:var(--surface-2);">
+    <h4>بروزرسانی قیمت محصولات</h4>
+    <p class="admin-help">با تغییر نرخ دلار، قیمت تمام محصولات وابسته به نرخ ارز به‌روزرسانی می‌شود.</p>
+    <div class="panel-actions">
+      <button class="btn btn-primary" type="button" id="rate-recalculate-btn">🔄 بروزرسانی قیمت محصولات</button>
+      <span id="recalculate-status" style="color:var(--muted);font-size:0.9rem;margin-right:auto;"></span>
+    </div>
+  </div>
+
+  <div class="detail-card" style="margin-top:16px;">
+    <h4>تاریخچه تغییرات نرخ</h4>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>نرخ (تومان)</th>
+            <th>منبع</th>
+            <th>تغییر دهنده</th>
+            <th>تاریخ</th>
+          </tr>
+        </thead>
+        <tbody id="rate-history-body">
+          <tr><td colspan="4">در حال بارگذاری...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

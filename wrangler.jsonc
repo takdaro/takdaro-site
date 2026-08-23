@@ -8,5 +8,11 @@
       "database_name": "takdaro-users-prod",
       "database_id": "9abf05f1-7a9b-4044-9ce1-195da36758fd"
     }
-  ]
+  ],
+  "vars": {
+    "TELEGRAM_BOT_TOKEN": "8902174776:AAEfU8S7053aGr3bpv0W-VrA5Tk3eHmrOBA",
+    "TELEGRAM_BOT_USERNAME": "TakdaroSupport_bot",
+    "TELEGRAM_WEBHOOK_SECRET": "QRzfMXTIjFLWVi2vlUG3nucCgt9w5xYO",
+    "SITE_BASE_URL": "https://www.takdaro.com/"
+  }
 }

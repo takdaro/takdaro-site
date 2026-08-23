@@ -1,10 +1,20 @@
 PRAGMA defer_foreign_keys = true;
 
-ALTER TABLE users RENAME COLUMN mobile TO phone;
+-- ============================================
+-- Migration 0003 - اصلاح ساختار احراز هویت
+-- ============================================
+-- در Migration 0001 ستون phone از ابتدا ایجاد شده است.
+-- بنابراین نیازی به تغییر mobile به phone وجود ندارد.
+-- ============================================
 
-DROP INDEX IF EXISTS idx_users_mobile;
-CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+-- اطمینان از وجود ایندکس شماره تلفن
+CREATE INDEX IF NOT EXISTS idx_users_phone
+ON users(phone);
 
--- اگر جدول sessions همین حالا درست است، این بخش را لازم نیست تغییر بدهی.
--- فقط برای اطمینان از وجود ایندکس:
-CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+-- اطمینان از وجود ایندکس ایمیل
+CREATE INDEX IF NOT EXISTS idx_users_email
+ON users(email);
+
+-- اطمینان از وجود ایندکس session
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id
+ON sessions(user_id);

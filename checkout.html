@@ -656,9 +656,32 @@
       return Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : null;
     }
 
+    // ============================================
+    // ⭐⭐ تابع اصلی دریافت قیمت محصول - اصلاح شده
+    // ============================================
     function getProductNumericPrice(product) {
-      const directCandidates = [
-        product?.price,
+      if (!product) return null;
+
+      // ⭐ اولویت اول: displayPrice (قیمت محاسبه‌شده از نرخ دلار)
+      if (product.displayPrice !== undefined && product.displayPrice !== null) {
+        const parsed = parsePrice(product.displayPrice);
+        if (parsed !== null && parsed > 0) return parsed;
+      }
+
+      // ⭐ اولویت دوم: display_price (نام دیگر)
+      if (product.display_price !== undefined && product.display_price !== null) {
+        const parsed = parsePrice(product.display_price);
+        if (parsed !== null && parsed > 0) return parsed;
+      }
+
+      // ⭐ اولویت سوم: price (قیمت ثابت)
+      if (product.price !== undefined && product.price !== null) {
+        const parsed = parsePrice(product.price);
+        if (parsed !== null && parsed > 0) return parsed;
+      }
+
+      // سایر فیلدهای احتمالی
+      const candidates = [
         product?.sale_price,
         product?.regular_price,
         product?.price_value,
@@ -668,12 +691,16 @@
         product?.amount,
         product?.priceLabel,
         product?.price_label,
-        product?.formatted_price
+        product?.formatted_price,
+        product?.calculated_price,
+        product?.calculatedPrice
       ];
-      for (const candidate of directCandidates) {
+
+      for (const candidate of candidates) {
         const parsed = parsePrice(candidate);
-        if (parsed !== null) return parsed;
+        if (parsed !== null && parsed > 0) return parsed;
       }
+
       return null;
     }
 
@@ -1132,10 +1159,13 @@
         subtotal += rowTotal;
         return {
           product_id: product.id || null,
-          name: product.name || "",
+          product_name: product.name || "",
           qty,
           unit_price: unitPrice,
-          row_total: rowTotal
+          row_total: rowTotal,
+          // ⭐ ارسال displayPrice برای ذخیره نرخ لحظه‌ای در سفارش
+          displayPrice: unitPrice,
+          rate_at_purchase: unitPrice > 0 ? Math.round(unitPrice / (product.base_price || 1)) : null
         };
       });
 

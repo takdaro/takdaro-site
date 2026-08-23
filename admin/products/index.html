@@ -1,0 +1,59 @@
+<!-- ========================================== -->
+<!-- PRODUCTS                                  -->
+<!-- ========================================== -->
+<div class="products-toolbar">
+  <div>
+    <h4 style="margin:0;color:var(--primary)">مدیریت محصولات</h4>
+    <p class="admin-help">افزودن، ویرایش، حذف و مدیریت گالری تصاویر محصولات.</p>
+  </div>
+  <button class="btn btn-primary" type="button" id="show-create-product-btn">افزودن محصول جدید</button>
+</div>
+
+<div class="filters-grid">
+  <div class="form-field">
+    <label for="products-search">جست‌وجو</label>
+    <input id="products-search" type="text" placeholder="نام، slug یا دسته‌بندی" />
+  </div>
+  <div class="form-field">
+    <label for="products-category">دسته‌بندی</label>
+    <select id="products-category">
+      <option value="">همه دسته‌بندی‌ها</option>
+    </select>
+  </div>
+  <div class="form-field">
+    <label for="products-status">وضعیت</label>
+    <select id="products-status">
+      <option value="">همه وضعیت‌ها</option>
+      <option value="published">منتشرشده</option>
+      <option value="draft">پیش‌نویس</option>
+      <option value="private">خصوصی</option>
+    </select>
+  </div>
+  <div class="form-field" style="justify-content:flex-end;">
+    <label style="opacity:0;">فیلتر</label>
+    <button class="btn btn-primary" type="button" id="products-filter-btn">اعمال فیلتر</button>
+  </div>
+</div>
+
+<div id="product-create-box" class="detail-card admin-hidden"></div>
+
+<div class="table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>تصویر</th>
+        <th>شناسه</th>
+        <th>نام محصول</th>
+        <th>دسته‌بندی</th>
+        <th>قیمت</th>
+        <th>موجودی</th>
+        <th>وضعیت</th>
+        <th>به‌روزرسانی</th>
+        <th>اقدام</th>
+      </tr>
+    </thead>
+    <tbody id="products-body"></tbody>
+  </table>
+</div>
+
+<div id="product-edit-box" class="detail-card admin-hidden"></div>

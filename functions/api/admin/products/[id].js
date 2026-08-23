@@ -121,12 +121,36 @@ function normalizeImages(value) {
   return images;
 }
 
+function formatNumber(value) {
+  return new Intl.NumberFormat("fa-IR").format(value);
+}
+
 function productFromRow(row, images) {
   const primaryImage =
     row.primary_image ||
     images.find((image) => image.is_primary === 1)?.image_url ||
     images[0]?.image_url ||
     "";
+
+  // محاسبه قیمت نمایشی برای محصولات وابسته به نرخ
+  let displayPrice = null;
+  const priceType = row.price_type || 'fixed';
+  
+  if (priceType === 'rate_based') {
+    // برای محصولات وابسته به نرخ، calculated_price را نشان بده
+    if (row.calculated_price !== null && row.calculated_price !== undefined) {
+      displayPrice = Number(row.calculated_price);
+    } else if (row.base_price !== null && row.base_price !== undefined && row.base_price > 0) {
+      // fallback: از نرخ پیش‌فرض 196000 استفاده کن
+      const rate = 196000;
+      displayPrice = Number(row.base_price) * rate;
+    }
+  } else {
+    // محصول ثابت
+    if (row.price !== null && row.price !== undefined) {
+      displayPrice = Number(row.price);
+    }
+  }
 
   return {
     id: Number(row.id),
@@ -146,7 +170,19 @@ function productFromRow(row, images) {
     status: row.status || "draft",
     created_at: row.created_at || null,
     updated_at: row.updated_at || null,
-    images
+    images,
+    // ⭐ فیلدهای جدید سیستم نرخ ارز
+    price_type: row.price_type || 'fixed',
+    base_price: row.base_price === null || row.base_price === undefined ? null : Number(row.base_price),
+    profit_type: row.profit_type || 'none',
+    profit_value: row.profit_value === null || row.profit_value === undefined ? null : Number(row.profit_value),
+    fixed_fee: row.fixed_fee === null || row.fixed_fee === undefined ? null : Number(row.fixed_fee),
+    rounding_type: row.rounding_type || 'none',
+    rounding_method: row.rounding_method || 'nearest',
+    calculated_price: row.calculated_price === null || row.calculated_price === undefined ? null : Number(row.calculated_price),
+    price_calculated_at: row.price_calculated_at || null,
+    display_price: displayPrice,
+    display_price_formatted: displayPrice !== null ? `${formatNumber(displayPrice)} تومان` : "تماس بگیرید"
   };
 }
 
@@ -170,7 +206,17 @@ async function getProduct(context, productId) {
         page_url,
         status,
         created_at,
-        updated_at
+        updated_at,
+        -- ⭐ فیلدهای جدید سیستم نرخ ارز
+        price_type,
+        base_price,
+        profit_type,
+        profit_value,
+        fixed_fee,
+        rounding_type,
+        rounding_method,
+        calculated_price,
+        price_calculated_at
       FROM products
       WHERE id = ?
       LIMIT 1
@@ -378,6 +424,55 @@ export async function onRequestPut(context) {
       images[0]?.image_url ||
       "";
 
+    // ⭐ دریافت فیلدهای جدید از body
+    const priceType = body.price_type ?? body.priceType ?? currentProduct.price_type ?? 'fixed';
+    const basePrice = Object.prototype.hasOwnProperty.call(body, "base_price") || Object.prototype.hasOwnProperty.call(body, "basePrice")
+      ? toOptionalPrice(body.base_price ?? body.basePrice)
+      : currentProduct.base_price;
+    const profitType = body.profit_type ?? body.profitType ?? currentProduct.profit_type ?? 'none';
+    const profitValue = Object.prototype.hasOwnProperty.call(body, "profit_value") || Object.prototype.hasOwnProperty.call(body, "profitValue")
+      ? toOptionalPrice(body.profit_value ?? body.profitValue)
+      : currentProduct.profit_value;
+    const fixedFee = Object.prototype.hasOwnProperty.call(body, "fixed_fee") || Object.prototype.hasOwnProperty.call(body, "fixedFee")
+      ? toOptionalPrice(body.fixed_fee ?? body.fixedFee)
+      : currentProduct.fixed_fee;
+    const roundingType = body.rounding_type ?? body.roundingType ?? currentProduct.rounding_type ?? 'none';
+    const roundingMethod = body.rounding_method ?? body.roundingMethod ?? currentProduct.rounding_method ?? 'nearest';
+
+    // ⭐ محاسبه قیمت برای محصولات وابسته به نرخ
+    let calculatedPrice = null;
+    if (priceType === 'rate_based' && basePrice && basePrice > 0) {
+      try {
+        // دریافت نرخ فعلی دلار
+        const rateResult = await context.env.DB
+          .prepare(`
+            SELECT rate FROM rates WHERE currency_code = 'USD' AND is_active = 1 LIMIT 1
+          `)
+          .first();
+        
+        if (rateResult && rateResult.rate) {
+          const tempProduct = {
+            price_type: priceType,
+            base_price: basePrice,
+            profit_type: profitType,
+            profit_value: profitValue,
+            fixed_fee: fixedFee,
+            rounding_type: roundingType,
+            rounding_method: roundingMethod
+          };
+          // محاسبه قیمت با استفاده از تابع محاسبه
+          const { calculateProductPrice } = await import("../../../lib/rate");
+          calculatedPrice = calculateProductPrice(tempProduct, rateResult.rate);
+        }
+      } catch (_) {
+        // اگر خطایی رخ داد، calculatedPrice را null بگذار
+        calculatedPrice = null;
+      }
+    } else if (priceType === 'fixed') {
+      // برای محصولات ثابت، calculated_price را null کن
+      calculatedPrice = null;
+    }
+
     await context.env.DB
       .prepare(`
         UPDATE products
@@ -396,6 +491,19 @@ export async function onRequestPut(context) {
           primary_image = ?,
           page_url = ?,
           status = ?,
+          -- ⭐ فیلدهای جدید
+          price_type = ?,
+          base_price = ?,
+          profit_type = ?,
+          profit_value = ?,
+          fixed_fee = ?,
+          rounding_type = ?,
+          rounding_method = ?,
+          calculated_price = ?,
+          price_calculated_at = CASE 
+            WHEN ? IS NOT NULL THEN CURRENT_TIMESTAMP 
+            ELSE price_calculated_at 
+          END,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `)
@@ -414,6 +522,15 @@ export async function onRequestPut(context) {
         primaryImage || null,
         pageUrl || null,
         status,
+        priceType,
+        basePrice || null,
+        profitType,
+        profitValue || null,
+        fixedFee || null,
+        roundingType,
+        roundingMethod,
+        calculatedPrice,
+        calculatedPrice,
         productId
       )
       .run();
@@ -457,7 +574,7 @@ export async function onRequestPut(context) {
       action: "product_updated",
       target_type: "product",
       target_id: productId,
-      description: `Updated product: ${name} (${slug})`
+      description: `Updated product: ${name} (${slug}) - Price type: ${priceType}`
     });
 
     return json({

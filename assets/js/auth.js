@@ -271,6 +271,17 @@
     return requireAuth(options);
   }
 
+  // ⭐ تابع تبدیل نقش به فارسی
+  function faRole(value) {
+    const map = {
+      user: "مشتری",
+      customer: "مشتری",
+      admin: "ادمین",
+      super_admin: "مدیر کل"
+    };
+    return map[String(value || "").toLowerCase()] || "نامشخص";
+  }
+
   function fillUserFields(user, options = {}) {
     if (!user) return;
 
@@ -302,8 +313,9 @@
       else el.textContent = value;
     });
 
+    // ⭐ اصلاح شده: نمایش فارسی نقش
     roleElements.forEach((el) => {
-      const value = user.role || "";
+      const value = faRole(user.role || "");
       if ("value" in el && el.tagName === "INPUT") el.value = value;
       else el.textContent = value;
     });

@@ -1,0 +1,243 @@
+/* ==========================================
+   admin-shell.css - ساختار و ناوبری پنل ادمین
+   ========================================== */
+
+/* ===== چیدمان اصلی ===== */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  min-width: 0;
+}
+
+.admin-sidebar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  position: sticky;
+  top: 20px;
+}
+
+.admin-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ===== هدر سایدبار و پنل ===== */
+.admin-sidebar-head,
+.admin-panel-head {
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(circle at top right, rgba(33, 158, 188, 0.06), transparent 35%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.admin-sidebar-head h3,
+.admin-panel-head h3 {
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.admin-sidebar-head p,
+.admin-panel-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.9;
+}
+
+.admin-sidebar-body {
+  padding: 16px;
+}
+
+.admin-panel-body {
+  padding: 24px;
+  min-width: 0;
+}
+
+/* ===== منوی سایدبار ===== */
+.admin-menu {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-menu-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-soft);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  text-align: right;
+}
+
+.admin-menu-btn:hover {
+  background: var(--surface-2);
+  color: var(--secondary);
+  border-color: var(--border);
+}
+
+.admin-menu-btn.is-active {
+  background: rgba(33, 158, 188, 0.08);
+  border-color: rgba(33, 158, 188, 0.2);
+  color: var(--secondary);
+  box-shadow: inset 0 0 0 1px rgba(33, 158, 188, 0.05);
+}
+
+.admin-menu-btn .admin-menu-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  width: 28px;
+  text-align: center;
+}
+
+.admin-menu-btn .admin-menu-label {
+  flex: 1;
+  font-weight: 600;
+}
+
+.admin-menu-btn .admin-menu-arrow {
+  color: var(--muted-2);
+  font-size: 0.8rem;
+  transition: transform 0.25s ease;
+}
+
+.admin-menu-btn.is-active .admin-menu-arrow {
+  color: var(--secondary);
+  transform: rotate(90deg);
+}
+
+/* ===== برچسب کاربر در سایدبار ===== */
+.admin-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(33, 158, 188, 0.08);
+  color: var(--secondary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.admin-user-chip strong {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+/* ===== بخش‌های پنل ===== */
+.admin-section {
+  display: none;
+  min-width: 0;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  scroll-margin-top: 100px;
+}
+
+.admin-section.is-active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== دکمه خروج ===== */
+.admin-menu-btn.admin-menu-btn--danger {
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.admin-menu-btn.admin-menu-btn--danger:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+.admin-menu-btn.admin-menu-btn--danger.is-active {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: var(--danger);
+}
+
+/* ===== استایل‌های ریسپانسیو سایدبار ===== */
+@media (max-width: 1100px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .admin-sidebar {
+    position: static;
+    top: 0;
+  }
+
+  .admin-menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 6px;
+  }
+
+  .admin-menu-btn {
+    padding: 12px 14px;
+    font-size: 0.9rem;
+  }
+
+  .admin-menu-btn .admin-menu-arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar-head,
+  .admin-panel-head,
+  .admin-panel-body {
+    padding: 18px;
+  }
+
+  .admin-menu {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-menu-btn {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .admin-menu-btn .admin-menu-icon {
+    font-size: 1rem;
+    width: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-menu {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-menu-btn {
+    padding: 12px 14px;
+  }
+}

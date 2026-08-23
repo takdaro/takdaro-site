@@ -368,6 +368,72 @@
       white-space: pre-line;
     }
 
+    /* ============================================
+       پیگیری تلگرام
+       ============================================ */
+    .telegram-track-card {
+      border-radius: 16px;
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .telegram-track-card .status-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .telegram-track-card .status-area .icon {
+      font-size: 2rem;
+    }
+
+    .telegram-track-card .status-area .info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .telegram-track-card .status-area .info .title {
+      font-weight: 700;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .telegram-track-card .status-area .info .sub {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .telegram-track-card .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .telegram-track-card .actions .btn {
+      white-space: nowrap;
+    }
+
+    .telegram-track-connected {
+      border-color: #bbf7d0;
+      background: var(--secondary-soft);
+    }
+
+    .telegram-track-connected .status-area .info .title {
+      color: var(--success);
+    }
+
+    .telegram-track-disconnected {
+      border-color: var(--border);
+      background: var(--surface-2);
+    }
+
     /* دکمه‌ها */
     .invoice-actions {
       display: flex;
@@ -462,6 +528,19 @@
         flex: 1;
         min-width: 120px;
       }
+
+      .telegram-track-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .telegram-track-card .actions {
+        width: 100%;
+      }
+
+      .telegram-track-card .actions .btn {
+        flex: 1;
+      }
     }
 
     @media (max-width: 480px) {
@@ -492,7 +571,8 @@
       #bottom-nav,
       .hero,
       .invoice-actions,
-      .invoice-message {
+      .invoice-message,
+      #telegram-track-section {
         display: none !important;
       }
 
@@ -575,6 +655,7 @@
                 </div>
               </div>
 
+              <!-- ⭐ فقط یک ستون وضعیت -->
               <div class="invoice-meta-grid">
                 <div class="invoice-meta-item">
                   <span>شماره سفارش</span>
@@ -588,12 +669,6 @@
                   <span>وضعیت سفارش</span>
                   <strong id="meta-status">
                     <span class="status-badge status-badge--info">در انتظار</span>
-                  </strong>
-                </div>
-                <div class="invoice-meta-item">
-                  <span>وضعیت پرداخت</span>
-                  <strong id="meta-payment-status">
-                    <span class="status-badge status-badge--warning">در انتظار پرداخت</span>
                   </strong>
                 </div>
               </div>
@@ -704,6 +779,29 @@
               </div>
             </div>
 
+            <!-- ==========================================
+            بخش پیگیری سفارش در تلگرام
+            ========================================== -->
+            <div class="invoice-section" id="telegram-track-section">
+              <h3>🔎 پیگیری سفارش در تلگرام</h3>
+              <p class="section-desc">
+                برای دریافت آخرین وضعیت سفارش و اعلان‌های مربوط به آن، 
+                حساب تلگرام خود را متصل کنید.
+              </p>
+
+              <div id="telegram-track-container">
+                <div class="telegram-track-card telegram-track-disconnected">
+                  <div class="status-area">
+                    <span class="icon">⏳</span>
+                    <div class="info">
+                      <span class="title">در حال بارگذاری...</span>
+                      <span class="sub">لطفاً منتظر بمانید</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- دکمه‌های اقدام -->
             <div class="invoice-actions">
               <button type="button" class="btn btn-primary" id="print-invoice-btn">
@@ -752,7 +850,6 @@
         metaOrderNumber: document.getElementById('meta-order-number'),
         metaCreatedAt: document.getElementById('meta-created-at'),
         metaStatus: document.getElementById('meta-status'),
-        metaPaymentStatus: document.getElementById('meta-payment-status'),
 
         itemsBody: document.getElementById('invoice-items-body'),
 
@@ -779,7 +876,55 @@
         logoContainer: document.getElementById('invoice-logo-container'),
         whatsappBtn: document.getElementById('whatsapp-btn'),
         printBtn: document.getElementById('print-invoice-btn'),
+
+        telegramTrackContainer: document.getElementById('telegram-track-container')
       };
+
+      // ============================================
+      // ⭐⭐⭐ توابع تبدیل وضعیت به فارسی (به‌روزرسانی شده)
+      // ============================================
+
+      function faOrderStatus(status) {
+        const map = {
+          pending: "در انتظار",
+          order_confirmed: "تأیید سفارش",
+          processing: "در حال پردازش",
+          ready_to_ship: "آماده ارسال",
+          courier_delivery: "ارسال با پیک",
+          bus_shipping: "ارسال با اتوبوس‌رانی",
+          shipped: "ارسال شده",
+          delivered: "تحویل شده",
+          completed: "تکمیل شده",
+          cancelled: "لغو شده",
+          returned: "برگشت خورده",
+          processing_failed: "پردازش ناموفق"
+        };
+        return map[String(status || "").toLowerCase()] || status || "نامشخص";
+      }
+
+      function getStatusBadgeClass(status) {
+        const v = String(status || "").toLowerCase();
+        if (["completed", "delivered"].includes(v)) {
+          return "status-badge--success";
+        }
+        if (["pending"].includes(v)) {
+          return "status-badge--warning";
+        }
+        if (["processing", "shipped", "order_confirmed", "ready_to_ship", "courier_delivery", "bus_shipping"].includes(v)) {
+          return "status-badge--info";
+        }
+        if (["cancelled", "returned", "processing_failed"].includes(v)) {
+          return "status-badge--danger";
+        }
+        return "status-badge--warning";
+      }
+
+      function getStatusBadge(status) {
+        const v = String(status || "").toLowerCase();
+        const text = faOrderStatus(status);
+        const cls = getStatusBadgeClass(status);
+        return `<span class="status-badge ${cls}">${text}</span>`;
+      }
 
       // ============================================
       // توابع کمکی
@@ -815,23 +960,6 @@
         }
       }
 
-      function getStatusBadge(status, type) {
-        const map = {
-          pending: { class: 'status-badge--warning', text: 'در انتظار' },
-          processing: { class: 'status-badge--info', text: 'در حال پردازش' },
-          shipped: { class: 'status-badge--info', text: 'ارسال شده' },
-          completed: { class: 'status-badge--success', text: 'تکمیل شده' },
-          cancelled: { class: 'status-badge--danger', text: 'لغو شده' },
-          paid: { class: 'status-badge--success', text: 'پرداخت شده' },
-          failed: { class: 'status-badge--danger', text: 'ناموفق' },
-          'in-progress': { class: 'status-badge--info', text: 'در حال بررسی' },
-        };
-
-        const key = String(status || '').toLowerCase();
-        const info = map[key] || { class: 'status-badge--warning', text: String(status || '-') };
-        return `<span class="status-badge ${info.class}">${info.text}</span>`;
-      }
-
       function formatAddress(address) {
         if (!address || typeof address !== 'object') return 'آدرسی ثبت نشده است.';
         const parts = [];
@@ -859,6 +987,145 @@
         }
         if (els.loading) els.loading.style.display = 'none';
         if (els.content) els.content.style.display = 'none';
+      }
+
+      // ============================================
+      // توابع پیگیری تلگرام
+      // ============================================
+
+      async function loadTelegramTrackStatus(orderNumber) {
+        const container = els.telegramTrackContainer;
+        if (!container) return;
+
+        try {
+          const response = await fetch('/api/account/telegram/status', {
+            credentials: 'same-origin'
+          });
+          const data = await response.json().catch(() => null);
+
+          const isConnected = data?.success && data?.connected === true;
+
+          if (isConnected) {
+            renderTelegramTrackConnected(container, orderNumber, data.data);
+          } else {
+            renderTelegramTrackDisconnected(container, orderNumber);
+          }
+        } catch (_) {
+          renderTelegramTrackDisconnected(container, orderNumber);
+        }
+      }
+
+      function renderTelegramTrackConnected(container, orderNumber, statusData) {
+        const username = statusData?.telegram_username || 'حساب تلگرام';
+
+        container.innerHTML = `
+          <div class="telegram-track-card telegram-track-connected">
+            <div class="status-area">
+              <span class="icon">🟢</span>
+              <div class="info">
+                <span class="title">✅ اعلان‌های تلگرام فعال است</span>
+                <span class="sub">${esc(username)}</span>
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-primary" id="track-order-telegram-btn">
+                📱 پیگیری سفارش در تلگرام
+              </button>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('track-order-telegram-btn')?.addEventListener('click', function() {
+          trackOrderInTelegram(orderNumber);
+        });
+      }
+
+      function renderTelegramTrackDisconnected(container, orderNumber) {
+        container.innerHTML = `
+          <div class="telegram-track-card telegram-track-disconnected">
+            <div class="status-area">
+              <span class="icon">📱</span>
+              <div class="info">
+                <span class="title">⚠️ تلگرام متصل نیست</span>
+                <span class="sub">
+                  برای دریافت آخرین وضعیت سفارش و اعلان‌های مربوط به آن، 
+                  حساب تلگرام خود را متصل کنید.
+                </span>
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn btn-primary" id="connect-telegram-track-btn">
+                🔗 اتصال تلگرام و پیگیری سفارش
+              </button>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('connect-telegram-track-btn')?.addEventListener('click', function() {
+          connectTelegramForTracking(orderNumber);
+        });
+      }
+
+      async function trackOrderInTelegram(orderNumber) {
+        const btn = document.getElementById('track-order-telegram-btn');
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = '⏳ در حال ارسال...';
+        }
+
+        try {
+          const response = await fetch('/api/account/telegram/track-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ order_number: orderNumber })
+          });
+          const data = await response.json().catch(() => null);
+
+          if (!response.ok || !data?.success) {
+            alert(data?.error || 'ارسال پیام پیگیری با خطا مواجه شد.');
+            return;
+          }
+
+          alert('✅ پیام پیگیری سفارش در تلگرام ارسال شد. لطفاً تلگرام خود را بررسی کنید.');
+        } catch (_) {
+          alert('خطا در ارتباط با سرور.');
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '📱 پیگیری سفارش در تلگرام';
+          }
+        }
+      }
+
+      async function connectTelegramForTracking(orderNumber) {
+        try {
+          const response = await fetch('/api/account/telegram/connect', {
+            method: 'POST',
+            credentials: 'same-origin'
+          });
+          const data = await response.json().catch(() => null);
+
+          if (!response.ok || !data?.success) {
+            alert(data?.error || 'خطا در ایجاد لینک اتصال.');
+            return;
+          }
+
+          sessionStorage.setItem('telegram_track_order', orderNumber);
+
+          if (data.telegram_link) {
+            window.open(data.telegram_link, '_blank');
+            alert(
+              '✅ لینک اتصال به تلگرام باز شد.\n\n' +
+              '📌 لطفاً در تلگرام روی دکمه Start کلیک کنید تا اتصال تکمیل شود.\n' +
+              '⏱️ این لینک تا ۱۰ دقیقه معتبر است.'
+            );
+          } else {
+            alert('لینک اتصال دریافت نشد.');
+          }
+        } catch (_) {
+          alert('خطا در ارتباط با سرور.');
+        }
       }
 
       // ============================================
@@ -932,9 +1199,8 @@
         // تاریخ
         els.metaCreatedAt.textContent = formatDate(order.created_at);
 
-        // وضعیت‌ها
+        // ⭐ فقط وضعیت سفارش (بدون وضعیت پرداخت)
         els.metaStatus.innerHTML = getStatusBadge(order.status);
-        els.metaPaymentStatus.innerHTML = getStatusBadge(order.payment_status || order.status);
 
         // اقلام
         const items = Array.isArray(order.items) ? order.items : [];
@@ -972,7 +1238,7 @@
         els.summaryTotal.textContent = formatPrice(total);
         els.summaryPayable.textContent = formatPrice(payable);
 
-        // ✅ اطلاعات پرداخت (از تنظیمات)
+        // اطلاعات پرداخت (از تنظیمات)
         els.paymentAccount.textContent = settings.account || 'بانک ملی - شماره حساب: ۱۲۳۴۵۶۷۸۹۰';
         els.paymentCard.textContent = settings.card || '۶۰۳۷-۷۹۹۱-۵۰۵۴-۴۳۴۲';
         els.paymentSheba.textContent = settings.sheba || 'IR۴۵۰۱۷۰۰۰۰۰۰۰۰۱۲۳۴۵۶۷۸۹۰';
@@ -1007,6 +1273,9 @@
         els.whatsappBtn.onclick = function() {
           window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
         };
+
+        // بارگذاری وضعیت تلگرام برای پیگیری سفارش
+        loadTelegramTrackStatus(orderNumber);
 
         // نمایش محتوا
         if (els.loading) els.loading.style.display = 'none';

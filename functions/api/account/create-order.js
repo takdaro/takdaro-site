@@ -1,5 +1,7 @@
 import { getCurrentUser } from "../../lib/admin";
 import { getCurrentRate } from "../../lib/rate";
+import { sendOrderCreatedNotification } from "../../lib/notification";
+import { sendUserOrderCreatedNotification } from "../../lib/notification";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -86,13 +88,11 @@ function extractItemQuantity(item) {
 }
 
 function extractItemUnitPrice(item) {
-  // ⭐ اولویت با displayPrice (قیمت محاسبه‌شده از نرخ دلار)
   if (item?.displayPrice !== undefined && item?.displayPrice !== null) {
     const displayPrice = normalizeNumber(item.displayPrice);
     if (displayPrice > 0) return displayPrice;
   }
   
-  // رفتار قبلی
   const directPrice = normalizeNumber(item?.unit_price);
   if (directPrice > 0) return directPrice;
   
@@ -222,40 +222,43 @@ async function createOrUpdateAddress(context, user, address) {
   const city = normalizeText(address.city);
   const state = normalizeText(address.state);
 
-  // بررسی وجود آدرس قبلی برای این کاربر
-  const existingAddress = await context.env.DB.prepare(`
-    SELECT id
-    FROM addresses
-    WHERE user_id = ?
-    ORDER BY is_default DESC, id DESC
-    LIMIT 1
-  `).bind(user.id).first();
+  const existingAddress = await context.env.DB
+    .prepare(`
+      SELECT id
+      FROM addresses
+      WHERE user_id = ?
+      ORDER BY is_default DESC, id DESC
+      LIMIT 1
+    `)
+    .bind(user.id).first();
 
   if (existingAddress?.id) {
-    // به‌روزرسانی آدرس موجود
-    await context.env.DB.prepare(`
-      UPDATE addresses
-      SET
-        type = 'shipping',
-        full_name = ?,
-        address_line = ?,
-        postal_code = ?,
-        phone = ?,
-        city = ?,
-        state = ?,
-        is_default = 1,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND user_id = ?
-    `).bind(
-      fullName,
-      addressLine,
-      postalCode,
-      phone,
-      city,
-      state,
-      existingAddress.id,
-      user.id
-    ).run();
+    await context.env.DB
+      .prepare(`
+        UPDATE addresses
+        SET
+          type = 'shipping',
+          full_name = ?,
+          address_line = ?,
+          postal_code = ?,
+          phone = ?,
+          city = ?,
+          state = ?,
+          is_default = 1,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?
+      `)
+      .bind(
+        fullName,
+        addressLine,
+        postalCode,
+        phone,
+        city,
+        state,
+        existingAddress.id,
+        user.id
+      )
+      .run();
 
     return {
       id: existingAddress.id,
@@ -268,39 +271,42 @@ async function createOrUpdateAddress(context, user, address) {
     };
   }
 
-  // غیرفعال کردن آدرس‌های قبلی به عنوان پیش‌فرض
-  await context.env.DB.prepare(`
-    UPDATE addresses
-    SET is_default = 0,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE user_id = ?
-  `).bind(user.id).run();
+  await context.env.DB
+    .prepare(`
+      UPDATE addresses
+      SET is_default = 0,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = ?
+    `)
+    .bind(user.id).run();
 
-  // ایجاد آدرس جدید
-  const addressInsert = await context.env.DB.prepare(`
-    INSERT INTO addresses (
-      user_id,
-      type,
-      full_name,
-      address_line,
-      postal_code,
+  const addressInsert = await context.env.DB
+    .prepare(`
+      INSERT INTO addresses (
+        user_id,
+        type,
+        full_name,
+        address_line,
+        postal_code,
+        phone,
+        city,
+        state,
+        is_default,
+        created_at,
+        updated_at
+      )
+      VALUES (?, 'shipping', ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `)
+    .bind(
+      user.id,
+      fullName,
+      addressLine,
+      postalCode,
       phone,
       city,
-      state,
-      is_default,
-      created_at,
-      updated_at
+      state
     )
-    VALUES (?, 'shipping', ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-  `).bind(
-    user.id,
-    fullName,
-    addressLine,
-    postalCode,
-    phone,
-    city,
-    state
-  ).run();
+    .run();
 
   return {
     id: addressInsert.meta?.last_row_id ?? null,
@@ -315,37 +321,43 @@ async function createOrUpdateAddress(context, user, address) {
 
 async function generateUniqueOrderNumber(db) {
   let orderNumber = generateOrderNumber();
-  let existingOrder = await db.prepare(`
-    SELECT id
-    FROM orders
-    WHERE order_number = ?
-    LIMIT 1
-  `).bind(orderNumber).first();
-
-  while (existingOrder) {
-    orderNumber = generateOrderNumber();
-    existingOrder = await db.prepare(`
+  let existingOrder = await db
+    .prepare(`
       SELECT id
       FROM orders
       WHERE order_number = ?
       LIMIT 1
-    `).bind(orderNumber).first();
+    `)
+    .bind(orderNumber).first();
+
+  while (existingOrder) {
+    orderNumber = generateOrderNumber();
+    existingOrder = await db
+      .prepare(`
+        SELECT id
+        FROM orders
+        WHERE order_number = ?
+        LIMIT 1
+      `)
+      .bind(orderNumber).first();
   }
 
   return orderNumber;
 }
 
 async function hasWalletUseTransaction(db, userId, orderId) {
-  const row = await db.prepare(`
-    SELECT id
-    FROM wallet_transactions
-    WHERE user_id = ?
-      AND order_id = ?
-      AND type = 'debit'
-      AND source = 'checkout'
-      AND status = 'completed'
-    LIMIT 1
-  `).bind(userId, orderId).first();
+  const row = await db
+    .prepare(`
+      SELECT id
+      FROM wallet_transactions
+      WHERE user_id = ?
+        AND order_id = ?
+        AND type = 'debit'
+        AND source = 'checkout'
+        AND status = 'completed'
+      LIMIT 1
+    `)
+    .bind(userId, orderId).first();
 
   return !!row;
 }
@@ -368,7 +380,6 @@ export async function onRequestPost(context) {
       return json({ success: false, error: validationError }, 400);
     }
 
-    // ⭐ دریافت نرخ فعلی دلار برای ذخیره در سفارش
     let currentRate = null;
     try {
       const rateResult = await getCurrentRate(context.env, 'USD');
@@ -376,7 +387,6 @@ export async function onRequestPost(context) {
         currentRate = rateResult.rate;
       }
     } catch (_) {
-      // اگر نرخ دریافت نشد، از مقدار پیش‌فرض استفاده کن
       currentRate = 196000;
     }
 
@@ -406,7 +416,6 @@ export async function onRequestPost(context) {
         quantity,
         unit_price: unitPrice,
         total_price: totalPrice,
-        // ⭐ فیلدهای جدید برای ذخیره نرخ لحظه‌ای
         rate_at_purchase: rateAtPurchase,
         currency_code: currencyCode
       };
@@ -440,38 +449,41 @@ export async function onRequestPost(context) {
     const savedAddress = await createOrUpdateAddress(context, user, address);
     const orderNumber = await generateUniqueOrderNumber(context.env.DB);
 
-    const orderInsert = await context.env.DB.prepare(`
-      INSERT INTO orders (
-        user_id,
-        order_number,
-        address_id,
-        status,
-        payment_status,
-        subtotal_amount,
-        shipping_amount,
-        total_amount,
-        wallet_used_amount,
-        payable_amount,
-        cashback_amount,
-        cashback_status,
-        notes,
-        created_at,
-        updated_at
+    const orderInsert = await context.env.DB
+      .prepare(`
+        INSERT INTO orders (
+          user_id,
+          order_number,
+          address_id,
+          status,
+          payment_status,
+          subtotal_amount,
+          shipping_amount,
+          total_amount,
+          wallet_used_amount,
+          payable_amount,
+          cashback_amount,
+          cashback_status,
+          notes,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      `)
+      .bind(
+        user.id,
+        orderNumber,
+        savedAddress.id,
+        subtotalAmount,
+        shippingAmount,
+        totalAmount,
+        walletUsedAmount,
+        payableAmount,
+        cashbackAmount,
+        cashbackAmount > 0 ? 'pending' : 'none',
+        normalizeText(order.notes || body.notes)
       )
-      VALUES (?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).bind(
-      user.id,
-      orderNumber,
-      savedAddress.id,
-      subtotalAmount,
-      shippingAmount,
-      totalAmount,
-      walletUsedAmount,
-      payableAmount,
-      cashbackAmount,
-      cashbackAmount > 0 ? 'pending' : 'none',
-      normalizeText(order.notes || body.notes)
-    ).run();
+      .run();
 
     const orderId = orderInsert.meta?.last_row_id ?? null;
 
@@ -479,32 +491,34 @@ export async function onRequestPost(context) {
       return json({ success: false, error: "order-create-failed" }, 500);
     }
 
-    // ⭐ ذخیره آیتم‌های سفارش با نرخ لحظه‌ای
     for (const item of normalizedItems) {
-      await context.env.DB.prepare(`
-        INSERT INTO order_items (
-          order_id,
-          product_id,
-          product_name,
-          quantity,
-          unit_price,
-          total_price,
-          rate_at_purchase,
-          currency_code,
-          created_at,
-          updated_at
+      await context.env.DB
+        .prepare(`
+          INSERT INTO order_items (
+            order_id,
+            product_id,
+            product_name,
+            quantity,
+            unit_price,
+            total_price,
+            rate_at_purchase,
+            currency_code,
+            created_at,
+            updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `)
+        .bind(
+          orderId,
+          item.product_id,
+          item.product_name,
+          item.quantity,
+          item.unit_price,
+          item.total_price,
+          item.rate_at_purchase,
+          item.currency_code
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `).bind(
-        orderId,
-        item.product_id,
-        item.product_name,
-        item.quantity,
-        item.unit_price,
-        item.total_price,
-        item.rate_at_purchase,
-        item.currency_code
-      ).run();
+        .run();
     }
 
     if (walletUsedAmount > 0) {
@@ -514,47 +528,133 @@ export async function onRequestPost(context) {
         const balanceAfter = Math.max(0, balanceBefore - walletUsedAmount);
 
         await context.env.DB.batch([
-          context.env.DB.prepare(`
-            UPDATE users
-            SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-          `).bind(balanceAfter, user.id),
+          context.env.DB
+            .prepare(`
+              UPDATE users
+              SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
+              WHERE id = ?
+            `)
+            .bind(balanceAfter, user.id),
 
-          context.env.DB.prepare(`
-            INSERT INTO wallet_transactions (
-              user_id,
-              type,
-              amount,
-              balance_before,
-              balance_after,
-              status,
-              source,
-              description,
-              note,
-              order_id,
-              order_number,
-              reference_type,
-              reference_id,
-              created_by_user_id,
-              created_at,
-              updated_at
+          context.env.DB
+            .prepare(`
+              INSERT INTO wallet_transactions (
+                user_id,
+                type,
+                amount,
+                balance_before,
+                balance_after,
+                status,
+                source,
+                description,
+                note,
+                order_id,
+                order_number,
+                reference_type,
+                reference_id,
+                created_by_user_id,
+                created_at,
+                updated_at
+              )
+              VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            `)
+            .bind(
+              user.id,
+              walletUsedAmount,
+              balanceBefore,
+              balanceAfter,
+              `برداشت کیف پول برای سفارش ${orderNumber}`,
+              `استفاده از کیف پول در ثبت سفارش`,
+              orderId,
+              orderNumber,
+              String(orderId),
+              user.id
             )
-            VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          `).bind(
-            user.id,
-            walletUsedAmount,
-            balanceBefore,
-            balanceAfter,
-            `برداشت کیف پول برای سفارش ${orderNumber}`,
-            `استفاده از کیف پول در ثبت سفارش`,
-            orderId,
-            orderNumber,
-            String(orderId),
-            user.id
-          )
         ]);
       }
     }
+
+    // ============================================
+    // ⭐⭐ ارسال اعلان‌ها (غیرهمزمان - بدون تاخیر در پاسخ)
+    // ============================================
+    context.waitUntil((async () => {
+      try {
+        let baseUrl = '';
+        try {
+          const urlResult = await context.env.DB
+            .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = 'site_base_url'`)
+            .first();
+          if (urlResult) {
+            baseUrl = urlResult.setting_value || '';
+          }
+        } catch (_) {
+          baseUrl = '';
+        }
+
+        if (!baseUrl) {
+          const requestUrl = new URL(context.request.url);
+          baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+        }
+
+        const orderData = {
+          orderId: orderId,
+          orderNumber: orderNumber,
+          totalAmount: totalAmount,
+          shippingAmount: shippingAmount,
+          walletUsedAmount: walletUsedAmount,
+          payableAmount: payableAmount,
+          cashbackAmount: cashbackAmount,
+          status: 'pending',
+          paymentStatus: 'pending',
+          createdAt: new Date().toISOString()
+        };
+
+        const userData = {
+          id: user.id,
+          fullName: user.full_name || '',
+          email: user.email || '',
+          phone: user.phone || ''
+        };
+
+        console.log('📱 create-order: شروع ارسال اعلان‌ها (پس‌زمینه)');
+
+        // 1️⃣ ارسال اعلان به کاربر
+        try {
+          const userNotification = await sendUserOrderCreatedNotification(
+            context.env,
+            orderData,
+            userData,
+            normalizedItems,
+            baseUrl
+          );
+          console.log('📱 create-order: userNotification:', userNotification);
+        } catch (userError) {
+          console.error('❌ create-order: خطا در ارسال اعلان به کاربر:', userError);
+        }
+
+        // 2️⃣ ارسال اعلان به ادمین 
+        try {
+          // ✅ تاخیر 10 ثانیه حذف شد - ارسال سریع
+          console.log('📱 create-order: ارسال اعلان به ادمین...');
+          
+          const adminNotification = await sendOrderCreatedNotification(
+            context.env,
+            orderData,
+            userData,
+            normalizedItems,
+            baseUrl
+          );
+          console.log('📱 create-order: adminNotification:', adminNotification);
+        } catch (adminError) {
+          console.error('❌ create-order: خطا در ارسال اعلان به ادمین:', adminError);
+        }
+
+        console.log('📱 create-order: ارسال اعلان‌ها کامل شد');
+
+      } catch (notificationError) {
+        console.error('❌ create-order: خطا در ارسال اعلان:', notificationError);
+      }
+    })());
 
     return json({
       success: true,
@@ -582,7 +682,6 @@ export async function onRequestPost(context) {
         cashback_amount: cashbackAmount,
         cashback_status: cashbackAmount > 0 ? 'pending' : 'none',
         items_count: normalizedItems.length,
-        // ⭐ نرخ لحظه‌ای ثبت شده در سفارش
         rate_at_purchase: currentRate
       }
     });

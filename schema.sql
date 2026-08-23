@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS orders (
   -- یادداشت
   notes TEXT,
   
+  -- کد رهگیری (برای ارسال)
+  tracking_code TEXT,
+  
   -- زمان‌ها
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -92,7 +95,6 @@ CREATE TABLE IF NOT EXISTS order_items (
   quantity INTEGER NOT NULL DEFAULT 1,
   unit_price INTEGER NOT NULL DEFAULT 0,
   total_price INTEGER NOT NULL DEFAULT 0,
-  -- ⭐ فیلدهای جدید برای ذخیره نرخ لحظه‌ای
   rate_at_purchase INTEGER,
   currency_code TEXT DEFAULT 'USD',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -151,7 +153,7 @@ CREATE TABLE IF NOT EXISTS admin_logs (
 );
 
 -- ============================================
--- 9. محصولات (نسخه به‌روز شده با قیمت‌گذاری وابسته به نرخ ارز)
+-- 9. محصولات
 -- ============================================
 CREATE TABLE IF NOT EXISTS products (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -170,7 +172,6 @@ CREATE TABLE IF NOT EXISTS products (
   status TEXT NOT NULL DEFAULT 'draft',
   images TEXT,
   primary_image TEXT,
-  -- ⭐ فیلدهای جدید سیستم نرخ ارز
   price_type TEXT DEFAULT 'fixed',
   base_price INTEGER,
   profit_type TEXT DEFAULT 'none',
@@ -245,7 +246,7 @@ CREATE TABLE IF NOT EXISTS shipping_free_thresholds (
 );
 
 -- ============================================
--- 14. نرخ‌های ارز (جدید)
+-- 14. نرخ‌های ارز
 -- ============================================
 CREATE TABLE IF NOT EXISTS rates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -262,7 +263,7 @@ CREATE TABLE IF NOT EXISTS rates (
 );
 
 -- ============================================
--- 15. تاریخچه نرخ‌های ارز (جدید)
+-- 15. تاریخچه نرخ‌های ارز
 -- ============================================
 CREATE TABLE IF NOT EXISTS rate_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -273,6 +274,116 @@ CREATE TABLE IF NOT EXISTS rate_history (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (rate_id) REFERENCES rates(id) ON DELETE CASCADE,
   FOREIGN KEY (changed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- ============================================
+-- 16. جدول SMS Outbox (صف ارسال)
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_outbox (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id TEXT UNIQUE NOT NULL,
+  recipient TEXT NOT NULL,
+  message TEXT NOT NULL,
+  sender TEXT DEFAULT '',
+  priority INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'pending',
+  retry_count INTEGER DEFAULT 0,
+  max_retry INTEGER DEFAULT 3,
+  event_type TEXT,
+  reference_id TEXT,
+  reference_type TEXT,
+  error_message TEXT,
+  sent_at TEXT,
+  created_by_user_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- ============================================
+-- 17. جدول SMS Inbox (دریافتی)
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_inbox (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id TEXT UNIQUE NOT NULL,
+  sender TEXT NOT NULL,
+  recipient TEXT NOT NULL,
+  message TEXT NOT NULL,
+  received_at TEXT NOT NULL,
+  processed BOOLEAN DEFAULT 0,
+  processed_at TEXT,
+  processed_by TEXT,
+  status TEXT DEFAULT 'received',
+  reference_id TEXT,
+  reference_type TEXT,
+  note TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 18. جدول لاگ‌های Gateway
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_gateway_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  direction TEXT NOT NULL,
+  message_id TEXT,
+  gateway_action TEXT NOT NULL,
+  request_payload TEXT,
+  response_payload TEXT,
+  status TEXT NOT NULL,
+  error_message TEXT,
+  duration_ms INTEGER,
+  gateway_ip TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- 19. جدول تنظیمات SMS
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_settings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  is_enabled BOOLEAN DEFAULT 0,
+  admin_phone TEXT,
+  gateway_url TEXT DEFAULT 'https://your-domain.com/api/sms',
+  polling_interval INTEGER DEFAULT 30,
+  max_sms_per_minute INTEGER DEFAULT 10,
+  retry_interval INTEGER DEFAULT 300,
+  default_sender TEXT,
+  event_order_created_admin BOOLEAN DEFAULT 1,
+  event_order_created_user BOOLEAN DEFAULT 0,
+  event_order_status_changed_user BOOLEAN DEFAULT 0,
+  event_payment_success_admin BOOLEAN DEFAULT 1,
+  event_payment_success_user BOOLEAN DEFAULT 0,
+  event_order_cancelled_user BOOLEAN DEFAULT 0,
+  extra_config TEXT,
+  updated_by_user_id INTEGER,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- ============================================
+-- 20. 🔐 جدول Nonceهای استفاده‌شده (Replay Protection)
+-- ============================================
+CREATE TABLE IF NOT EXISTS used_nonces (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nonce TEXT UNIQUE NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TEXT NOT NULL
+);
+
+-- ============================================
+-- 21. 📝 جدول SMS Templates (جدید)
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_type TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  message_template TEXT NOT NULL,
+  is_enabled BOOLEAN DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
@@ -313,6 +424,18 @@ CREATE INDEX IF NOT EXISTS idx_rate_history_rate_id ON rate_history(rate_id);
 CREATE INDEX IF NOT EXISTS idx_rate_history_created_at ON rate_history(created_at);
 
 -- ============================================
+-- ایندکس‌های Nonce
+-- ============================================
+CREATE INDEX IF NOT EXISTS idx_nonces_expires ON used_nonces(expires_at);
+CREATE INDEX IF NOT EXISTS idx_nonces_nonce ON used_nonces(nonce);
+
+-- ============================================
+-- ایندکس‌های Templates
+-- ============================================
+CREATE INDEX IF NOT EXISTS idx_sms_templates_event_type ON sms_templates(event_type);
+CREATE INDEX IF NOT EXISTS idx_sms_templates_is_enabled ON sms_templates(is_enabled);
+
+-- ============================================
 -- تنظیمات پیش‌فرض فاکتور و پرداخت
 -- ============================================
 INSERT OR IGNORE INTO app_settings (setting_key, setting_value) VALUES
@@ -336,3 +459,15 @@ INSERT OR IGNORE INTO app_settings (setting_key, setting_value) VALUES
 -- ============================================
 INSERT OR IGNORE INTO rates (currency_code, currency_name, rate, source_type, is_active)
 VALUES ('USD', 'دلار آمریکا', 196000, 'manual', 1);
+
+-- ============================================
+-- درج Template‌های پیش‌فرض SMS
+-- ============================================
+INSERT OR IGNORE INTO sms_templates (event_type, title, message_template, is_enabled) VALUES
+  ('order_created', 'ثبت سفارش', '🛍️ سفارش شما ثبت شد\nشماره: #{order_number}\nمبلغ: {amount} تومان\nوضعیت: {order_status}', 1),
+  ('payment_success', 'پرداخت موفق', '✅ پرداخت موفق\nسفارش: #{order_number}\nمبلغ: {amount} تومان', 1),
+  ('order_processing', 'در حال پردازش', '🔄 سفارش شما در حال پردازش است\nشماره: #{order_number}', 1),
+  ('order_shipped', 'ارسال شده', '🚚 سفارش شما ارسال شد\nشماره: #{order_number}\nکد رهگیری: {tracking_code}', 1),
+  ('order_completed', 'تکمیل سفارش', '✅ سفارش شما تکمیل شد\nشماره: #{order_number}\nاز خرید شما متشکریم', 1),
+  ('order_cancelled', 'لغو سفارش', '❌ سفارش شما لغو شد\nشماره: #{order_number}', 1),
+  ('payment_failed', 'پرداخت ناموفق', '❌ پرداخت سفارش #{order_number} ناموفق بود\nلطفاً مجدداً تلاش کنید', 1);

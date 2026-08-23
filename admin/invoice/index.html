@@ -1,0 +1,66 @@
+<!-- ========================================== -->
+<!-- INVOICE                                   -->
+<!-- ========================================== -->
+<div class="detail-card">
+  <h4>تنظیمات فاکتور و پرداخت</h4>
+  <p class="admin-help">اطلاعات نمایش داده شده در فاکتور و صفحه تشکر را مدیریت کنید.</p>
+
+  <div id="invoice-settings-message" class="admin-message"></div>
+
+  <div class="filters-grid filters-grid-2">
+    <div class="form-field">
+      <label for="invoice-logo">آدرس لوگو</label>
+      <input id="invoice-logo" type="text" placeholder="/assets/images/logo.png" />
+      <small class="admin-help">مسیر تصویر لوگو در فاکتور</small>
+    </div>
+    <div class="form-field">
+      <label for="invoice-company-name">نام شرکت</label>
+      <input id="invoice-company-name" type="text" placeholder="تک تجارت" />
+    </div>
+    <div class="form-field" style="grid-column:1/-1;">
+      <label for="invoice-thankyou-text">متن تشکر</label>
+      <textarea id="invoice-thankyou-text" rows="3" placeholder="متن تشکر از خرید"></textarea>
+    </div>
+  </div>
+
+  <hr style="border:1px solid var(--border);margin:20px 0;" />
+
+  <h4 style="margin-bottom:12px;">اطلاعات بانکی</h4>
+  <div class="filters-grid filters-grid-2">
+    <div class="form-field">
+      <label for="invoice-account">شماره حساب</label>
+      <input id="invoice-account" type="text" placeholder="بانک ملی - شماره حساب: ۱۲۳۴۵۶۷۸۹۰" />
+    </div>
+    <div class="form-field">
+      <label for="invoice-card">شماره کارت</label>
+      <input id="invoice-card" type="text" placeholder="۶۰۳۷-۷۹۹۱-۵۰۵۴-۴۳۴۲" />
+    </div>
+    <div class="form-field" style="grid-column:1/-1;">
+      <label for="invoice-sheba">شماره شبا</label>
+      <input id="invoice-sheba" type="text" placeholder="IR۴۵۰۱۷۰۰۰۰۰۰۰۰۱۲۳۴۵۶۷۸۹۰" />
+    </div>
+  </div>
+
+  <hr style="border:1px solid var(--border);margin:20px 0;" />
+
+  <h4 style="margin-bottom:12px;">اطلاعات پرداخت</h4>
+  <div class="filters-grid filters-grid-2">
+    <div class="form-field">
+      <label for="invoice-deadline">مهلت پرداخت</label>
+      <input id="invoice-deadline" type="text" placeholder="۲۴ ساعت" />
+    </div>
+    <div class="form-field">
+      <label for="invoice-whatsapp">شماره واتساپ پشتیبانی</label>
+      <input id="invoice-whatsapp" type="text" placeholder="۰۹۱۲۳۴۵۶۷۸۹" />
+    </div>
+    <div class="form-field" style="grid-column:1/-1;">
+      <label for="invoice-description">توضیحات پرداخت</label>
+      <textarea id="invoice-description" rows="3" placeholder="توضیحات مربوط به نحوه پرداخت"></textarea>
+    </div>
+  </div>
+
+  <div class="panel-actions">
+    <button class="btn btn-primary" type="button" id="save-invoice-settings-btn">ذخیره تنظیمات</button>
+    <button class="btn btn-secondary" type="button" id="load-invoice-settings-btn">بارگذاری مجدد</button>
+  </div>
+</div>

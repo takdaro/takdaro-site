@@ -58,47 +58,85 @@
 
   function normalizeProduct(product) {
     const slug = cleanText(product?.slug);
-    const stockQty = Math.max(0, Math.floor(toNumber(product?.stockQty, 0)));
-    const inStock = toBoolean(product?.inStock) && stockQty > 0;
+    const stockQty = Math.max(0, Math.floor(toNumber(product?.stockQty || product?.stock_quantity, 0)));
+    const inStock = toBoolean(product?.inStock || product?.in_stock) && stockQty > 0;
 
-    const numericPrice = toNumber(product?.price, 0);
-    const hasValidPrice = numericPrice > 0;
+    // ⭐⭐⭐ اولویت اول: استفاده از displayPriceLabel محاسبه‌شده از سرور
+    let priceLabel = cleanText(product?.displayPriceLabel || product?.priceLabel);
+    let displayPrice = product?.displayPrice || product?.price || null;
 
-    const price = hasValidPrice ? numericPrice : null;
-    const showPrice =
-      hasValidPrice ? true : toBoolean(product?.showPrice);
+    // اگر displayPriceLabel وجود نداشت، از logik قدیمی استفاده کن
+    if (!priceLabel || priceLabel === "") {
+      const numericPrice = toNumber(product?.price, 0);
+      const hasValidPrice = numericPrice > 0;
+
+      // اگر محصول وابسته به نرخ است و displayPrice دارد، از آن استفاده کن
+      if (product?.price_type === 'rate_based' && product?.displayPrice !== null && product?.displayPrice !== undefined) {
+        const displayPriceNum = toNumber(product?.displayPrice, 0);
+        if (displayPriceNum > 0) {
+          priceLabel = formatPrice(displayPriceNum);
+          displayPrice = displayPriceNum;
+        } else {
+          priceLabel = cleanText(product?.priceLabel) || "تماس بگیرید";
+        }
+      } else if (hasValidPrice) {
+        priceLabel = formatPrice(numericPrice);
+        displayPrice = numericPrice;
+      } else {
+        priceLabel = cleanText(product?.priceLabel) || "تماس بگیرید";
+        displayPrice = null;
+      }
+    } else {
+      // اگر displayPriceLabel وجود دارد، سعی کن displayPrice را هم استخراج کنی
+      if (product?.displayPrice !== null && product?.displayPrice !== undefined) {
+        displayPrice = toNumber(product?.displayPrice, null);
+      }
+    }
+
+    // اگر همچنان displayPrice مشخص نیست، از price استفاده کن
+    if (displayPrice === null || displayPrice === undefined) {
+      const numericPrice = toNumber(product?.price, 0);
+      if (numericPrice > 0) {
+        displayPrice = numericPrice;
+      }
+    }
+
+    // استخراج price_type و سایر فیلدهای جدید
+    const priceType = product?.price_type || product?.priceType || 'fixed';
+    const basePrice = product?.base_price || product?.basePrice || null;
+    const calculatedPrice = product?.calculated_price || product?.calculatedPrice || null;
 
     const imageList = Array.isArray(product?.images)
       ? product.images.map(normalizeImagePath).filter(Boolean)
       : [];
 
-    const primaryImage = normalizeImagePath(product?.primaryImage);
+    const primaryImage = normalizeImagePath(product?.primaryImage || product?.primary_image);
     const images = Array.from(new Set([primaryImage, ...imageList].filter(Boolean)));
-
-    const rawPriceLabel = cleanText(product?.priceLabel);
-    const priceLabel = hasValidPrice
-      ? formatPrice(price)
-      : rawPriceLabel || "تماس بگیرید";
 
     return {
       id: Number(product?.id) || null,
       slug,
       name: cleanText(product?.name) || "بدون نام",
       category: cleanText(product?.category) || "محصول",
-      price,
-      priceLabel,
-      displayPrice: priceLabel,
-      showPrice,
+      price: toNumber(product?.price, null),
+      priceLabel: priceLabel,
+      displayPrice: displayPrice,
+      displayPriceLabel: priceLabel,
+      showPrice: toBoolean(product?.showPrice || product?.show_price),
       inStock,
       stockQty,
       stockLabel: inStock
-        ? cleanText(product?.stockLabel) || "موجود"
+        ? cleanText(product?.stockLabel || product?.stock_label) || "موجود"
         : "ناموجود",
-      shortDescription: cleanText(product?.shortDescription),
+      shortDescription: cleanText(product?.shortDescription || product?.short_description),
       description: cleanText(product?.description),
       primaryImage: primaryImage || images[0] || "",
       images,
-      pageUrl: normalizePageUrl(product?.pageUrl, slug)
+      pageUrl: normalizePageUrl(product?.pageUrl || product?.page_url, slug),
+      // ⭐ فیلدهای جدید سیستم نرخ ارز
+      price_type: priceType,
+      base_price: basePrice ? toNumber(basePrice, null) : null,
+      calculated_price: calculatedPrice ? toNumber(calculatedPrice, null) : null
     };
   }
 
@@ -130,8 +168,8 @@
             Array.isArray(product?.images) && product.images.length
               ? product.images
               : fallback.images || [],
-          primaryImage: product?.primaryImage || fallback.primaryImage || "",
-          pageUrl: product?.pageUrl || fallback.pageUrl || ""
+          primaryImage: product?.primaryImage || product?.primary_image || fallback.primaryImage || "",
+          pageUrl: product?.pageUrl || product?.page_url || fallback.pageUrl || ""
         });
       })
       .filter((product) => product.slug);

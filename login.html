@@ -408,14 +408,29 @@
     document.addEventListener("DOMContentLoaded", async function () {
       if (!window.Auth) return;
 
+      // ==========================================
+      // ✅ اصلاح مهم: دریافت مسیر redirect از URL
+      // ==========================================
+      function getRedirectParam() {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect") || "";
+        if (!redirect.startsWith("/")) return null;
+        return redirect;
+      }
+
+      const redirectTarget = getRedirectParam();
+
       await window.Auth.redirectIfAuthenticated({
-        redirectTo: "/account.html"
+        redirectTo: redirectTarget || "/account.html"
       });
 
+      // ==========================================
+      // ✅ اصلاح مهم: bindLoginForm با redirect پویا
+      // ==========================================
       window.Auth.bindLoginForm({
         formSelector: "#login-form",
         messageSelector: "[data-auth-message]",
-        redirectAfterSuccess: "/account.html"
+        redirectAfterSuccess: redirectTarget || "/account.html"
       });
 
       // ==========================================
@@ -436,7 +451,6 @@
           const data = await response.json().catch(() => null);
 
           if (!response.ok || !data?.success) {
-            // در صورت خطا، لینک‌ها فعال باشند
             enableRegisterLinks();
             return;
           }
@@ -445,10 +459,8 @@
           const isEnabled = String(settings.allow_public_registration || 'true').toLowerCase() === 'true';
 
           if (isEnabled) {
-            // ثبت‌نام فعال است
             enableRegisterLinks();
           } else {
-            // ثبت‌نام غیرفعال است
             disableRegisterLinks();
           }
         } catch (_) {
@@ -457,20 +469,17 @@
       }
 
       function enableRegisterLinks() {
-        // لینک ثبت‌نام در دکمه
         registerBtnHeader.href = './register.html';
         registerBtnHeader.classList.remove('is-disabled');
         registerBtnHeader.style.pointerEvents = 'auto';
         registerBtnHeader.style.opacity = '1';
 
-        // لینک ثبت‌نام در فوتر
         registerLinkFooter.href = './register.html';
         registerLinkFooter.classList.remove('is-disabled');
         registerLinkFooter.style.pointerEvents = 'auto';
         registerLinkFooter.style.opacity = '1';
         registerLinkFooter.style.cursor = 'pointer';
 
-        // حذف event listener قدیمی
         registerLinkFooter.replaceWith(registerLinkFooter.cloneNode(true));
         const newFooterLink = document.getElementById('register-link-footer');
         if (newFooterLink) {
@@ -479,7 +488,6 @@
       }
 
       function disableRegisterLinks() {
-        // دکمه ثبت‌نام - جلوگیری از Navigation
         registerBtnHeader.href = 'javascript:void(0)';
         registerBtnHeader.classList.add('is-disabled');
         registerBtnHeader.style.pointerEvents = 'auto';
@@ -491,14 +499,12 @@
           showRegistrationModal();
         });
 
-        // لینک ثبت‌نام در فوتر
         registerLinkFooter.href = 'javascript:void(0)';
         registerLinkFooter.classList.add('is-disabled');
         registerLinkFooter.style.pointerEvents = 'auto';
         registerLinkFooter.style.cursor = 'pointer';
         registerLinkFooter.style.opacity = '1';
 
-        // حذف event listener قدیمی و اضافه کردن جدید
         const newFooterLink = registerLinkFooter.cloneNode(true);
         registerLinkFooter.parentNode.replaceChild(newFooterLink, registerLinkFooter);
         const newLink = document.getElementById('register-link-footer');
@@ -520,7 +526,6 @@
         document.body.style.overflow = '';
       }
 
-      // رویدادهای Modal
       if (modalClose) {
         modalClose.addEventListener('click', hideRegistrationModal);
       }
@@ -541,7 +546,6 @@
         }
       });
 
-      // اجرای بررسی
       await checkRegistrationStatus();
     });
   </script>

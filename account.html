@@ -509,6 +509,133 @@
       display: none !important;
     }
 
+    /* ============================================
+       استایل‌های بخش تلگرام
+       ============================================ */
+    .telegram-status-card {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      background: #fff;
+      margin-bottom: 20px;
+    }
+
+    .telegram-status-card.connected {
+      border-color: #bbf7d0;
+      background: var(--secondary-soft);
+    }
+
+    .telegram-status-card .status-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .telegram-status-card .status-icon {
+      font-size: 2.5rem;
+    }
+
+    .telegram-status-card .status-info {
+      flex: 1;
+    }
+
+    .telegram-status-card .status-info .title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text);
+    }
+
+    .telegram-status-card .status-info .sub {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .telegram-status-card .status-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .telegram-prefs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .telegram-pref-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+      transition: border-color 0.2s ease;
+    }
+
+    .telegram-pref-item:hover {
+      border-color: rgba(33, 158, 188, 0.2);
+    }
+
+    .telegram-pref-item .label {
+      font-weight: 600;
+      color: var(--text-soft);
+      font-size: 0.92rem;
+    }
+
+    .telegram-pref-item .toggle {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .telegram-pref-item .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .telegram-pref-item .toggle .slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 999px;
+      transition: 0.3s;
+    }
+
+    .telegram-pref-item .toggle .slider::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .telegram-pref-item .toggle input:checked + .slider {
+      background: var(--success);
+    }
+
+    .telegram-pref-item .toggle input:checked + .slider::after {
+      transform: translateX(20px);
+    }
+
+    .telegram-pref-item .toggle input:disabled + .slider {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     @media (max-width: 1024px) {
       .account-page {
         grid-template-columns: 1fr;
@@ -519,8 +646,14 @@
       .stats-grid,
       .quick-grid,
       .address-grid,
-      .form-grid-2 {
+      .form-grid-2,
+      .telegram-prefs-grid {
         grid-template-columns: 1fr;
+      }
+
+      .telegram-status-card .status-row {
+        flex-direction: column;
+        align-items: flex-start;
       }
     }
 
@@ -537,13 +670,15 @@
       }
 
       .panel-actions,
-      .address-actions {
+      .address-actions,
+      .telegram-status-card .status-actions {
         flex-direction: column;
       }
 
       .panel-actions .btn,
       .address-card .btn,
-      .address-actions .btn {
+      .address-actions .btn,
+      .telegram-status-card .status-actions .btn {
         width: 100%;
       }
     }
@@ -674,6 +809,25 @@
                   <span class="account-menulabel">
                     <span class="account-menuicon">📜</span>
                     <span>تاریخچه کیف پول</span>
+                  </span>
+                  <span>›</span>
+                </button>
+
+                <!-- ==========================================
+                آیتم منوی جدید تلگرام
+                ========================================== -->
+                <button 
+                  class="account-menubtn" 
+                  type="button" 
+                  data-panel-target="telegram"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-telegram"
+                  id="tab-telegram"
+                >
+                  <span class="account-menulabel">
+                    <span class="account-menuicon">📱</span>
+                    <span>تلگرام</span>
                   </span>
                   <span>›</span>
                 </button>
@@ -837,6 +991,42 @@
                 </div>
               </div>
 
+              <!-- ==========================================
+              پنل جدید تلگرام
+              ========================================== -->
+              <div id="panel-telegram" class="account-section" role="tabpanel" aria-labelledby="tab-telegram">
+                <h2 class="account-sectiontitle">اتصال به تلگرام</h2>
+                <p class="account-sectionlead">
+                  برای دریافت وضعیت سفارش، پرداخت و اطلاعیه‌های مهم، حساب تلگرام خود را متصل کنید.
+                </p>
+
+                <div id="telegram-status-container">
+                  <!-- وضعیت توسط JavaScript پر می‌شود -->
+                  <div class="telegram-status-card">
+                    <div class="status-row">
+                      <span class="status-icon">⏳</span>
+                      <div class="status-info">
+                        <div class="title">در حال بارگذاری...</div>
+                        <div class="sub">لطفاً منتظر بمانید</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- بخش تنظیمات اعلان‌ها -->
+                <div id="telegram-preferences-container" style="display: none; margin-top: 24px;">
+                  <h3 style="margin: 0 0 16px; color: var(--primary); font-size: 1rem;">
+                    ⚙️ مدیریت اعلان‌های تلگرام
+                  </h3>
+                  <p style="margin: 0 0 16px; color: var(--muted); font-size: 0.9rem;">
+                    انتخاب کنید چه اعلان‌هایی را از طریق تلگرام دریافت کنید.
+                  </p>
+                  <div id="telegram-preferences-grid" class="telegram-prefs-grid">
+                    <!-- تنظیمات توسط JavaScript پر می‌شود -->
+                  </div>
+                </div>
+              </div>
+
               <div id="panel-account-details" class="account-section" role="tabpanel" aria-labelledby="tab-account-details">
                 <h2 class="account-sectiontitle">جزئیات حساب</h2>
                 <p class="account-sectionlead">
@@ -862,10 +1052,6 @@
                     <label for="account-email">ایمیل</label>
                     <input type="email" id="account-email" name="email" autocomplete="email" />
                   </div>
-
-                  <!-- ==========================================
-                  ❌ فیلد رمز عبور فعلی حذف شد
-                  ========================================== -->
 
                   <div class="form-grid-2">
                     <div class="form-field">
@@ -936,6 +1122,9 @@
       const dashboardAddressesCount = document.getElementById("dashboard-addresses-count");
       const accountForm = document.getElementById("account-details-form");
       const accountFormMessage = document.getElementById("account-form-message");
+      const telegramStatusContainer = document.getElementById("telegram-status-container");
+      const telegramPrefsContainer = document.getElementById("telegram-preferences-container");
+      const telegramPrefsGrid = document.getElementById("telegram-preferences-grid");
 
       let currentUser = null;
       let currentOrders = [];
@@ -1059,7 +1248,254 @@
       }
 
       // ==========================================
-      // 🔹 تابع برای محاسبه Offset Header
+      // توابع مدیریت تلگرام
+      // ==========================================
+
+      async function loadTelegramStatus() {
+        if (!telegramStatusContainer) return;
+
+        try {
+          const response = await fetch("/api/account/telegram/status", {
+            credentials: "same-origin"
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data?.success) {
+            renderTelegramDisconnected();
+            return;
+          }
+
+          if (data.connected && data.data) {
+            renderTelegramConnected(data.data);
+          } else {
+            renderTelegramDisconnected();
+          }
+        } catch (error) {
+          renderTelegramDisconnected();
+        }
+      }
+
+      function renderTelegramConnected(data) {
+        if (!telegramStatusContainer) return;
+
+        const username = data.telegram_username || data.first_name || 'حساب تلگرام';
+
+        telegramStatusContainer.innerHTML = `
+          <div class="telegram-status-card connected">
+            <div class="status-row">
+              <span class="status-icon">🟢</span>
+              <div class="status-info">
+                <div class="title">✅ حساب تلگرام متصل است</div>
+                <div class="sub">${escapeHtml(username)} ${data.chat_id ? '(Chat ID: ' + escapeHtml(data.chat_id) + ')' : ''}</div>
+                ${data.connected_at ? `<div class="sub" style="font-size:0.8rem;margin-top:2px;">اتصال از: ${formatDate(data.connected_at)}</div>` : ''}
+              </div>
+            </div>
+            <div class="status-actions">
+              <button type="button" class="btn btn-primary" id="telegram-test-btn">
+                📨 ارسال پیام تست
+              </button>
+              <button type="button" class="btn btn-danger" id="telegram-disconnect-btn">
+                قطع اتصال
+              </button>
+            </div>
+          </div>
+        `;
+
+        // نمایش تنظیمات اعلان‌ها
+        if (telegramPrefsContainer) {
+          telegramPrefsContainer.style.display = "block";
+          loadTelegramPreferences();
+        }
+
+        // رویدادها
+        document.getElementById("telegram-test-btn")?.addEventListener("click", sendTestTelegram);
+        document.getElementById("telegram-disconnect-btn")?.addEventListener("click", disconnectTelegram);
+      }
+
+      function renderTelegramDisconnected() {
+        if (!telegramStatusContainer) return;
+
+        telegramStatusContainer.innerHTML = `
+          <div class="telegram-status-card">
+            <div class="status-row">
+              <span class="status-icon">📱</span>
+              <div class="status-info">
+                <div class="title">⚠️ تلگرام متصل نیست</div>
+                <div class="sub">برای دریافت وضعیت سفارش، پرداخت و اطلاعیه‌های مهم، حساب تلگرام خود را متصل کنید.</div>
+              </div>
+            </div>
+            <div class="status-actions">
+              <button type="button" class="btn btn-primary" id="telegram-connect-btn">
+                🔗 اتصال به تلگرام
+              </button>
+            </div>
+          </div>
+        `;
+
+        // مخفی کردن تنظیمات اعلان‌ها
+        if (telegramPrefsContainer) {
+          telegramPrefsContainer.style.display = "none";
+        }
+
+        document.getElementById("telegram-connect-btn")?.addEventListener("click", connectTelegram);
+      }
+
+      async function connectTelegram() {
+        try {
+          const response = await fetch("/api/account/telegram/connect", {
+            method: "POST",
+            credentials: "same-origin"
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data?.success) {
+            alert(data?.error || "خطا در ایجاد لینک اتصال.");
+            return;
+          }
+
+          if (data.telegram_link) {
+            window.open(data.telegram_link, "_blank");
+            alert(
+              "✅ لینک اتصال به تلگرام باز شد.\n\n" +
+              "📌 لطفاً در تلگرام روی دکمه Start کلیک کنید تا اتصال تکمیل شود.\n" +
+              "⏱️ این لینک تا ۱۰ دقیقه معتبر است."
+            );
+          } else {
+            alert("لینک اتصال دریافت نشد.");
+          }
+        } catch (error) {
+          alert("خطا در ارتباط با سرور.");
+        }
+      }
+
+      async function disconnectTelegram() {
+        if (!confirm("آیا از قطع اتصال تلگرام اطمینان دارید؟")) return;
+
+        try {
+          const response = await fetch("/api/account/telegram/disconnect", {
+            method: "POST",
+            credentials: "same-origin"
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data?.success) {
+            alert(data?.error || "خطا در قطع اتصال.");
+            return;
+          }
+
+          alert("✅ اتصال تلگرام با موفقیت قطع شد.");
+          await loadTelegramStatus();
+        } catch (error) {
+          alert("خطا در ارتباط با سرور.");
+        }
+      }
+
+      async function sendTestTelegram() {
+        try {
+          const response = await fetch("/api/account/telegram/test", {
+            method: "POST",
+            credentials: "same-origin"
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data?.success) {
+            alert(data?.error || "ارسال پیام تست با خطا مواجه شد.");
+            return;
+          }
+
+          alert("✅ پیام تست با موفقیت ارسال شد. لطفاً تلگرام خود را بررسی کنید.");
+        } catch (error) {
+          alert("خطا در ارتباط با سرور.");
+        }
+      }
+
+      // ==========================================
+      // تنظیمات اعلان‌ها
+      // ==========================================
+
+      async function loadTelegramPreferences() {
+        if (!telegramPrefsGrid) return;
+
+        try {
+          const response = await fetch("/api/account/telegram/preferences", {
+            credentials: "same-origin"
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data?.success) {
+            return;
+          }
+
+          renderTelegramPreferences(data.preferences || {});
+        } catch (error) {
+          // خطا را نادیده بگیر
+        }
+      }
+
+      function renderTelegramPreferences(preferences) {
+        if (!telegramPrefsGrid) return;
+
+        const items = [
+          { key: "order_created", label: "📋 ثبت سفارش جدید", default: true },
+          { key: "payment_success", label: "✅ پرداخت موفق", default: true },
+          { key: "payment_failed", label: "❌ پرداخت ناموفق", default: true },
+          { key: "order_status_changed", label: "🔄 تغییر وضعیت سفارش", default: true },
+          { key: "order_preparing", label: "📦 آماده‌سازی سفارش", default: true },
+          { key: "order_shipped", label: "🚚 ارسال سفارش", default: true },
+          { key: "tracking_code_added", label: "📮 ثبت کد رهگیری", default: true },
+          { key: "order_completed", label: "✅ تکمیل سفارش", default: true },
+          { key: "order_cancelled", label: "❌ لغو سفارش", default: true },
+          { key: "announcements", label: "📢 اطلاعیه‌های سایت", default: false },
+          { key: "promotions", label: "🎁 پیشنهادهای ویژه", default: false },
+          { key: "marketing", label: "📨 پیام‌های بازاریابی", default: false }
+        ];
+
+        telegramPrefsGrid.innerHTML = items.map(item => {
+          const isEnabled = preferences[item.key] !== undefined ? preferences[item.key] : item.default;
+          return `
+            <div class="telegram-pref-item">
+              <span class="label">${item.label}</span>
+              <label class="toggle">
+                <input type="checkbox" 
+                       data-pref-key="${item.key}" 
+                       ${isEnabled ? 'checked' : ''}>
+                <span class="slider"></span>
+              </label>
+            </div>
+          `;
+        }).join("");
+
+        // رویداد تغییر تنظیمات
+        telegramPrefsGrid.querySelectorAll('input[data-pref-key]').forEach(input => {
+          input.addEventListener('change', function() {
+            const key = this.dataset.prefKey;
+            const value = this.checked;
+            updateTelegramPreference(key, value);
+          });
+        });
+      }
+
+      async function updateTelegramPreference(key, value) {
+        try {
+          const response = await fetch("/api/account/telegram/preferences", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({ [key]: value })
+          });
+          const data = await response.json();
+
+          if (!response.ok || !data?.success) {
+            alert(data?.error || "خطا در به‌روزرسانی تنظیمات.");
+            loadTelegramPreferences();
+          }
+        } catch (error) {
+          loadTelegramPreferences();
+        }
+      }
+
+      // ==========================================
+      // تابع برای محاسبه Offset Header
       // ==========================================
       function getHeaderOffset() {
         const header = document.querySelector('.site-header');
@@ -1069,7 +1505,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع برای اسکرول نرم به بخش - فقط برای User Interaction
+      // تابع برای اسکرول نرم به بخش
       // ==========================================
       function smoothScrollToPanel(panelElement) {
         if (!panelElement) return;
@@ -1085,7 +1521,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع برای انیمیشن Reaction Tab - فقط برای User Interaction
+      // تابع برای انیمیشن Reaction Tab
       // ==========================================
       function animateTab(tabButton) {
         if (!tabButton) return;
@@ -1132,7 +1568,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع اصلی تغییر Tab - فقط User Interaction باعث Animation می‌شود
+      // تابع اصلی تغییر Tab
       // ==========================================
       function switchPanel(target, animate = true, scroll = true) {
         const buttons = document.querySelectorAll(".account-menubtn");
@@ -1164,6 +1600,7 @@
           payments: { title: "پرداخت‌ها", description: "مرور وضعیت پرداخت‌ها و دسترسی به فاکتورهای سفارش از این بخش انجام می‌شود." },
           wallet: { title: "کیف پول", description: "موجودی فعلی کیف پول و اعتبار حساب را اینجا مشاهده می‌کنی." },
           "wallet-history": { title: "تاریخچه کیف پول", description: "سوابق تراکنش‌های مربوط به کیف پول در این قسمت نشان داده می‌شود." },
+          telegram: { title: "تلگرام", description: "اتصال حساب تلگرام خود را مدیریت کنید و تنظیمات اعلان‌ها را مشخص کنید." },
           "account-details": { title: "جزئیات حساب", description: "نام، ایمیل، شماره تماس و رمز عبور خود را به‌روزرسانی کن." },
           logout: { title: "خروج", description: "برای خروج امن از حساب کاربری از این بخش استفاده کن." }
         };
@@ -1183,7 +1620,7 @@
       }
 
       // ==========================================
-      // 🔹 تابع برای هماهنگی Tab با Scroll
+      // تابع برای هماهنگی Tab با Scroll
       // ==========================================
       function setupScrollObserver() {
         if (window.innerWidth > 820) return;
@@ -1458,7 +1895,7 @@
       }
 
       // ==========================================
-      // مقداردهی اولیه حساب - بدون Animation خودکار
+      // مقداردهی اولیه حساب
       // ==========================================
       async function bootAccount() {
         if (!window.Auth || typeof window.Auth.requireAuth !== "function") {
@@ -1482,6 +1919,9 @@
           loadAddresses(),
           loadWalletHistory()
         ]);
+
+        // بارگذاری وضعیت تلگرام
+        await loadTelegramStatus();
 
         if (accountLoading) {
           accountLoading.classList.add("account-hidden");
@@ -1539,7 +1979,6 @@
             password_confirm: String(formData.get("password_confirm") || "")
           };
 
-          // اگر رمز عبور جدید وارد شده
           if (payload.password || payload.password_confirm) {
             if (payload.password.length < 8) {
               setFormMessage("error", "رمز عبور جدید باید حداقل ۸ کاراکتر باشد.");
@@ -1557,7 +1996,6 @@
             
             console.log("Result from updateProfile:", result);
 
-            // ✅ اگر نتیجه موفق بود
             if (result && result.success === true) {
               setFormMessage("success", "✅تغییرات با موفقیت انجام شد ");
               
@@ -1576,13 +2014,11 @@
               return;
             }
 
-            // اگر خطا داشت و پیام خطا مربوط به رمز بود
             if (result && result.success === false && result.error) {
               setFormMessage("error", result.error);
               return;
             }
 
-            // هر خطای دیگه‌ای
             setFormMessage("error", result?.error || "ذخیره تغییرات با خطا مواجه شد.");
 
           } catch (error) {

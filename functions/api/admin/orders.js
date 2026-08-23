@@ -1,3 +1,7 @@
+// ============================================
+// API مدیریت سفارش‌ها (فقط ادمین)
+// ============================================
+
 function getCookie(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
@@ -333,7 +337,34 @@ async function reverseCashbackIfNeeded(db, order, actorUserId) {
 }
 
 // ============================================
-// GET - دریافت لیست سفارش‌ها با آدرس
+// ⭐⭐⭐ وضعیت‌های مجاز سیستم (به‌روزرسانی شده)
+// ============================================
+
+const ALLOWED_ORDER_STATUSES = [
+  "pending",
+  "order_confirmed",
+  "processing",
+  "ready_to_ship",
+  "courier_delivery",
+  "bus_shipping",
+  "shipped",
+  "delivered",
+  "completed",
+  "cancelled",
+  "returned",
+  "processing_failed"
+];
+
+const ALLOWED_PAYMENT_STATUSES = [
+  "pending",
+  "payment_review",
+  "paid",
+  "completed",
+  "failed"
+];
+
+// ============================================
+// GET - دریافت لیست سفارش‌ها
 // ============================================
 export async function onRequestGet(context) {
   try {
@@ -374,9 +405,6 @@ export async function onRequestGet(context) {
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    // ============================================
-    // ✅ اضافه کردن آدرس به کوئری
-    // ============================================
     const result = await context.env.DB.prepare(`
       SELECT
         o.id,
@@ -411,7 +439,6 @@ export async function onRequestGet(context) {
     `).bind(...bindings).all();
 
     const orders = (Array.isArray(result?.results) ? result.results : []).map((order) => {
-      // ساخت آبجکت آدرس
       const address = order.address_id ? {
         full_name: order.address_full_name || "",
         address_line: order.address_line || "",
@@ -437,7 +464,6 @@ export async function onRequestGet(context) {
           )
         ),
         address: address,
-        // برای سازگاری با نسخه قبلی
         shipping_address: address
       };
     });
@@ -468,15 +494,21 @@ export async function onRequestPost(context) {
       return json({ success: false, error: "order_number_required" }, 400);
     }
 
-    const allowedOrderStatuses = ["pending", "processing", "shipped", "completed", "cancelled"];
-    const allowedPaymentStatuses = ["pending", "paid", "completed", "failed"];
-
-    if (nextStatus && !allowedOrderStatuses.includes(nextStatus)) {
-      return json({ success: false, error: "invalid_order_status" }, 400);
+    // ⭐ اعتبارسنجی وضعیت‌ها با لیست جدید
+    if (nextStatus && !ALLOWED_ORDER_STATUSES.includes(nextStatus)) {
+      return json({ 
+        success: false, 
+        error: "invalid_order_status",
+        allowed: ALLOWED_ORDER_STATUSES 
+      }, 400);
     }
 
-    if (nextPaymentStatus && !allowedPaymentStatuses.includes(nextPaymentStatus)) {
-      return json({ success: false, error: "invalid_payment_status" }, 400);
+    if (nextPaymentStatus && !ALLOWED_PAYMENT_STATUSES.includes(nextPaymentStatus)) {
+      return json({ 
+        success: false, 
+        error: "invalid_payment_status",
+        allowed: ALLOWED_PAYMENT_STATUSES 
+      }, 400);
     }
 
     const currentOrder = await getOrderByNumber(context.env.DB, orderNumber);
@@ -485,9 +517,15 @@ export async function onRequestPost(context) {
       return json({ success: false, error: "order_not_found" }, 404);
     }
 
-    const finalStatus = nextStatus || String(currentOrder.status || "pending").toLowerCase();
-    const finalPaymentStatus = nextPaymentStatus || String(currentOrder.payment_status || "pending").toLowerCase();
+    const oldStatus = String(currentOrder.status || "pending").toLowerCase();
+    const oldPaymentStatus = String(currentOrder.payment_status || "pending").toLowerCase();
 
+    const finalStatus = nextStatus || oldStatus;
+    const finalPaymentStatus = nextPaymentStatus || oldPaymentStatus;
+
+    // ============================================
+    // به‌روزرسانی سفارش در دیتابیس
+    // ============================================
     await context.env.DB.prepare(`
       UPDATE orders
       SET
@@ -504,7 +542,7 @@ export async function onRequestPost(context) {
     if (finalStatus === "completed") {
       cashbackResult = await applyCashbackIfNeeded(context.env.DB, updatedOrder, user.id);
     } else if (
-      ["pending", "processing", "shipped", "cancelled"].includes(finalStatus) &&
+      ["pending", "order_confirmed", "processing", "ready_to_ship", "courier_delivery", "bus_shipping", "shipped", "delivered", "cancelled", "returned", "processing_failed"].includes(finalStatus) &&
       String(updatedOrder.cashback_status || "").toLowerCase() === "completed"
     ) {
       cashbackResult = await reverseCashbackIfNeeded(context.env.DB, updatedOrder, user.id);
@@ -516,6 +554,132 @@ export async function onRequestPost(context) {
       0,
       normalizeNumber(finalOrder.total_amount) - normalizeNumber(finalOrder.wallet_used_amount)
     );
+
+    // ============================================
+    // ارسال اعلان‌های Telegram
+    // ============================================
+    try {
+      if (finalStatus !== oldStatus) {
+        const orderData = {
+          orderId: finalOrder.id,
+          orderNumber: finalOrder.order_number,
+          totalAmount: normalizeNumber(finalOrder.total_amount),
+          shippingAmount: normalizeNumber(finalOrder.shipping_amount),
+          walletUsedAmount: normalizeNumber(finalOrder.wallet_used_amount),
+          payableAmount: payableAmount,
+          cashbackAmount: normalizeNumber(finalOrder.cashback_amount),
+          status: finalStatus,
+          paymentStatus: finalPaymentStatus,
+          createdAt: finalOrder.created_at || new Date().toISOString()
+        };
+
+        const userData = {
+          fullName: finalOrder.full_name || '',
+          email: finalOrder.email || '',
+          phone: finalOrder.phone || ''
+        };
+
+        if (finalStatus === "cancelled") {
+          let refundAmount = 0;
+          if (finalPaymentStatus === "paid" || finalPaymentStatus === "completed") {
+            refundAmount = payableAmount;
+          }
+          
+          const { sendOrderCancelledNotification } = await import('../../lib/notification.js');
+          await sendOrderCancelledNotification(
+            context.env,
+            orderData,
+            userData,
+            refundAmount
+          );
+        } else {
+          const { sendOrderStatusChangedNotification } = await import('../../lib/notification.js');
+          await sendOrderStatusChangedNotification(
+            context.env,
+            orderData,
+            userData,
+            oldStatus,
+            finalStatus
+          );
+        }
+      }
+
+      if (finalPaymentStatus !== oldPaymentStatus) {
+        const orderData = {
+          orderId: finalOrder.id,
+          orderNumber: finalOrder.order_number,
+          totalAmount: normalizeNumber(finalOrder.total_amount),
+          shippingAmount: normalizeNumber(finalOrder.shipping_amount),
+          walletUsedAmount: normalizeNumber(finalOrder.wallet_used_amount),
+          payableAmount: payableAmount,
+          cashbackAmount: normalizeNumber(finalOrder.cashback_amount),
+          status: finalStatus,
+          paymentStatus: finalPaymentStatus,
+          createdAt: finalOrder.created_at || new Date().toISOString()
+        };
+
+        const userData = {
+          fullName: finalOrder.full_name || '',
+          email: finalOrder.email || '',
+          phone: finalOrder.phone || ''
+        };
+
+        if (finalPaymentStatus === "paid" || finalPaymentStatus === "completed") {
+          const { sendPaymentSuccessNotification } = await import('../../lib/notification.js');
+          await sendPaymentSuccessNotification(
+            context.env,
+            orderData,
+            userData,
+            ''
+          );
+        }
+
+        if (!(oldPaymentStatus === "pending" && (finalPaymentStatus === "paid" || finalPaymentStatus === "completed"))) {
+          const { sendPaymentStatusChangedNotification } = await import('../../lib/notification.js');
+          await sendPaymentStatusChangedNotification(
+            context.env,
+            orderData,
+            userData,
+            oldPaymentStatus,
+            finalPaymentStatus
+          );
+        }
+      }
+
+      if (cashbackResult && cashbackResult.applied && cashbackResult.amount > 0) {
+        const orderData = {
+          orderId: finalOrder.id,
+          orderNumber: finalOrder.order_number,
+          totalAmount: normalizeNumber(finalOrder.total_amount),
+          status: finalStatus,
+          createdAt: finalOrder.created_at || new Date().toISOString()
+        };
+
+        const userData = {
+          fullName: finalOrder.full_name || '',
+          email: finalOrder.email || '',
+          phone: finalOrder.phone || ''
+        };
+
+        const userBalance = await context.env.DB
+          .prepare(`SELECT COALESCE(wallet_balance, 0) AS wallet_balance FROM users WHERE id = ?`)
+          .bind(finalOrder.user_id)
+          .first();
+
+        const newBalance = userBalance?.wallet_balance || 0;
+
+        const { sendCashbackAppliedNotification } = await import('../../lib/notification.js');
+        await sendCashbackAppliedNotification(
+          context.env,
+          orderData,
+          userData,
+          cashbackResult.amount,
+          newBalance
+        );
+      }
+    } catch (notificationError) {
+      console.error('❌ خطا در ارسال اعلان سفارش:', notificationError);
+    }
 
     return json({
       success: true,

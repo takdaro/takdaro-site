@@ -1,0 +1,66 @@
+<!-- ========================================== -->
+<!-- ORDERS                                    -->
+<!-- ========================================== -->
+<div class="filters-grid">
+  <div class="form-field">
+    <label for="orders-search">جستجو</label>
+    <input id="orders-search" type="text" placeholder="شماره سفارش، نام یا ایمیل" />
+  </div>
+  <div class="form-field">
+    <label for="orders-status">وضعیت سفارش</label>
+    <select id="orders-status">
+      <option value="">همه</option>
+      <option value="order_created">سفارش ثبت شد</option>
+      <option value="payment_pending">در انتظار پرداخت</option>
+      <option value="payment_success">پرداخت موفق</option>
+      <option value="payment_failed">پرداخت ناموفق</option>
+      <option value="payment_review">بررسی پرداخت</option>
+      <option value="order_confirmed">تأیید سفارش</option>
+      <option value="processing">در حال پردازش</option>
+      <option value="ready_to_ship">آماده ارسال</option>
+      <option value="courier_delivery">ارسال با پیک</option>
+      <option value="bus_shipping">ارسال با اتوبوس</option>
+      <option value="shipped">ارسال شد</option>
+      <option value="delivered">تحویل داده شد</option>
+      <option value="completed">تکمیل شد</option>
+      <option value="cancelled">لغو شد</option>
+      <option value="returned">مرجوع شد</option>
+      <option value="processing_failed">پردازش ناموفق</option>
+    </select>
+  </div>
+  <div class="form-field">
+    <label for="orders-payment-status">وضعیت پرداخت</label>
+    <select id="orders-payment-status">
+      <option value="">همه</option>
+      <option value="payment_pending">در انتظار پرداخت</option>
+      <option value="payment_review">بررسی پرداخت</option>
+      <option value="payment_success">پرداخت موفق</option>
+      <option value="payment_failed">پرداخت ناموفق</option>
+    </select>
+  </div>
+  <div class="form-field" style="justify-content:flex-end;">
+    <label style="opacity:0;">اقدام</label>
+    <button class="btn btn-primary" type="button" id="orders-filter-btn">اعمال فیلتر</button>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>شماره سفارش</th>
+        <th>کاربر</th>
+        <th>ایمیل</th>
+        <th>وضعیت</th>
+        <th>مبلغ فاکتور</th>
+        <th>برداشت از کیف پول</th>
+        <th>مانده پرداخت</th>
+        <th>تاریخ</th>
+        <th>اقدام</th>
+      </tr>
+    </thead>
+    <tbody id="orders-body"></tbody>
+  </table>
+</div>
+
+<div id="order-detail" class="detail-card admin-hidden"></div>
