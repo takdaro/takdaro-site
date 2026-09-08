@@ -1,3 +1,5 @@
+import { getMobileUser } from "./mobile-auth";
+
 // ============================================
 // توابع مدیریت ادمین و احراز هویت
 // ============================================
@@ -64,58 +66,11 @@ async function hashMobileToken(token) {
  * دریافت کاربر از Mobile Session Token
  */
 async function getCurrentUserFromMobileToken(context) {
-  const token =
-    getBearerToken(context.request);
-
-  if (!token) return null;
-
   try {
-    const tokenHash =
-      await hashMobileToken(token);
-
-    const user =
-      await context.env.DB
-        .prepare(`
-          SELECT
-            u.id,
-            u.full_name,
-            u.email,
-            u.phone,
-            u.role,
-            u.wallet_balance
-          FROM admin_mobile_sessions s
-          INNER JOIN users u
-            ON u.id = s.user_id
-          WHERE s.token_hash = ?
-            AND s.revoked_at IS NULL
-            AND s.expires_at > CURRENT_TIMESTAMP
-          ORDER BY s.id DESC
-          LIMIT 1
-        `)
-        .bind(tokenHash)
-        .first();
-
-    if (!user) return null;
-
-    // ثبت آخرین استفاده از Session
-    await context.env.DB
-      .prepare(`
-        UPDATE admin_mobile_sessions
-        SET last_used_at = CURRENT_TIMESTAMP
-        WHERE token_hash = ?
-          AND revoked_at IS NULL
-      `)
-      .bind(tokenHash)
-      .run()
-      .catch(() => null);
-
-    return user;
+    const result = await getMobileUser(context);
+    return result.ok ? result.user : null;
   } catch (error) {
-    console.error(
-      "❌ getCurrentUserFromMobileToken error:",
-      error
-    );
-
+    console.error("getCurrentUserFromMobileToken error:", error);
     return null;
   }
 }
