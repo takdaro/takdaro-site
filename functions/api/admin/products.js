@@ -1,5 +1,6 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
 import { getCurrentRate, calculateProductPrice } from "../../lib/rate";
+import { listAdminProducts } from "../../lib/admin-products";
 
 function json(data, status = 200) {
   return Response.json(data, {
@@ -483,140 +484,28 @@ async function calculateAndSaveProductPrice(db, productId, rate) {
 export async function onRequestGet(context) {
   try {
     const adminCheck = await requireAdmin(context);
-
-    if (!adminCheck.ok) {
-      return adminCheck.response;
-    }
-
-    // ⭐ دریافت نرخ فعلی دلار برای نمایش صحیح قیمت‌ها
-    let currentRate = null;
-    try {
-      const rateResult = await getCurrentRate(context.env, 'USD');
-      if (rateResult) {
-        currentRate = rateResult.rate;
-      }
-    } catch (_) {
-      currentRate = 196000; // fallback
-    }
+    if (!adminCheck.ok) return adminCheck.response;
 
     const url = new URL(context.request.url);
-    const search = cleanText(url.searchParams.get("search"), 160);
-    const status = cleanText(url.searchParams.get("status"), 30).toLowerCase();
-    const category = cleanText(url.searchParams.get("category"), 120);
+    const result = await listAdminProducts(context.env, {
+      search: url.searchParams.get("search"),
+      status: url.searchParams.get("status"),
+      category: url.searchParams.get("category"),
+      page: url.searchParams.get("page"),
+      limit: url.searchParams.get("limit") || 100
+    });
 
-    const page = Math.max(1, toInteger(url.searchParams.get("page"), 1));
-    const limit = Math.min(
-      100,
-      Math.max(1, toInteger(url.searchParams.get("limit"), 100))
-    );
-
-    const offset = (page - 1) * limit;
-    const filters = [];
-    const bindings = [];
-
-    if (search) {
-      const like = `%${search}%`;
-      filters.push("(name LIKE ? OR slug LIKE ? OR category LIKE ?)");
-      bindings.push(like, like, like);
-    }
-
-    if (["published", "draft", "private"].includes(status)) {
-      filters.push("status = ?");
-      bindings.push(status);
-    }
-
-    if (category) {
-      filters.push("category = ?");
-      bindings.push(category);
-    }
-
-    const whereSql = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-
-    const countRow = await context.env.DB
-      .prepare(`
-        SELECT COUNT(*) AS total
-        FROM products
-        ${whereSql}
-      `)
-      .bind(...bindings)
-      .first();
-
-    const productsResult = await context.env.DB
-      .prepare(`
-        SELECT
-          id,
-          slug,
-          name,
-          category,
-          price,
-          price_label,
-          show_price,
-          stock_quantity,
-          in_stock,
-          stock_label,
-          short_description,
-          description,
-          primary_image,
-          page_url,
-          status,
-          created_at,
-          updated_at,
-          -- ⭐ فیلدهای جدید سیستم نرخ ارز
-          price_type,
-          base_price,
-          profit_type,
-          profit_value,
-          fixed_fee,
-          rounding_type,
-          rounding_method,
-          calculated_price,
-          price_calculated_at
-        FROM products
-        ${whereSql}
-        ORDER BY updated_at DESC, id DESC
-        LIMIT ? OFFSET ?
-      `)
-      .bind(...bindings, limit, offset)
-      .all();
-
-    const rows = productsResult.results || [];
-
-    const imagesByProductId = await getProductImages(
-      context.env.DB,
-      rows.map((row) => row.id)
-    );
-
-    const categoriesResult = await context.env.DB
-      .prepare(`
-        SELECT DISTINCT category
-        FROM products
-        WHERE category IS NOT NULL AND TRIM(category) != ''
-        ORDER BY category COLLATE NOCASE ASC
-      `)
-      .all();
-
-    const total = Number(countRow?.total || 0);
-
-    // ⭐ ارسال currentRate به productFromRow
     return json({
       success: true,
-      page,
-      limit,
-      total,
-      total_pages: Math.max(1, Math.ceil(total / limit)),
-      categories: (categoriesResult.results || [])
-        .map((row) => row.category)
-        .filter(Boolean),
-      products: rows.map((row) => productFromRow(row, imagesByProductId, currentRate))
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      total_pages: result.total_pages,
+      categories: result.categories,
+      products: result.products
     });
   } catch (error) {
-    return json(
-      {
-        success: false,
-        error: String(error?.message || error)
-      },
-      500
-    );
+    return json({ success: false, error: String(error?.message || error) }, 500);
   }
 }
 
