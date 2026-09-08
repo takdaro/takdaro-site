@@ -475,7 +475,13 @@ async function calculateAndSaveProductPrice(db, productId, rate) {
         price_calculated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `)
-    .bind(calculatexport async function onRequestGet(context) {
+    .bind(calculatedPrice, productId)
+    .run();
+
+  return calculatedPrice;
+}
+
+export async function onRequestGet(context) {
   try {
     const adminCheck = await requireAdmin(context);
     if (!adminCheck.ok) return adminCheck.response;
