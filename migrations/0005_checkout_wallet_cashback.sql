@@ -56,5 +56,6 @@ CREATE TABLE IF NOT EXISTS app_settings (
 INSERT OR IGNORE INTO app_settings (setting_key, setting_value)
 VALUES ('cashback_percent', '0');
 
+-- ⭐ اصلاح: فقط از وضعیت‌های موجود در لیست ۱۲ وضعیتی نهایی استفاده شود
 INSERT OR IGNORE INTO app_settings (setting_key, setting_value)
-VALUES ('cashback_statuses', 'completed,processing');
+VALUES ('cashback_statuses', 'completed');

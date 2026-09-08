@@ -316,6 +316,7 @@
     .status-badge--success { background: var(--secondary-soft); color: var(--success); }
     .status-badge--warning { background: #fff7ed; color: var(--warning); }
     .status-badge--info { background: rgba(33, 158, 188, 0.08); color: var(--secondary); }
+    .status-badge--danger { background: #fef2f2; color: var(--danger); }
 
     .wallet-type-badge {
       display: inline-flex;
@@ -636,6 +637,132 @@
       cursor: not-allowed;
     }
 
+    /* ============================================
+       استایل‌های مودال درخواست اعلان
+       ============================================ */
+    .notification-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: notificationFadeIn 0.3s ease;
+    }
+
+    .notification-modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+    }
+
+    .notification-modal-content {
+      position: relative;
+      background: white;
+      padding: 40px 35px 30px;
+      border-radius: 16px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: notificationSlideUp 0.4s ease;
+    }
+
+    .notification-modal-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .notification-modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 10px;
+    }
+
+    .notification-modal-text {
+      font-size: 15px;
+      color: #555;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .notification-modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .notification-modal-actions .btn {
+      min-width: 160px;
+      padding: 12px 20px;
+      font-size: 15px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .notification-modal-actions .btn-primary {
+      background: #2d7a3a;
+      color: white;
+    }
+
+    .notification-modal-actions .btn-primary:hover {
+      background: #1f5a2a;
+      transform: translateY(-2px);
+    }
+
+    .notification-modal-actions .btn-secondary {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .notification-modal-actions .btn-secondary:hover {
+      background: #dee2e6;
+    }
+
+    .notification-modal-note {
+      font-size: 13px;
+      color: #888;
+      margin-top: 16px;
+    }
+
+    .notification-modal-note a {
+      color: #2d7a3a;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .notification-modal-note a:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes notificationFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes notificationSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
     @media (max-width: 1024px) {
       .account-page {
         grid-template-columns: 1fr;
@@ -813,9 +940,6 @@
                   <span>›</span>
                 </button>
 
-                <!-- ==========================================
-                آیتم منوی جدید تلگرام
-                ========================================== -->
                 <button 
                   class="account-menubtn" 
                   type="button" 
@@ -991,9 +1115,6 @@
                 </div>
               </div>
 
-              <!-- ==========================================
-              پنل جدید تلگرام
-              ========================================== -->
               <div id="panel-telegram" class="account-section" role="tabpanel" aria-labelledby="tab-telegram">
                 <h2 class="account-sectiontitle">اتصال به تلگرام</h2>
                 <p class="account-sectionlead">
@@ -1001,7 +1122,6 @@
                 </p>
 
                 <div id="telegram-status-container">
-                  <!-- وضعیت توسط JavaScript پر می‌شود -->
                   <div class="telegram-status-card">
                     <div class="status-row">
                       <span class="status-icon">⏳</span>
@@ -1013,7 +1133,6 @@
                   </div>
                 </div>
 
-                <!-- بخش تنظیمات اعلان‌ها -->
                 <div id="telegram-preferences-container" style="display: none; margin-top: 24px;">
                   <h3 style="margin: 0 0 16px; color: var(--primary); font-size: 1rem;">
                     ⚙️ مدیریت اعلان‌های تلگرام
@@ -1022,7 +1141,6 @@
                     انتخاب کنید چه اعلان‌هایی را از طریق تلگرام دریافت کنید.
                   </p>
                   <div id="telegram-preferences-grid" class="telegram-prefs-grid">
-                    <!-- تنظیمات توسط JavaScript پر می‌شود -->
                   </div>
                 </div>
               </div>
@@ -1102,15 +1220,96 @@
   <div id="site-cart"></div>
   <div id="bottom-nav"></div>
 
+  <!-- ============================================ -->
+  <!-- مودال درخواست فعال‌سازی اعلان‌ها              -->
+  <!-- ============================================ -->
+  <div id="notificationModal" class="notification-modal" style="display: none;">
+    <div class="notification-modal-overlay">
+      <div class="notification-modal-content">
+        <div class="notification-modal-icon">🔔</div>
+        <h3 class="notification-modal-title">فعال‌سازی اعلان‌ها</h3>
+        <p class="notification-modal-text">
+          برای دریافت اطلاع‌رسانی درباره سفارش‌ها، تغییرات وضعیت و تخفیف‌های ویژه، 
+          لطفاً اعلان‌های مرورگر را فعال کنید.
+        </p>
+        <div class="notification-modal-actions">
+          <button id="notificationAcceptBtn" class="btn btn-primary">
+            ✅ فعال‌سازی اعلان‌ها
+          </button>
+          <button id="notificationSkipBtn" class="btn btn-secondary">
+            ⏭️ بعداً
+          </button>
+        </div>
+        <p class="notification-modal-note">
+          💡 می‌توانید بعداً از <a href="/account">حساب کاربری</a> این تنظیمات را تغییر دهید.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- اسکریپت‌ها                                   -->
+  <!-- ============================================ -->
   <script src="assets/js/layout.js"></script>
   <script src="assets/js/products.js"></script>
   <script src="assets/js/cart.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/auth.js"></script>
+  
+  <!-- ⭐⭐⭐ Web Push Scripts ⭐⭐⭐ -->
+  <script src="/assets/js/web-push.js"></script>
+  <script src="/assets/js/notification-ui.js"></script>
 
   <script>
     (function() {
       'use strict';
+
+      // ============================================
+      // لیست ۱۲ وضعیتی نهایی سفارش
+      // ============================================
+      const ORDER_STATUS_MAP = {
+        payment_pending: "در انتظار پرداخت",
+        payment_success: "پرداخت موفق",
+        payment_failed: "پرداخت ناموفق",
+        order_confirmed: "تأیید سفارش",
+        courier_delivery: "ارسال با پیک",
+        bus_shipping: "ارسال با باربری",
+        shipped: "ارسال شد",
+        delivered: "تحویل داده شد",
+        completed: "تکمیل شد",
+        cancelled: "لغو شد",
+        returned: "مرجوع شد"
+      };
+
+      function translateOrderStatus(status) {
+        return ORDER_STATUS_MAP[String(status || "").trim().toLowerCase()] || (status ? String(status) : "-");
+      }
+
+      function orderStatusClass(status) {
+        const normalized = String(status || "").trim().toLowerCase();
+
+        if (["completed", "delivered", "payment_success"].includes(normalized)) {
+          return "status-badge status-badge--success";
+        }
+
+        if (["order_confirmed", "shipped", "courier_delivery", "bus_shipping"].includes(normalized)) {
+          return "status-badge status-badge--info";
+        }
+
+        if (["payment_pending", "payment_failed"].includes(normalized)) {
+          return "status-badge status-badge--warning";
+        }
+
+        if (["cancelled", "returned"].includes(normalized)) {
+          return "status-badge status-badge--danger";
+        }
+
+        return "status-badge status-badge--warning";
+      }
+
+      function renderOrderStatusBadge(status) {
+        return `<span class="${orderStatusClass(status)}">${escapeHtml(translateOrderStatus(status))}</span>`;
+      }
 
       const accountLoading = document.getElementById("account-loading");
       const accountPage = document.getElementById("account-page");
@@ -1176,43 +1375,6 @@
         } catch (error) {
           return escapeHtml(String(value));
         }
-      }
-
-      function translateOrderStatus(status) {
-        const normalized = String(status || "").trim().toLowerCase();
-
-        const map = {
-          pending: "در انتظار",
-          processing: "در حال پردازش",
-          shipped: "ارسال شده",
-          sent: "ارسال شده",
-          completed: "تکمیل شده",
-          paid: "پرداخت شده",
-          success: "موفق",
-          cancelled: "لغو شده",
-          canceled: "لغو شده",
-          failed: "ناموفق"
-        };
-
-        return map[normalized] || (status ? String(status) : "-");
-      }
-
-      function orderStatusClass(status) {
-        const normalized = String(status || "").trim().toLowerCase();
-
-        if (["completed", "paid", "success"].includes(normalized)) {
-          return "status-badge status-badge--success";
-        }
-
-        if (["processing", "shipped", "sent"].includes(normalized)) {
-          return "status-badge status-badge--info";
-        }
-
-        return "status-badge status-badge--warning";
-      }
-
-      function renderOrderStatusBadge(status) {
-        return `<span class="${orderStatusClass(status)}">${escapeHtml(translateOrderStatus(status))}</span>`;
       }
 
       function translateWalletType(type) {
@@ -1301,13 +1463,11 @@
           </div>
         `;
 
-        // نمایش تنظیمات اعلان‌ها
         if (telegramPrefsContainer) {
           telegramPrefsContainer.style.display = "block";
           loadTelegramPreferences();
         }
 
-        // رویدادها
         document.getElementById("telegram-test-btn")?.addEventListener("click", sendTestTelegram);
         document.getElementById("telegram-disconnect-btn")?.addEventListener("click", disconnectTelegram);
       }
@@ -1332,7 +1492,6 @@
           </div>
         `;
 
-        // مخفی کردن تنظیمات اعلان‌ها
         if (telegramPrefsContainer) {
           telegramPrefsContainer.style.display = "none";
         }
@@ -1465,7 +1624,6 @@
           `;
         }).join("");
 
-        // رویداد تغییر تنظیمات
         telegramPrefsGrid.querySelectorAll('input[data-pref-key]').forEach(input => {
           input.addEventListener('change', function() {
             const key = this.dataset.prefKey;
@@ -1920,7 +2078,6 @@
           loadWalletHistory()
         ]);
 
-        // بارگذاری وضعیت تلگرام
         await loadTelegramStatus();
 
         if (accountLoading) {

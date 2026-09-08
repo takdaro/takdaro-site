@@ -1,4 +1,6 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
+import { sendUserWalletNotification } from "../../lib/notification.js";
+import { getEmailSettings } from "../../lib/email.js";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -125,6 +127,47 @@ function buildSettingsPayload(cashbackPercent, cashbackStatuses) {
     cashback_percent: Number(cashbackPercent) || 0,
     cashback_statuses: Array.isArray(cashbackStatuses) ? cashbackStatuses : ["completed"]
   };
+}
+
+// ============================================
+// تابع ارسال اعلان کیف پول
+// ============================================
+async function sendWalletNotification(env, userId, transactionData, userData) {
+  try {
+    // تعیین eventType بر اساس نوع تراکنش
+    let eventType = 'wallet_credit';
+    const type = transactionData.type || '';
+    
+    if (type === 'debit') {
+      eventType = 'wallet_debit';
+    } else if (type === 'cashback') {
+      eventType = 'cashback_applied';
+    } else if (type === 'refund') {
+      eventType = 'refund_applied';
+    } else if (type === 'credit' || type === 'adjustment') {
+      eventType = 'wallet_credit';
+    }
+
+    // ارسال اعلان Email
+    const emailResult = await sendUserWalletNotification(
+      env,
+      userId,
+      eventType,
+      transactionData,
+      userData
+    );
+
+    return {
+      success: emailResult?.success || false,
+      email: emailResult
+    };
+  } catch (error) {
+    console.error('❌ sendWalletNotification error:', error);
+    return {
+      success: false,
+      error: String(error?.message || error)
+    };
+  }
 }
 
 export async function onRequestGet(context) {
@@ -395,6 +438,54 @@ export async function onRequestPost(context) {
         adminCheck.user.id
       )
     ]);
+
+    // ============================================
+    // ⭐⭐ ارسال اعلان Email برای تراکنش کیف پول
+    // ============================================
+    const transactionData = {
+      id: null, // بعد از ثبت، id مشخص می‌شود
+      type: type,
+      amount: signedAmount,
+      balance_before: balanceBefore,
+      balance_after: balanceAfter,
+      note: note || null,
+      source: source,
+      reference_type: referenceType,
+      reference_id: referenceId || null,
+      order_id: orderId,
+      order_number: orderNumber || null,
+      created_at: new Date().toISOString()
+    };
+
+    const userData = {
+      id: user.id,
+      fullName: user.full_name || '',
+      email: user.email || '',
+      phone: user.phone || ''
+    };
+
+    // ارسال اعلان در پس‌زمینه
+    context.waitUntil(
+      (async () => {
+        try {
+          // بررسی فعال بودن Email
+          const emailSettings = await getEmailSettings(context.env);
+          if (emailSettings.is_enabled && user.email) {
+            const notifResult = await sendWalletNotification(
+              context.env,
+              userId,
+              transactionData,
+              userData
+            );
+            console.log('📧 Wallet email notification result:', notifResult);
+          } else {
+            console.log('📧 Wallet email skipped: email disabled or user has no email');
+          }
+        } catch (notifError) {
+          console.error('❌ Wallet email notification error:', notifError);
+        }
+      })()
+    );
 
     await logAdminAction(context, {
       admin_user_id: adminCheck.user.id,

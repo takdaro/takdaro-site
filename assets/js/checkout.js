@@ -203,7 +203,6 @@
 
         const product = liveProduct || detailedProduct || {};
         
-        // ⭐ اولویت با displayPrice (قیمت محاسبه‌شده)
         let unitPrice = null;
         if (liveProduct?.displayPrice !== undefined && liveProduct?.displayPrice !== null) {
           unitPrice = parsePrice(liveProduct.displayPrice);
@@ -659,7 +658,6 @@
           qty: item.quantity,
           unit_price: item.unitPrice || 0,
           row_total: item.totalPrice || 0,
-          // ⭐ ذخیره نرخ دلار در زمان ثبت
           rate_at_purchase: state.currentRate?.rate || null,
           currency_code: state.currentRate?.currency_code || 'USD'
         })),

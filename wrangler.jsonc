@@ -13,6 +13,7 @@
     "TELEGRAM_BOT_TOKEN": "8902174776:AAEfU8S7053aGr3bpv0W-VrA5Tk3eHmrOBA",
     "TELEGRAM_BOT_USERNAME": "TakdaroSupport_bot",
     "TELEGRAM_WEBHOOK_SECRET": "QRzfMXTIjFLWVi2vlUG3nucCgt9w5xYO",
-    "SITE_BASE_URL": "https://www.takdaro.com/"
+    "SITE_BASE_URL": "https://www.takdaro.com/",
+    "VAPID_PUBLIC_KEY": "BD6jfJKFfeZJs42Si5sIErSxzxt7n_dy0GlH4eM7YHtjOAM0hDWonJArCNv38wxFrG8JchIis6iJBbpe5Eil54Q"
   }
 }

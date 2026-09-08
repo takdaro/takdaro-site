@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ورود | تک تجارت</title>
   <meta name="description" content="ورود کاربران به حساب کاربری تک تجارت" />
+
   <link rel="stylesheet" href="/assets/css/style.css" />
+
   <style>
     .auth-section {
       padding: 48px 0;
@@ -83,6 +85,13 @@
       box-shadow: 0 0 0 4px rgba(33, 158, 188, 0.08);
     }
 
+    .access-code-help {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+
     .auth-row {
       display: flex;
       align-items: center;
@@ -135,9 +144,8 @@
 
     .auth-register-link a.is-disabled {
       color: var(--muted-2);
-      cursor: default;
-      pointer-events: none;
-      opacity: 0.6;
+      cursor: pointer;
+      opacity: 0.75;
     }
 
     .auth-message {
@@ -170,8 +178,9 @@
     }
 
     /* ==========================================
-    Modal / Toast برای پیام ثبت‌نام غیرفعال
+       Modal برای پیام غیرفعال بودن ثبت‌نام
     ========================================== */
+
     .auth-modal-overlay {
       position: fixed;
       inset: 0;
@@ -204,6 +213,7 @@
         opacity: 0;
         transform: scale(0.92) translateY(20px);
       }
+
       to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -294,6 +304,7 @@
     }
   </style>
 </head>
+
 <body>
   <div id="site-header"></div>
 
@@ -303,7 +314,10 @@
         <div class="hero-content">
           <span class="hero-badge">ورود کاربران</span>
           <h1>ورود به حساب کاربری</h1>
-          <p>برای مشاهده سفارش‌ها، کیف پول و اطلاعات حساب، وارد پنل کاربری خود شوید.</p>
+          <p>
+            برای مشاهده سفارش‌ها، کیف پول و اطلاعات حساب،
+            وارد پنل کاربری خود شوید.
+          </p>
         </div>
       </div>
     </section>
@@ -312,29 +326,52 @@
       <div class="container">
         <div class="auth-shell">
           <div class="auth-card">
+
             <div class="auth-card__head">
               <h1>ورود</h1>
-              <p>با ایمیل و رمز عبور خود وارد حساب کاربری شوید.</p>
+              <p>
+                با ایمیل، رمز عبور و در صورت فعال بودن،
+                کد عبور سایت وارد حساب کاربری شوید.
+              </p>
             </div>
 
             <div class="auth-card__body">
-              <form class="auth-form" id="login-form" novalidate>
-                <div class="auth-message" data-auth-message></div>
+
+              <form
+                class="auth-form"
+                id="login-form"
+                novalidate
+              >
+
+                <div
+                  class="auth-message"
+                  data-auth-message
+                ></div>
+
+                <!-- ایمیل -->
 
                 <div class="form-field">
-                  <label for="login-identity">ایمیل</label>
+                  <label for="login-identity">
+                    ایمیل
+                  </label>
+
                   <input
                     id="login-identity"
                     name="identity"
-                    type="text"
+                    type="email"
                     placeholder="name@example.com"
                     autocomplete="username"
                     required
                   />
                 </div>
 
+                <!-- رمز عبور -->
+
                 <div class="form-field">
-                  <label for="login-password">رمز عبور</label>
+                  <label for="login-password">
+                    رمز عبور
+                  </label>
+
                   <input
                     id="login-password"
                     name="password"
@@ -345,29 +382,83 @@
                   />
                 </div>
 
+                <!-- کد عبور اضافی -->
+
+                <div class="form-field">
+                  <label for="login-access-code">
+                    کد عبور
+                  </label>
+
+                  <input
+                    id="login-access-code"
+                    name="access_code"
+                    type="password"
+                    placeholder="کد عبور تعیین‌شده توسط مدیریت"
+                    autocomplete="off"
+                  />
+
+                  <p class="access-code-help">
+                    اگر مدیریت سایت کد عبور را فعال کرده باشد،
+                    وارد کردن این کد برای ورود الزامی است.
+                  </p>
+                </div>
+
                 <div class="auth-row">
                   <label class="auth-note">
-                    <input type="checkbox" name="remember" />
+                    <input
+                      type="checkbox"
+                      name="remember"
+                    />
                     مرا به خاطر بسپار
                   </label>
-                  <a href="#" class="auth-note">بازیابی رمز عبور</a>
+
+                  <a
+                    href="#"
+                    class="auth-note"
+                  >
+                    بازیابی رمز عبور
+                  </a>
                 </div>
 
                 <div class="checkout-actions">
-                  <button type="submit" class="btn btn-primary">ورود به حساب</button>
-                  <a href="./register.html" class="btn btn-secondary" id="register-btn-header">ایجاد حساب جدید</a>
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                  >
+                    ورود به حساب
+                  </button>
+
+                  <a
+                    href="./register.html"
+                    class="btn btn-secondary"
+                    id="register-btn-header"
+                  >
+                    ایجاد حساب جدید
+                  </a>
                 </div>
 
                 <div class="auth-footer">
+
                   <p class="auth-note">
-                    پس از ورود موفق، به حساب کاربری خود هدایت می‌شوید.
+                    پس از ورود موفق،
+                    به حساب کاربری خود هدایت می‌شوید.
                   </p>
+
                   <p class="auth-register-link">
                     هنوز ثبت نام نکردی؟
-                    <a id="register-link-footer">ثبت نام میکنم</a>
+
+                    <a
+                      href="./register.html"
+                      id="register-link-footer"
+                    >
+                      ثبت نام میکنم
+                    </a>
                   </p>
+
                 </div>
+
               </form>
+
             </div>
           </div>
         </div>
@@ -376,22 +467,59 @@
   </main>
 
   <!-- ==========================================
-  Modal برای پیام غیرفعال بودن ثبت‌نام
+       Modal برای پیام غیرفعال بودن ثبت‌نام
   ========================================== -->
-  <div class="auth-modal-overlay" id="registration-modal">
-    <div class="auth-modal" style="position:relative;">
-      <button class="auth-modal-close-btn" id="registration-modal-close" aria-label="بستن">✕</button>
-      <div class="auth-modal-icon">🔒</div>
-      <h3>ثبت‌نام غیرفعال</h3>
+
+  <div
+    class="auth-modal-overlay"
+    id="registration-modal"
+  >
+
+    <div
+      class="auth-modal"
+      style="position: relative;"
+    >
+
+      <button
+        class="auth-modal-close-btn"
+        id="registration-modal-close"
+        aria-label="بستن"
+        type="button"
+      >
+        ✕
+      </button>
+
+      <div class="auth-modal-icon">
+        🔒
+      </div>
+
+      <h3>
+        ثبت‌نام غیرفعال
+      </h3>
+
       <p>
-        ثبت‌نام کاربر توسط مدیریت سایت انجام می‌شود.<br />
-        لطفاً با پشتیبانی با شماره 
-        <span class="phone-number">۰۹۲۱۴۱۴۷۰۷۰</span>
+        ثبت‌نام کاربر توسط مدیریت سایت انجام می‌شود.
+        <br />
+
+        لطفاً با پشتیبانی با شماره
+
+        <span class="phone-number">
+          ۰۹۲۱۴۱۴۷۰۷۰
+        </span>
+
         تماس حاصل فرمایید.
       </p>
+
       <div class="modal-actions">
-        <button class="btn btn-primary" id="registration-modal-ok">متوجه شدم</button>
+        <button
+          class="btn btn-primary"
+          id="registration-modal-ok"
+          type="button"
+        >
+          متوجه شدم
+        </button>
       </div>
+
     </div>
   </div>
 
@@ -404,150 +532,327 @@
   <script src="/assets/js/cart.js"></script>
   <script src="/assets/js/app.js"></script>
   <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/web-push.js"></script>
+  <script src="/assets/js/notification-ui.js"></script>
+
   <script>
-    document.addEventListener("DOMContentLoaded", async function () {
-      if (!window.Auth) return;
+    document.addEventListener(
+      "DOMContentLoaded",
+      async function () {
 
-      // ==========================================
-      // ✅ اصلاح مهم: دریافت مسیر redirect از URL
-      // ==========================================
-      function getRedirectParam() {
-        const params = new URLSearchParams(window.location.search);
-        const redirect = params.get("redirect") || "";
-        if (!redirect.startsWith("/")) return null;
-        return redirect;
-      }
+        if (!window.Auth) {
+          return;
+        }
 
-      const redirectTarget = getRedirectParam();
+        // ==========================================
+        // دریافت مسیر بازگشت
+        // ==========================================
 
-      await window.Auth.redirectIfAuthenticated({
-        redirectTo: redirectTarget || "/account.html"
-      });
+        function getRedirectParam() {
+          const params =
+            new URLSearchParams(
+              window.location.search
+            );
 
-      // ==========================================
-      // ✅ اصلاح مهم: bindLoginForm با redirect پویا
-      // ==========================================
-      window.Auth.bindLoginForm({
-        formSelector: "#login-form",
-        messageSelector: "[data-auth-message]",
-        redirectAfterSuccess: redirectTarget || "/account.html"
-      });
+          const redirect =
+            params.get("redirect") || "";
 
-      // ==========================================
-      // بررسی وضعیت ثبت‌نام عمومی
-      // ==========================================
-      const registerBtnHeader = document.getElementById('register-btn-header');
-      const registerLinkFooter = document.getElementById('register-link-footer');
-      const registrationModal = document.getElementById('registration-modal');
-      const modalClose = document.getElementById('registration-modal-close');
-      const modalOk = document.getElementById('registration-modal-ok');
+          if (!redirect.startsWith("/")) {
+            return null;
+          }
 
-      async function checkRegistrationStatus() {
-        try {
-          const response = await fetch('/api/admin/settings', {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' }
-          });
-          const data = await response.json().catch(() => null);
+          return redirect;
+        }
 
-          if (!response.ok || !data?.success) {
-            enableRegisterLinks();
+        const redirectTarget =
+          getRedirectParam();
+
+        // ==========================================
+        // اگر کاربر قبلاً وارد شده است
+        // ==========================================
+
+        await window.Auth.redirectIfAuthenticated({
+          redirectTo:
+            redirectTarget || "/account.html"
+        });
+
+        // ==========================================
+        // اتصال فرم ورود
+        // ==========================================
+
+        window.Auth.bindLoginForm({
+          formSelector: "#login-form",
+          messageSelector: "[data-auth-message]",
+          redirectAfterSuccess:
+            redirectTarget || "/account.html"
+        });
+
+        // ==========================================
+        // عناصر ثبت‌نام
+        // ==========================================
+
+        const registerBtnHeader =
+          document.getElementById(
+            "register-btn-header"
+          );
+
+        const registerLinkFooter =
+          document.getElementById(
+            "register-link-footer"
+          );
+
+        const registrationModal =
+          document.getElementById(
+            "registration-modal"
+          );
+
+        const modalClose =
+          document.getElementById(
+            "registration-modal-close"
+          );
+
+        const modalOk =
+          document.getElementById(
+            "registration-modal-ok"
+          );
+
+        // ==========================================
+        // باز کردن Modal
+        // ==========================================
+
+        function showRegistrationModal() {
+          if (!registrationModal) {
             return;
           }
 
-          const settings = data.settings || {};
-          const isEnabled = String(settings.allow_public_registration || 'true').toLowerCase() === 'true';
+          registrationModal.classList.add(
+            "is-active"
+          );
 
-          if (isEnabled) {
-            enableRegisterLinks();
-          } else {
-            disableRegisterLinks();
+          document.body.style.overflow =
+            "hidden";
+        }
+
+        // ==========================================
+        // بستن Modal
+        // ==========================================
+
+        function hideRegistrationModal() {
+          if (!registrationModal) {
+            return;
           }
-        } catch (_) {
-          enableRegisterLinks();
+
+          registrationModal.classList.remove(
+            "is-active"
+          );
+
+          document.body.style.overflow =
+            "";
         }
-      }
 
-      function enableRegisterLinks() {
-        registerBtnHeader.href = './register.html';
-        registerBtnHeader.classList.remove('is-disabled');
-        registerBtnHeader.style.pointerEvents = 'auto';
-        registerBtnHeader.style.opacity = '1';
+        // ==========================================
+        // فعال کردن لینک‌های ثبت‌نام
+        // ==========================================
 
-        registerLinkFooter.href = './register.html';
-        registerLinkFooter.classList.remove('is-disabled');
-        registerLinkFooter.style.pointerEvents = 'auto';
-        registerLinkFooter.style.opacity = '1';
-        registerLinkFooter.style.cursor = 'pointer';
+        function enableRegisterLinks() {
 
-        registerLinkFooter.replaceWith(registerLinkFooter.cloneNode(true));
-        const newFooterLink = document.getElementById('register-link-footer');
-        if (newFooterLink) {
-          newFooterLink.href = './register.html';
+          if (registerBtnHeader) {
+            registerBtnHeader.href =
+              "./register.html";
+
+            registerBtnHeader.classList.remove(
+              "is-disabled"
+            );
+
+            registerBtnHeader.style.pointerEvents =
+              "auto";
+
+            registerBtnHeader.style.opacity =
+              "1";
+          }
+
+          if (registerLinkFooter) {
+            registerLinkFooter.href =
+              "./register.html";
+
+            registerLinkFooter.classList.remove(
+              "is-disabled"
+            );
+
+            registerLinkFooter.style.pointerEvents =
+              "auto";
+
+            registerLinkFooter.style.opacity =
+              "1";
+          }
         }
-      }
 
-      function disableRegisterLinks() {
-        registerBtnHeader.href = 'javascript:void(0)';
-        registerBtnHeader.classList.add('is-disabled');
-        registerBtnHeader.style.pointerEvents = 'auto';
-        registerBtnHeader.style.cursor = 'pointer';
-        registerBtnHeader.style.opacity = '1';
+        // ==========================================
+        // غیرفعال کردن ثبت‌نام
+        // ولی با امکان نمایش Modal
+        // ==========================================
 
-        registerBtnHeader.addEventListener('click', function(e) {
-          e.preventDefault();
-          showRegistrationModal();
-        });
+        function disableRegisterLinks() {
 
-        registerLinkFooter.href = 'javascript:void(0)';
-        registerLinkFooter.classList.add('is-disabled');
-        registerLinkFooter.style.pointerEvents = 'auto';
-        registerLinkFooter.style.cursor = 'pointer';
-        registerLinkFooter.style.opacity = '1';
+          if (registerBtnHeader) {
 
-        const newFooterLink = registerLinkFooter.cloneNode(true);
-        registerLinkFooter.parentNode.replaceChild(newFooterLink, registerLinkFooter);
-        const newLink = document.getElementById('register-link-footer');
-        if (newLink) {
-          newLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showRegistrationModal();
-          });
+            registerBtnHeader.href =
+              "javascript:void(0)";
+
+            registerBtnHeader.classList.add(
+              "is-disabled"
+            );
+
+            registerBtnHeader.style.pointerEvents =
+              "auto";
+
+            registerBtnHeader.style.cursor =
+              "pointer";
+
+            registerBtnHeader.style.opacity =
+              "1";
+
+            registerBtnHeader.onclick =
+              function (event) {
+
+                event.preventDefault();
+
+                showRegistrationModal();
+              };
+          }
+
+          if (registerLinkFooter) {
+
+            registerLinkFooter.href =
+              "javascript:void(0)";
+
+            registerLinkFooter.classList.add(
+              "is-disabled"
+            );
+
+            registerLinkFooter.style.pointerEvents =
+              "auto";
+
+            registerLinkFooter.style.cursor =
+              "pointer";
+
+            registerLinkFooter.style.opacity =
+              "1";
+
+            registerLinkFooter.onclick =
+              function (event) {
+
+                event.preventDefault();
+
+                showRegistrationModal();
+              };
+          }
         }
-      }
 
-      function showRegistrationModal() {
-        registrationModal.classList.add('is-active');
-        document.body.style.overflow = 'hidden';
-      }
+        // ==========================================
+        // بررسی وضعیت ثبت‌نام عمومی
+        // ==========================================
 
-      function hideRegistrationModal() {
-        registrationModal.classList.remove('is-active');
-        document.body.style.overflow = '';
-      }
+        async function checkRegistrationStatus() {
 
-      if (modalClose) {
-        modalClose.addEventListener('click', hideRegistrationModal);
-      }
+          try {
 
-      if (modalOk) {
-        modalOk.addEventListener('click', hideRegistrationModal);
-      }
+            const response =
+              await fetch(
+                "/api/admin/settings",
+                {
+                  credentials: "same-origin",
+                  headers: {
+                    Accept: "application/json"
+                  }
+                }
+              );
 
-      registrationModal.addEventListener('click', function(e) {
-        if (e.target === this) {
-          hideRegistrationModal();
+            const data =
+              await response.json()
+                .catch(() => null);
+
+            // اگر API موقتاً در دسترس نبود،
+            // لینک ثبت‌نام فعال بماند.
+            if (
+              !response.ok ||
+              !data?.success
+            ) {
+              enableRegisterLinks();
+              return;
+            }
+
+            const settings =
+              data.settings || {};
+
+            const isEnabled =
+              String(
+                settings.allow_public_registration ??
+                "true"
+              )
+                .toLowerCase() === "true";
+
+            if (isEnabled) {
+              enableRegisterLinks();
+            } else {
+              disableRegisterLinks();
+            }
+
+          } catch (error) {
+            enableRegisterLinks();
+          }
         }
-      });
 
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-          hideRegistrationModal();
+        // ==========================================
+        // رویدادهای Modal
+        // ==========================================
+
+        if (modalClose) {
+          modalClose.addEventListener(
+            "click",
+            hideRegistrationModal
+          );
         }
-      });
 
-      await checkRegistrationStatus();
-    });
+        if (modalOk) {
+          modalOk.addEventListener(
+            "click",
+            hideRegistrationModal
+          );
+        }
+
+        if (registrationModal) {
+          registrationModal.addEventListener(
+            "click",
+            function (event) {
+              if (
+                event.target ===
+                registrationModal
+              ) {
+                hideRegistrationModal();
+              }
+            }
+          );
+        }
+
+        document.addEventListener(
+          "keydown",
+          function (event) {
+            if (event.key === "Escape") {
+              hideRegistrationModal();
+            }
+          }
+        );
+
+        // ==========================================
+        // بررسی وضعیت ثبت‌نام
+        // ==========================================
+
+        await checkRegistrationStatus();
+
+      }
+    );
   </script>
+  
 </body>
 </html>

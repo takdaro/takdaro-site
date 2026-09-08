@@ -1,0 +1,12 @@
+﻿{
+  "name": "sms-gateway",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-08",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "takdaro-users-prod",
+      "database_id": "9abf05f1-7a9b-4044-9ce1-195da36758fd"
+    }
+  ]
+}

@@ -19,15 +19,23 @@
     });
 
     let data = null;
+
     try {
       data = await response.json();
     } catch {
       data = null;
     }
 
-    return { ok: response.ok, status: response.status, data };
+    return {
+      ok: response.ok,
+      status: response.status,
+      data
+    };
   }
 
+  // ==========================================
+  // ثبت‌نام
+  // ==========================================
   async function register(payload) {
     return request(endpoints.register, {
       method: "POST",
@@ -35,39 +43,64 @@
         full_name: String(payload.full_name || "").trim(),
         phone: String(payload.phone || "").trim(),
         email: String(payload.email || "").trim(),
-        password: String(payload.password || "")
+        password: String(payload.password || ""),
+        access_code: String(payload.access_code || "")
       })
     });
   }
 
+  // ==========================================
+  // ورود
+  // ==========================================
   async function login(payload) {
     return request(endpoints.login, {
       method: "POST",
       body: JSON.stringify({
         email: String(payload.email || "").trim(),
-        password: String(payload.password || "")
+        password: String(payload.password || ""),
+        access_code: String(payload.access_code || "")
       })
     });
   }
 
+  // ==========================================
+  // خروج
+  // ==========================================
   async function logout() {
-    return request(endpoints.logout, { method: "POST" });
-  }
-
-  async function getCurrentUser() {
-    return request(endpoints.me, { method: "GET" });
-  }
-
-  async function getAdminUser() {
-    return request(endpoints.adminMe, { method: "GET" });
-  }
-
-  async function getProfile() {
-    return request(endpoints.profile, { method: "GET" });
+    return request(endpoints.logout, {
+      method: "POST"
+    });
   }
 
   // ==========================================
-  // ✅ اصلاح شده: تابع updateProfile
+  // دریافت کاربر فعلی
+  // ==========================================
+  async function getCurrentUser() {
+    return request(endpoints.me, {
+      method: "GET"
+    });
+  }
+
+  // ==========================================
+  // دریافت مدیر فعلی
+  // ==========================================
+  async function getAdminUser() {
+    return request(endpoints.adminMe, {
+      method: "GET"
+    });
+  }
+
+  // ==========================================
+  // دریافت پروفایل
+  // ==========================================
+  async function getProfile() {
+    return request(endpoints.profile, {
+      method: "GET"
+    });
+  }
+
+  // ==========================================
+  // بروزرسانی پروفایل
   // ==========================================
   async function updateProfile(payload) {
     const result = await request(endpoints.profile, {
@@ -77,11 +110,12 @@
         email: String(payload.email || "").trim(),
         phone: String(payload.phone || "").trim(),
         password: String(payload.password || ""),
-        password_confirm: String(payload.password_confirm || "")
+        password_confirm: String(
+          payload.password_confirm || ""
+        )
       })
     });
 
-    // ✅ اگر پاسخ موفق بود
     if (result.ok && result.data?.success === true) {
       return {
         success: true,
@@ -90,179 +124,430 @@
       };
     }
 
-    // ✅ اگر خطا بود
     return {
       success: false,
-      error: result.data?.error || "خطا در ارتباط با سرور"
+      error:
+        result.data?.error ||
+        "خطا در ارتباط با سرور"
     };
   }
 
-  function setMessage(element, message, type = "error") {
+  // ==========================================
+  // نمایش پیام
+  // ==========================================
+  function setMessage(
+    element,
+    message,
+    type = "error"
+  ) {
     if (!element) return;
+
     element.textContent = message || "";
-    element.style.display = message ? "block" : "none";
-    element.classList.remove("is-error", "is-success", "is-warning");
+    element.style.display = message
+      ? "block"
+      : "none";
+
+    element.classList.remove(
+      "is-error",
+      "is-success",
+      "is-warning"
+    );
+
     if (message) {
-      element.classList.add(type === "success" ? "is-success" : type === "warning" ? "is-warning" : "is-error");
+      element.classList.add(
+        type === "success"
+          ? "is-success"
+          : type === "warning"
+            ? "is-warning"
+            : "is-error"
+      );
     }
   }
 
-  function redirectTo(url, replace = false) {
+  // ==========================================
+  // انتقال صفحه
+  // ==========================================
+  function redirectTo(
+    url,
+    replace = false
+  ) {
     if (replace) {
       window.location.replace(url);
       return;
     }
+
     window.location.href = url;
   }
 
+  // ==========================================
+  // دریافت آدرس بازگشت
+  // ==========================================
   function getRedirectParam() {
-    const params = new URLSearchParams(window.location.search);
-    const redirect = params.get("redirect") || "";
-    if (!redirect.startsWith("/")) return null;
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
+    const redirect =
+      params.get("redirect") || "";
+
+    if (!redirect.startsWith("/")) {
+      return null;
+    }
+
     return redirect;
   }
 
-  function buildLoginRedirect(targetPath = null) {
+  // ==========================================
+  // ساخت آدرس ورود
+  // ==========================================
+  function buildLoginRedirect(
+    targetPath = null
+  ) {
     const currentPath =
       targetPath ||
-      window.location.pathname + window.location.search + window.location.hash;
+      window.location.pathname +
+      window.location.search +
+      window.location.hash;
 
-    return `/login.html?redirect=${encodeURIComponent(currentPath)}`;
+    return `/login.html?redirect=${encodeURIComponent(
+      currentPath
+    )}`;
   }
 
+  // ==========================================
+  // اتصال فرم ثبت‌نام
+  // ==========================================
   function bindRegisterForm(options = {}) {
-    const form = document.querySelector(options.formSelector || "#register-form");
+    const form = document.querySelector(
+      options.formSelector || "#register-form"
+    );
+
     if (!form) return;
 
-    const messageBox = document.querySelector(options.messageSelector || "[data-auth-message]");
-    const submitButton = form.querySelector('button[type="submit"]');
+    const messageBox =
+      document.querySelector(
+        options.messageSelector ||
+        "[data-auth-message]"
+      );
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      setMessage(messageBox, "");
+    const submitButton =
+      form.querySelector(
+        'button[type="submit"]'
+      );
 
-      const full_name = form.full_name?.value || "";
-      const phone = form.phone?.value || "";
-      const email = form.email?.value || "";
-      const password = form.password?.value || "";
+    form.addEventListener(
+      "submit",
+      async (event) => {
+        event.preventDefault();
 
-      if (submitButton) submitButton.disabled = true;
+        setMessage(messageBox, "");
 
-      try {
-        const result = await register({ full_name, phone, email, password });
+        const full_name =
+          form.full_name?.value || "";
 
-        if (!result.ok || !result.data?.success) {
-          setMessage(messageBox, result.data?.error || "ثبت‌نام انجام نشد.");
-          return;
+        const phone =
+          form.phone?.value || "";
+
+        const email =
+          form.email?.value || "";
+
+        const password =
+          form.password?.value || "";
+
+        // کد عبور اضافی
+        const access_code =
+          form.access_code?.value || "";
+
+        if (submitButton) {
+          submitButton.disabled = true;
         }
 
-        setMessage(messageBox, "حساب کاربری با موفقیت ایجاد شد.", "success");
+        try {
+          const result =
+            await register({
+              full_name,
+              phone,
+              email,
+              password,
+              access_code
+            });
 
-        const redirectTarget = getRedirectParam();
-        const fallbackRedirect = options.redirectAfterSuccess || "/products.html";
+          if (
+            !result.ok ||
+            !result.data?.success
+          ) {
+            setMessage(
+              messageBox,
+              result.data?.error ||
+              "ثبت‌نام انجام نشد."
+            );
 
-        setTimeout(() => {
-          redirectTo(redirectTarget || fallbackRedirect, true);
-        }, 700);
-      } catch (error) {
-        setMessage(messageBox, String(error?.message || error || "ثبت‌نام انجام نشد."));
-      } finally {
-        if (submitButton) submitButton.disabled = false;
+            return;
+          }
+
+          setMessage(
+            messageBox,
+            "حساب کاربری با موفقیت ایجاد شد.",
+            "success"
+          );
+
+          const redirectTarget =
+            getRedirectParam();
+
+          // بعد از ثبت‌نام موفق، مقصد پیش‌فرض صفحه اصلی است.
+          const fallbackRedirect =
+            options.redirectAfterSuccess ||
+            "/";
+
+          setTimeout(() => {
+            redirectTo(
+              redirectTarget ||
+              fallbackRedirect,
+              true
+            );
+          }, 700);
+
+        } catch (error) {
+          setMessage(
+            messageBox,
+            String(
+              error?.message ||
+              error ||
+              "ثبت‌نام انجام نشد."
+            )
+          );
+        } finally {
+          if (submitButton) {
+            submitButton.disabled = false;
+          }
+        }
       }
-    });
+    );
   }
 
+  // ==========================================
+  // اتصال فرم ورود
+  // ==========================================
   function bindLoginForm(options = {}) {
-    const form = document.querySelector(options.formSelector || "#login-form");
+    const form = document.querySelector(
+      options.formSelector || "#login-form"
+    );
+
     if (!form) return;
 
-    const messageBox = document.querySelector(options.messageSelector || "[data-auth-message]");
-    const submitButton = form.querySelector('button[type="submit"]');
+    const messageBox =
+      document.querySelector(
+        options.messageSelector ||
+        "[data-auth-message]"
+      );
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      setMessage(messageBox, "");
+    const submitButton =
+      form.querySelector(
+        'button[type="submit"]'
+      );
 
-      const email = form.email?.value || form.identity?.value || "";
-      const password = form.password?.value || "";
+    form.addEventListener(
+      "submit",
+      async (event) => {
+        event.preventDefault();
 
-      if (submitButton) submitButton.disabled = true;
+        setMessage(messageBox, "");
 
-      try {
-        const result = await login({ email, password });
+        const email =
+          form.email?.value ||
+          form.identity?.value ||
+          "";
 
-        if (!result.ok || !result.data?.success) {
-          setMessage(messageBox, result.data?.error || "ورود انجام نشد.");
-          return;
+        const password =
+          form.password?.value || "";
+
+        // کد عبور اضافی
+        const access_code =
+          form.access_code?.value || "";
+
+        if (submitButton) {
+          submitButton.disabled = true;
         }
 
-        setMessage(messageBox, "ورود با موفقیت انجام شد.", "success");
+        try {
+          const result =
+            await login({
+              email,
+              password,
+              access_code
+            });
 
-        const redirectTarget = getRedirectParam();
-        redirectTo(redirectTarget || options.redirectAfterSuccess || "/products.html", true);
-      } catch (error) {
-        setMessage(messageBox, String(error?.message || error || "ورود انجام نشد."));
-      } finally {
-        if (submitButton) submitButton.disabled = false;
+          if (
+            !result.ok ||
+            !result.data?.success
+          ) {
+            setMessage(
+              messageBox,
+              result.data?.error ||
+              "ورود انجام نشد."
+            );
+
+            return;
+          }
+
+          setMessage(
+            messageBox,
+            "ورود با موفقیت انجام شد.",
+            "success"
+          );
+
+          const redirectTarget =
+            getRedirectParam();
+
+          // اگر مقصد مشخصی از صفحه خصوصی آمده باشد،
+          // همان مقصد حفظ می‌شود.
+          // در غیر این صورت، صفحه اصلی باز می‌شود.
+          redirectTo(
+            redirectTarget ||
+            options.redirectAfterSuccess ||
+            "/",
+            true
+          );
+
+        } catch (error) {
+          setMessage(
+            messageBox,
+            String(
+              error?.message ||
+              error ||
+              "ورود انجام نشد."
+            )
+          );
+        } finally {
+          if (submitButton) {
+            submitButton.disabled = false;
+          }
+        }
       }
-    });
+    );
   }
 
+  // ==========================================
+  // اتصال دکمه خروج
+  // ==========================================
   function bindLogoutButton(options = {}) {
-    const button = document.querySelector(options.buttonSelector || "[data-auth-logout]");
+    const button = document.querySelector(
+      options.buttonSelector ||
+      "[data-auth-logout]"
+    );
+
     if (!button) return;
 
-    button.addEventListener("click", async (event) => {
-      event.preventDefault();
-      try {
-        await logout();
-      } catch {}
-      redirectTo(options.redirectAfterSuccess || "/index.html", true);
-    });
+    button.addEventListener(
+      "click",
+      async (event) => {
+        event.preventDefault();
+
+        try {
+          await logout();
+        } catch {}
+
+        redirectTo(
+          options.redirectAfterSuccess ||
+          "/index.html",
+          true
+        );
+      }
+    );
   }
 
+  // ==========================================
+  // الزام ورود
+  // ==========================================
   async function requireAuth(options = {}) {
-    const result = await getCurrentUser();
+    const result =
+      await getCurrentUser();
 
-    if (!result.ok || !result.data?.success || !result.data?.user) {
-      redirectTo(buildLoginRedirect(options.redirectPath), true);
+    if (
+      !result.ok ||
+      !result.data?.success ||
+      !result.data?.user
+    ) {
+      redirectTo(
+        buildLoginRedirect(
+          options.redirectPath
+        ),
+        true
+      );
+
       return null;
     }
 
     return result.data.user;
   }
 
+  // ==========================================
+  // الزام ادمین
+  // ==========================================
   async function requireAdmin(options = {}) {
-    const result = await getAdminUser();
+    const result =
+      await getAdminUser();
 
-    if (!result.ok || !result.data?.success || !result.data?.user) {
-      redirectTo(buildLoginRedirect(options.redirectPath || "/admin.html"), true);
+    if (
+      !result.ok ||
+      !result.data?.success ||
+      !result.data?.user
+    ) {
+      redirectTo(
+        buildLoginRedirect(
+          options.redirectPath ||
+          "/admin.html"
+        ),
+        true
+      );
+
       return null;
     }
 
     return result.data.user;
   }
 
-  async function redirectIfAuthenticated(options = {}) {
-    const result = await getCurrentUser();
+  // ==========================================
+  // انتقال کاربر واردشده
+  // ==========================================
+  async function redirectIfAuthenticated(
+    options = {}
+  ) {
+    const result =
+      await getCurrentUser();
 
-    if (result.ok && result.data?.success && result.data?.user) {
-      redirectTo(options.redirectTo || "/products.html", true);
+    if (
+      result.ok &&
+      result.data?.success &&
+      result.data?.user
+    ) {
+      // مقصد پیش‌فرض کاربر واردشده صفحه اصلی است.
+      redirectTo(
+        options.redirectTo ||
+        "/",
+        true
+      );
+
       return result.data.user;
     }
 
     return null;
   }
 
+  // ==========================================
+  // محافظت از صفحات
+  // ==========================================
   async function protectPage(options = {}) {
-    const publicPaths = options.publicPaths || [
-      "/",
-      "/index.html",
-      "/login.html",
-      "/register.html"
-    ];
+    const publicPaths =
+      options.publicPaths || [
+        "/",
+        "/index.html",
+        "/login.html",
+        "/register.html"
+      ];
 
-    const currentPath = window.location.pathname;
+    const currentPath =
+      window.location.pathname;
 
     if (publicPaths.includes(currentPath)) {
       return null;
@@ -271,7 +556,9 @@
     return requireAuth(options);
   }
 
-  // ⭐ تابع تبدیل نقش به فارسی
+  // ==========================================
+  // تبدیل نقش به فارسی
+  // ==========================================
   function faRole(value) {
     const map = {
       user: "مشتری",
@@ -279,51 +566,142 @@
       admin: "ادمین",
       super_admin: "مدیر کل"
     };
-    return map[String(value || "").toLowerCase()] || "نامشخص";
+
+    return (
+      map[
+        String(value || "").toLowerCase()
+      ] || "نامشخص"
+    );
   }
 
-  function fillUserFields(user, options = {}) {
+  // ==========================================
+  // پر کردن اطلاعات کاربر
+  // ==========================================
+  function fillUserFields(
+    user,
+    options = {}
+  ) {
     if (!user) return;
 
-    const nameElements = document.querySelectorAll(options.nameSelector || "[data-user-full-name]");
-    const emailElements = document.querySelectorAll(options.emailSelector || "[data-user-email]");
-    const phoneElements = document.querySelectorAll(options.phoneSelector || "[data-user-phone]");
-    const idElements = document.querySelectorAll(options.idSelector || "[data-user-id]");
-    const roleElements = document.querySelectorAll(options.roleSelector || "[data-user-role]");
-    const walletElements = document.querySelectorAll(options.walletSelector || "[data-user-wallet]");
+    const nameElements =
+      document.querySelectorAll(
+        options.nameSelector ||
+        "[data-user-full-name]"
+      );
+
+    const emailElements =
+      document.querySelectorAll(
+        options.emailSelector ||
+        "[data-user-email]"
+      );
+
+    const phoneElements =
+      document.querySelectorAll(
+        options.phoneSelector ||
+        "[data-user-phone]"
+      );
+
+    const idElements =
+      document.querySelectorAll(
+        options.idSelector ||
+        "[data-user-id]"
+      );
+
+    const roleElements =
+      document.querySelectorAll(
+        options.roleSelector ||
+        "[data-user-role]"
+      );
+
+    const walletElements =
+      document.querySelectorAll(
+        options.walletSelector ||
+        "[data-user-wallet]"
+      );
 
     nameElements.forEach((el) => {
-      if ("value" in el && el.tagName === "INPUT") el.value = user.full_name || "";
-      else el.textContent = user.full_name || "";
+      if (
+        "value" in el &&
+        el.tagName === "INPUT"
+      ) {
+        el.value =
+          user.full_name || "";
+      } else {
+        el.textContent =
+          user.full_name || "";
+      }
     });
 
     emailElements.forEach((el) => {
-      if ("value" in el && el.tagName === "INPUT") el.value = user.email || "";
-      else el.textContent = user.email || "";
+      if (
+        "value" in el &&
+        el.tagName === "INPUT"
+      ) {
+        el.value =
+          user.email || "";
+      } else {
+        el.textContent =
+          user.email || "";
+      }
     });
 
     phoneElements.forEach((el) => {
-      if ("value" in el && el.tagName === "INPUT") el.value = user.phone || "";
-      else el.textContent = user.phone || "";
+      if (
+        "value" in el &&
+        el.tagName === "INPUT"
+      ) {
+        el.value =
+          user.phone || "";
+      } else {
+        el.textContent =
+          user.phone || "";
+      }
     });
 
     idElements.forEach((el) => {
-      const value = user.id != null ? String(user.id) : "";
-      if ("value" in el && el.tagName === "INPUT") el.value = value;
-      else el.textContent = value;
+      const value =
+        user.id != null
+          ? String(user.id)
+          : "";
+
+      if (
+        "value" in el &&
+        el.tagName === "INPUT"
+      ) {
+        el.value = value;
+      } else {
+        el.textContent = value;
+      }
     });
 
-    // ⭐ اصلاح شده: نمایش فارسی نقش
     roleElements.forEach((el) => {
-      const value = faRole(user.role || "");
-      if ("value" in el && el.tagName === "INPUT") el.value = value;
-      else el.textContent = value;
+      const value =
+        faRole(user.role || "");
+
+      if (
+        "value" in el &&
+        el.tagName === "INPUT"
+      ) {
+        el.value = value;
+      } else {
+        el.textContent = value;
+      }
     });
 
     walletElements.forEach((el) => {
-      const value = Number(user.wallet_balance || 0).toLocaleString("fa-IR");
-      if ("value" in el && el.tagName === "INPUT") el.value = value;
-      else el.textContent = value;
+      const value =
+        Number(
+          user.wallet_balance || 0
+        ).toLocaleString("fa-IR");
+
+      if (
+        "value" in el &&
+        el.tagName === "INPUT"
+      ) {
+        el.value = value;
+      } else {
+        el.textContent = value;
+      }
     });
   }
 

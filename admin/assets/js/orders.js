@@ -6,6 +6,23 @@
   'use strict';
 
   // ============================================
+  // لیست ۱۲ وضعیتی نهایی
+  // ============================================
+  const ORDER_STATUSES = [
+    { value: 'payment_pending', label: 'در انتظار پرداخت' },
+    { value: 'payment_success', label: 'پرداخت موفق' },
+    { value: 'payment_failed', label: 'پرداخت ناموفق' },
+    { value: 'order_confirmed', label: 'تأیید سفارش' },
+    { value: 'courier_delivery', label: 'ارسال با پیک' },
+    { value: 'bus_shipping', label: 'ارسال با باربری' },
+    { value: 'shipped', label: 'ارسال شد' },
+    { value: 'delivered', label: 'تحویل داده شد' },
+    { value: 'completed', label: 'تکمیل شد' },
+    { value: 'cancelled', label: 'لغو شد' },
+    { value: 'returned', label: 'مرجوع شد' }
+  ];
+
+  // ============================================
   // بارگذاری لیست سفارش‌ها
   // ============================================
   async function loadOrders() {
@@ -89,7 +106,7 @@
         'ایمیل: ' + window.esc(order.email || "-") + '<br>' +
         'شماره: ' + window.esc(order.phone || "-") + '<br>' +
         'وضعیت: ' + window.esc(window.faOrderStatus(order.status)) + '<br>' +
-        'وضعیت پرداخت: ' + window.esc(window.faPaymentStatus(order.payment_status)) + '<br>' +
+        // ⭐ حذف شد: 'وضعیت پرداخت: ' + window.esc(window.faPaymentStatus(order.payment_status)) + '<br>' +
         'مبلغ فاکتور: ' + window.money(totalAmount) + ' تومان<br>' +
         'مبلغ ارسال: ' + window.money(shippingAmount) + ' تومان<br>' +
         'برداشت از کیف پول: ' + window.money(walletUsedAmount) + ' تومان<br>' +
@@ -115,25 +132,16 @@
         '</div>';
     }
 
+    // ساخت dropdown با ۱۲ وضعیت نهایی
+    var statusOptions = ORDER_STATUSES.map(function(s) {
+      var selected = (s.value === order.status) ? ' selected' : '';
+      return '<option value="' + s.value + '"' + selected + '>' + s.label + '</option>';
+    }).join('');
+
     box.innerHTML +=
       '<div class="panel-actions">' +
         '<select id="detail-status">' +
-          '<option value="order_created">سفارش ثبت شد</option>' +
-          '<option value="payment_pending">در انتظار پرداخت</option>' +
-          '<option value="payment_success">پرداخت موفق</option>' +
-          '<option value="payment_failed">پرداخت ناموفق</option>' +
-          '<option value="payment_review">بررسی پرداخت</option>' +
-          '<option value="order_confirmed">تأیید سفارش</option>' +
-          '<option value="processing">در حال پردازش</option>' +
-          '<option value="ready_to_ship">آماده ارسال</option>' +
-          '<option value="courier_delivery">ارسال با پیک</option>' +
-          '<option value="bus_shipping">ارسال با اتوبوس</option>' +
-          '<option value="shipped">ارسال شد</option>' +
-          '<option value="delivered">تحویل داده شد</option>' +
-          '<option value="completed">تکمیل شد</option>' +
-          '<option value="cancelled">لغو شد</option>' +
-          '<option value="returned">مرجوع شد</option>' +
-          '<option value="processing_failed">پردازش ناموفق</option>' +
+          statusOptions +
         '</select>' +
         '<button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>' +
         '<button class="btn btn-secondary" type="button" id="delete-order-detail-btn">حذف سفارش</button>' +
@@ -158,16 +166,9 @@
         '</div>';
     }
 
-    // مقداردهی dropdown وضعیت
-    var statusSelect = document.getElementById("detail-status");
-    if (statusSelect) {
-      statusSelect.value = order.status || "order_created";
-    }
-
     // رویداد ذخیره وضعیت
     var saveBtn = document.getElementById("save-order-status-btn");
     if (saveBtn) {
-      // حذف رویدادهای قبلی
       var newSaveBtn = saveBtn.cloneNode(true);
       saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
       newSaveBtn.addEventListener("click", async function() {
@@ -242,7 +243,6 @@
   // اتصال رویدادها با Event Delegation روی document
   // ============================================
   function setupOrderEvents() {
-    // حذف رویدادهای قبلی (برای جلوگیری از چندباره)
     document.removeEventListener("click", handleOrderClick);
     document.addEventListener("click", handleOrderClick);
   }
@@ -250,7 +250,6 @@
   function handleOrderClick(event) {
     var target = event.target;
 
-    // دکمه جزئیات
     var viewBtn = target.closest("[data-view-order]");
     if (viewBtn) {
       event.preventDefault();
@@ -261,7 +260,6 @@
       return;
     }
 
-    // دکمه حذف
     var deleteBtn = target.closest("[data-delete-order]");
     if (deleteBtn) {
       event.preventDefault();
@@ -281,7 +279,6 @@
   window.deleteOrder = deleteOrder;
   window.setupOrderEvents = setupOrderEvents;
 
-  // اتصال خودکار رویدادها هنگام بارگذاری ماژول
   setupOrderEvents();
 
   console.log("✅ Orders module loaded successfully");

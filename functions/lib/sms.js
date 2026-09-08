@@ -3,6 +3,7 @@
 // ============================================
 
 import { getDb } from './db.js';
+import { getStatusLabel } from './status-mapping.js';
 
 // ============================================
 // توابع کمکی
@@ -42,54 +43,16 @@ export function normalizePhoneNumber(phone) {
 }
 
 // ============================================
-// ⭐⭐ تبدیل وضعیت‌ها به فارسی (16 وضعیت کامل)
+// ⭐⭐ تبدیل وضعیت سفارش به فارسی - استفاده از Central Source
 // ============================================
 
 /**
- * تبدیل وضعیت سفارش به فارسی - 16 وضعیت کامل
+ * تبدیل وضعیت سفارش به فارسی
  * @param {string} status - وضعیت انگلیسی
  * @returns {string} - وضعیت فارسی
  */
 function getPersianOrderStatus(status) {
-  const map = {
-    'order_created': 'سفارش ثبت شد',
-    'payment_pending': 'در انتظار پرداخت',
-    'payment_success': 'پرداخت موفق',
-    'payment_failed': 'پرداخت ناموفق',
-    'payment_review': 'بررسی پرداخت',
-    'order_confirmed': 'تأیید سفارش',
-    'processing': 'در حال پردازش',
-    'ready_to_ship': 'آماده ارسال',
-    'courier_delivery': 'ارسال با پیک',
-    'bus_shipping': 'ارسال با اتوبوس',
-    'shipped': 'ارسال شد',
-    'delivered': 'تحویل داده شد',
-    'completed': 'تکمیل شد',
-    'cancelled': 'لغو شد',
-    'returned': 'مرجوع شد',
-    'processing_failed': 'پردازش ناموفق'
-  };
-  return map[String(status || '').toLowerCase()] || status || '';
-}
-
-/**
- * تبدیل وضعیت پرداخت به فارسی - کامل
- * @param {string} status - وضعیت انگلیسی
- * @returns {string} - وضعیت فارسی
- */
-function getPersianPaymentStatus(status) {
-  const map = {
-    'payment_pending': 'در انتظار پرداخت',
-    'payment_success': 'پرداخت موفق',
-    'payment_failed': 'پرداخت ناموفق',
-    'payment_review': 'بررسی پرداخت',
-    'pending': 'در انتظار پرداخت',
-    'paid': 'پرداخت شده',
-    'completed': 'تکمیل شده',
-    'failed': 'ناموفق',
-    'refunded': 'بازگشت داده شده'
-  };
-  return map[String(status || '').toLowerCase()] || status || '';
+  return getStatusLabel(status);
 }
 
 /**
@@ -253,13 +216,12 @@ export function renderSmsTemplate(template, data) {
   
   let result = template;
   
-  // متغیرهای استاندارد با تبدیل وضعیت‌ها به فارسی
+  // متغیرهای استاندارد - فقط وضعیت سفارش
   const variables = {
     '{customer_name}': data.customer_name || '',
     '{customer_phone}': data.customer_phone || '',
     '{order_number}': data.order_number || '',
     '{amount}': formatPersianAmount(data.amount),
-    '{payment_status}': getPersianPaymentStatus(data.payment_status),
     '{order_status}': getPersianOrderStatus(data.order_status),
     '{tracking_code}': data.tracking_code || ''
   };

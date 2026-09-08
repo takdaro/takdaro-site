@@ -1,455 +1,274 @@
 /* ==========================================
-   admin-common.css - استایل‌های مشترک پنل ادمین
-   ========================================== */
 
-/* ===== کارت‌ها و کانتینرها ===== */
-.admin-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xs);
-  padding: 24px;
-  transition: box-shadow var(--transition), transform var(--transition);
-}
+   FIX: جدول محصولات ادمین
 
-.admin-card:hover {
-  box-shadow: var(--shadow-sm);
-}
+   =========================================== */
 
-.admin-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
+/* پشتیبانی از هر دو نام کانتینر */
 
-.admin-card-header h3,
-.admin-card-header h4 {
-  margin: 0;
-  color: var(--primary);
-  font-weight: 700;
-}
+.table-wrap,
 
-.admin-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ===== دکمه‌ها ===== */
-.btn-admin-primary {
-  background: var(--secondary);
-  color: #fff;
-  border: 1px solid var(--secondary);
-  border-radius: var(--radius-pill);
-  padding: 10px 20px;
-  font-weight: 700;
-  transition: all var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-}
-
-.btn-admin-primary:hover,
-.btn-admin-primary:focus-visible {
-  background: #1a8aa8;
-  border-color: #1a8aa8;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(33, 158, 188, 0.3);
-}
-
-.btn-admin-secondary {
-  background: var(--surface);
-  color: var(--text-soft);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 10px 20px;
-  font-weight: 700;
-  transition: all var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-}
-
-.btn-admin-secondary:hover,
-.btn-admin-secondary:focus-visible {
-  background: var(--surface-2);
-  border-color: var(--secondary);
-  color: var(--secondary);
-  transform: translateY(-2px);
-}
-
-.btn-admin-danger {
-  background: var(--danger);
-  color: #fff;
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-pill);
-  padding: 10px 20px;
-  font-weight: 700;
-  transition: all var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-}
-
-.btn-admin-danger:hover,
-.btn-admin-danger:focus-visible {
-  background: #9e1f14;
-  border-color: #9e1f14;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(180, 35, 24, 0.3);
-}
-
-.btn-admin-success {
-  background: var(--success);
-  color: #fff;
-  border: 1px solid var(--success);
-  border-radius: var(--radius-pill);
-  padding: 10px 20px;
-  font-weight: 700;
-  transition: all var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-}
-
-.btn-admin-success:hover,
-.btn-admin-success:focus-visible {
-  background: #15694a;
-  border-color: #15694a;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(28, 124, 84, 0.3);
-}
-
-/* ===== جداول ===== */
 .admin-table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+
+  width: 100%;
+
   max-width: 100%;
-}
 
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.92rem;
-  min-width: 700px;
-}
+  overflow-x: auto;
 
-.admin-table th,
-.admin-table td {
-  padding: 14px 16px;
-  text-align: right;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
+  overflow-y: hidden;
 
-.admin-table th {
-  background: var(--surface-2);
-  color: var(--text-soft);
-  font-weight: 700;
-  font-size: 0.88rem;
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.admin-table tr:last-child td {
-  border-bottom: none;
-}
-
-.admin-table tr:hover td {
-  background: rgba(33, 158, 188, 0.03);
-}
-
-.admin-table .table-number {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* ===== فرم‌ها ===== */
-.admin-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.admin-form-group label {
-  font-weight: 700;
-  color: var(--text-soft);
-  font-size: 0.94rem;
-}
-
-.admin-form-group .admin-help {
-  color: var(--muted);
-  font-size: 0.86rem;
-  line-height: 1.8;
-  margin-top: 4px;
-}
-
-.admin-form-control {
-  width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  padding: 12px 16px;
-  font: inherit;
-  color: var(--text);
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
 
-.admin-form-control:focus {
-  outline: none;
-  border-color: var(--secondary);
-  box-shadow: 0 0 0 4px rgba(33, 158, 188, 0.08);
-}
-
-.admin-form-control::placeholder {
-  color: var(--muted-2);
-}
-
-.admin-form-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23617883' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: left 16px center;
-  padding-left: 40px;
-}
-
-.admin-form-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-/* ===== گرید فیلترها ===== */
-.admin-filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-  align-items: end;
-}
-
-.admin-filters-grid .admin-form-group {
-  gap: 6px;
-}
-
-.admin-filters-grid .admin-form-group label {
-  font-size: 0.88rem;
-}
-
-.admin-filters-grid .admin-form-group:last-child {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* ===== پیام‌ها ===== */
-.admin-message {
-  padding: 14px 18px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 18px;
-  font-size: 0.94rem;
-  line-height: 1.9;
-  display: none;
-}
-
-.admin-message.is-success {
-  display: block;
-  background: var(--secondary-soft);
-  color: var(--success);
-  border: 1px solid #bbf7d0;
-}
-
-.admin-message.is-error {
-  display: block;
-  background: #fef2f2;
-  color: var(--danger);
-  border: 1px solid #fecaca;
-}
-
-.admin-message.is-warning {
-  display: block;
-  background: #fff7ed;
-  color: var(--warning);
-  border: 1px solid #fed7aa;
-}
-
-.admin-message.is-info {
-  display: block;
-  background: rgba(33, 158, 188, 0.08);
-  color: var(--secondary);
-  border: 1px solid rgba(33, 158, 188, 0.2);
-}
-
-/* ===== وضعیت‌ها (Badge) ===== */
-.admin-status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill);
-  font-size: 0.82rem;
-  font-weight: 700;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
-
-.admin-status-badge--success {
-  background: var(--secondary-soft);
-  color: var(--success);
-  border-color: #bbf7d0;
-}
-
-.admin-status-badge--warning {
-  background: #fff7ed;
-  color: var(--warning);
-  border-color: #fed7aa;
-}
-
-.admin-status-badge--info {
-  background: rgba(33, 158, 188, 0.08);
-  color: var(--secondary);
-  border-color: rgba(33, 158, 188, 0.2);
-}
-
-.admin-status-badge--danger {
-  background: #fef2f2;
-  color: var(--danger);
-  border-color: #fecaca;
-}
-
-/* ===== لودینگ ===== */
-.admin-loading {
-  padding: 18px 20px;
-  border-radius: var(--radius-sm);
-  background: rgba(33, 158, 188, 0.06);
-  color: var(--secondary);
-  border: 1px solid rgba(33, 158, 188, 0.12);
-  line-height: 1.9;
-  font-size: 0.94rem;
-  text-align: center;
-}
-
-.admin-loading::after {
-  content: " ...";
-  animation: adminLoadingDots 1.2s steps(3, end) infinite;
-}
-
-@keyframes adminLoadingDots {
-  0% { content: " ."; }
-  33% { content: " .."; }
-  66% { content: " ..."; }
-}
-
-/* ===== پنهان‌سازی ===== */
-.admin-hidden {
-  display: none !important;
-}
-
-/* ===== جزئیات کارت ===== */
-.admin-detail-card {
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
+
   background: var(--surface);
-  padding: 20px;
-  margin-top: 16px;
+
 }
 
-.admin-detail-card h4 {
-  margin: 0 0 12px;
-  color: var(--primary);
-  font-size: 1rem;
-  font-weight: 700;
+/* جدول محصولات */
+
+.table-wrap .admin-table,
+
+.admin-table-wrap .admin-table {
+
+  width: 100%;
+
+  min-width: 1050px;
+
+  border-collapse: collapse;
+
+  table-layout: auto;
+
 }
 
-.admin-detail-card p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.9;
-  font-size: 0.92rem;
+/* سلول‌های جدول */
+
+.table-wrap .admin-table th,
+
+.table-wrap .admin-table td,
+
+.admin-table-wrap .admin-table th,
+
+.admin-table-wrap .admin-table td {
+
+  padding: 14px 16px;
+
+  text-align: right;
+
+  vertical-align: middle;
+
+  border-bottom: 1px solid var(--border);
+
 }
 
-/* ===== نوار ابزار ===== */
-.admin-toolbar {
+/* جلوگیری از به‌هم‌ریختگی ستون‌های کوتاه */
+
+.table-wrap .admin-table th,
+
+.table-wrap .admin-table td {
+
+  white-space: nowrap;
+
+}
+
+/* ستون نام محصول فضای بیشتری داشته باشد */
+
+.table-wrap .admin-table th:nth-child(3),
+
+.table-wrap .admin-table td:nth-child(3) {
+
+  min-width: 220px;
+
+  white-space: normal;
+
+  line-height: 1.7;
+
+}
+
+/* ستون تصویر */
+
+.table-wrap .admin-table th:nth-child(1),
+
+.table-wrap .admin-table td:nth-child(1) {
+
+  min-width: 90px;
+
+  text-align: center;
+
+}
+
+/* ستون شناسه */
+
+.table-wrap .admin-table th:nth-child(2),
+
+.table-wrap .admin-table td:nth-child(2) {
+
+  min-width: 70px;
+
+}
+
+/* ستون قیمت */
+
+.table-wrap .admin-table th:nth-child(5),
+
+.table-wrap .admin-table td:nth-child(5) {
+
+  min-width: 130px;
+
+}
+
+/* ستون موجودی */
+
+.table-wrap .admin-table th:nth-child(6),
+
+.table-wrap .admin-table td:nth-child(6) {
+
+  min-width: 100px;
+
+}
+
+/* ستون وضعیت */
+
+.table-wrap .admin-table th:nth-child(7),
+
+.table-wrap .admin-table td:nth-child(7) {
+
+  min-width: 110px;
+
+}
+
+/* ستون تاریخ بروزرسانی */
+
+.table-wrap .admin-table th:nth-child(8),
+
+.table-wrap .admin-table td:nth-child(8) {
+
+  min-width: 150px;
+
+}
+
+/* ستون اقدامات */
+
+.table-wrap .admin-table th:last-child,
+
+.table-wrap .admin-table td:last-child {
+
+  min-width: 150px;
+
+}
+
+/* جلوگیری از شکستن ظاهر دکمه‌ها */
+
+.table-wrap .panel-actions {
+
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+
+  gap: 8px;
+
+  flex-wrap: nowrap;
+
+  margin-top: 0;
+
 }
 
-.admin-toolbar .admin-toolbar-title {
-  margin: 0;
-  color: var(--primary);
-  font-size: 1.1rem;
+/* اسکرول نرم در موبایل */
+
+.table-wrap {
+
+  -webkit-overflow-scrolling: touch;
+
+}
+
+
+/* ============================================
+
+   Status Badges
+   نقش کاربران و وضعیت‌ها
+
+   ============================================ */
+
+.status-badge {
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-width: 75px;
+
+  padding: 6px 12px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+
   font-weight: 700;
+
+  line-height: 1.4;
+
+  white-space: nowrap;
+
 }
 
-.admin-toolbar .admin-toolbar-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+
+/* مشتری */
+
+.status-badge--info,
+
+.status-badge--user {
+
+  background: #eff6ff;
+
+  color: #2563eb;
+
+  border: 1px solid #bfdbfe;
+
 }
 
-/* ===== ریسپانسیو ===== */
-@media (max-width: 820px) {
-  .admin-filters-grid {
-    grid-template-columns: 1fr 1fr;
-  }
 
-  .admin-card {
-    padding: 18px;
-  }
+/* ادمین و وضعیت‌های موفق */
 
-  .admin-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.status-badge--success,
 
-  .admin-toolbar .admin-toolbar-actions {
-    width: 100%;
-  }
+.status-badge--admin {
 
-  .admin-toolbar .admin-toolbar-actions .btn {
-    flex: 1;
-  }
+  background: #f0fdf4;
+
+  color: #15803d;
+
+  border: 1px solid #bbf7d0;
+
 }
 
-@media (max-width: 560px) {
-  .admin-filters-grid {
-    grid-template-columns: 1fr;
-  }
 
-  .admin-table th,
-  .admin-table td {
-    padding: 10px 12px;
-    font-size: 0.85rem;
-  }
+/* مدیر کل و وضعیت‌های خطا */
 
-  .admin-card {
-    padding: 14px;
-    border-radius: var(--radius-sm);
-  }
+.status-badge--danger,
 
-  .btn-admin-primary,
-  .btn-admin-secondary,
-  .btn-admin-danger,
-  .btn-admin-success {
-    width: 100%;
-    justify-content: center;
-  }
+.status-badge--super-admin {
+
+  background: #fef2f2;
+
+  color: #dc2626;
+
+  border: 1px solid #fecaca;
+
 }
+
+
+/* وضعیت‌های در انتظار و هشدار */
+
+.status-badge--warning {
+
+  background: #fffbeb;
+
+  color: #b45309;
+
+  border: 1px solid #fde68a;
+
+}
+

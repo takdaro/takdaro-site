@@ -6,6 +6,23 @@
   'use strict';
 
   // ============================================
+  // لیست ۱۲ وضعیتی نهایی سفارش
+  // ============================================
+  const ORDER_STATUS_MAP = {
+    payment_pending: "در انتظار پرداخت",
+    payment_success: "پرداخت موفق",
+    payment_failed: "پرداخت ناموفق",
+    order_confirmed: "تأیید سفارش",
+    courier_delivery: "ارسال با پیک",
+    bus_shipping: "ارسال با باربری",
+    shipped: "ارسال شد",
+    delivered: "تحویل داده شد",
+    completed: "تکمیل شد",
+    cancelled: "لغو شد",
+    returned: "مرجوع شد"
+  };
+
+  // ============================================
   // تابع escape کردن متن
   // ============================================
   function esc(value) {
@@ -55,32 +72,15 @@
       admin: "ادمین",
       super_admin: "مدیر کل"
     };
-    return map[String(value || "").toLowerCase()] || "نامشخص";
+
+    return map[String(value || "").trim().toLowerCase()] || "نامشخص";
   }
 
   // ============================================
-  // تبدیل وضعیت سفارش به فارسی (۱۶ وضعیت کامل)
+  // تبدیل وضعیت سفارش به فارسی (۱۲ وضعیت نهایی)
   // ============================================
   function faOrderStatus(value) {
-    var map = {
-      order_created: "سفارش ثبت شد",
-      payment_pending: "در انتظار پرداخت",
-      payment_success: "پرداخت موفق",
-      payment_failed: "پرداخت ناموفق",
-      payment_review: "بررسی پرداخت",
-      order_confirmed: "تأیید سفارش",
-      processing: "در حال پردازش",
-      ready_to_ship: "آماده ارسال",
-      courier_delivery: "ارسال با پیک",
-      bus_shipping: "ارسال با اتوبوس",
-      shipped: "ارسال شد",
-      delivered: "تحویل داده شد",
-      completed: "تکمیل شد",
-      cancelled: "لغو شد",
-      returned: "مرجوع شد",
-      processing_failed: "پردازش ناموفق"
-    };
-    return map[String(value || "").toLowerCase()] || "نامشخص";
+    return ORDER_STATUS_MAP[String(value || "").trim().toLowerCase()] || "نامشخص";
   }
 
   // ============================================
@@ -88,12 +88,14 @@
   // ============================================
   function faPaymentStatus(value) {
     var map = {
-      payment_pending: "در انتظار پرداخت",
-      payment_review: "بررسی پرداخت",
-      payment_success: "پرداخت موفق",
-      payment_failed: "پرداخت ناموفق"
+      pending: "در انتظار پرداخت",
+      paid: "پرداخت شده",
+      failed: "پرداخت ناموفق",
+      refunded: "بازگشت وجه",
+      partially_refunded: "بازگشت جزئی وجه"
     };
-    return map[String(value || "").toLowerCase()] || "نامشخص";
+
+    return map[String(value || "").trim().toLowerCase()] || "نامشخص";
   }
 
   // ============================================
@@ -107,7 +109,8 @@
       refund: "بازگشت وجه",
       adjustment: "تعدیل"
     };
-    return map[String(value || "").toLowerCase()] || "نامشخص";
+
+    return map[String(value || "").trim().toLowerCase()] || "نامشخص";
   }
 
   // ============================================
@@ -119,70 +122,161 @@
       draft: "پیش‌نویس",
       private: "خصوصی"
     };
-    return map[String(value || "").toLowerCase()] || "پیش‌نویس";
+
+    return map[String(value || "").trim().toLowerCase()] || "پیش‌نویس";
   }
 
   // ============================================
-  // ایجاد بج وضعیت (برای سفارش‌ها و کاربران)
+  // ایجاد بج وضعیت (۱۲ وضعیت نهایی)
   // ============================================
   function badge(value) {
-    var v = String(value || "").toLowerCase();
+    var v = String(value || "").trim().toLowerCase();
     var cls = "status-badge status-badge--warning";
-    
-    if (["payment_success", "order_confirmed", "processing", "ready_to_ship", "shipped", "delivered", "completed"].includes(v)) {
-      cls = "status-badge status-badge--success";
-    } else if (["order_created", "payment_pending", "payment_review", "courier_delivery", "bus_shipping"].includes(v)) {
-      cls = "status-badge status-badge--warning";
-    } else if (["payment_failed", "cancelled", "returned", "processing_failed"].includes(v)) {
-      cls = "status-badge status-badge--danger";
-    } else if (["user", "customer"].includes(v)) {
+    var text = "نامشخص";
+
+    // --------------------------------------------
+    // نقش کاربران
+    // --------------------------------------------
+    if (["user", "customer"].includes(v)) {
       cls = "status-badge status-badge--info";
-    } else if (["admin", "super_admin"].includes(v)) {
+      text = faRole(v);
+
+    } else if (v === "admin") {
       cls = "status-badge status-badge--success";
+      text = faRole(v);
+
+    } else if (v === "super_admin") {
+      cls = "status-badge status-badge--danger";
+      text = faRole(v);
+
+    // --------------------------------------------
+    // وضعیت‌های موفق سفارش
+    // --------------------------------------------
+    } else if (
+      [
+        "payment_success",
+        "order_confirmed",
+        "shipped",
+        "delivered",
+        "completed"
+      ].includes(v)
+    ) {
+      cls = "status-badge status-badge--success";
+      text = faOrderStatus(v);
+
+    // --------------------------------------------
+    // وضعیت‌های در انتظار / هشدار
+    // --------------------------------------------
+    } else if (
+      [
+        "payment_pending",
+        "payment_failed",
+        "courier_delivery",
+        "bus_shipping"
+      ].includes(v)
+    ) {
+      cls = "status-badge status-badge--warning";
+      text = faOrderStatus(v);
+
+    // --------------------------------------------
+    // وضعیت‌های خطا / لغو
+    // --------------------------------------------
+    } else if (
+      [
+        "cancelled",
+        "returned"
+      ].includes(v)
+    ) {
+      cls = "status-badge status-badge--danger";
+      text = faOrderStatus(v);
+
+    } else {
+      text = v || "نامشخص";
     }
-    
-    var text = faOrderStatus(v) || v || "نامشخص";
-    return '<span class="' + cls + '">' + text + '</span>';
+
+    return (
+      '<span class="' +
+      cls +
+      '">' +
+      esc(text) +
+      "</span>"
+    );
   }
 
   // ============================================
   // ایجاد چیپ نوع تراکنش کیف پول
   // ============================================
   function walletTypeChip(type) {
-    var v = String(type || "").toLowerCase();
+    var v = String(type || "").trim().toLowerCase();
     var cls = "wallet-type-chip wallet-type-chip--adjustment";
-    if (["credit", "cashback", "refund"].includes(v)) cls = "wallet-type-chip wallet-type-chip--" + v;
-    else if (v === "debit") cls = "wallet-type-chip wallet-type-chip--debit";
-    else if (v === "adjustment") cls = "wallet-type-chip wallet-type-chip--adjustment";
-    return '<span class="' + cls + '">' + esc(faWalletType(type)) + '</span>';
+
+    if (["credit", "cashback", "refund"].includes(v)) {
+      cls = "wallet-type-chip wallet-type-chip--" + v;
+    } else if (v === "debit") {
+      cls = "wallet-type-chip wallet-type-chip--debit";
+    } else if (v === "adjustment") {
+      cls = "wallet-type-chip wallet-type-chip--adjustment";
+    }
+
+    return (
+      '<span class="' +
+      cls +
+      '">' +
+      esc(faWalletType(type)) +
+      "</span>"
+    );
   }
 
   // ============================================
   // ایجاد بج وضعیت محصول
   // ============================================
   function productStatusBadge(value) {
-    var v = String(value || "draft").toLowerCase();
-    var cls = v === "published" 
-      ? "status-badge status-badge--success" 
-      : v === "private" 
-        ? "status-badge status-badge--danger" 
-        : "status-badge status-badge--warning";
-    return '<span class="' + cls + '">' + esc(faProductStatus(v)) + '</span>';
+    var v = String(value || "draft").trim().toLowerCase();
+
+    var cls =
+      v === "published"
+        ? "status-badge status-badge--success"
+        : v === "private"
+          ? "status-badge status-badge--danger"
+          : "status-badge status-badge--warning";
+
+    return (
+      '<span class="' +
+      cls +
+      '">' +
+      esc(faProductStatus(v)) +
+      "</span>"
+    );
   }
 
   // ============================================
   // تابع نمایش پیام در پنل ادمین
   // ============================================
   function setAdminMessage(message, type) {
-    var adminMessage = document.getElementById("admin-message");
+    var adminMessage =
+      document.getElementById("admin-message");
+
     if (!adminMessage) {
-      console.log("[Admin Message]", type || "info", message);
+      console.log(
+        "[Admin Message]",
+        type || "info",
+        message
+      );
       return;
     }
-    adminMessage.textContent = message || "";
-    adminMessage.className = "admin-message";
+
+    adminMessage.textContent =
+      message || "";
+
+    adminMessage.className =
+      "admin-message";
+
     if (message) {
-      adminMessage.classList.add(type === "success" ? "is-success" : "is-error");
+      adminMessage.classList.add(
+        type === "success"
+          ? "is-success"
+          : "is-error"
+      );
     }
   }
 
@@ -191,28 +285,47 @@
   // ============================================
   async function api(url, options) {
     options = options || {};
+
     try {
       var response = await fetch(url, {
         credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         ...options
       });
+
       var data = null;
+
       try {
         data = await response.json();
       } catch (_) {
-        data = { success: false, error: "پاسخ سرور نامعتبر است." };
+        data = {
+          success: false,
+          error: "پاسخ سرور نامعتبر است."
+        };
       }
-      return { ok: response.ok, data: data };
+
+      return {
+        ok: response.ok,
+        data: data
+      };
+
     } catch (e) {
-      return { ok: false, data: { success: false, error: e.message } };
+      return {
+        ok: false,
+        data: {
+          success: false,
+          error: e.message
+        }
+      };
     }
   }
 
   // ============================================
   // صادر کردن توابع به صورت Global
   // ============================================
-  
+
   window.esc = esc;
   window.money = money;
   window.formatDate = formatDate;

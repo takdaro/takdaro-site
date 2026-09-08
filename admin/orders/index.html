@@ -10,32 +10,27 @@
     <label for="orders-status">وضعیت سفارش</label>
     <select id="orders-status">
       <option value="">همه</option>
-      <option value="order_created">سفارش ثبت شد</option>
       <option value="payment_pending">در انتظار پرداخت</option>
       <option value="payment_success">پرداخت موفق</option>
       <option value="payment_failed">پرداخت ناموفق</option>
-      <option value="payment_review">بررسی پرداخت</option>
       <option value="order_confirmed">تأیید سفارش</option>
-      <option value="processing">در حال پردازش</option>
-      <option value="ready_to_ship">آماده ارسال</option>
       <option value="courier_delivery">ارسال با پیک</option>
-      <option value="bus_shipping">ارسال با اتوبوس</option>
+      <option value="bus_shipping">ارسال با باربری</option>
       <option value="shipped">ارسال شد</option>
       <option value="delivered">تحویل داده شد</option>
       <option value="completed">تکمیل شد</option>
       <option value="cancelled">لغو شد</option>
       <option value="returned">مرجوع شد</option>
-      <option value="processing_failed">پردازش ناموفق</option>
     </select>
   </div>
   <div class="form-field">
     <label for="orders-payment-status">وضعیت پرداخت</label>
     <select id="orders-payment-status">
       <option value="">همه</option>
-      <option value="payment_pending">در انتظار پرداخت</option>
-      <option value="payment_review">بررسی پرداخت</option>
-      <option value="payment_success">پرداخت موفق</option>
-      <option value="payment_failed">پرداخت ناموفق</option>
+      <option value="pending">در انتظار پرداخت</option>
+      <option value="paid">پرداخت شده</option>
+      <option value="failed">پرداخت ناموفق</option>
+      <option value="refunded">بازگشت وجه</option>
     </select>
   </div>
   <div class="form-field" style="justify-content:flex-end;">

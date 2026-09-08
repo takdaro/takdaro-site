@@ -516,3 +516,64 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ==========================================
+   Users Table & Role Badges
+   جدول مدیریت کاربران و نقش‌ها
+   ========================================== */
+
+/* کانتینر جدول کاربران */
+.admin-users-table-wrap,
+.admin-users .table-wrap,
+.admin-users .admin-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* جدول کاربران */
+.admin-users-table-wrap .admin-table,
+.admin-users .table-wrap .admin-table,
+.admin-users .admin-table-wrap .admin-table {
+  width: 100%;
+  min-width: 850px;
+}
+
+/* بج عمومی نقش */
+.status-badge--user,
+.status-badge--admin,
+.status-badge--super-admin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 75px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* مشتری / کاربر */
+.status-badge--user {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+/* ادمین */
+.status-badge--admin {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+/* مدیر کل */
+.status-badge--super-admin {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}

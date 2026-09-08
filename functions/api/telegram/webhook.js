@@ -130,10 +130,9 @@ function buildOrderDetailsMessage(order, items) {
   message += `  ${formatDate(order.created_at)}\n\n`;
 
   message += `📦 <b>وضعیت سفارش:</b>\n`;
-  message += `  ${getStatusText(order.status, 'order')}\n\n`;
+  message += `  ${getStatusText(order.status)}\n\n`;
 
-  message += `💳 <b>وضعیت پرداخت:</b>\n`;
-  message += `  ${getStatusText(order.payment_status, 'payment')}\n\n`;
+  // حذف وضعیت پرداخت - فقط وضعیت سفارش نمایش داده می‌شود
 
   // محصولات
   if (items && items.length > 0) {
@@ -188,7 +187,7 @@ async function sendWelcomeMessage(env, chatId, botToken, userInfo) {
     `👤 <b>کاربر:</b>\n` +
     `  ${userInfo.full_name || '-'}\n\n` +
     `🔔 <b>اعلان‌های فعال:</b>\n` +
-    `  • ثبت سفارش\n` +
+    `  • در انتظار پرداخت\n` +
     `  • پرداخت موفق\n` +
     `  • تغییر وضعیت سفارش\n` +
     `  • ارسال سفارش\n` +
@@ -363,19 +362,21 @@ async function handleStartCommand(env, chatId, botToken, text, from) {
   // علامت‌گذاری توکن به عنوان استفاده‌شده
   await markTelegramTokenAsUsed(env, tokenRecord.id);
 
-  // ایجاد تنظیمات پیش‌فرض اعلان برای کاربر (اگر وجود نداشته باشد)
+  // ⭐ ایجاد تنظیمات پیش‌فرض اعلان برای کاربر بر اساس ۱۱ وضعیت رسمی
   const existingPrefs = await getUserNotificationPreferences(env, userId);
   if (!existingPrefs) {
     await updateUserNotificationPreferences(env, userId, {
-      order_created: 1,
+      payment_pending: 1,
       payment_success: 1,
       payment_failed: 1,
-      order_status_changed: 1,
-      order_preparing: 1,
-      order_shipped: 1,
-      tracking_code_added: 1,
-      order_completed: 1,
-      order_cancelled: 1,
+      order_confirmed: 1,
+      courier_delivery: 1,
+      bus_shipping: 1,
+      shipped: 1,
+      delivered: 1,
+      completed: 1,
+      cancelled: 1,
+      returned: 1,
       announcements: 0,
       promotions: 0,
       marketing: 0

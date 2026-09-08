@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS orders (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   order_number TEXT NOT NULL UNIQUE,
-  status TEXT NOT NULL,
+  -- ⭐ اصلاح: مقدار پیش‌فرض payment_pending بر اساس لیست ۱۲ وضعیتی نهایی
+  status TEXT NOT NULL DEFAULT 'payment_pending',
   total_amount INTEGER NOT NULL,
   shipping_amount INTEGER NOT NULL DEFAULT 0,
   discount_amount INTEGER NOT NULL DEFAULT 0,

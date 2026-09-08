@@ -2,6 +2,8 @@
 // سرویس ارسال پیام به تلگرام
 // ============================================
 
+import { getStatusLabel } from './status-mapping.js';
+
 /**
  * ارسال پیام به تلگرام
  * @param {string} botToken - توکن ربات تلگرام
@@ -166,56 +168,9 @@ function formatDate(dateString) {
   }
 }
 
-// ⭐⭐⭐ تابع تبدیل وضعیت به فارسی - 16 وضعیت کامل
-function getStatusText(status, type = 'order') {
-  // 16 وضعیت کامل سفارش
-  const orderMap = {
-    'order_created': 'سفارش ثبت شد',
-    'payment_pending': 'در انتظار پرداخت',
-    'payment_success': 'پرداخت موفق',
-    'payment_failed': 'پرداخت ناموفق',
-    'payment_review': 'بررسی پرداخت',
-    'order_confirmed': 'تأیید سفارش',
-    'processing': 'در حال پردازش',
-    'ready_to_ship': 'آماده ارسال',
-    'courier_delivery': 'ارسال با پیک',
-    'bus_shipping': 'ارسال با اتوبوس',
-    'shipped': 'ارسال شد',
-    'delivered': 'تحویل داده شد',
-    'completed': 'تکمیل شد',
-    'cancelled': 'لغو شد',
-    'returned': 'مرجوع شد',
-    'processing_failed': 'پردازش ناموفق'
-  };
-
-  // 4 وضعیت کامل پرداخت
-  const paymentMap = {
-    'payment_pending': 'در انتظار پرداخت',
-    'payment_success': 'پرداخت موفق',
-    'payment_failed': 'پرداخت ناموفق',
-    'payment_review': 'بررسی پرداخت',
-    'pending': 'در انتظار پرداخت',
-    'paid': 'پرداخت شده',
-    'completed': 'تکمیل شد',
-    'failed': 'ناموفق',
-    'refunded': 'بازگشت داده شده'
-  };
-
-  const withdrawalMap = {
-    'pending': 'در انتظار بررسی',
-    'approved': 'تأیید شد',
-    'rejected': 'رد شد'
-  };
-
-  if (type === 'payment') {
-    return paymentMap[String(status || '').toLowerCase()] || status || '-';
-  }
-
-  if (type === 'withdrawal') {
-    return withdrawalMap[String(status || '').toLowerCase()] || status || '-';
-  }
-
-  return orderMap[String(status || '').toLowerCase()] || status || '-';
+// ⭐⭐⭐ تابع تبدیل وضعیت به فارسی - فقط وضعیت سفارش
+function getStatusText(status) {
+  return getStatusLabel(status);
 }
 
 // ============================================
@@ -229,6 +184,7 @@ export function buildOrderCreatedMessage(orderData, userData, items) {
     walletUsedAmount,
     payableAmount,
     cashbackAmount,
+    status,
     createdAt
   } = orderData;
 
@@ -280,11 +236,8 @@ export function buildOrderCreatedMessage(orderData, userData, items) {
 
   message += `\n\n`;
 
-  message += `💳 <b>وضعیت پرداخت:</b>\n`;
-  message += `  ${getStatusText(orderData.paymentStatus, 'payment')}\n\n`;
-
   message += `📦 <b>وضعیت سفارش:</b>\n`;
-  message += `  ${getStatusText(orderData.status, 'order')}\n\n`;
+  message += `  ${getStatusText(status)}\n\n`;
 
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
@@ -319,7 +272,7 @@ export function buildPaymentSuccessMessage(orderData, userData, paymentMethod = 
   }
 
   message += `📦 <b>وضعیت سفارش:</b>\n`;
-  message += `  ${getStatusText(status, 'order')}\n\n`;
+  message += `  ${getStatusText(status)}\n\n`;
 
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
@@ -328,7 +281,7 @@ export function buildPaymentSuccessMessage(orderData, userData, paymentMethod = 
 }
 
 // ============================================
-// 3. پیام تغییر وضعیت پرداخت (ادمین)
+// 3. پیام تغییر وضعیت پرداخت (ادمین) - ⭐ فقط وضعیت سفارش
 // ============================================
 export function buildPaymentStatusChangedMessage(orderData, userData, oldStatus, newStatus) {
   const { orderNumber, totalAmount, status: orderStatus, createdAt } = orderData;
@@ -344,17 +297,11 @@ export function buildPaymentStatusChangedMessage(orderData, userData, oldStatus,
   if (email) message += `\n  📧 ${email}`;
   message += `\n\n`;
 
-  message += `🔄 <b>وضعیت قبلی:</b>\n`;
-  message += `  ${getStatusText(oldStatus, 'payment')}\n\n`;
-
-  message += `➡️ <b>وضعیت جدید:</b>\n`;
-  message += `  ${getStatusText(newStatus, 'payment')}\n\n`;
-
   message += `💰 <b>مبلغ:</b>\n`;
   message += `  ${formatNumber(totalAmount)} تومان\n\n`;
 
   message += `📦 <b>وضعیت سفارش:</b>\n`;
-  message += `  ${getStatusText(orderStatus, 'order')}\n\n`;
+  message += `  ${getStatusText(orderStatus)}\n\n`;
 
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
@@ -366,7 +313,7 @@ export function buildPaymentStatusChangedMessage(orderData, userData, oldStatus,
 // 4. پیام تغییر وضعیت سفارش (ادمین)
 // ============================================
 export function buildOrderStatusChangedMessage(orderData, userData, oldStatus, newStatus) {
-  const { orderNumber, totalAmount, paymentStatus, createdAt } = orderData;
+  const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName, email } = userData;
 
   let message = `📦 <b>تغییر وضعیت سفارش</b>\n\n`;
@@ -380,13 +327,10 @@ export function buildOrderStatusChangedMessage(orderData, userData, oldStatus, n
   message += `\n\n`;
 
   message += `🔄 <b>وضعیت قبلی:</b>\n`;
-  message += `  ${getStatusText(oldStatus, 'order')}\n\n`;
+  message += `  ${getStatusText(oldStatus)}\n\n`;
 
   message += `➡️ <b>وضعیت جدید:</b>\n`;
-  message += `  ${getStatusText(newStatus, 'order')}\n\n`;
-
-  message += `💳 <b>وضعیت پرداخت:</b>\n`;
-  message += `  ${getStatusText(paymentStatus, 'payment')}\n\n`;
+  message += `  ${getStatusText(newStatus)}\n\n`;
 
   message += `💰 <b>مبلغ:</b>\n`;
   message += `  ${formatNumber(totalAmount)} تومان\n\n`;
@@ -401,7 +345,7 @@ export function buildOrderStatusChangedMessage(orderData, userData, oldStatus, n
 // 5. پیام لغو سفارش (ادمین)
 // ============================================
 export function buildOrderCancelledMessage(orderData, userData, refundAmount = 0) {
-  const { orderNumber, totalAmount, paymentStatus, createdAt } = orderData;
+  const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName, email, phone } = userData;
 
   let message = `❌ <b>سفارش لغو شد</b>\n\n`;
@@ -423,11 +367,8 @@ export function buildOrderCancelledMessage(orderData, userData, refundAmount = 0
     message += `  ${formatNumber(refundAmount)} تومان\n\n`;
   }
 
-  message += `💳 <b>وضعیت پرداخت:</b>\n`;
-  message += `  ${getStatusText(paymentStatus, 'payment')}\n\n`;
-
   message += `📦 <b>وضعیت سفارش:</b>\n`;
-  message += `  لغو شد\n\n`;
+  message += `  ${getStatusText(status)}\n\n`;
 
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
@@ -439,7 +380,7 @@ export function buildOrderCancelledMessage(orderData, userData, refundAmount = 0
 // 6. پیام بازپرداخت (Refund)
 // ============================================
 export function buildRefundMessage(orderData, userData, refundAmount, refundMethod = '') {
-  const { orderNumber, totalAmount, createdAt } = orderData;
+  const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName, email, phone } = userData;
 
   let message = `↩️ <b>بازپرداخت انجام شد</b>\n\n`;
@@ -462,7 +403,7 @@ export function buildRefundMessage(orderData, userData, refundAmount, refundMeth
   }
 
   message += `📦 <b>وضعیت سفارش:</b>\n`;
-  message += `  ${getStatusText(orderData.status, 'order')}\n\n`;
+  message += `  ${getStatusText(status)}\n\n`;
 
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
@@ -549,7 +490,7 @@ export function buildWalletWithdrawalStatusMessage(userData, amount, oldStatus, 
   const { fullName, email } = userData;
 
   const statusEmoji = newStatus === 'approved' ? '✅' : newStatus === 'rejected' ? '❌' : '📋';
-  const statusText = newStatus === 'approved' ? 'تأیید شد' : newStatus === 'rejected' ? 'رد شد' : getStatusText(newStatus, 'withdrawal');
+  const statusText = newStatus === 'approved' ? 'تأیید شد' : newStatus === 'rejected' ? 'رد شد' : (newStatus || '-');
 
   let message = `${statusEmoji} <b>برداشت کیف پول ${statusText}</b>\n\n`;
 
@@ -567,7 +508,7 @@ export function buildWalletWithdrawalStatusMessage(userData, amount, oldStatus, 
   }
 
   message += `🔄 <b>وضعیت قبلی:</b>\n`;
-  message += `  ${getStatusText(oldStatus, 'withdrawal')}\n\n`;
+  message += `  ${oldStatus || '-'}\n\n`;
 
   message += `➡️ <b>وضعیت جدید:</b>\n`;
   message += `  ${statusText}\n\n`;
@@ -587,7 +528,7 @@ export function buildWalletWithdrawalStatusMessage(userData, amount, oldStatus, 
 // 10. پیام اعمال کش‌بک
 // ============================================
 export function buildCashbackAppliedMessage(orderData, userData, cashbackAmount, newBalance = 0) {
-  const { orderNumber, createdAt } = orderData;
+  const { orderNumber, status, createdAt } = orderData;
   const { fullName, email } = userData;
 
   let message = `🎁 <b>کش‌بک اعمال شد</b>\n\n`;
@@ -609,7 +550,7 @@ export function buildCashbackAppliedMessage(orderData, userData, cashbackAmount,
   }
 
   message += `📦 <b>وضعیت سفارش:</b>\n`;
-  message += `  ${getStatusText(orderData.status, 'order')}\n\n`;
+  message += `  ${getStatusText(status)}\n\n`;
 
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt || new Date().toISOString())}\n`;
@@ -633,7 +574,6 @@ export function buildUserOrderCreatedMessage(orderData, userData, items) {
     payableAmount,
     cashbackAmount,
     status,
-    paymentStatus,
     createdAt
   } = orderData;
 
@@ -679,8 +619,7 @@ export function buildUserOrderCreatedMessage(orderData, userData, items) {
     message += `(پس از تکمیل سفارش به کیف پول شما اضافه می‌شود)\n\n`;
   }
 
-  message += `📌 <b>وضعیت سفارش:</b> ${getStatusText(status, 'order')}\n`;
-  message += `📌 <b>وضعیت پرداخت:</b> ${getStatusText(paymentStatus, 'payment')}\n\n`;
+  message += `📌 <b>وضعیت سفارش:</b> ${getStatusText(status)}\n\n`;
 
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `از خرید شما سپاسگزاریم ❤️\n`;
@@ -713,7 +652,7 @@ export function buildUserPaymentSuccessMessage(orderData, userData, paymentMetho
     message += `(پس از تکمیل سفارش به کیف پول شما اضافه می‌شود)\n\n`;
   }
 
-  message += `📌 <b>وضعیت سفارش:</b> ${getStatusText(status, 'order')}\n\n`;
+  message += `📌 <b>وضعیت سفارش:</b> ${getStatusText(status)}\n\n`;
 
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `از اعتماد شما سپاسگزاریم ❤️\n`;
@@ -725,16 +664,21 @@ export function buildUserPaymentSuccessMessage(orderData, userData, paymentMetho
  * 13. پیام تغییر وضعیت سفارش برای کاربر
  */
 export function buildUserOrderStatusChangedMessage(orderData, userData, oldStatus, newStatus, trackingCode = '') {
-  const { orderNumber, totalAmount, paymentStatus, createdAt } = orderData;
+  const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName } = userData;
 
   const statusEmoji = {
-    'pending': '⏳',
-    'processing': '🔄',
-    'preparing': '📦',
+    'payment_pending': '⏳',
+    'payment_success': '✅',
+    'payment_failed': '❌',
+    'order_confirmed': '✅',
+    'courier_delivery': '🚚',
+    'bus_shipping': '🚛',
     'shipped': '🚚',
+    'delivered': '📦',
     'completed': '✅',
-    'cancelled': '❌'
+    'cancelled': '❌',
+    'returned': '🔄'
   };
 
   const emoji = statusEmoji[String(newStatus).toLowerCase()] || '📋';
@@ -748,13 +692,10 @@ export function buildUserOrderStatusChangedMessage(orderData, userData, oldStatu
   message += `💰 <b>مبلغ سفارش:</b> ${formatNumber(totalAmount)} تومان\n\n`;
 
   message += `🔄 <b>وضعیت قبلی:</b>\n`;
-  message += `  ${getStatusText(oldStatus, 'order')}\n\n`;
+  message += `  ${getStatusText(oldStatus)}\n\n`;
 
   message += `➡️ <b>وضعیت جدید:</b>\n`;
-  message += `  ${getStatusText(newStatus, 'order')}\n\n`;
-
-  message += `💳 <b>وضعیت پرداخت:</b>\n`;
-  message += `  ${getStatusText(paymentStatus, 'payment')}\n\n`;
+  message += `  ${getStatusText(newStatus)}\n\n`;
 
   if (trackingCode) {
     message += `📮 <b>کد رهگیری:</b>\n`;
@@ -763,7 +704,7 @@ export function buildUserOrderStatusChangedMessage(orderData, userData, oldStatu
 
   message += `🕐 <b>تاریخ:</b> ${formatDate(createdAt)}\n\n`;
 
-  if (newStatus === 'shipped') {
+  if (newStatus === 'shipped' || newStatus === 'courier_delivery' || newStatus === 'bus_shipping') {
     message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     message += `📌 <b>نکته:</b>\n`;
     message += `  سفارش شما ارسال شده است. کد رهگیری را در بالا مشاهده کنید.\n`;
@@ -782,7 +723,7 @@ export function buildUserOrderStatusChangedMessage(orderData, userData, oldStatu
  * 14. پیام لغو سفارش برای کاربر (جدید)
  */
 export function buildUserOrderCancelledMessage(orderData, userData, refundAmount = 0) {
-  const { orderNumber, totalAmount, paymentStatus, createdAt } = orderData;
+  const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName } = userData;
 
   let message = `❌ <b>سفارش شما لغو شد</b>\n\n`;
@@ -799,10 +740,7 @@ export function buildUserOrderCancelledMessage(orderData, userData, refundAmount
   }
 
   message += `📌 <b>وضعیت:</b>\n`;
-  message += `  لغو شده\n\n`;
-
-  message += `💳 <b>وضعیت پرداخت:</b>\n`;
-  message += `  ${getStatusText(paymentStatus, 'payment')}\n\n`;
+  message += `  ${getStatusText(status)}\n\n`;
 
   message += `🕐 <b>تاریخ:</b> ${formatDate(createdAt)}\n\n`;
 
@@ -815,7 +753,7 @@ export function buildUserOrderCancelledMessage(orderData, userData, refundAmount
  * 15. پیام پیگیری سفارش (تکمیل شده)
  */
 export function buildUserOrderTrackingMessage(orderData, userData, items = []) {
-  const { orderNumber, totalAmount, payableAmount, status, paymentStatus, createdAt, updatedAt } = orderData;
+  const { orderNumber, totalAmount, payableAmount, status, createdAt, updatedAt } = orderData;
   const { fullName } = userData;
 
   let message = `🔎 <b>وضعیت سفارش شما</b>\n\n`;
@@ -840,10 +778,7 @@ export function buildUserOrderTrackingMessage(orderData, userData, items = []) {
   message += `\n\n`;
 
   message += `📌 <b>وضعیت سفارش:</b>\n`;
-  message += `  ${getStatusText(status, 'order')}\n\n`;
-
-  message += `💳 <b>وضعیت پرداخت:</b>\n`;
-  message += `  ${getStatusText(paymentStatus, 'payment')}\n\n`;
+  message += `  ${getStatusText(status)}\n\n`;
 
   message += `💰 <b>مبلغ:</b>\n`;
   message += `  ${formatNumber(payableAmount || totalAmount)} تومان\n\n`;
@@ -901,7 +836,7 @@ export function createTelegramConnectButton(baseUrl = '') {
 }
 
 // ============================================
-// توابع موجود قبلی
+// صادرات نهایی
 // ============================================
 
 export {

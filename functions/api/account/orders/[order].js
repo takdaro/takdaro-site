@@ -42,9 +42,6 @@ export async function onRequestGet(context) {
       return json({ success: false, error: "order_number_required" }, 400);
     }
 
-    // ============================================
-    // ✅ اصلاح شده: استفاده از جدول addresses
-    // ============================================
     const order = await context.env.DB
       .prepare(`
         SELECT
@@ -114,7 +111,6 @@ export async function onRequestGet(context) {
         }))
       : [];
 
-    // ساخت آدرس
     const shippingAddress = order.address_id ? {
       full_name: order.shipping_full_name || "",
       address_line: order.shipping_address_line || "",
@@ -129,7 +125,7 @@ export async function onRequestGet(context) {
       order: {
         id: Number(order.id || 0),
         order_number: order.order_number || "",
-        status: order.status || "pending",
+        status: order.status || "payment_pending",
         payment_status: order.payment_status || "pending",
         subtotal_amount: Number(order.subtotal_amount || 0),
         shipping_amount: Number(order.shipping_amount || 0),
@@ -144,7 +140,7 @@ export async function onRequestGet(context) {
         items_count: items.length,
         items,
         shipping_address: shippingAddress,
-        address: shippingAddress // برای سازگاری با صفحه فاکتور
+        address: shippingAddress
       }
     });
   } catch (error) {

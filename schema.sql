@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS orders (
   order_number TEXT NOT NULL UNIQUE,
   address_id INTEGER,
   
-  -- وضعیت‌ها
-  status TEXT NOT NULL DEFAULT 'pending',
+  -- ⭐ وضعیت‌ها بر اساس لیست ۱۲ وضعیتی نهایی
+  status TEXT NOT NULL DEFAULT 'payment_pending',
   payment_status TEXT NOT NULL DEFAULT 'pending',
   
   -- مبالغ
@@ -461,13 +461,17 @@ INSERT OR IGNORE INTO rates (currency_code, currency_name, rate, source_type, is
 VALUES ('USD', 'دلار آمریکا', 196000, 'manual', 1);
 
 -- ============================================
--- درج Template‌های پیش‌فرض SMS
+-- درج Template‌های پیش‌فرض SMS (بر اساس ۱۲ وضعیت نهایی)
 -- ============================================
 INSERT OR IGNORE INTO sms_templates (event_type, title, message_template, is_enabled) VALUES
-  ('order_created', 'ثبت سفارش', '🛍️ سفارش شما ثبت شد\nشماره: #{order_number}\nمبلغ: {amount} تومان\nوضعیت: {order_status}', 1),
+  ('payment_pending', 'در انتظار پرداخت', '💳 در انتظار پرداخت\nسفارش: #{order_number}\nمبلغ: {amount} تومان\n\nلطفاً برای تکمیل سفارش، نسبت به پرداخت اقدام کنید.', 1),
   ('payment_success', 'پرداخت موفق', '✅ پرداخت موفق\nسفارش: #{order_number}\nمبلغ: {amount} تومان', 1),
-  ('order_processing', 'در حال پردازش', '🔄 سفارش شما در حال پردازش است\nشماره: #{order_number}', 1),
-  ('order_shipped', 'ارسال شده', '🚚 سفارش شما ارسال شد\nشماره: #{order_number}\nکد رهگیری: {tracking_code}', 1),
-  ('order_completed', 'تکمیل سفارش', '✅ سفارش شما تکمیل شد\nشماره: #{order_number}\nاز خرید شما متشکریم', 1),
-  ('order_cancelled', 'لغو سفارش', '❌ سفارش شما لغو شد\nشماره: #{order_number}', 1),
-  ('payment_failed', 'پرداخت ناموفق', '❌ پرداخت سفارش #{order_number} ناموفق بود\nلطفاً مجدداً تلاش کنید', 1);
+  ('payment_failed', 'پرداخت ناموفق', '❌ پرداخت ناموفق\nسفارش: #{order_number}\nمبلغ: {amount} تومان\n\nدر صورت نیاز، مجدداً اقدام به پرداخت کنید.', 1),
+  ('order_confirmed', 'تأیید سفارش', '✅ سفارش شما تأیید شد\nشماره: #{order_number}', 1),
+  ('courier_delivery', 'ارسال با پیک', '🚚 سفارش شما با پیک ارسال شد\nشماره: #{order_number}\nکد رهگیری: {tracking_code}', 1),
+  ('bus_shipping', 'ارسال با باربری', '🚛 سفارش شما با باربری ارسال شد\nشماره: #{order_number}\nکد رهگیری: {tracking_code}', 1),
+  ('shipped', 'ارسال شد', '🚚 سفارش شما ارسال شد\nشماره: #{order_number}\nکد رهگیری: {tracking_code}', 1),
+  ('delivered', 'تحویل داده شد', '📦 سفارش شما تحویل داده شد\nشماره: #{order_number}', 1),
+  ('completed', 'تکمیل سفارش', '✅ سفارش شما تکمیل شد\nشماره: #{order_number}\nاز خرید شما متشکریم', 1),
+  ('cancelled', 'لغو سفارش', '❌ سفارش شما لغو شد\nشماره: #{order_number}', 1),
+  ('returned', 'مرجوع شد', '🔄 سفارش شما مرجوع شد\nشماره: #{order_number}', 1);

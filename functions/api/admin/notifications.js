@@ -11,7 +11,11 @@ import {
   testTelegramNotification,
   getNotificationLogs,
   getNotificationStats,
-  testSmsNotification
+  testSmsNotification,
+  getMobileNotificationSettings,
+  saveMobileNotificationSettings,
+  toggleMobileNotificationEvent,
+  MOBILE_NOTIFICATION_EVENTS
 } from '../../lib/notification.js';
 
 import {
@@ -26,6 +30,18 @@ import {
   toggleSmsTemplate,
   renderSmsTemplate
 } from '../../lib/sms.js';
+
+import {
+  getEmailSettings,
+  saveEmailSettings,
+  toggleEmailChannel,
+  getEmailTemplate,
+  getAllEmailTemplates,
+  saveEmailTemplate,
+  toggleEmailTemplate,
+  testEmailNotification,
+  seedDefaultEmailTemplates
+} from '../../lib/email.js';
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -55,7 +71,7 @@ export async function onRequestGet(context) {
     }
 
     // ============================================
-    // دریافت یک Template خاص
+    // دریافت یک Template خاص SMS
     // ============================================
     if (action === 'sms_template') {
       const eventType = url.searchParams.get('eventType');
@@ -71,7 +87,7 @@ export async function onRequestGet(context) {
     }
 
     // ============================================
-    // دریافت پیش‌نمایش Template
+    // دریافت پیش‌نمایش Template SMS
     // ============================================
     if (action === 'sms_template_preview') {
       const eventType = url.searchParams.get('eventType');
@@ -86,8 +102,7 @@ export async function onRequestGet(context) {
         customer_phone: '09123456789',
         order_number: 'TT-20260819-123456',
         amount: '2500000',
-        payment_status: 'pending',
-        order_status: 'pending',
+        order_status: 'payment_pending',
         tracking_code: 'TRK-12345678'
       };
 
@@ -131,6 +146,47 @@ export async function onRequestGet(context) {
         });
       }
 
+      // ============================================
+      // 📱 دریافت تنظیمات اعلان موبایل اپ مدیریت
+      // ============================================
+      if (channel === 'mobile') {
+        const settings = await getMobileNotificationSettings(context.env);
+
+        return json({
+          success: true,
+          channel: 'mobile',
+          is_enabled: settings.is_enabled === true,
+          events: settings.events || {},
+          available_events: MOBILE_NOTIFICATION_EVENTS,
+          config: settings.config || {},
+          exists: settings.exists === true
+        });
+      }
+
+      // ============================================
+      // ⭐ دریافت تنظیمات Email
+      // ============================================
+      if (channel === 'email') {
+        const settings = await getEmailSettings(context.env);
+        const config = settings.config || {};
+        
+        // پنهان کردن اطلاعات حساس
+        const safeConfig = { ...config };
+        
+        return json({
+          success: true,
+          channel: 'email',
+          is_enabled: settings.is_enabled,
+          config: {
+            sender_email: safeConfig.sender_email || '',
+            sender_name: safeConfig.sender_name || '',
+            admin_email: safeConfig.admin_email || '',
+            templates: safeConfig.templates || {}
+          },
+          updated_at: settings.updated_at
+        });
+      }
+
       const settings = await getChannelSettings(context.env, channel);
       
       if (!settings) {
@@ -164,6 +220,33 @@ export async function onRequestGet(context) {
     }
 
     // ============================================
+    // ⭐ دریافت لیست Template‌های Email
+    // ============================================
+    if (action === 'email_templates') {
+      const templates = await getAllEmailTemplates(context.env);
+      return json({
+        success: true,
+        data: templates
+      });
+    }
+
+    // ============================================
+    // ⭐ دریافت یک Template خاص Email
+    // ============================================
+    if (action === 'email_template') {
+      const eventType = url.searchParams.get('eventType');
+      if (!eventType) {
+        return json({ success: false, error: 'eventType الزامی است.' }, 400);
+      }
+      
+      const template = await getEmailTemplate(context.env, eventType);
+      return json({
+        success: true,
+        data: template
+      });
+    }
+
+    // ============================================
     // دریافت تاریخچه اعلان‌ها
     // ============================================
     if (action === 'logs') {
@@ -184,6 +267,84 @@ export async function onRequestGet(context) {
       return json({
         success: true,
         ...result
+      });
+    }
+
+    // ============================================
+    // 📱 دریافت تاریخچه Notificationهای موبایل اپ مدیریت
+    // ============================================
+    if (action === 'mobile_logs') {
+      const limit = Math.min(
+        Math.max(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 1),
+        100
+      );
+      const offset = Math.max(
+        parseInt(url.searchParams.get('offset') || '0', 10) || 0,
+        0
+      );
+      const status = url.searchParams.get('status') || null;
+      const eventType = url.searchParams.get('event_type') || null;
+
+      const where = [];
+      const binds = [];
+
+      if (status) {
+        where.push('l.status = ?');
+        binds.push(status);
+      }
+
+      if (eventType) {
+        where.push('l.event_type = ?');
+        binds.push(eventType);
+      }
+
+      const whereSql = where.length
+        ? `WHERE ${where.join(' AND ')}`
+        : '';
+
+      const countResult = await context.env.DB
+        .prepare(`
+          SELECT COUNT(*) AS total
+          FROM admin_mobile_notification_logs l
+          ${whereSql}
+        `)
+        .bind(...binds)
+        .first();
+
+      const result = await context.env.DB
+        .prepare(`
+          SELECT
+            l.id,
+            l.device_id,
+            l.user_id,
+            l.event_type,
+            l.title,
+            l.body,
+            l.data,
+            l.status,
+            l.error_message,
+            l.order_id,
+            l.created_at,
+            l.sent_at,
+            d.device_name,
+            d.platform,
+            d.app_version
+          FROM admin_mobile_notification_logs l
+          LEFT JOIN admin_mobile_devices d
+            ON d.id = l.device_id
+          ${whereSql}
+          ORDER BY l.id DESC
+          LIMIT ? OFFSET ?
+        `)
+        .bind(...binds, limit, offset)
+        .all();
+
+      return json({
+        success: true,
+        logs: result?.results || [],
+        total: Number(countResult?.total || 0),
+        limit,
+        offset
       });
     }
 
@@ -317,7 +478,7 @@ export async function onRequestPost(context) {
     }
 
     // ============================================
-    // فعال/غیرفعال کردن Template
+    // فعال/غیرفعال کردن Template SMS
     // ============================================
     if (action === 'toggle_sms_template') {
       const { eventType, isEnabled } = body;
@@ -422,6 +583,66 @@ export async function onRequestPost(context) {
         });
       }
 
+      // ============================================
+      // 📱 ذخیره تنظیمات اعلان موبایل
+      // ============================================
+      if (channel === 'mobile') {
+        const config = body.config || {};
+
+        const result = await saveMobileNotificationSettings(
+          context.env,
+          {
+            ...config,
+            is_enabled:
+              config.is_enabled !== undefined
+                ? config.is_enabled === true
+                : undefined
+          },
+          adminUser.id
+        );
+
+        return json({
+          success: true,
+          message: 'تنظیمات اعلان موبایل با موفقیت ذخیره شد.',
+          channel: 'mobile',
+          is_enabled: result.is_enabled,
+          events: result.config?.events || {},
+          config: result.config || {}
+        });
+      }
+
+      // ============================================
+      // ⭐ ذخیره تنظیمات Email
+      // ============================================
+      if (channel === 'email') {
+        const config = body.config || {};
+
+        // اعتبارسنجی
+        if (config.sender_email && !config.sender_email.trim()) {
+          return json({
+            success: false,
+            error: 'ایمیل فرستنده معتبر نیست.'
+          }, 400);
+        }
+
+        // ذخیره تنظیمات
+        await saveEmailSettings(context.env, config, adminUser.id);
+
+        // فعال/غیرفعال کردن کانال
+        if (config.is_enabled !== undefined) {
+          await toggleEmailChannel(context.env, config.is_enabled, adminUser.id);
+        }
+
+        const updatedSettings = await getEmailSettings(context.env);
+
+        return json({
+          success: true,
+          message: 'تنظیمات Email با موفقیت ذخیره شد.',
+          channel: 'email',
+          settings: updatedSettings
+        });
+      }
+
       const config = body.config || {};
 
       if (channel === 'telegram') {
@@ -474,6 +695,36 @@ export async function onRequestPost(context) {
         message: `کانال ${channel} ${enabled ? 'فعال' : 'غیرفعال'} شد.`,
         channel: channel,
         is_enabled: enabled
+      });
+    }
+
+    // ============================================
+    // 📱 تغییر وضعیت یک Event اعلان موبایل
+    // ============================================
+    if (action === 'toggle_mobile_event') {
+      const eventKey = String(body.event_key || '').trim();
+
+      if (!eventKey) {
+        return json({
+          success: false,
+          error: 'event_key الزامی است.'
+        }, 400);
+      }
+
+      const result = await toggleMobileNotificationEvent(
+        context.env,
+        eventKey,
+        body.enabled === true,
+        adminUser.id
+      );
+
+      return json({
+        success: true,
+        message: `اعلان ${eventKey} ${result.config?.events?.[eventKey] ? 'فعال' : 'غیرفعال'} شد.`,
+        channel: 'mobile',
+        event_key: eventKey,
+        enabled: result.config?.events?.[eventKey] === true,
+        events: result.config?.events || {}
       });
     }
 
@@ -563,6 +814,114 @@ export async function onRequestPost(context) {
     }
 
     // ============================================
+    // ⭐ ارسال پیام آزمایشی Email
+    // ============================================
+    if (action === 'test_email') {
+      const recipient = body.recipient || body.email;
+
+      if (!recipient) {
+        return json({
+          success: false,
+          error: 'ایمیل گیرنده برای ارسال پیام آزمایشی مشخص نیست.'
+        }, 400);
+      }
+
+      const testResult = await testEmailNotification(
+        context.env,
+        recipient,
+        adminUser.id
+      );
+
+      if (testResult.success) {
+        return json({
+          success: true,
+          message: 'پیام آزمایشی Email با موفقیت ارسال شد.',
+          message_id: testResult.messageId
+        });
+      } else {
+        return json({
+          success: false,
+          error: testResult.error || 'ارسال پیام آزمایشی Email انجام نشد.',
+          message_id: testResult.messageId || null
+        }, 500);
+      }
+    }
+
+    // ============================================
+    // ⭐ ذخیره Template Email
+    // ============================================
+    if (action === 'save_email_template') {
+      const { eventType, title, subject, body, isEnabled } = body;
+
+      if (!eventType || !title || !subject || !body) {
+        return json({
+          success: false,
+          error: 'eventType, title, subject و body الزامی هستند.'
+        }, 400);
+      }
+
+      await saveEmailTemplate(context.env, {
+        eventType,
+        title,
+        subject,
+        body,
+        isEnabled: isEnabled !== undefined ? isEnabled : true
+      }, adminUser.id);
+
+      const template = await getEmailTemplate(context.env, eventType);
+
+      return json({
+        success: true,
+        message: 'Template Email با موفقیت ذخیره شد.',
+        data: template
+      });
+    }
+
+    // ============================================
+    // ⭐ فعال/غیرفعال کردن Template Email
+    // ============================================
+    if (action === 'toggle_email_template') {
+      const { eventType, isEnabled } = body;
+
+      if (!eventType) {
+        return json({
+          success: false,
+          error: 'eventType الزامی است.'
+        }, 400);
+      }
+
+      await toggleEmailTemplate(context.env, eventType, isEnabled, adminUser.id);
+
+      const template = await getEmailTemplate(context.env, eventType);
+
+      return json({
+        success: true,
+        message: `Template Email ${isEnabled ? 'فعال' : 'غیرفعال'} شد.`,
+        data: template
+      });
+    }
+
+    // ============================================
+    // ⭐ پر کردن Template‌های پیش‌فرض Email
+    // ============================================
+    if (action === 'seed_email_templates') {
+      const result = await seedDefaultEmailTemplates(context.env, adminUser.id);
+      
+      if (result.success) {
+        return json({
+          success: true,
+          message: 'Template‌های پیش‌فرض با موفقیت اضافه شدند.',
+          data: result
+        });
+      } else {
+        return json({
+          success: false,
+          error: result.error || 'پر کردن Template‌ها انجام نشد.'
+        }, 500);
+      }
+    }
+
+    // ============================================
     // ارسال مجدد یک اعلان
     // ============================================
     if (action === 'resend') {
@@ -636,6 +995,46 @@ export async function onRequestPost(context) {
         }
       }
 
+      // ⭐ ارسال مجدد Email
+      if (logResult.channel === 'email') {
+        const emailSettings = await getEmailSettings(context.env);
+        if (!emailSettings.is_enabled) {
+          return json({
+            success: false,
+            error: 'کانال Email فعال نیست.'
+          }, 400);
+        }
+
+        const config = emailSettings.config || {};
+        const senderEmail = config.sender_email || 'noreply@takdaro.com';
+        const senderName = config.sender_name || 'تاکدارو';
+
+        // ارسال مجدد از طریق Resend
+        const sendResult = await sendEmail(context.env, {
+          to: logResult.recipient,
+          subject: logResult.subject,
+          html: logResult.content,
+          from: senderEmail,
+          fromName: senderName
+        });
+
+        if (sendResult.success) {
+          await updateLogStatus(context.env, logId, 'sent');
+          return json({
+            success: true,
+            message: 'ایمیل با موفقیت ارسال مجدد شد.',
+            log_id: logId
+          });
+        } else {
+          await updateLogStatus(context.env, logId, 'failed', sendResult.error);
+          return json({
+            success: false,
+            error: sendResult.error || 'ارسال مجدد انجام نشد.',
+            log_id: logId
+          }, 500);
+        }
+      }
+
       return json({
         success: false,
         error: `ارسال مجدد برای کانال ${logResult.channel} فعلاً پشتیبانی نمی‌شود.`
@@ -666,15 +1065,10 @@ function getDefaultConfig(channel) {
       chat_id: ''
     },
     email: {
-      provider: 'smtp',
-      host: '',
-      port: 587,
-      secure: false,
-      username: '',
-      password: '',
-      from_email: '',
-      from_name: '',
-      recipients: []
+      sender_email: '',
+      sender_name: '',
+      admin_email: '',
+      templates: {}
     },
     sms: {
       provider: '',
@@ -712,6 +1106,49 @@ async function sendTelegramMessage(botToken, chatId, text) {
     return {
       success: true,
       message_id: data.result?.message_id
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: String(error?.message || error)
+    };
+  }
+}
+
+async function sendEmail(env, data) {
+  const { to, subject, html, from, fromName } = data;
+
+  const apiKey = env.RESEND_API_KEY;
+  if (!apiKey) {
+    return { success: false, error: 'RESEND_API_KEY تنظیم نشده است.' };
+  }
+
+  const payload = {
+    from: `${fromName || 'تاکدارو'} <${from || 'noreply@takdaro.com'}>`,
+    to: Array.isArray(to) ? to : [to],
+    subject: subject,
+    html: html
+  };
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.id) {
+      throw new Error(result.message || 'ارسال ایمیل انجام نشد.');
+    }
+
+    return {
+      success: true,
+      messageId: result.id
     };
   } catch (error) {
     return {

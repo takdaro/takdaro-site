@@ -959,7 +959,7 @@
   }
 
   // ============================================
-  // بارگذاری قالب‌های SMS
+  // بارگذاری قالب‌های SMS (⭐ اصلاح شده با ۱۱ وضعیت رسمی)
   // ============================================
   async function loadSmsTemplates() {
     var container =
@@ -1006,54 +1006,21 @@
         return;
       }
 
+      // ⭐ اصلاح شده: فقط ۱۱ وضعیت رسمی + ۲ ادمین
       var eventMap = {
-        'order_created':
-          'سفارش ثبت شد',
-
-        'payment_pending':
-          'در انتظار پرداخت',
-
-        'payment_success':
-          'پرداخت موفق',
-
-        'payment_failed':
-          'پرداخت ناموفق',
-
-        'payment_review':
-          'بررسی پرداخت',
-
-        'order_confirmed':
-          'تأیید سفارش',
-
-        'processing':
-          'در حال پردازش',
-
-        'ready_to_ship':
-          'آماده ارسال',
-
-        'courier_delivery':
-          'ارسال با پیک',
-
-        'bus_shipping':
-          'ارسال با اتوبوس',
-
-        'shipped':
-          'ارسال شد',
-
-        'delivered':
-          'تحویل داده شد',
-
-        'completed':
-          'تکمیل شد',
-
-        'cancelled':
-          'لغو شد',
-
-        'returned':
-          'مرجوع شد',
-
-        'processing_failed':
-          'پردازش ناموفق'
+        'payment_pending': 'در انتظار پرداخت',
+        'payment_success': 'پرداخت موفق',
+        'payment_failed': 'پرداخت ناموفق',
+        'order_confirmed': 'تأیید سفارش',
+        'courier_delivery': 'ارسال با پیک',
+        'bus_shipping': 'ارسال با باربری',
+        'shipped': 'ارسال شد',
+        'delivered': 'تحویل داده شد',
+        'completed': 'تکمیل شد',
+        'cancelled': 'لغو شد',
+        'returned': 'مرجوع شد',
+        'admin_order_created': 'سفارش جدید (ادمین)',
+        'admin_payment_success': 'پرداخت موفق (ادمین)'
       };
 
       var html =
@@ -1185,10 +1152,6 @@
       container.innerHTML =
         html;
 
-      // Eventها در Event Delegation
-      // مدیریت می‌شوند و نیازی به اتصال
-      // مستقیم به تک‌تک دکمه‌های Template نیست.
-
     } catch (error) {
       container.innerHTML =
         '<div class="admin-message is-error">' +
@@ -1238,53 +1201,19 @@
           }
 
           var eventMap = {
-            'order_created':
-              'سفارش ثبت شد',
-
-            'payment_pending':
-              'در انتظار پرداخت',
-
-            'payment_success':
-              'پرداخت موفق',
-
-            'payment_failed':
-              'پرداخت ناموفق',
-
-            'payment_review':
-              'بررسی پرداخت',
-
-            'order_confirmed':
-              'تأیید سفارش',
-
-            'processing':
-              'در حال پردازش',
-
-            'ready_to_ship':
-              'آماده ارسال',
-
-            'courier_delivery':
-              'ارسال با پیک',
-
-            'bus_shipping':
-              'ارسال با اتوبوس',
-
-            'shipped':
-              'ارسال شد',
-
-            'delivered':
-              'تحویل داده شد',
-
-            'completed':
-              'تکمیل شد',
-
-            'cancelled':
-              'لغو شد',
-
-            'returned':
-              'مرجوع شد',
-
-            'processing_failed':
-              'پردازش ناموفق'
+            'payment_pending': 'در انتظار پرداخت',
+            'payment_success': 'پرداخت موفق',
+            'payment_failed': 'پرداخت ناموفق',
+            'order_confirmed': 'تأیید سفارش',
+            'courier_delivery': 'ارسال با پیک',
+            'bus_shipping': 'ارسال با باربری',
+            'shipped': 'ارسال شد',
+            'delivered': 'تحویل داده شد',
+            'completed': 'تکمیل شد',
+            'cancelled': 'لغو شد',
+            'returned': 'مرجوع شد',
+            'admin_order_created': 'سفارش جدید (ادمین)',
+            'admin_payment_success': 'پرداخت موفق (ادمین)'
           };
 
           var title =
@@ -1692,53 +1621,19 @@
         result.data.data;
 
       var eventMap = {
-        'order_created':
-          'سفارش ثبت شد',
-
-        'payment_pending':
-          'در انتظار پرداخت',
-
-        'payment_success':
-          'پرداخت موفق',
-
-        'payment_failed':
-          'پرداخت ناموفق',
-
-        'payment_review':
-          'بررسی پرداخت',
-
-        'order_confirmed':
-          'تأیید سفارش',
-
-        'processing':
-          'در حال پردازش',
-
-        'ready_to_ship':
-          'آماده ارسال',
-
-        'courier_delivery':
-          'ارسال با پیک',
-
-        'bus_shipping':
-          'ارسال با اتوبوس',
-
-        'shipped':
-          'ارسال شد',
-
-        'delivered':
-          'تحویل داده شد',
-
-        'completed':
-          'تکمیل شد',
-
-        'cancelled':
-          'لغو شد',
-
-        'returned':
-          'مرجوع شد',
-
-        'processing_failed':
-          'پردازش ناموفق'
+        'payment_pending': 'در انتظار پرداخت',
+        'payment_success': 'پرداخت موفق',
+        'payment_failed': 'پرداخت ناموفق',
+        'order_confirmed': 'تأیید سفارش',
+        'courier_delivery': 'ارسال با پیک',
+        'bus_shipping': 'ارسال با باربری',
+        'shipped': 'ارسال شد',
+        'delivered': 'تحویل داده شد',
+        'completed': 'تکمیل شد',
+        'cancelled': 'لغو شد',
+        'returned': 'مرجوع شد',
+        'admin_order_created': 'سفارش جدید (ادمین)',
+        'admin_payment_success': 'پرداخت موفق (ادمین)'
       };
 
       var title =

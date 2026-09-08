@@ -16,7 +16,6 @@
       padding: 24px 0 40px;
     }
 
-    /* بنر تشکر */
     .thankyou-banner {
       background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
       border-radius: 24px;
@@ -73,7 +72,6 @@
       letter-spacing: 1px;
     }
 
-    /* هدر فاکتور */
     .invoice-header {
       border-radius: 24px;
       padding: 24px;
@@ -176,7 +174,6 @@
     .status-badge--warning { background: #fff7ed; color: var(--warning); }
     .status-badge--danger  { background: #fef2f2; color: var(--danger); }
 
-    /* بخش‌های فاکتور */
     .invoice-section {
       border-radius: 24px;
       border: 1px solid var(--border);
@@ -201,7 +198,6 @@
       color: var(--muted);
     }
 
-    /* جدول محصولات */
     .invoice-table-wrap {
       overflow-x: auto;
       border-radius: 16px;
@@ -239,7 +235,6 @@
       white-space: nowrap;
     }
 
-    /* خلاصه فاکتور */
     .invoice-summary-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -274,7 +269,6 @@
       font-size: 1.15rem;
     }
 
-    /* اطلاعات پرداخت */
     .payment-info-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -340,7 +334,6 @@
       line-height: 1.9;
     }
 
-    /* آدرس */
     .address-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -368,9 +361,6 @@
       white-space: pre-line;
     }
 
-    /* ============================================
-       پیگیری تلگرام
-       ============================================ */
     .telegram-track-card {
       border-radius: 16px;
       padding: 18px 20px;
@@ -434,7 +424,6 @@
       background: var(--surface-2);
     }
 
-    /* دکمه‌ها */
     .invoice-actions {
       display: flex;
       flex-wrap: wrap;
@@ -454,7 +443,6 @@
       box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
     }
 
-    /* پیام خطا */
     .invoice-message {
       padding: 14px 16px;
       border-radius: 16px;
@@ -471,7 +459,6 @@
       border: 1px solid #fecaca;
     }
 
-    /* بارگذاری */
     .invoice-loading {
       text-align: center;
       padding: 60px 20px;
@@ -493,7 +480,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* واکنش‌گرایی */
     @media (max-width: 768px) {
       .invoice-meta-grid {
         grid-template-columns: 1fr 1fr;
@@ -563,7 +549,6 @@
       }
     }
 
-    /* چاپ */
     @media print {
       #site-header,
       #site-footer,
@@ -615,19 +600,15 @@
       <div class="container">
         <div class="invoice-page" id="invoice-root">
 
-          <!-- پیام خطا -->
           <div class="invoice-message" id="invoice-message"></div>
 
-          <!-- حالت بارگذاری -->
           <div class="invoice-loading" id="invoice-loading">
             <div class="spinner"></div>
             <p>در حال بارگذاری اطلاعات سفارش...</p>
           </div>
 
-          <!-- محتوای اصلی فاکتور (پنهان در ابتدا) -->
           <div id="invoice-content" style="display: none;">
 
-            <!-- بنر تشکر -->
             <div class="thankyou-banner">
               <span class="icon">✅</span>
               <h1 id="thankyou-title">سپاس‌گزاریم از خرید شما!</h1>
@@ -637,7 +618,6 @@
               </div>
             </div>
 
-            <!-- هدر فاکتور -->
             <div class="invoice-header">
               <div class="invoice-header-top">
                 <div class="invoice-logo-area">
@@ -655,7 +635,6 @@
                 </div>
               </div>
 
-              <!-- ⭐ فقط یک ستون وضعیت -->
               <div class="invoice-meta-grid">
                 <div class="invoice-meta-item">
                   <span>شماره سفارش</span>
@@ -674,7 +653,6 @@
               </div>
             </div>
 
-            <!-- اقلام سفارش -->
             <div class="invoice-section">
               <h3>📦 اقلام سفارش</h3>
               <p class="section-desc">لیست کالاهای ثبت‌شده در این سفارش.</p>
@@ -699,7 +677,6 @@
               </div>
             </div>
 
-            <!-- خلاصه فاکتور -->
             <div class="invoice-section">
               <h3>💰 خلاصه فاکتور</h3>
               <p class="section-desc">جمع مبالغ این سفارش.</p>
@@ -732,7 +709,6 @@
               </div>
             </div>
 
-            <!-- اطلاعات پرداخت -->
             <div class="invoice-section">
               <h3>💳 اطلاعات پرداخت</h3>
               <p class="section-desc">جهت تکمیل فرآیند خرید، مبلغ فاکتور را به یکی از روش‌های زیر واریز کنید.</p>
@@ -762,7 +738,6 @@
               </div>
             </div>
 
-            <!-- آدرس -->
             <div class="invoice-section">
               <h3>📍 آدرس ارسال</h3>
               <p class="section-desc">آدرس ثبت‌شده برای این سفارش.</p>
@@ -779,9 +754,6 @@
               </div>
             </div>
 
-            <!-- ==========================================
-            بخش پیگیری سفارش در تلگرام
-            ========================================== -->
             <div class="invoice-section" id="telegram-track-section">
               <h3>🔎 پیگیری سفارش در تلگرام</h3>
               <p class="section-desc">
@@ -802,7 +774,6 @@
               </div>
             </div>
 
-            <!-- دکمه‌های اقدام -->
             <div class="invoice-actions">
               <button type="button" class="btn btn-primary" id="print-invoice-btn">
                 🖨️ چاپ فاکتور
@@ -837,6 +808,50 @@
   <script>
     (function() {
       'use strict';
+
+      // ============================================
+      // لیست ۱۲ وضعیتی نهایی
+      // ============================================
+      const ORDER_STATUS_MAP = {
+        payment_pending: "در انتظار پرداخت",
+        payment_success: "پرداخت موفق",
+        payment_failed: "پرداخت ناموفق",
+        order_confirmed: "تأیید سفارش",
+        courier_delivery: "ارسال با پیک",
+        bus_shipping: "ارسال با باربری",
+        shipped: "ارسال شد",
+        delivered: "تحویل داده شد",
+        completed: "تکمیل شد",
+        cancelled: "لغو شد",
+        returned: "مرجوع شد"
+      };
+
+      function faOrderStatus(status) {
+        return ORDER_STATUS_MAP[String(status || "").toLowerCase()] || status || "نامشخص";
+      }
+
+      function getStatusBadgeClass(status) {
+        const v = String(status || "").toLowerCase();
+        if (["completed", "delivered", "payment_success"].includes(v)) {
+          return "status-badge--success";
+        }
+        if (["payment_pending"].includes(v)) {
+          return "status-badge--warning";
+        }
+        if (["order_confirmed", "shipped", "courier_delivery", "bus_shipping"].includes(v)) {
+          return "status-badge--info";
+        }
+        if (["cancelled", "returned", "payment_failed"].includes(v)) {
+          return "status-badge--danger";
+        }
+        return "status-badge--warning";
+      }
+
+      function getStatusBadge(status) {
+        const text = faOrderStatus(status);
+        const cls = getStatusBadgeClass(status);
+        return `<span class="status-badge ${cls}">${text}</span>`;
+      }
 
       // ============================================
       // المان‌ها
@@ -879,52 +894,6 @@
 
         telegramTrackContainer: document.getElementById('telegram-track-container')
       };
-
-      // ============================================
-      // ⭐⭐⭐ توابع تبدیل وضعیت به فارسی (به‌روزرسانی شده)
-      // ============================================
-
-      function faOrderStatus(status) {
-        const map = {
-          pending: "در انتظار",
-          order_confirmed: "تأیید سفارش",
-          processing: "در حال پردازش",
-          ready_to_ship: "آماده ارسال",
-          courier_delivery: "ارسال با پیک",
-          bus_shipping: "ارسال با اتوبوس‌رانی",
-          shipped: "ارسال شده",
-          delivered: "تحویل شده",
-          completed: "تکمیل شده",
-          cancelled: "لغو شده",
-          returned: "برگشت خورده",
-          processing_failed: "پردازش ناموفق"
-        };
-        return map[String(status || "").toLowerCase()] || status || "نامشخص";
-      }
-
-      function getStatusBadgeClass(status) {
-        const v = String(status || "").toLowerCase();
-        if (["completed", "delivered"].includes(v)) {
-          return "status-badge--success";
-        }
-        if (["pending"].includes(v)) {
-          return "status-badge--warning";
-        }
-        if (["processing", "shipped", "order_confirmed", "ready_to_ship", "courier_delivery", "bus_shipping"].includes(v)) {
-          return "status-badge--info";
-        }
-        if (["cancelled", "returned", "processing_failed"].includes(v)) {
-          return "status-badge--danger";
-        }
-        return "status-badge--warning";
-      }
-
-      function getStatusBadge(status) {
-        const v = String(status || "").toLowerCase();
-        const text = faOrderStatus(status);
-        const cls = getStatusBadgeClass(status);
-        return `<span class="status-badge ${cls}">${text}</span>`;
-      }
 
       // ============================================
       // توابع کمکی
@@ -1191,18 +1160,14 @@
           return;
         }
 
-        // شماره سفارش
         const orderNumber = order.order_number || '-';
         els.orderNumber.textContent = orderNumber;
         els.metaOrderNumber.textContent = orderNumber;
 
-        // تاریخ
         els.metaCreatedAt.textContent = formatDate(order.created_at);
 
-        // ⭐ فقط وضعیت سفارش (بدون وضعیت پرداخت)
         els.metaStatus.innerHTML = getStatusBadge(order.status);
 
-        // اقلام
         const items = Array.isArray(order.items) ? order.items : [];
         if (items.length) {
           els.itemsBody.innerHTML = items.map((item, index) => {
@@ -1223,7 +1188,6 @@
           els.itemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">هیچ قلم کالایی ثبت نشده است.</td></tr>';
         }
 
-        // خلاصه
         const subtotal = Number(order.subtotal_amount || 0);
         const shipping = Number(order.shipping_amount || 0);
         const walletUsed = Number(order.wallet_used_amount || 0);
@@ -1238,68 +1202,52 @@
         els.summaryTotal.textContent = formatPrice(total);
         els.summaryPayable.textContent = formatPrice(payable);
 
-        // اطلاعات پرداخت (از تنظیمات)
         els.paymentAccount.textContent = settings.account || 'بانک ملی - شماره حساب: ۱۲۳۴۵۶۷۸۹۰';
         els.paymentCard.textContent = settings.card || '۶۰۳۷-۷۹۹۱-۵۰۵۴-۴۳۴۲';
         els.paymentSheba.textContent = settings.sheba || 'IR۴۵۰۱۷۰۰۰۰۰۰۰۰۱۲۳۴۵۶۷۸۹۰';
         els.paymentDeadline.textContent = settings.deadline || '۲۴ ساعت';
         els.paymentDescription.textContent = settings.description || 'لطفاً مبلغ فاکتور را به شماره کارت درج شده واریز و تصویر رسید را به شماره واتساپ پشتیبانی ارسال کنید.';
 
-        // آدرس
         const address = order.shipping_address || order.address || {};
         els.shippingAddress.textContent = formatAddress(address);
         els.contactInfo.textContent = formatContact(address);
 
-        // تنظیمات متنی
         els.companyName.textContent = settings.companyName || 'تک تجارت';
         els.thankyouText.textContent = settings.thankyouText || 'سپاس‌گزاریم که از تک تجارت خرید کردید. سفارش شما با موفقیت ثبت شد.';
 
-        // تاریخ چاپ
         els.printDate.textContent = new Date().toLocaleDateString('fa-IR');
 
-        // لوگو
         if (settings.logo) {
           els.logoContainer.innerHTML = `<img src="${esc(settings.logo)}" alt="لوگو" class="invoice-logo" />`;
         } else {
           els.logoContainer.innerHTML = `<div class="invoice-logo-placeholder">تک</div>`;
         }
 
-        // دکمه واتساپ
         const whatsappNumber = settings.whatsapp || '09123456789';
         const cleanNumber = whatsappNumber.replace(/[^0-9]/g, '');
         const message = encodeURIComponent(
-          `سلام، سفارش ${orderNumber} را ثبت کردم. لطفاً رسید پرداخت را بررسی کنید.`
+          `سلام، سفارش ${orderNumber} را ثبت کردم. و رسید واریزی را برای شما ارسال خواهم کرد  لطفاً رسید پرداخت را بررسی کنید.`
         );
         els.whatsappBtn.onclick = function() {
           window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
         };
 
-        // بارگذاری وضعیت تلگرام برای پیگیری سفارش
         loadTelegramTrackStatus(orderNumber);
 
-        // نمایش محتوا
         if (els.loading) els.loading.style.display = 'none';
         if (els.content) els.content.style.display = 'block';
       }
 
-      // ============================================
-      // چاپ
-      // ============================================
       function printInvoice() {
         window.print();
       }
 
-      // ============================================
-      // مقداردهی اولیه
-      // ============================================
       async function init() {
-        // بررسی احراز هویت
         if (typeof window.Auth !== 'undefined' && typeof window.Auth.requireAuth === 'function') {
           const user = await window.Auth.requireAuth({ redirectTo: '/login.html' });
           if (!user) return;
         }
 
-        // دریافت شماره سفارش از URL
         const params = new URLSearchParams(window.location.search);
         const orderNumber = params.get('order');
 
@@ -1308,7 +1256,6 @@
           return;
         }
 
-        // بارگذاری تنظیمات و سفارش به صورت همزمان
         const [settings, order] = await Promise.all([
           loadInvoiceSettings(),
           loadOrder(orderNumber)
@@ -1319,12 +1266,10 @@
         }
       }
 
-      // رویدادها
       if (els.printBtn) {
         els.printBtn.addEventListener('click', printInvoice);
       }
 
-      // شروع
       document.addEventListener('DOMContentLoaded', init);
     })();
   </script>

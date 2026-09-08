@@ -5,41 +5,108 @@
 (function () {
   "use strict";
 
-  // ============================================
-  // متغیرهای محلی
-  // ============================================
-
   var currentUsers = [];
 
   // ============================================
-  // گرفتن المنت‌ها
-  // مهم: به دلیل لود ماژولار، المنت‌ها را هنگام نیاز می‌گیریم
+  // تبدیل نقش کاربر به عنوان فارسی
+  // ============================================
+
+  function getRoleLabel(role) {
+    var normalizedRole = String(
+      role || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    var roles = {
+      user: "مشتری",
+      admin: "ادمین",
+      super_admin: "مدیر کل"
+    };
+
+    return roles[normalizedRole] || "نامشخص";
+  }
+
+  // ============================================
+  // نمایش Badge نقش کاربر
+  // ============================================
+
+  function getRoleBadge(role) {
+    var normalizedRole = String(
+      role || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    var label = getRoleLabel(
+      normalizedRole
+    );
+
+    var className = "status-badge";
+
+    if (normalizedRole === "user") {
+      className += " status-badge--user";
+    } else if (normalizedRole === "admin") {
+      className += " status-badge--admin";
+    } else if (
+      normalizedRole === "super_admin"
+    ) {
+      className +=
+        " status-badge--super-admin";
+    } else {
+      className +=
+        " status-badge--warning";
+    }
+
+    return (
+      '<span class="' +
+      className +
+      '">' +
+      window.esc(label) +
+      "</span>"
+    );
+  }
+
+  // ============================================
+  // دریافت عناصر صفحه کاربران
   // ============================================
 
   function getUserElements() {
     return {
-      toggleInput: document.getElementById("registration-toggle-input"),
-      toggleStatus: document.getElementById("registration-toggle-status"),
-      userCreateBox: document.getElementById("user-create-box"),
-      userEditBox: document.getElementById("user-edit-box"),
-      usersBody: document.getElementById("users-body"),
-      searchInput: document.getElementById("users-search"),
-      roleSelect: document.getElementById("users-role")
+      toggleInput: document.getElementById(
+        "registration-toggle-input"
+      ),
+
+      toggleStatus: document.getElementById(
+        "registration-toggle-status"
+      ),
+
+      userCreateBox: document.getElementById(
+        "user-create-box"
+      ),
+
+      userEditBox: document.getElementById(
+        "user-edit-box"
+      ),
+
+      usersBody: document.getElementById(
+        "users-body"
+      )
     };
   }
 
   // ============================================
-  // نمایش پیام
+  // نمایش پیام مدیریت
   // ============================================
 
   function showMessage(message, type) {
     if (typeof window.setAdminMessage === "function") {
-      window.setAdminMessage(message, type);
-      return;
-    }
-
-    if (message) {
-      console.log("[Users]", message);
+      window.setAdminMessage(
+        message,
+        type || "error"
+      );
+    } else {
+      alert(message);
     }
   }
 
@@ -49,20 +116,21 @@
 
   async function loadUsers() {
     var elements = getUserElements();
+    var tbody = elements.usersBody;
 
-    if (!elements.usersBody) {
+    if (!tbody) {
       return;
     }
 
     var search =
-      elements.searchInput && elements.searchInput.value
-        ? elements.searchInput.value.trim()
-        : "";
+      document.getElementById("users-search")
+        ?.value
+        ?.trim() || "";
 
     var role =
-      elements.roleSelect && elements.roleSelect.value
-        ? elements.roleSelect.value.trim()
-        : "";
+      document.getElementById("users-role")
+        ?.value
+        ?.trim() || "";
 
     var params = new URLSearchParams();
 
@@ -76,36 +144,30 @@
 
     var query = params.toString();
 
-    elements.usersBody.innerHTML =
-      '<tr><td colspan="8">در حال بارگذاری...</td></tr>';
-
     try {
       var result = await window.api(
-        "/api/admin/users" + (query ? "?" + query : "")
+        "/api/admin/users" +
+        (query ? "?" + query : "")
       );
 
-      if (!result || !result.ok || !result.data || !result.data.success) {
-        elements.usersBody.innerHTML =
+      if (
+        !result.ok ||
+        !result.data?.success
+      ) {
+        tbody.innerHTML =
           '<tr><td colspan="8">دریافت کاربران انجام نشد.</td></tr>';
 
         currentUsers = [];
         return;
       }
 
-      var users = Array.isArray(result.data.users)
-        ? result.data.users
-        : [];
+      var users =
+        result.data.users || [];
 
       currentUsers = users;
 
-      if (!users.length) {
-        elements.usersBody.innerHTML =
-          '<tr><td colspan="8">کاربری پیدا نشد.</td></tr>';
-        return;
-      }
-
-      elements.usersBody.innerHTML = users
-        .map(function (user) {
+      tbody.innerHTML =
+        users.map(function (user) {
           return (
             "<tr>" +
 
@@ -114,56 +176,70 @@
             "</td>" +
 
             "<td>" +
-            window.esc(user.full_name || "-") +
+            window.esc(
+              user.full_name || "-"
+            ) +
             "</td>" +
 
             "<td>" +
-            window.esc(user.email || "-") +
+            window.esc(
+              user.email || "-"
+            ) +
             "</td>" +
 
             "<td>" +
-            window.esc(user.phone || "-") +
+            window.esc(
+              user.phone || "-"
+            ) +
             "</td>" +
 
             "<td>" +
-            window.badge(user.role || "user") +
+            getRoleBadge(user.role) +
             "</td>" +
 
             '<td class="table-number">' +
-            window.money(Number(user.wallet_balance || 0)) +
+            window.money(
+              user.wallet_balance || 0
+            ) +
             "</td>" +
 
             '<td class="table-number">' +
-            window.esc(user.orders_count || 0) +
+            window.esc(
+              user.orders_count || 0
+            ) +
             "</td>" +
 
             "<td>" +
             '<div class="panel-actions" style="margin-top:0;">' +
 
-            '<button class="btn btn-secondary" type="button" ' +
+            '<button class="btn btn-secondary" ' +
+            'type="button" ' +
             'data-action="edit-user" ' +
             'data-user-id="' +
             window.esc(user.id) +
-            '">ویرایش</button>' +
+            '">' +
+            "ویرایش" +
+            "</button>" +
 
-            '<button class="btn btn-secondary" type="button" ' +
+            '<button class="btn btn-secondary" ' +
+            'type="button" ' +
             'data-action="delete-user" ' +
             'data-user-id="' +
             window.esc(user.id) +
-            '">حذف</button>' +
+            '">' +
+            "حذف" +
+            "</button>" +
 
             "</div>" +
             "</td>" +
 
             "</tr>"
           );
-        })
-        .join("");
+        }).join("") ||
+        '<tr><td colspan="8">کاربری پیدا نشد.</td></tr>';
 
-    } catch (error) {
-      console.error("Error loading users:", error);
-
-      elements.usersBody.innerHTML =
+    } catch (_) {
+      tbody.innerHTML =
         '<tr><td colspan="8">خطا در ارتباط با سرور.</td></tr>';
 
       currentUsers = [];
@@ -259,115 +335,151 @@
 
       "</div>" +
 
-      '<p class="admin-help">برای ساخت کاربر جدید، اطلاعات ضروری را کامل کن.</p>' +
+      '<p class="admin-help">' +
+      "برای ساخت کاربر جدید، اطلاعات ضروری را کامل کن." +
+      "</p>" +
 
       '<div class="panel-actions">' +
-      '<button class="btn btn-primary" type="button" id="create-user-btn">ایجاد کاربر</button>' +
-      '<button class="btn btn-secondary" type="button" id="cancel-create-user-btn">بستن</button>' +
+
+      '<button class="btn btn-primary" type="button" id="create-user-btn">' +
+      "ایجاد کاربر" +
+      "</button>" +
+
+      '<button class="btn btn-secondary" type="button" id="cancel-create-user-btn">' +
+      "بستن" +
+      "</button>" +
+
       "</div>";
 
-    var createButton = document.getElementById("create-user-btn");
-    var cancelButton = document.getElementById("cancel-create-user-btn");
+    var createButton =
+      document.getElementById(
+        "create-user-btn"
+      );
+
+    var cancelButton =
+      document.getElementById(
+        "cancel-create-user-btn"
+      );
 
     if (createButton) {
-      createButton.addEventListener("click", createUser);
+      createButton.addEventListener(
+        "click",
+        async function () {
+          var payload = {
+            full_name:
+              document.getElementById(
+                "create-user-full-name"
+              ).value.trim(),
+
+            email:
+              document.getElementById(
+                "create-user-email"
+              ).value.trim(),
+
+            phone:
+              document.getElementById(
+                "create-user-phone"
+              ).value.trim(),
+
+            role:
+              document.getElementById(
+                "create-user-role"
+              ).value.trim(),
+
+            password:
+              document.getElementById(
+                "create-user-password"
+              ).value,
+
+            password_confirm:
+              document.getElementById(
+                "create-user-password-confirm"
+              ).value
+          };
+
+          if (
+            !payload.full_name ||
+            !payload.email ||
+            !payload.role ||
+            !payload.password ||
+            !payload.password_confirm
+          ) {
+            showMessage(
+              "برای ایجاد کاربر، همه فیلدهای ضروری را کامل کن."
+            );
+            return;
+          }
+
+          if (
+            payload.password.length < 8
+          ) {
+            showMessage(
+              "رمز عبور باید حداقل 8 کاراکتر باشد."
+            );
+            return;
+          }
+
+          if (
+            payload.password !==
+            payload.password_confirm
+          ) {
+            showMessage(
+              "رمز عبور و تکرار آن یکسان نیست."
+            );
+            return;
+          }
+
+          try {
+            var result =
+              await window.api(
+                "/api/admin/users",
+                {
+                  method: "POST",
+                  body: JSON.stringify(
+                    payload
+                  )
+                }
+              );
+
+            if (
+              !result.ok ||
+              !result.data?.success
+            ) {
+              showMessage(
+                result.data?.error ||
+                "ایجاد کاربر انجام نشد."
+              );
+              return;
+            }
+
+            showMessage(
+              "کاربر جدید با موفقیت ایجاد شد.",
+              "success"
+            );
+
+            closeUserCreateBox();
+            await loadUsers();
+
+            if (
+              typeof window.loadDashboard ===
+              "function"
+            ) {
+              await window.loadDashboard();
+            }
+
+          } catch (_) {
+            showMessage(
+              "خطا در ارتباط با سرور."
+            );
+          }
+        }
+      );
     }
 
     if (cancelButton) {
-      cancelButton.addEventListener("click", closeUserCreateBox);
-    }
-  }
-
-  // ============================================
-  // ایجاد کاربر
-  // ============================================
-
-  async function createUser() {
-    var fullNameEl = document.getElementById("create-user-full-name");
-    var emailEl = document.getElementById("create-user-email");
-    var phoneEl = document.getElementById("create-user-phone");
-    var roleEl = document.getElementById("create-user-role");
-    var passwordEl = document.getElementById("create-user-password");
-    var passwordConfirmEl = document.getElementById(
-      "create-user-password-confirm"
-    );
-
-    var payload = {
-      full_name: fullNameEl ? fullNameEl.value.trim() : "",
-      email: emailEl ? emailEl.value.trim() : "",
-      phone: phoneEl ? phoneEl.value.trim() : "",
-      role: roleEl ? roleEl.value.trim() : "user",
-      password: passwordEl ? passwordEl.value : "",
-      password_confirm: passwordConfirmEl
-        ? passwordConfirmEl.value
-        : ""
-    };
-
-    if (
-      !payload.full_name ||
-      !payload.email ||
-      !payload.role ||
-      !payload.password ||
-      !payload.password_confirm
-    ) {
-      showMessage(
-        "برای ایجاد کاربر، همه فیلدهای ضروری را کامل کن.",
-        "error"
-      );
-      return;
-    }
-
-    if (payload.password.length < 8) {
-      showMessage(
-        "رمز عبور باید حداقل 8 کاراکتر باشد.",
-        "error"
-      );
-      return;
-    }
-
-    if (payload.password !== payload.password_confirm) {
-      showMessage(
-        "رمز عبور و تکرار آن یکسان نیست.",
-        "error"
-      );
-      return;
-    }
-
-    try {
-      var result = await window.api("/api/admin/users", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-
-      if (!result || !result.ok || !result.data || !result.data.success) {
-        showMessage(
-          result && result.data && result.data.error
-            ? result.data.error
-            : "ایجاد کاربر انجام نشد.",
-          "error"
-        );
-        return;
-      }
-
-      showMessage(
-        "کاربر جدید با موفقیت ایجاد شد.",
-        "success"
-      );
-
-      closeUserCreateBox();
-
-      await loadUsers();
-
-      if (typeof window.loadDashboard === "function") {
-        await window.loadDashboard();
-      }
-
-    } catch (error) {
-      console.error("Error creating user:", error);
-
-      showMessage(
-        "خطا در ارتباط با سرور.",
-        "error"
+      cancelButton.addEventListener(
+        "click",
+        closeUserCreateBox
       );
     }
   }
@@ -386,23 +498,32 @@
       return;
     }
 
-    if (!currentUsers.length) {
+    if (
+      currentUsers.length === 0
+    ) {
       await loadUsers();
     }
 
-    var user = currentUsers.find(function (item) {
-      return Number(item.id) === Number(userId);
-    });
+    var user =
+      currentUsers.find(
+        function (item) {
+          return (
+            Number(item.id) ===
+            Number(userId)
+          );
+        }
+      );
 
     if (!user) {
       showMessage(
-        "کاربر موردنظر پیدا نشد. لطفاً دوباره تلاش کن.",
-        "error"
+        "کاربر یافت نشد. لطفاً صفحه را به‌روزرسانی کنید."
       );
       return;
     }
 
-    box.classList.remove("admin-hidden");
+    box.classList.remove(
+      "admin-hidden"
+    );
 
     box.innerHTML =
       "<h4>ویرایش کاربر #" +
@@ -454,189 +575,233 @@
       "</div>" +
 
       '<div class="panel-actions">' +
-      '<button class="btn btn-primary" type="button" id="save-user-btn">ذخیره اطلاعات</button>' +
-      '<button class="btn btn-secondary" type="button" id="save-user-password-btn">ذخیره رمز عبور</button>' +
-      '<button class="btn btn-secondary" type="button" id="delete-user-btn">حذف کاربر</button>' +
-      '<button class="btn btn-secondary" type="button" id="close-user-edit-btn">بستن</button>' +
+
+      '<button class="btn btn-primary" type="button" id="save-user-btn">' +
+      "ذخیره اطلاعات" +
+      "</button>" +
+
+      '<button class="btn btn-secondary" type="button" id="save-user-password-btn">' +
+      "ذخیره رمز عبور" +
+      "</button>" +
+
+      '<button class="btn btn-secondary" type="button" id="delete-user-btn">' +
+      "حذف کاربر" +
+      "</button>" +
+
+      '<button class="btn btn-secondary" type="button" id="close-user-edit-btn">' +
+      "بستن" +
+      "</button>" +
+
       "</div>";
 
-    var roleSelect = document.getElementById("edit-user-role");
+    var roleSelect =
+      document.getElementById(
+        "edit-user-role"
+      );
 
     if (roleSelect) {
-      roleSelect.value = user.role || "user";
+      roleSelect.value =
+        String(user.role || "user")
+          .trim()
+          .toLowerCase();
+
+      if (!roleSelect.value) {
+        roleSelect.value = "user";
+      }
     }
 
-    var saveButton = document.getElementById("save-user-btn");
-    var passwordButton = document.getElementById(
-      "save-user-password-btn"
-    );
-    var deleteButton = document.getElementById("delete-user-btn");
-    var closeButton = document.getElementById(
-      "close-user-edit-btn"
-    );
+    var saveButton =
+      document.getElementById(
+        "save-user-btn"
+      );
 
     if (saveButton) {
-      saveButton.addEventListener("click", function () {
-        saveUserInfo(user);
-      });
+      saveButton.addEventListener(
+        "click",
+        async function () {
+          var payload = {
+            user_id: user.id,
+
+            full_name:
+              document.getElementById(
+                "edit-user-full-name"
+              ).value.trim(),
+
+            email:
+              document.getElementById(
+                "edit-user-email"
+              ).value.trim(),
+
+            phone:
+              document.getElementById(
+                "edit-user-phone"
+              ).value.trim(),
+
+            role:
+              document.getElementById(
+                "edit-user-role"
+              ).value.trim()
+          };
+
+          try {
+            var result =
+              await window.api(
+                "/api/admin/users",
+                {
+                  method: "POST",
+                  body: JSON.stringify(
+                    payload
+                  )
+                }
+              );
+
+            if (
+              !result.ok ||
+              !result.data?.success
+            ) {
+              showMessage(
+                result.data?.error ||
+                "ذخیره اطلاعات کاربر انجام نشد."
+              );
+              return;
+            }
+
+            showMessage(
+              "اطلاعات کاربر با موفقیت ذخیره شد.",
+              "success"
+            );
+
+            closeUserEditBox();
+            await loadUsers();
+
+            if (
+              typeof window.loadDashboard ===
+              "function"
+            ) {
+              await window.loadDashboard();
+            }
+
+          } catch (_) {
+            showMessage(
+              "خطا در ارتباط با سرور."
+            );
+          }
+        }
+      );
     }
+
+    var passwordButton =
+      document.getElementById(
+        "save-user-password-btn"
+      );
 
     if (passwordButton) {
-      passwordButton.addEventListener("click", function () {
-        saveUserPassword(user);
-      });
+      passwordButton.addEventListener(
+        "click",
+        async function () {
+          var password =
+            document.getElementById(
+              "edit-user-password"
+            ).value;
+
+          var passwordConfirm =
+            document.getElementById(
+              "edit-user-password-confirm"
+            ).value;
+
+          if (
+            !password ||
+            !passwordConfirm
+          ) {
+            showMessage(
+              "رمز عبور و تکرار آن را وارد کن."
+            );
+            return;
+          }
+
+          if (
+            password.length < 8
+          ) {
+            showMessage(
+              "رمز عبور باید حداقل 8 کاراکتر باشد."
+            );
+            return;
+          }
+
+          if (
+            password !== passwordConfirm
+          ) {
+            showMessage(
+              "رمز عبور و تکرار آن یکسان نیست."
+            );
+            return;
+          }
+
+          try {
+            var result =
+              await window.api(
+                "/api/admin/users/password",
+                {
+                  method: "POST",
+                  body: JSON.stringify({
+                    user_id: user.id,
+                    password: password,
+                    password_confirm:
+                      passwordConfirm
+                  })
+                }
+              );
+
+            if (
+              !result.ok ||
+              !result.data?.success
+            ) {
+              showMessage(
+                result.data?.error ||
+                "ذخیره رمز عبور انجام نشد."
+              );
+              return;
+            }
+
+            showMessage(
+              "رمز عبور کاربر با موفقیت به‌روزرسانی شد.",
+              "success"
+            );
+
+            closeUserEditBox();
+
+          } catch (_) {
+            showMessage(
+              "خطا در ارتباط با سرور."
+            );
+          }
+        }
+      );
     }
+
+    var deleteButton =
+      document.getElementById(
+        "delete-user-btn"
+      );
 
     if (deleteButton) {
-      deleteButton.addEventListener("click", function () {
-        deleteUser(user.id);
-      });
+      deleteButton.addEventListener(
+        "click",
+        async function () {
+          await deleteUser(user.id);
+        }
+      );
     }
+
+    var closeButton =
+      document.getElementById(
+        "close-user-edit-btn"
+      );
 
     if (closeButton) {
-      closeButton.addEventListener("click", closeUserEditBox);
-    }
-  }
-
-  // ============================================
-  // ذخیره اطلاعات کاربر
-  // ============================================
-
-  async function saveUserInfo(user) {
-    var fullNameEl = document.getElementById("edit-user-full-name");
-    var emailEl = document.getElementById("edit-user-email");
-    var phoneEl = document.getElementById("edit-user-phone");
-    var roleEl = document.getElementById("edit-user-role");
-
-    var payload = {
-      user_id: user.id,
-      full_name: fullNameEl ? fullNameEl.value.trim() : "",
-      email: emailEl ? emailEl.value.trim() : "",
-      phone: phoneEl ? phoneEl.value.trim() : "",
-      role: roleEl ? roleEl.value.trim() : "user"
-    };
-
-    if (!payload.full_name || !payload.email || !payload.role) {
-      showMessage(
-        "نام، ایمیل و نقش کاربر ضروری هستند.",
-        "error"
-      );
-      return;
-    }
-
-    try {
-      var result = await window.api("/api/admin/users", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-
-      if (!result || !result.ok || !result.data || !result.data.success) {
-        showMessage(
-          result && result.data && result.data.error
-            ? result.data.error
-            : "ذخیره اطلاعات کاربر انجام نشد.",
-          "error"
-        );
-        return;
-      }
-
-      showMessage(
-        "اطلاعات کاربر با موفقیت ذخیره شد.",
-        "success"
-      );
-
-      await loadUsers();
-
-      if (typeof window.loadDashboard === "function") {
-        await window.loadDashboard();
-      }
-
-    } catch (error) {
-      console.error("Error saving user:", error);
-
-      showMessage(
-        "خطا در ارتباط با سرور.",
-        "error"
-      );
-    }
-  }
-
-  // ============================================
-  // تغییر رمز عبور کاربر
-  // ============================================
-
-  async function saveUserPassword(user) {
-    var passwordEl = document.getElementById("edit-user-password");
-    var confirmEl = document.getElementById(
-      "edit-user-password-confirm"
-    );
-
-    var password = passwordEl ? passwordEl.value : "";
-    var passwordConfirm = confirmEl ? confirmEl.value : "";
-
-    if (!password || !passwordConfirm) {
-      showMessage(
-        "رمز عبور و تکرار آن را وارد کن.",
-        "error"
-      );
-      return;
-    }
-
-    if (password.length < 8) {
-      showMessage(
-        "رمز عبور باید حداقل 8 کاراکتر باشد.",
-        "error"
-      );
-      return;
-    }
-
-    if (password !== passwordConfirm) {
-      showMessage(
-        "رمز عبور و تکرار آن یکسان نیست.",
-        "error"
-      );
-      return;
-    }
-
-    try {
-      var result = await window.api("/api/admin/users/password", {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: user.id,
-          password: password,
-          password_confirm: passwordConfirm
-        })
-      });
-
-      if (!result || !result.ok || !result.data || !result.data.success) {
-        showMessage(
-          result && result.data && result.data.error
-            ? result.data.error
-            : "ذخیره رمز عبور انجام نشد.",
-          "error"
-        );
-        return;
-      }
-
-      if (passwordEl) {
-        passwordEl.value = "";
-      }
-
-      if (confirmEl) {
-        confirmEl.value = "";
-      }
-
-      showMessage(
-        "رمز عبور کاربر با موفقیت به‌روزرسانی شد.",
-        "success"
-      );
-
-    } catch (error) {
-      console.error("Error saving password:", error);
-
-      showMessage(
-        "خطا در ارتباط با سرور.",
-        "error"
+      closeButton.addEventListener(
+        "click",
+        closeUserEditBox
       );
     }
   }
@@ -646,55 +811,69 @@
   // ============================================
 
   async function deleteUser(userId) {
-    var userIdNum = Number(userId || 0);
+    var userIdNum =
+      Number(userId || 0);
 
     if (!userIdNum) {
       showMessage(
-        "شناسه کاربر معتبر نیست.",
-        "error"
+        "شناسه کاربر معتبر نیست."
       );
       return false;
     }
 
-    var user = currentUsers.find(function (item) {
-      return Number(item.id) === userIdNum;
-    });
+    var user =
+      currentUsers.find(
+        function (item) {
+          return (
+            Number(item.id) ===
+            userIdNum
+          );
+        }
+      );
 
-    var userName = user
-      ? user.full_name || "#" + userIdNum
-      : "#" + userIdNum;
+    var userName =
+      user?.full_name ||
+      "#" + userIdNum;
 
-    var firstConfirm = window.confirm(
-      "آیا از حذف کاربر «" + userName + "» مطمئن هستی؟"
-    );
-
-    if (!firstConfirm) {
+    if (
+      !window.confirm(
+        "آیا از حذف کاربر " +
+        userName +
+        " مطمئن هستی؟"
+      )
+    ) {
       return false;
     }
 
-    var secondConfirm = window.confirm(
-      "این عملیات قابل بازگشت نیست. حذف انجام شود؟"
-    );
-
-    if (!secondConfirm) {
+    if (
+      !window.confirm(
+        "این عملیات قابل بازگشت نیست و اطلاعات وابسته کاربر هم حذف می‌شود. حذف انجام شود؟"
+      )
+    ) {
       return false;
     }
 
     try {
-      var result = await window.api("/api/admin/users", {
-        method: "DELETE",
-        body: JSON.stringify({
-          user_id: userIdNum
-        })
-      });
-
-      if (!result || !result.ok || !result.data || !result.data.success) {
-        showMessage(
-          result && result.data && result.data.error
-            ? result.data.error
-            : "حذف کاربر انجام نشد.",
-          "error"
+      var result =
+        await window.api(
+          "/api/admin/users",
+          {
+            method: "DELETE",
+            body: JSON.stringify({
+              user_id: userIdNum
+            })
+          }
         );
+
+      if (
+        !result.ok ||
+        !result.data?.success
+      ) {
+        showMessage(
+          result.data?.error ||
+          "حذف کاربر انجام نشد."
+        );
+
         return false;
       }
 
@@ -708,18 +887,18 @@
 
       await loadUsers();
 
-      if (typeof window.loadDashboard === "function") {
+      if (
+        typeof window.loadDashboard ===
+        "function"
+      ) {
         await window.loadDashboard();
       }
 
       return true;
 
-    } catch (error) {
-      console.error("Error deleting user:", error);
-
+    } catch (_) {
       showMessage(
-        "خطا در ارتباط با سرور.",
-        "error"
+        "خطا در ارتباط با سرور."
       );
 
       return false;
@@ -727,167 +906,449 @@
   }
 
   // ============================================
-  // دریافت وضعیت ثبت‌نام عمومی
+  // ایجاد بخش کد عبور داخل صفحه کاربران
   // ============================================
 
-  async function loadRegistrationSetting() {
+  function ensureAccessCodeControls() {
+    var existing =
+      document.getElementById(
+        "site-access-code-settings"
+      );
+
+    if (existing) {
+      return existing;
+    }
+
     var elements = getUserElements();
 
-    if (!elements.toggleInput) {
+    var anchor =
+      elements.toggleInput;
+
+    if (!anchor) {
+      return null;
+    }
+
+    var container =
+      anchor.closest(
+        ".settings-card, .panel-card, .admin-card, .panel-section"
+      ) ||
+      anchor.parentElement?.parentElement ||
+      anchor.parentElement;
+
+    if (!container) {
+      return null;
+    }
+
+    var box =
+      document.createElement("div");
+
+    box.id =
+      "site-access-code-settings";
+
+    box.style.marginTop =
+      "20px";
+
+    box.style.paddingTop =
+      "20px";
+
+    box.style.borderTop =
+      "1px solid var(--border, #e5e7eb)";
+
+    box.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;">' +
+
+      "<div>" +
+      '<h4 style="margin:0 0 6px;">کد عبور سایت</h4>' +
+
+      '<p class="admin-help" style="margin:0;">' +
+      "با فعال کردن این گزینه، کاربران برای ورود و ثبت‌نام باید علاوه بر اطلاعات حساب خود، کد عبور سایت را نیز وارد کنند." +
+      "</p>" +
+
+      "</div>" +
+
+      '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;">' +
+      '<span id="site-access-code-status" class="toggle-status is-disabled">غیرفعال</span>' +
+      '<input id="site-access-code-enabled" type="checkbox" />' +
+      "</label>" +
+
+      "</div>" +
+
+      '<div class="filters-grid">' +
+      '<div class="form-field">' +
+      '<label for="site-access-code-value">کد عبور سایت</label>' +
+
+      '<input id="site-access-code-value" type="password" ' +
+      'autocomplete="new-password" ' +
+      'placeholder="کد عبور مورد نظر را وارد کن" />' +
+
+      '<p class="admin-help" style="margin:8px 0 0;">' +
+      "برای تغییر کد، کد جدید را وارد و ذخیره کن. برای غیرفعال کردن الزام کد، Toggle را خاموش کن." +
+      "</p>" +
+
+      "</div>" +
+      "</div>" +
+
+      '<div class="panel-actions">' +
+      '<button class="btn btn-primary" type="button" id="save-site-access-code-btn">' +
+      "ذخیره تنظیمات کد عبور" +
+      "</button>" +
+      "</div>";
+
+    container.appendChild(box);
+
+    return box;
+  }
+
+  // ============================================
+  // بروزرسانی وضعیت کد عبور
+  // ============================================
+
+  function updateAccessCodeStatus(enabled) {
+    var input =
+      document.getElementById(
+        "site-access-code-enabled"
+      );
+
+    var status =
+      document.getElementById(
+        "site-access-code-status"
+      );
+
+    if (input) {
+      input.checked =
+        Boolean(enabled);
+    }
+
+    if (!status) {
       return;
     }
 
-    try {
-      var result = await window.api("/api/admin/settings", {
-        method: "GET"
-      });
+    if (enabled) {
+      status.textContent =
+        "فعال";
 
-      if (!result || !result.ok || !result.data || !result.data.success) {
-        return;
-      }
+      status.className =
+        "toggle-status";
+    } else {
+      status.textContent =
+        "غیرفعال";
 
-      var settings = result.data.settings || {};
-
-      var rawValue = settings.allow_public_registration;
-
-      var isEnabled =
-        rawValue === true ||
-        rawValue === "true" ||
-        rawValue === "1" ||
-        rawValue === 1;
-
-      // Toggle در HTML یعنی:
-      // روشن = عدم ثبت‌نام توسط کاربر
-      elements.toggleInput.checked = !isEnabled;
-
-      updateToggleStatus(!isEnabled);
-
-    } catch (error) {
-      console.error(
-        "Error loading registration setting:",
-        error
-      );
+      status.className =
+        "toggle-status is-disabled";
     }
   }
 
   // ============================================
-  // ذخیره وضعیت ثبت‌نام عمومی
+  // بارگذاری تنظیمات ثبت‌نام و کد عبور
   // ============================================
 
-  async function saveRegistrationSetting(disabled) {
-    var elements = getUserElements();
-
-    var allowRegistration = disabled ? "false" : "true";
+  async function loadRegistrationSetting() {
+    ensureAccessCodeControls();
 
     try {
-      var result = await window.api("/api/admin/settings", {
-        method: "POST",
-        body: JSON.stringify({
-          allow_public_registration: allowRegistration
-        })
-      });
-
-      if (!result || !result.ok || !result.data || !result.data.success) {
-        showMessage(
-          result && result.data && result.data.error
-            ? result.data.error
-            : "ذخیره تنظیمات انجام نشد.",
-          "error"
+      var result =
+        await window.api(
+          "/api/admin/settings",
+          {
+            method: "GET"
+          }
         );
 
-        // اگر ذخیره نشد، وضعیت را از سرور دوباره بخوان
-        await loadRegistrationSetting();
+      if (
+        !result.ok ||
+        !result.data?.success
+      ) {
+        return;
+      }
+
+      var settings =
+        result.data.settings || {};
+
+      var registrationEnabled =
+        String(
+          settings.allow_public_registration ??
+          "true"
+        ).toLowerCase() ===
+        "true";
+
+      var elements =
+        getUserElements();
+
+      if (
+        elements.toggleInput
+      ) {
+        elements.toggleInput.checked =
+          !registrationEnabled;
+      }
+
+      updateToggleStatus(
+        !registrationEnabled
+      );
+
+      var accessCodeEnabled =
+        String(
+          settings.site_access_code_enabled ??
+          "false"
+        ).toLowerCase() ===
+        "true";
+
+      updateAccessCodeStatus(
+        accessCodeEnabled
+      );
+
+    } catch (_) {}
+  }
+
+  // ============================================
+  // ذخیره تنظیمات ثبت‌نام عمومی
+  // ============================================
+
+  async function saveRegistrationSetting(
+    disabled
+  ) {
+    var value =
+      disabled
+        ? "false"
+        : "true";
+
+    try {
+      var result =
+        await window.api(
+          "/api/admin/settings",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              allow_public_registration:
+                value
+            })
+          }
+        );
+
+      if (
+        result.ok &&
+        result.data?.success
+      ) {
+        showMessage(
+          "تنظیمات ثبت‌نام با موفقیت ذخیره شد.",
+          "success"
+        );
+
+        updateToggleStatus(
+          disabled
+        );
+
+        return true;
+      }
+
+      showMessage(
+        result.data?.error ||
+        "ذخیره تنظیمات انجام نشد."
+      );
+
+      return false;
+
+    } catch (_) {
+      showMessage(
+        "خطا در ارتباط با سرور."
+      );
+
+      return false;
+    }
+  }
+
+  // ============================================
+  // ذخیره تنظیمات کد عبور سایت
+  // ============================================
+
+  async function saveSiteAccessCodeSetting() {
+    var enabledInput =
+      document.getElementById(
+        "site-access-code-enabled"
+      );
+
+    var codeInput =
+      document.getElementById(
+        "site-access-code-value"
+      );
+
+    if (!enabledInput) {
+      return false;
+    }
+
+    var enabled =
+      enabledInput.checked;
+
+    var accessCode =
+      codeInput
+        ? codeInput.value.trim()
+        : "";
+
+    if (
+      enabled &&
+      accessCode.length < 4
+    ) {
+      showMessage(
+        "برای فعال کردن کد عبور، یک کد حداقل 4 کاراکتری وارد کن."
+      );
+
+      return false;
+    }
+
+    try {
+      var payload = {
+        site_access_code_enabled:
+          enabled
+            ? "true"
+            : "false"
+      };
+
+      if (accessCode) {
+        payload.site_access_code =
+          accessCode;
+      }
+
+      var result =
+        await window.api(
+          "/api/admin/settings",
+          {
+            method: "POST",
+            body: JSON.stringify(
+              payload
+            )
+          }
+        );
+
+      if (
+        !result.ok ||
+        !result.data?.success
+      ) {
+        showMessage(
+          result.data?.error ||
+          "ذخیره تنظیمات کد عبور انجام نشد."
+        );
 
         return false;
       }
 
-      updateToggleStatus(disabled);
-
-      if (elements.toggleInput) {
-        elements.toggleInput.checked = disabled;
+      if (codeInput) {
+        codeInput.value = "";
       }
 
+      updateAccessCodeStatus(
+        enabled
+      );
+
       showMessage(
-        disabled
-          ? "ثبت‌نام عمومی غیرفعال شد."
-          : "ثبت‌نام عمومی فعال شد.",
+        enabled
+          ? "کد عبور سایت با موفقیت فعال و ذخیره شد."
+          : "الزام وارد کردن کد عبور سایت غیرفعال شد.",
         "success"
       );
 
       return true;
 
-    } catch (error) {
-      console.error(
-        "Error saving registration setting:",
-        error
-      );
-
+    } catch (_) {
       showMessage(
-        "خطا در ارتباط با سرور.",
-        "error"
+        "خطا در ارتباط با سرور."
       );
-
-      await loadRegistrationSetting();
 
       return false;
     }
   }
 
   // ============================================
-  // بروزرسانی متن Toggle
+  // بروزرسانی وضعیت Toggle ثبت‌نام
   // ============================================
 
-  function updateToggleStatus(isDisabled) {
-    var elements = getUserElements();
-    var status = elements.toggleStatus;
+  function updateToggleStatus(
+    isDisabled
+  ) {
+    var elements =
+      getUserElements();
+
+    var status =
+      elements.toggleStatus;
 
     if (!status) {
       return;
     }
 
     if (isDisabled) {
-      status.textContent = "غیرفعال";
-      status.className = "toggle-status is-disabled";
+      status.textContent =
+        "غیرفعال";
+
+      status.className =
+        "toggle-status is-disabled";
     } else {
-      status.textContent = "فعال";
-      status.className = "toggle-status";
+      status.textContent =
+        "فعال";
+
+      status.className =
+        "toggle-status";
     }
   }
 
   // ============================================
-  // مدیریت تغییر Toggle ثبت‌نام
+  // تغییر Toggle ثبت‌نام
   // ============================================
 
-  async function handleRegistrationToggle(event) {
-    var target = event.target;
+  async function handleRegistrationToggle(
+    event
+  ) {
+    var target =
+      event.target;
 
     if (
       !target ||
-      target.id !== "registration-toggle-input"
+      target.id !==
+      "registration-toggle-input"
     ) {
       return;
     }
 
-    var disabled = !!target.checked;
-
-    await saveRegistrationSetting(disabled);
+    await saveRegistrationSetting(
+      target.checked
+    );
   }
 
   // ============================================
-  // مدیریت کلیک‌های کاربران
+  // اتصال رویدادها
+  // ============================================
+
+  function setupUserEvents() {
+    document.removeEventListener(
+      "click",
+      handleUserClick
+    );
+
+    document.removeEventListener(
+      "change",
+      handleRegistrationToggle
+    );
+
+    document.addEventListener(
+      "click",
+      handleUserClick
+    );
+
+    document.addEventListener(
+      "change",
+      handleRegistrationToggle
+    );
+  }
+
+  // ============================================
+  // مدیریت کلیک‌ها
   // ============================================
 
   function handleUserClick(event) {
-    var target = event.target;
+    var target =
+      event.target;
 
-    if (!target) {
-      return;
-    }
-
-    // افزودن کاربر
-    var createButton = target.closest(
-      "#show-create-user-btn"
-    );
+    var createButton =
+      target.closest(
+        "#show-create-user-btn"
+      );
 
     if (createButton) {
       event.preventDefault();
@@ -895,10 +1356,10 @@
       return;
     }
 
-    // اعمال فیلتر
-    var filterButton = target.closest(
-      "#users-filter-btn"
-    );
+    var filterButton =
+      target.closest(
+        "#users-filter-btn"
+      );
 
     if (filterButton) {
       event.preventDefault();
@@ -906,84 +1367,80 @@
       return;
     }
 
-    // ویرایش کاربر
-    var editButton = target.closest(
-      '[data-action="edit-user"]'
-    );
+    var editButton =
+      target.closest(
+        '[data-action="edit-user"]'
+      );
 
     if (editButton) {
       event.preventDefault();
 
       var editUserId =
-        editButton.getAttribute("data-user-id");
+        editButton.getAttribute(
+          "data-user-id"
+        );
 
       if (editUserId) {
-        openUserEdit(editUserId);
+        openUserEdit(
+          editUserId
+        );
       }
 
       return;
     }
 
-    // حذف کاربر
-    var deleteButton = target.closest(
-      '[data-action="delete-user"]'
-    );
+    var deleteButton =
+      target.closest(
+        '[data-action="delete-user"]'
+      );
 
     if (deleteButton) {
       event.preventDefault();
 
       var deleteUserId =
-        deleteButton.getAttribute("data-user-id");
+        deleteButton.getAttribute(
+          "data-user-id"
+        );
 
       if (deleteUserId) {
-        deleteUser(deleteUserId);
+        deleteUser(
+          deleteUserId
+        );
       }
+
+      return;
+    }
+
+    var saveAccessCodeButton =
+      target.closest(
+        "#save-site-access-code-btn"
+      );
+
+    if (saveAccessCodeButton) {
+      event.preventDefault();
+      saveSiteAccessCodeSetting();
+      return;
     }
   }
 
   // ============================================
-  // اتصال Eventها
-  // ============================================
-
-  function setupUserEvents() {
-    // جلوگیری از ثبت چندباره Eventها
-    document.removeEventListener(
-      "click",
-      handleUserClick
-    );
-
-    document.removeEventListener(
-      "change",
-      handleRegistrationToggle
-    );
-
-    document.addEventListener(
-      "click",
-      handleUserClick
-    );
-
-    document.addEventListener(
-      "change",
-      handleRegistrationToggle
-    );
-  }
-
-  // ============================================
-  // راه‌اندازی ماژول کاربران
+  // راه‌اندازی بخش کاربران
   // ============================================
 
   async function initUsers() {
     setupUserEvents();
 
-    var elements = getUserElements();
+    var elements =
+      getUserElements();
 
-    // فقط زمانی اجرا شود که صفحه کاربران در DOM باشد
     if (
       !elements.usersBody &&
       !elements.toggleInput
     ) {
       return;
     }
+
+    ensureAccessCodeControls();
 
     await loadRegistrationSetting();
 
@@ -996,15 +1453,29 @@
   // صادر کردن توابع
   // ============================================
 
-  window.loadUsers = loadUsers;
+  window.getRoleLabel =
+    getRoleLabel;
 
-  window.openUserCreate = openUserCreate;
-  window.closeUserCreateBox = closeUserCreateBox;
+  window.getRoleBadge =
+    getRoleBadge;
 
-  window.openUserEdit = openUserEdit;
-  window.closeUserEditBox = closeUserEditBox;
+  window.loadUsers =
+    loadUsers;
 
-  window.deleteUser = deleteUser;
+  window.openUserCreate =
+    openUserCreate;
+
+  window.closeUserCreateBox =
+    closeUserCreateBox;
+
+  window.openUserEdit =
+    openUserEdit;
+
+  window.closeUserEditBox =
+    closeUserEditBox;
+
+  window.deleteUser =
+    deleteUser;
 
   window.loadRegistrationSetting =
     loadRegistrationSetting;
@@ -1012,8 +1483,14 @@
   window.saveRegistrationSetting =
     saveRegistrationSetting;
 
+  window.saveSiteAccessCodeSetting =
+    saveSiteAccessCodeSetting;
+
   window.updateToggleStatus =
     updateToggleStatus;
+
+  window.updateAccessCodeStatus =
+    updateAccessCodeStatus;
 
   window.setupUserEvents =
     setupUserEvents;
@@ -1022,13 +1499,13 @@
     initUsers;
 
   // ============================================
-  // اتصال اولیه Eventها
+  // اجرای اولیه
   // ============================================
 
   setupUserEvents();
 
   console.log(
-    "✅ Users module loaded successfully"
+    "Users module loaded successfully"
   );
 
 })();

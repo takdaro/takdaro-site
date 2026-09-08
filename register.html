@@ -3,9 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>ثبت نام | تک تجارت</title>
-  <meta name="description" content="ایجاد حساب کاربری در تک تجارت" />
+
+  <meta
+    name="description"
+    content="ایجاد حساب کاربری در تک تجارت"
+  />
+
   <link rel="stylesheet" href="/assets/css/style.css" />
+
   <style>
     body {
       margin: 0;
@@ -44,6 +51,7 @@
       font-size: 14px;
       color: var(--muted);
       text-align: center;
+      line-height: 1.9;
     }
 
     .auth-form {
@@ -73,12 +81,22 @@
       background: #fff;
       outline: none;
       color: var(--text);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
     }
 
     .form-input:focus {
       border-color: var(--secondary);
-      box-shadow: 0 0 0 3px rgba(33, 158, 188, 0.12);
+      box-shadow:
+        0 0 0 3px rgba(33, 158, 188, 0.12);
+    }
+
+    .access-code-help {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.9;
     }
 
     .auth-button {
@@ -90,7 +108,9 @@
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      transition: background 0.2s ease, transform 0.2s ease;
+      transition:
+        background 0.2s ease,
+        transform 0.2s ease;
     }
 
     .auth-button:hover {
@@ -111,6 +131,7 @@
       text-align: center;
       border-radius: 12px;
       padding: 10px 12px;
+      line-height: 1.9;
     }
 
     .auth-message.is-error {
@@ -182,33 +203,193 @@
     .auth-form-hidden {
       display: none !important;
     }
+
+    /* ============================================
+       استایل‌های مودال درخواست اعلان
+    ============================================ */
+    .notification-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: notificationFadeIn 0.3s ease;
+    }
+
+    .notification-modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+    }
+
+    .notification-modal-content {
+      position: relative;
+      background: white;
+      padding: 40px 35px 30px;
+      border-radius: 16px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: notificationSlideUp 0.4s ease;
+    }
+
+    .notification-modal-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .notification-modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 10px;
+    }
+
+    .notification-modal-text {
+      font-size: 15px;
+      color: #555;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .notification-modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .notification-modal-actions .btn {
+      min-width: 160px;
+      padding: 12px 20px;
+      font-size: 15px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .notification-modal-actions .btn-primary {
+      background: #2d7a3a;
+      color: white;
+    }
+
+    .notification-modal-actions .btn-primary:hover {
+      background: #1f5a2a;
+      transform: translateY(-2px);
+    }
+
+    .notification-modal-actions .btn-secondary {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .notification-modal-actions .btn-secondary:hover {
+      background: #dee2e6;
+    }
+
+    .notification-modal-note {
+      font-size: 13px;
+      color: #888;
+      margin-top: 16px;
+    }
+
+    .notification-modal-note a {
+      color: #2d7a3a;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .notification-modal-note a:hover {
+      text-decoration: underline;
+    }
+
+    @keyframes notificationFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes notificationSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
   </style>
 </head>
-<body>
-  <main class="auth-page">
-    <section class="auth-card">
-      <h1 class="auth-title">ایجاد حساب کاربری</h1>
-      <p class="auth-subtitle">برای ادامه، اطلاعات خود را وارد کنید.</p>
 
-      <!-- ==========================================
-      پیام غیرفعال بودن ثبت‌نام
-      ========================================== -->
-      <div id="registration-disabled-message" class="registration-disabled-message" style="display:none;">
-        <p style="margin:0 0 12px;">
+<body>
+
+  <main class="auth-page">
+
+    <section class="auth-card">
+
+      <h1 class="auth-title">
+        ایجاد حساب کاربری
+      </h1>
+
+      <p class="auth-subtitle">
+        برای ادامه، اطلاعات خود را وارد کنید.
+        در صورت فعال بودن کد عبور سایت، وارد کردن آن نیز الزامی است.
+      </p>
+
+      <!-- پیام غیرفعال بودن ثبت‌نام -->
+      <div
+        id="registration-disabled-message"
+        class="registration-disabled-message"
+        style="display: none;"
+      >
+        <p style="margin: 0 0 12px;">
           ثبت‌نام کاربر توسط مدیریت سایت انجام می‌شود.
         </p>
-        <p style="margin:0;">
-          لطفاً با پشتیبانی با شماره 
-          <span class="phone-number">۰۹۲۱۴۱۴۷۰۷۰</span>
+
+        <p style="margin: 0;">
+          لطفاً با پشتیبانی با شماره
+
+          <span class="phone-number">
+            ۰۹۲۱۴۱۴۷۰۷۰
+          </span>
+
           تماس حاصل فرمایید.
         </p>
       </div>
 
-      <form id="register-form" class="auth-form" novalidate>
-        <div class="auth-message" data-auth-message></div>
+      <!-- فرم ثبت‌نام -->
+      <form
+        id="register-form"
+        class="auth-form"
+        novalidate
+      >
 
+        <div
+          class="auth-message"
+          data-auth-message
+        ></div>
+
+        <!-- نام -->
         <div class="form-group">
-          <label class="form-label" for="full_name">نام و نام خانوادگی</label>
+
+          <label
+            class="form-label"
+            for="full_name"
+          >
+            نام و نام خانوادگی
+          </label>
+
           <input
             id="full_name"
             name="full_name"
@@ -217,10 +398,19 @@
             placeholder="مثلاً علی رضایی"
             required
           />
+
         </div>
 
+        <!-- موبایل -->
         <div class="form-group">
-          <label class="form-label" for="phone">شماره موبایل</label>
+
+          <label
+            class="form-label"
+            for="phone"
+          >
+            شماره موبایل
+          </label>
+
           <input
             id="phone"
             name="phone"
@@ -229,105 +419,272 @@
             placeholder="مثلاً 09123456789"
             required
           />
+
         </div>
 
+        <!-- ایمیل -->
         <div class="form-group">
-          <label class="form-label" for="email">ایمیل</label>
+
+          <label
+            class="form-label"
+            for="email"
+          >
+            ایمیل
+          </label>
+
           <input
             id="email"
             name="email"
             class="form-input"
             type="email"
             placeholder="example@mail.com"
+            autocomplete="email"
             required
           />
+
         </div>
 
+        <!-- رمز عبور شخصی -->
         <div class="form-group">
-          <label class="form-label" for="password">رمز عبور</label>
+
+          <label
+            class="form-label"
+            for="password"
+          >
+            رمز عبور
+          </label>
+
           <input
             id="password"
             name="password"
             class="form-input"
             type="password"
             placeholder="حداقل 6 کاراکتر"
+            autocomplete="new-password"
             required
           />
+
         </div>
 
-        <button class="auth-button" type="submit">ثبت نام</button>
+        <!-- کد عبور مشترک سایت -->
+        <div class="form-group">
+
+          <label
+            class="form-label"
+            for="access_code"
+          >
+            کد عبور
+          </label>
+
+          <input
+            id="access_code"
+            name="access_code"
+            class="form-input"
+            type="password"
+            placeholder="کد عبور تعیین‌شده توسط مدیریت"
+            autocomplete="off"
+          />
+
+          <p class="access-code-help">
+            اگر مدیریت سایت کد عبور را فعال کرده باشد،
+            وارد کردن این کد برای ثبت‌نام الزامی است.
+          </p>
+
+        </div>
+
+        <button
+          class="auth-button"
+          type="submit"
+        >
+          ثبت نام
+        </button>
+
       </form>
 
       <div class="auth-footer">
+
         قبلاً حساب ساخته‌ای؟
-        <a href="./login.html">ورود</a>
+
+        <a href="./login.html">
+          ورود
+        </a>
+
       </div>
+
     </section>
+
   </main>
+
+  <!-- ============================================ -->
+  <!-- مودال درخواست فعال‌سازی اعلان‌ها              -->
+  <!-- ============================================ -->
+  <div id="notificationModal" class="notification-modal" style="display: none;">
+    <div class="notification-modal-overlay">
+      <div class="notification-modal-content">
+        <div class="notification-modal-icon">🔔</div>
+        <h3 class="notification-modal-title">فعال‌سازی اعلان‌ها</h3>
+        <p class="notification-modal-text">
+          برای دریافت اطلاع‌رسانی درباره سفارش‌ها، تغییرات وضعیت و تخفیف‌های ویژه، 
+          لطفاً اعلان‌های مرورگر را فعال کنید.
+        </p>
+        <div class="notification-modal-actions">
+          <button id="notificationAcceptBtn" class="btn btn-primary">
+            ✅ فعال‌سازی اعلان‌ها
+          </button>
+          <button id="notificationSkipBtn" class="btn btn-secondary">
+            ⏭️ بعداً
+          </button>
+        </div>
+        <p class="notification-modal-note">
+          💡 می‌توانید بعداً از <a href="/account">حساب کاربری</a> این تنظیمات را تغییر دهید.
+        </p>
+      </div>
+    </div>
+  </div>
 
   <div id="bottom-nav"></div>
 
   <script src="/assets/js/auth.js"></script>
+
+  <!-- ⭐⭐⭐ Web Push Scripts ⭐⭐⭐ -->
+  <script src="/assets/js/web-push.js"></script>
+  <script src="/assets/js/notification-ui.js"></script>
+
   <script>
-    document.addEventListener("DOMContentLoaded", async function () {
-      if (!window.Auth) return;
+    document.addEventListener(
+      "DOMContentLoaded",
+      async function () {
 
-      await window.Auth.redirectIfAuthenticated({
-        redirectTo: "/account.html"
-      });
+        if (!window.Auth) {
+          return;
+        }
 
-      // ==========================================
-      // بررسی وضعیت ثبت‌نام عمومی
-      // ==========================================
-      const disabledMessage = document.getElementById('registration-disabled-message');
-      const registerForm = document.getElementById('register-form');
+        // اگر کاربر قبلاً وارد شده باشد
+        await window.Auth.redirectIfAuthenticated({
+          redirectTo: "/account.html"
+        });
 
-      async function checkRegistrationStatus() {
-        try {
-          const response = await fetch('/api/admin/settings', {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' }
+        // ==========================================
+        // عناصر صفحه
+        // ==========================================
+
+        const disabledMessage =
+          document.getElementById(
+            "registration-disabled-message"
+          );
+
+        const registerForm =
+          document.getElementById(
+            "register-form"
+          );
+
+        // ==========================================
+        // بررسی وضعیت ثبت‌نام عمومی
+        // ==========================================
+
+        async function checkRegistrationStatus() {
+
+          try {
+
+            const response = await fetch(
+              "/api/admin/settings",
+              {
+                credentials: "same-origin",
+                headers: {
+                  Accept: "application/json"
+                }
+              }
+            );
+
+            const data =
+              await response.json()
+                .catch(() => null);
+
+            // در صورت خطا فرم را نشان بده
+            if (
+              !response.ok ||
+              !data?.success
+            ) {
+              registerForm.style.display =
+                "grid";
+
+              disabledMessage.style.display =
+                "none";
+
+              return;
+            }
+
+            const settings =
+              data.settings || {};
+
+            const isEnabled =
+              String(
+                settings.allow_public_registration ??
+                "true"
+              )
+                .toLowerCase() === "true";
+
+            if (isEnabled) {
+
+              // ثبت‌نام فعال است
+              registerForm.style.display =
+                "grid";
+
+              disabledMessage.style.display =
+                "none";
+
+            } else {
+
+              // ثبت‌نام غیرفعال است
+              registerForm.style.display =
+                "none";
+
+              disabledMessage.style.display =
+                "block";
+            }
+
+          } catch (error) {
+
+            // در صورت خطای ارتباطی،
+            // فرم ثبت‌نام قابل مشاهده بماند
+            registerForm.style.display =
+              "grid";
+
+            disabledMessage.style.display =
+              "none";
+          }
+        }
+
+        // بررسی وضعیت هنگام باز شدن صفحه
+        await checkRegistrationStatus();
+
+        // ==========================================
+        // اتصال فرم به سیستم Auth
+        // ==========================================
+
+        window.Auth.bindRegisterForm({
+          formSelector: "#register-form",
+          messageSelector: "[data-auth-message]",
+          redirectAfterSuccess: "/login.html"
+        });
+
+        // ==========================================
+        // بررسی اعلان‌ها بعد از ثبت‌نام موفق
+        // ==========================================
+
+        const form = document.getElementById('register-form');
+        if (form) {
+          form.addEventListener('submit', async function() {
+            // بعد از 2 ثانیه بررسی کن
+            setTimeout(() => {
+              if (window.NotificationUI) {
+                window.NotificationUI.checkAndEnable();
+              }
+            }, 2000);
           });
-          const data = await response.json().catch(() => null);
-
-          if (!response.ok || !data?.success) {
-            // در صورت خطا، فرم را نشان بده
-            registerForm.style.display = 'grid';
-            disabledMessage.style.display = 'none';
-            return;
-          }
-
-          const settings = data.settings || {};
-          const isEnabled = String(settings.allow_public_registration || 'true').toLowerCase() === 'true';
-
-          if (isEnabled) {
-            // ثبت‌نام فعال است - فرم را نشان بده
-            registerForm.style.display = 'grid';
-            disabledMessage.style.display = 'none';
-          } else {
-            // ثبت‌نام غیرفعال است - پیام را نشان بده
-            registerForm.style.display = 'none';
-            disabledMessage.style.display = 'block';
-          }
-        } catch (_) {
-          // در صورت خطا، فرم را نشان بده
-          registerForm.style.display = 'grid';
-          disabledMessage.style.display = 'none';
         }
       }
-
-      // بررسی وضعیت در هنگام بارگذاری صفحه
-      await checkRegistrationStatus();
-
-      // ==========================================
-      // اتصال فرم ثبت‌نام به Auth
-      // ==========================================
-      window.Auth.bindRegisterForm({
-        formSelector: "#register-form",
-        messageSelector: "[data-auth-message]",
-        redirectAfterSuccess: "/login.html"
-      });
-    });
+    );
   </script>
-</body>
+ 
 </html>

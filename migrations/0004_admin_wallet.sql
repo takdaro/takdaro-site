@@ -1,4 +1,7 @@
-BEGIN TRANSACTION;
+-- ============================================
+-- 0004_admin_wallet.sql
+-- Admin role + Wallet + Admin Activity Logs
+-- ============================================
 
 ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'customer';
 ALTER TABLE users ADD COLUMN wallet_balance INTEGER NOT NULL DEFAULT 0;
@@ -54,5 +57,3 @@ CREATE INDEX IF NOT EXISTS idx_wallet_transactions_user_id ON wallet_transaction
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_created_at ON wallet_transactions(created_at);
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_admin_user_id ON admin_activity_logs(admin_user_id);
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_created_at ON admin_activity_logs(created_at);
-
-COMMIT;

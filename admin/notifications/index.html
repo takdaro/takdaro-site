@@ -12,6 +12,7 @@
     <button class="shipping-tab-btn is-active" type="button" data-notification-tab="telegram">📱 تلگرام</button>
     <button class="shipping-tab-btn" type="button" data-notification-tab="email">📧 ایمیل‌ها</button>
     <button class="shipping-tab-btn" type="button" data-notification-tab="sms">📩 پیامک</button>
+    <button class="shipping-tab-btn" type="button" data-notification-tab="mobile">📱 اعلان موبایل</button>
   </div>
 
   <!-- ==================== تب تلگرام ==================== -->
@@ -113,35 +114,213 @@
     </div>
   </div>
 
-  <!-- ==================== تب ایمیل ==================== -->
+  <!-- ==================== تب ایمیل (به‌روزرسانی شده) ==================== -->
   <div id="notification-tab-email" class="shipping-tab-content">
-    <div class="detail-card" style="opacity:0.7;border-style:dashed;">
+    <div class="detail-card">
       <h4>📧 تنظیمات ایمیل</h4>
-      <p class="admin-help">این بخش برای نسخه آینده برنامه‌ریزی شده است.</p>
+      <p class="admin-help">مدیریت ارسال ایمیل‌ها از طریق سرویس Resend. دامنه شما باید در Resend تأیید شده باشد.</p>
+
+      <div id="email-message" class="admin-message"></div>
+
+      <div id="email-settings-form">
+        <div class="toggle-wrapper">
+          <span class="toggle-label">فعال‌سازی اعلان ایمیل</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="email-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-status" id="email-toggle-status">غیرفعال</span>
+        </div>
+
+        <div class="filters-grid filters-grid-2">
+          <div class="form-field">
+            <label for="email-sender">ایمیل فرستنده (Sender Email)</label>
+            <input id="email-sender" type="email" placeholder="noreply@takdaro.com" />
+            <small class="admin-help">ایمیلی که در دامنه شما در Resend تأیید شده است.</small>
+          </div>
+          <div class="form-field">
+            <label for="email-sender-name">نام فرستنده (Sender Name)</label>
+            <input id="email-sender-name" type="text" placeholder="تاکدارو" />
+            <small class="admin-help">نامی که در ایمیل گیرنده نمایش داده می‌شود.</small>
+          </div>
+          <div class="form-field" style="grid-column:1/-1;">
+            <label for="email-admin">ایمیل ادمین (دریافت اعلان‌ها)</label>
+            <input id="email-admin" type="email" placeholder="admin@takdaro.com" />
+            <small class="admin-help">ایمیلی که اعلان‌های ادمین به آن ارسال می‌شود.</small>
+          </div>
+        </div>
+
+        <div class="panel-actions">
+          <button class="btn btn-primary" type="button" id="email-save-btn">💾 ذخیره تنظیمات</button>
+          <button class="btn btn-secondary" type="button" id="email-test-btn">📨 ارسال ایمیل آزمایشی</button>
+          <button class="btn btn-secondary" type="button" id="email-load-btn">🔄 بارگذاری مجدد</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== زیرتب: مدیریت Template‌های ایمیل ==================== -->
+    <div class="detail-card" style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+        <div>
+          <h4 style="margin:0;">📝 قالب‌های ایمیل (Templates)</h4>
+          <p class="admin-help">مدیریت موضوع و متن ایمیل‌ها برای هر رویداد. از متغیرهای زیر استفاده کنید:</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+            <span class="template-variable-badge">{customer_name}</span>
+            <span class="template-variable-badge">{customer_phone}</span>
+            <span class="template-variable-badge">{order_number}</span>
+            <span class="template-variable-badge">{amount}</span>
+            <span class="template-variable-badge">{payment_status}</span>
+            <span class="template-variable-badge">{order_status}</span>
+            <span class="template-variable-badge">{tracking_code}</span>
+            <span class="template-variable-badge">{items_list}</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" type="button" id="email-templates-refresh-btn">🔄 بارگذاری</button>
+      </div>
+
+      <div id="email-templates-container">
+        <div class="admin-loading">در حال بارگذاری قالب‌ها...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== تب اعلان موبایل ==================== -->
+  <div id="notification-tab-mobile" class="shipping-tab-content">
+    <style>
+      /* ==============================================
+         Mobile FCM settings — scoped to this tab
+         ============================================== */
+      #notification-tab-mobile .mobile-notification-card {
+        margin-top: 16px;
+      }
+
+      #notification-tab-mobile .mobile-event-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      #notification-tab-mobile .mobile-event-section-title {
+        margin-top: 18px;
+        margin-bottom: 2px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text-soft);
+        font-size: 0.92rem;
+        font-weight: 800;
+        text-align: right;
+      }
+
+      #notification-tab-mobile .mobile-event-section-title:first-child {
+        margin-top: 0;
+      }
+
+      #notification-tab-mobile .mobile-event-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 64px;
+        padding: 12px 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+        direction: rtl;
+      }
+
+      #notification-tab-mobile .mobile-event-row:hover {
+        border-color: var(--secondary);
+      }
+
+      #notification-tab-mobile .mobile-event-label {
+        flex: 1;
+        min-width: 0;
+        color: var(--text);
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1.6;
+        text-align: right;
+      }
+
+      #notification-tab-mobile .mobile-event-row .toggle-switch {
+        width: 56px;
+        height: 30px;
+        flex: 0 0 56px;
+      }
+
+      #notification-tab-mobile .mobile-event-row .toggle-status {
+        min-width: 74px;
+        flex: 0 0 74px;
+        text-align: center;
+      }
+
+      #notification-tab-mobile .mobile-event-hint {
+        margin-top: 14px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: var(--surface-2);
+        border: 1px dashed var(--border);
+        color: var(--muted);
+        font-size: 0.84rem;
+        line-height: 1.8;
+      }
+
+      @media (max-width: 700px) {
+        #notification-tab-mobile .mobile-event-row {
+          gap: 10px;
+          padding: 11px 12px;
+        }
+
+        #notification-tab-mobile .mobile-event-label {
+          font-size: 0.9rem;
+        }
+
+        #notification-tab-mobile .mobile-event-row .toggle-switch {
+          width: 52px;
+          height: 28px;
+          flex-basis: 52px;
+        }
+
+        #notification-tab-mobile .mobile-event-row .toggle-status {
+          min-width: 68px;
+          flex-basis: 68px;
+          font-size: 0.84rem;
+          padding: 5px 9px;
+        }
+      }
+    </style>
+
+    <div class="detail-card">
+      <h4>📱 اعلان موبایل اپ مدیریت</h4>
+      <p class="admin-help">
+        کنترل مستقل اعلان‌های FCM اپ مدیریت. هر مورد را جداگانه فعال یا غیرفعال کنید.
+      </p>
+
+      <div id="mobile-message" class="admin-message"></div>
+
       <div class="toggle-wrapper">
-        <span class="toggle-label">فعال‌سازی اعلان ایمیل</span>
+        <span class="toggle-label">فعال‌سازی کلی اعلان موبایل</span>
         <label class="toggle-switch">
-          <input type="checkbox" disabled />
+          <input type="checkbox" id="mobile-toggle" />
           <span class="toggle-slider"></span>
         </label>
-        <span class="toggle-status is-disabled">غیرفعال (در حال توسعه)</span>
+        <span class="toggle-status is-disabled" id="mobile-toggle-status">غیرفعال</span>
       </div>
-      <div class="filters-grid filters-grid-2">
-        <div class="form-field">
-          <label>سرویس ایمیل</label>
-          <input type="text" value="SMTP" disabled />
+
+      <div class="detail-card mobile-notification-card">
+        <h4>🔔 رویدادهای اعلان</h4>
+        <p class="admin-help">برای هر رویداد مشخص کنید اعلان موبایل ارسال شود یا خیر.</p>
+        <div id="mobile-notification-events" class="mobile-event-list"></div>
+        <div class="mobile-event-hint">
+          💡 «ثبت سفارش» جداگانه کنترل می‌شود؛ بخش «۱۱ وضعیت سفارش» شامل دقیقاً ۱۱ وضعیت است و «چت آنلاین» نیز یک رویداد مستقل برای آینده است.
         </div>
-        <div class="form-field">
-          <label>وضعیت</label>
-          <input type="text" value="⏳ در حال برنامه‌ریزی" disabled />
-        </div>
       </div>
-      <div class="panel-actions">
-        <button class="btn btn-secondary" type="button" disabled>ذخیره تنظیمات (نسخه آینده)</button>
+
+      <div class="panel-actions" style="margin-top:16px;">
+        <button class="btn btn-primary" type="button" id="mobile-save-btn">💾 ذخیره تنظیمات</button>
+        <button class="btn btn-secondary" type="button" id="mobile-load-btn">🔄 بارگذاری مجدد</button>
       </div>
-      <p style="color:var(--muted);font-size:0.9rem;margin-top:12px;">
-        🔜 امکان تنظیم SMTP، قالب ایمیل، گیرنده‌ها و رویدادها در بروزرسانی بعدی اضافه می‌شود.
-      </p>
     </div>
   </div>
 

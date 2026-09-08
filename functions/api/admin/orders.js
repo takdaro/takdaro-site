@@ -4,8 +4,10 @@
 
 function getCookie(cookieString, key) {
   if (!cookieString) return null;
+
   const cookies = cookieString.split("; ");
   const target = cookies.find((item) => item.startsWith(key + "="));
+
   return target ? target.slice(key.length + 1) : null;
 }
 
@@ -100,7 +102,9 @@ async function getOrderItems(db, orderId) {
     ORDER BY id DESC
   `).bind(orderId).all();
 
-  return Array.isArray(result?.results) ? result.results : [];
+  return Array.isArray(result?.results)
+    ? result.results
+    : [];
 }
 
 async function hasCompletedCashbackTx(db, userId, orderId) {
@@ -135,33 +139,56 @@ async function hasCashbackReversalTx(db, userId, orderId) {
 async function applyCashbackIfNeeded(db, order, actorUserId) {
   const orderId = Number(order?.id || 0);
   const userId = Number(order?.user_id || 0);
-  const cashbackAmount = Math.max(0, Math.round(normalizeNumber(order?.cashback_amount)));
+
+  const cashbackAmount = Math.max(
+    0,
+    Math.round(normalizeNumber(order?.cashback_amount))
+  );
 
   if (!orderId || !userId || cashbackAmount <= 0) {
     await db.prepare(`
       UPDATE orders
-      SET cashback_status = 'none',
-          updated_at = CURRENT_TIMESTAMP
+      SET
+        cashback_status = 'none',
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(orderId).run();
 
-    return { applied: false, reason: "no_cashback" };
+    return {
+      applied: false,
+      reason: "no_cashback"
+    };
   }
 
-  if (String(order.cashback_status || "").toLowerCase() === "completed") {
-    return { applied: false, reason: "already_completed" };
+  if (
+    String(order.cashback_status || "").toLowerCase() ===
+    "completed"
+  ) {
+    return {
+      applied: false,
+      reason: "already_completed"
+    };
   }
 
-  const alreadyDone = await hasCompletedCashbackTx(db, userId, orderId);
+  const alreadyDone = await hasCompletedCashbackTx(
+    db,
+    userId,
+    orderId
+  );
+
   if (alreadyDone) {
     await db.prepare(`
       UPDATE orders
-      SET cashback_status = 'completed',
-          updated_at = CURRENT_TIMESTAMP
+      SET
+        cashback_status = 'completed',
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(orderId).run();
 
-    return { applied: false, reason: "transaction_exists" };
+    return {
+      applied: false,
+      reason: "transaction_exists"
+    };
   }
 
   const user = await db.prepare(`
@@ -174,18 +201,31 @@ async function applyCashbackIfNeeded(db, order, actorUserId) {
   `).bind(userId).first();
 
   if (!user) {
-    return { applied: false, reason: "user_not_found" };
+    return {
+      applied: false,
+      reason: "user_not_found"
+    };
   }
 
-  const balanceBefore = Math.max(0, normalizeNumber(user.wallet_balance));
-  const balanceAfter = balanceBefore + cashbackAmount;
+  const balanceBefore = Math.max(
+    0,
+    normalizeNumber(user.wallet_balance)
+  );
+
+  const balanceAfter =
+    balanceBefore + cashbackAmount;
 
   await db.batch([
     db.prepare(`
       UPDATE users
-      SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
+      SET
+        wallet_balance = ?,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).bind(balanceAfter, userId),
+    `).bind(
+      balanceAfter,
+      userId
+    ),
 
     db.prepare(`
       INSERT INTO wallet_transactions (
@@ -206,7 +246,24 @@ async function applyCashbackIfNeeded(db, order, actorUserId) {
         created_at,
         updated_at
       )
-      VALUES (?, 'cashback', ?, ?, ?, 'completed', 'order_completion', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES (
+        ?,
+        'cashback',
+        ?,
+        ?,
+        ?,
+        'completed',
+        'order_completion',
+        ?,
+        ?,
+        ?,
+        ?,
+        'order',
+        ?,
+        ?,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      )
     `).bind(
       userId,
       cashbackAmount,
@@ -222,50 +279,91 @@ async function applyCashbackIfNeeded(db, order, actorUserId) {
 
     db.prepare(`
       UPDATE orders
-      SET cashback_status = 'completed',
-          updated_at = CURRENT_TIMESTAMP
+      SET
+        cashback_status = 'completed',
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(orderId)
   ]);
 
-  return { applied: true, amount: cashbackAmount };
+  return {
+    applied: true,
+    amount: cashbackAmount
+  };
 }
 
-async function reverseCashbackIfNeeded(db, order, actorUserId) {
+async function reverseCashbackIfNeeded(
+  db,
+  order,
+  actorUserId
+) {
   const orderId = Number(order?.id || 0);
   const userId = Number(order?.user_id || 0);
-  const cashbackAmount = Math.max(0, Math.round(normalizeNumber(order?.cashback_amount)));
+
+  const cashbackAmount = Math.max(
+    0,
+    Math.round(normalizeNumber(order?.cashback_amount))
+  );
 
   if (!orderId || !userId || cashbackAmount <= 0) {
-    return { reversed: false, reason: "no_cashback" };
+    return {
+      reversed: false,
+      reason: "no_cashback"
+    };
   }
 
-  if (String(order.cashback_status || "").toLowerCase() !== "completed") {
-    return { reversed: false, reason: "not_completed" };
+  if (
+    String(order.cashback_status || "").toLowerCase() !==
+    "completed"
+  ) {
+    return {
+      reversed: false,
+      reason: "not_completed"
+    };
   }
 
-  const alreadyReversed = await hasCashbackReversalTx(db, userId, orderId);
+  const alreadyReversed =
+    await hasCashbackReversalTx(
+      db,
+      userId,
+      orderId
+    );
+
   if (alreadyReversed) {
     await db.prepare(`
       UPDATE orders
-      SET cashback_status = 'reversed',
-          updated_at = CURRENT_TIMESTAMP
+      SET
+        cashback_status = 'reversed',
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(orderId).run();
 
-    return { reversed: false, reason: "already_reversed" };
+    return {
+      reversed: false,
+      reason: "already_reversed"
+    };
   }
 
-  const cashbackExists = await hasCompletedCashbackTx(db, userId, orderId);
+  const cashbackExists =
+    await hasCompletedCashbackTx(
+      db,
+      userId,
+      orderId
+    );
+
   if (!cashbackExists) {
     await db.prepare(`
       UPDATE orders
-      SET cashback_status = 'none',
-          updated_at = CURRENT_TIMESTAMP
+      SET
+        cashback_status = 'none',
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(orderId).run();
 
-    return { reversed: false, reason: "cashback_tx_missing" };
+    return {
+      reversed: false,
+      reason: "cashback_tx_missing"
+    };
   }
 
   const user = await db.prepare(`
@@ -278,19 +376,38 @@ async function reverseCashbackIfNeeded(db, order, actorUserId) {
   `).bind(userId).first();
 
   if (!user) {
-    return { reversed: false, reason: "user_not_found" };
+    return {
+      reversed: false,
+      reason: "user_not_found"
+    };
   }
 
-  const balanceBefore = Math.max(0, normalizeNumber(user.wallet_balance));
-  const reversalAmount = Math.min(balanceBefore, cashbackAmount);
-  const balanceAfter = Math.max(0, balanceBefore - reversalAmount);
+  const balanceBefore = Math.max(
+    0,
+    normalizeNumber(user.wallet_balance)
+  );
+
+  const reversalAmount = Math.min(
+    balanceBefore,
+    cashbackAmount
+  );
+
+  const balanceAfter = Math.max(
+    0,
+    balanceBefore - reversalAmount
+  );
 
   await db.batch([
     db.prepare(`
       UPDATE users
-      SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
+      SET
+        wallet_balance = ?,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).bind(balanceAfter, userId),
+    `).bind(
+      balanceAfter,
+      userId
+    ),
 
     db.prepare(`
       INSERT INTO wallet_transactions (
@@ -311,7 +428,24 @@ async function reverseCashbackIfNeeded(db, order, actorUserId) {
         created_at,
         updated_at
       )
-      VALUES (?, 'debit', ?, ?, ?, 'completed', 'cashback_reversal', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES (
+        ?,
+        'debit',
+        ?,
+        ?,
+        ?,
+        'completed',
+        'cashback_reversal',
+        ?,
+        ?,
+        ?,
+        ?,
+        'order',
+        ?,
+        ?,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      )
     `).bind(
       userId,
       reversalAmount,
@@ -327,57 +461,167 @@ async function reverseCashbackIfNeeded(db, order, actorUserId) {
 
     db.prepare(`
       UPDATE orders
-      SET cashback_status = 'reversed',
-          updated_at = CURRENT_TIMESTAMP
+      SET
+        cashback_status = 'reversed',
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).bind(orderId)
   ]);
 
-  return { reversed: true, amount: reversalAmount };
+  return {
+    reversed: true,
+    amount: reversalAmount
+  };
 }
 
 // ============================================
-// ⭐⭐⭐ وضعیت‌های مجاز سیستم (به‌روزرسانی شده)
+// برگرداندن موجودی محصولات هنگام لغو سفارش
+// ============================================
+async function restoreProductStock(db, orderId) {
+  const orderItems = await getOrderItems(db, orderId);
+
+  if (!orderItems.length) {
+    return {
+      success: true,
+      restored: [],
+      reason: "no_order_items"
+    };
+  }
+
+  const quantitiesByProduct = new Map();
+
+  for (const item of orderItems) {
+    const productId = Number(item?.product_id);
+    const quantity = Math.max(
+      0,
+      Math.floor(normalizeNumber(item?.quantity))
+    );
+
+    if (!productId || quantity <= 0) {
+      continue;
+    }
+
+    quantitiesByProduct.set(
+      productId,
+      (quantitiesByProduct.get(productId) || 0) + quantity
+    );
+  }
+
+  const restored = [];
+
+  for (const [productId, quantity] of quantitiesByProduct) {
+    const updateResult = await db.prepare(`
+      UPDATE products
+      SET
+        stock_quantity = COALESCE(stock_quantity, 0) + ?,
+        in_stock = 1,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).bind(
+      quantity,
+      productId
+    ).run();
+
+    const changes = Number(
+      updateResult?.meta?.changes || 0
+    );
+
+    if (changes !== 1) {
+      return {
+        success: false,
+        error: "stock_restore_failed",
+        product_id: productId,
+        restored
+      };
+    }
+
+    const product = await db.prepare(`
+      SELECT
+        id,
+        name,
+        COALESCE(stock_quantity, 0) AS stock_quantity,
+        COALESCE(in_stock, 0) AS in_stock
+      FROM products
+      WHERE id = ?
+      LIMIT 1
+    `).bind(productId).first();
+
+    restored.push({
+      product_id: productId,
+      product_name: product?.name || "",
+      restored_quantity: quantity,
+      stock_quantity: Math.max(
+        0,
+        normalizeNumber(product?.stock_quantity)
+      ),
+      in_stock: Number(product?.in_stock) === 1
+    });
+  }
+
+  return {
+    success: true,
+    restored
+  };
+}
+
+// ============================================
+// وضعیت‌های مجاز سیستم (۱۲ وضعیت نهایی)
 // ============================================
 
 const ALLOWED_ORDER_STATUSES = [
-  "pending",
+  "payment_pending",
+  "payment_success",
+  "payment_failed",
   "order_confirmed",
-  "processing",
-  "ready_to_ship",
   "courier_delivery",
   "bus_shipping",
   "shipped",
   "delivered",
   "completed",
   "cancelled",
-  "returned",
-  "processing_failed"
+  "returned"
 ];
 
 const ALLOWED_PAYMENT_STATUSES = [
   "pending",
-  "payment_review",
   "paid",
-  "completed",
-  "failed"
+  "failed",
+  "refunded",
+  "partially_refunded"
 ];
 
 // ============================================
 // GET - دریافت لیست سفارش‌ها
 // ============================================
+
 export async function onRequestGet(context) {
   try {
     const user = await getCurrentUser(context);
 
     if (!user || !isAdmin(user)) {
-      return json({ success: false, error: "unauthorized" }, 401);
+      return json(
+        {
+          success: false,
+          error: "unauthorized"
+        },
+        401
+      );
     }
 
     const url = new URL(context.request.url);
-    const search = normalizeText(url.searchParams.get("search"));
-    const status = normalizeText(url.searchParams.get("status")).toLowerCase();
-    const paymentStatus = normalizeText(url.searchParams.get("paymentStatus") || url.searchParams.get("payment_status")).toLowerCase();
+
+    const search = normalizeText(
+      url.searchParams.get("search")
+    );
+
+    const status = normalizeText(
+      url.searchParams.get("status")
+    ).toLowerCase();
+
+    const paymentStatus = normalizeText(
+      url.searchParams.get("paymentStatus") ||
+      url.searchParams.get("payment_status")
+    ).toLowerCase();
 
     const conditions = [];
     const bindings = [];
@@ -389,21 +633,37 @@ export async function onRequestGet(context) {
         OR u.email LIKE ?
         OR u.phone LIKE ?
       )`);
+
       const q = `%${search}%`;
-      bindings.push(q, q, q, q);
+
+      bindings.push(
+        q,
+        q,
+        q,
+        q
+      );
     }
 
     if (status) {
-      conditions.push(`LOWER(o.status) = ?`);
+      conditions.push(
+        `LOWER(o.status) = ?`
+      );
+
       bindings.push(status);
     }
 
     if (paymentStatus) {
-      conditions.push(`LOWER(o.payment_status) = ?`);
+      conditions.push(
+        `LOWER(o.payment_status) = ?`
+      );
+
       bindings.push(paymentStatus);
     }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const whereClause =
+      conditions.length
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "";
 
     const result = await context.env.DB.prepare(`
       SELECT
@@ -417,7 +677,11 @@ export async function onRequestGet(context) {
         COALESCE(o.wallet_used_amount, 0) AS wallet_used_amount,
         COALESCE(o.cashback_amount, 0) AS cashback_amount,
         COALESCE(
-          MAX(0, COALESCE(o.total_amount, 0) - COALESCE(o.wallet_used_amount, 0)),
+          MAX(
+            0,
+            COALESCE(o.total_amount, 0) -
+            COALESCE(o.wallet_used_amount, 0)
+          ),
           0
         ) AS payable_amount,
         o.created_at,
@@ -438,90 +702,214 @@ export async function onRequestGet(context) {
       LIMIT 300
     `).bind(...bindings).all();
 
-    const orders = (Array.isArray(result?.results) ? result.results : []).map((order) => {
-      const address = order.address_id ? {
-        full_name: order.address_full_name || "",
-        address_line: order.address_line || "",
-        postal_code: order.address_postal_code || "",
-        phone: order.address_phone || "",
-        city: order.address_city || "",
-        state: order.address_state || ""
-      } : null;
+    const orders = (
+      Array.isArray(result?.results)
+        ? result.results
+        : []
+    ).map((order) => {
+      const address = order.address_id
+        ? {
+            full_name:
+              order.address_full_name || "",
+            address_line:
+              order.address_line || "",
+            postal_code:
+              order.address_postal_code || "",
+            phone:
+              order.address_phone || "",
+            city:
+              order.address_city || "",
+            state:
+              order.address_state || ""
+          }
+        : null;
 
       return {
         ...order,
-        subtotal_amount: normalizeNumber(order.subtotal_amount),
-        shipping_amount: normalizeNumber(order.shipping_amount),
-        total_amount: normalizeNumber(order.total_amount),
-        wallet_used_amount: normalizeNumber(order.wallet_used_amount),
-        cashback_amount: normalizeNumber(order.cashback_amount),
+
+        subtotal_amount:
+          normalizeNumber(order.subtotal_amount),
+
+        shipping_amount:
+          normalizeNumber(order.shipping_amount),
+
+        total_amount:
+          normalizeNumber(order.total_amount),
+
+        wallet_used_amount:
+          normalizeNumber(order.wallet_used_amount),
+
+        cashback_amount:
+          normalizeNumber(order.cashback_amount),
+
         payable_amount: Math.max(
           0,
           normalizeNumber(
             order.payable_amount != null
               ? order.payable_amount
-              : normalizeNumber(order.total_amount) - normalizeNumber(order.wallet_used_amount)
+              : normalizeNumber(order.total_amount) -
+                normalizeNumber(order.wallet_used_amount)
           )
         ),
-        address: address,
+
+        address,
         shipping_address: address
       };
     });
 
-    return json({ success: true, orders });
+    return json({
+      success: true,
+      orders
+    });
+
   } catch (error) {
-    return json({ success: false, error: String(error?.message || error) }, 500);
+    return json(
+      {
+        success: false,
+        error: String(error?.message || error)
+      },
+      500
+    );
   }
 }
 
 // ============================================
 // POST - به‌روزرسانی سفارش
 // ============================================
+
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
 
     if (!user || !isAdmin(user)) {
-      return json({ success: false, error: "unauthorized" }, 401);
+      return json(
+        {
+          success: false,
+          error: "unauthorized"
+        },
+        401
+      );
     }
 
-    const body = await context.request.json().catch(() => null);
-    const orderNumber = normalizeText(body?.order_number);
-    const nextStatus = normalizeText(body?.status).toLowerCase();
-    const nextPaymentStatus = normalizeText(body?.payment_status).toLowerCase();
+    const body = await context.request
+      .json()
+      .catch(() => null);
+
+    const orderNumber = normalizeText(
+      body?.order_number
+    );
+
+    const nextStatus = normalizeText(
+      body?.status
+    ).toLowerCase();
+
+    const nextPaymentStatus = normalizeText(
+      body?.payment_status
+    ).toLowerCase();
 
     if (!orderNumber) {
-      return json({ success: false, error: "order_number_required" }, 400);
+      return json(
+        {
+          success: false,
+          error: "order_number_required"
+        },
+        400
+      );
     }
 
-    // ⭐ اعتبارسنجی وضعیت‌ها با لیست جدید
-    if (nextStatus && !ALLOWED_ORDER_STATUSES.includes(nextStatus)) {
-      return json({ 
-        success: false, 
-        error: "invalid_order_status",
-        allowed: ALLOWED_ORDER_STATUSES 
-      }, 400);
+    if (
+      nextStatus &&
+      !ALLOWED_ORDER_STATUSES.includes(nextStatus)
+    ) {
+      return json(
+        {
+          success: false,
+          error: "invalid_order_status",
+          allowed: ALLOWED_ORDER_STATUSES
+        },
+        400
+      );
     }
 
-    if (nextPaymentStatus && !ALLOWED_PAYMENT_STATUSES.includes(nextPaymentStatus)) {
-      return json({ 
-        success: false, 
-        error: "invalid_payment_status",
-        allowed: ALLOWED_PAYMENT_STATUSES 
-      }, 400);
+    if (
+      nextPaymentStatus &&
+      !ALLOWED_PAYMENT_STATUSES.includes(
+        nextPaymentStatus
+      )
+    ) {
+      return json(
+        {
+          success: false,
+          error: "invalid_payment_status",
+          allowed: ALLOWED_PAYMENT_STATUSES
+        },
+        400
+      );
     }
 
-    const currentOrder = await getOrderByNumber(context.env.DB, orderNumber);
+    const currentOrder =
+      await getOrderByNumber(
+        context.env.DB,
+        orderNumber
+      );
 
     if (!currentOrder) {
-      return json({ success: false, error: "order_not_found" }, 404);
+      return json(
+        {
+          success: false,
+          error: "order_not_found"
+        },
+        404
+      );
     }
 
-    const oldStatus = String(currentOrder.status || "pending").toLowerCase();
-    const oldPaymentStatus = String(currentOrder.payment_status || "pending").toLowerCase();
+    const oldStatus = String(
+      currentOrder.status || "payment_pending"
+    ).toLowerCase();
 
-    const finalStatus = nextStatus || oldStatus;
-    const finalPaymentStatus = nextPaymentStatus || oldPaymentStatus;
+    const oldPaymentStatus = String(
+      currentOrder.payment_status || "pending"
+    ).toLowerCase();
+
+    const finalStatus =
+      nextStatus || oldStatus;
+
+    const finalPaymentStatus =
+      nextPaymentStatus || oldPaymentStatus;
+
+    // ============================================
+    // برگرداندن موجودی فقط هنگام ورود به cancelled
+    // ============================================
+    let stockRestoreResult = null;
+
+    const shouldRestoreStock =
+      oldStatus !== "cancelled" &&
+      finalStatus === "cancelled";
+
+    if (shouldRestoreStock) {
+      stockRestoreResult =
+        await restoreProductStock(
+          context.env.DB,
+          currentOrder.id
+        );
+
+      if (!stockRestoreResult.success) {
+        return json(
+          {
+            success: false,
+            error: stockRestoreResult.error ||
+              "stock_restore_failed",
+
+            product_id:
+              stockRestoreResult.product_id || null,
+
+            restored:
+              stockRestoreResult.restored || []
+          },
+          500
+        );
+      }
+    }
 
     // ============================================
     // به‌روزرسانی سفارش در دیتابیس
@@ -533,26 +921,68 @@ export async function onRequestPost(context) {
         payment_status = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).bind(finalStatus, finalPaymentStatus, currentOrder.id).run();
+    `).bind(
+      finalStatus,
+      finalPaymentStatus,
+      currentOrder.id
+    ).run();
 
-    const updatedOrder = await getOrderByNumber(context.env.DB, orderNumber);
+    const updatedOrder =
+      await getOrderByNumber(
+        context.env.DB,
+        orderNumber
+      );
 
     let cashbackResult = null;
 
     if (finalStatus === "completed") {
-      cashbackResult = await applyCashbackIfNeeded(context.env.DB, updatedOrder, user.id);
+      cashbackResult =
+        await applyCashbackIfNeeded(
+          context.env.DB,
+          updatedOrder,
+          user.id
+        );
     } else if (
-      ["pending", "order_confirmed", "processing", "ready_to_ship", "courier_delivery", "bus_shipping", "shipped", "delivered", "cancelled", "returned", "processing_failed"].includes(finalStatus) &&
-      String(updatedOrder.cashback_status || "").toLowerCase() === "completed"
+      [
+        "payment_pending",
+        "payment_success",
+        "payment_failed",
+        "order_confirmed",
+        "courier_delivery",
+        "bus_shipping",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "returned"
+      ].includes(finalStatus) &&
+      String(
+        updatedOrder.cashback_status || ""
+      ).toLowerCase() === "completed"
     ) {
-      cashbackResult = await reverseCashbackIfNeeded(context.env.DB, updatedOrder, user.id);
+      cashbackResult =
+        await reverseCashbackIfNeeded(
+          context.env.DB,
+          updatedOrder,
+          user.id
+        );
     }
 
-    const finalOrder = await getOrderByNumber(context.env.DB, orderNumber);
-    const items = await getOrderItems(context.env.DB, finalOrder.id);
+    const finalOrder =
+      await getOrderByNumber(
+        context.env.DB,
+        orderNumber
+      );
+
+    const items =
+      await getOrderItems(
+        context.env.DB,
+        finalOrder.id
+      );
+
     const payableAmount = Math.max(
       0,
-      normalizeNumber(finalOrder.total_amount) - normalizeNumber(finalOrder.wallet_used_amount)
+      normalizeNumber(finalOrder.total_amount) -
+      normalizeNumber(finalOrder.wallet_used_amount)
     );
 
     // ============================================
@@ -563,37 +993,74 @@ export async function onRequestPost(context) {
         const orderData = {
           orderId: finalOrder.id,
           orderNumber: finalOrder.order_number,
-          totalAmount: normalizeNumber(finalOrder.total_amount),
-          shippingAmount: normalizeNumber(finalOrder.shipping_amount),
-          walletUsedAmount: normalizeNumber(finalOrder.wallet_used_amount),
-          payableAmount: payableAmount,
-          cashbackAmount: normalizeNumber(finalOrder.cashback_amount),
+
+          totalAmount:
+            normalizeNumber(finalOrder.total_amount),
+
+          shippingAmount:
+            normalizeNumber(finalOrder.shipping_amount),
+
+          walletUsedAmount:
+            normalizeNumber(
+              finalOrder.wallet_used_amount
+            ),
+
+          payableAmount,
+
+          cashbackAmount:
+            normalizeNumber(
+              finalOrder.cashback_amount
+            ),
+
           status: finalStatus,
           paymentStatus: finalPaymentStatus,
-          createdAt: finalOrder.created_at || new Date().toISOString()
+
+          createdAt:
+            finalOrder.created_at ||
+            new Date().toISOString()
         };
 
         const userData = {
-          fullName: finalOrder.full_name || '',
-          email: finalOrder.email || '',
-          phone: finalOrder.phone || ''
+          fullName:
+            finalOrder.full_name || "",
+
+          email:
+            finalOrder.email || "",
+
+          phone:
+            finalOrder.phone || ""
         };
 
         if (finalStatus === "cancelled") {
           let refundAmount = 0;
-          if (finalPaymentStatus === "paid" || finalPaymentStatus === "completed") {
+
+          if (
+            finalPaymentStatus === "paid" ||
+            finalPaymentStatus === "completed"
+          ) {
             refundAmount = payableAmount;
           }
-          
-          const { sendOrderCancelledNotification } = await import('../../lib/notification.js');
+
+          const {
+            sendOrderCancelledNotification
+          } = await import(
+            "../../lib/notification.js"
+          );
+
           await sendOrderCancelledNotification(
             context.env,
             orderData,
             userData,
             refundAmount
           );
+
         } else {
-          const { sendOrderStatusChangedNotification } = await import('../../lib/notification.js');
+          const {
+            sendOrderStatusChangedNotification
+          } = await import(
+            "../../lib/notification.js"
+          );
+
           await sendOrderStatusChangedNotification(
             context.env,
             orderData,
@@ -604,38 +1071,83 @@ export async function onRequestPost(context) {
         }
       }
 
-      if (finalPaymentStatus !== oldPaymentStatus) {
+      if (
+        finalPaymentStatus !== oldPaymentStatus
+      ) {
         const orderData = {
           orderId: finalOrder.id,
           orderNumber: finalOrder.order_number,
-          totalAmount: normalizeNumber(finalOrder.total_amount),
-          shippingAmount: normalizeNumber(finalOrder.shipping_amount),
-          walletUsedAmount: normalizeNumber(finalOrder.wallet_used_amount),
-          payableAmount: payableAmount,
-          cashbackAmount: normalizeNumber(finalOrder.cashback_amount),
+
+          totalAmount:
+            normalizeNumber(finalOrder.total_amount),
+
+          shippingAmount:
+            normalizeNumber(finalOrder.shipping_amount),
+
+          walletUsedAmount:
+            normalizeNumber(
+              finalOrder.wallet_used_amount
+            ),
+
+          payableAmount,
+
+          cashbackAmount:
+            normalizeNumber(
+              finalOrder.cashback_amount
+            ),
+
           status: finalStatus,
           paymentStatus: finalPaymentStatus,
-          createdAt: finalOrder.created_at || new Date().toISOString()
+
+          createdAt:
+            finalOrder.created_at ||
+            new Date().toISOString()
         };
 
         const userData = {
-          fullName: finalOrder.full_name || '',
-          email: finalOrder.email || '',
-          phone: finalOrder.phone || ''
+          fullName:
+            finalOrder.full_name || "",
+
+          email:
+            finalOrder.email || "",
+
+          phone:
+            finalOrder.phone || ""
         };
 
-        if (finalPaymentStatus === "paid" || finalPaymentStatus === "completed") {
-          const { sendPaymentSuccessNotification } = await import('../../lib/notification.js');
+        if (
+          finalPaymentStatus === "paid" ||
+          finalPaymentStatus === "completed"
+        ) {
+          const {
+            sendPaymentSuccessNotification
+          } = await import(
+            "../../lib/notification.js"
+          );
+
           await sendPaymentSuccessNotification(
             context.env,
             orderData,
             userData,
-            ''
+            ""
           );
         }
 
-        if (!(oldPaymentStatus === "pending" && (finalPaymentStatus === "paid" || finalPaymentStatus === "completed"))) {
-          const { sendPaymentStatusChangedNotification } = await import('../../lib/notification.js');
+        if (
+          !(
+            oldPaymentStatus === "pending" &&
+            (
+              finalPaymentStatus === "paid" ||
+              finalPaymentStatus === "completed"
+            )
+          )
+        ) {
+          const {
+            sendPaymentStatusChangedNotification
+          } = await import(
+            "../../lib/notification.js"
+          );
+
           await sendPaymentStatusChangedNotification(
             context.env,
             orderData,
@@ -646,29 +1158,57 @@ export async function onRequestPost(context) {
         }
       }
 
-      if (cashbackResult && cashbackResult.applied && cashbackResult.amount > 0) {
+      if (
+        cashbackResult &&
+        cashbackResult.applied &&
+        cashbackResult.amount > 0
+      ) {
         const orderData = {
           orderId: finalOrder.id,
           orderNumber: finalOrder.order_number,
-          totalAmount: normalizeNumber(finalOrder.total_amount),
+
+          totalAmount:
+            normalizeNumber(finalOrder.total_amount),
+
           status: finalStatus,
-          createdAt: finalOrder.created_at || new Date().toISOString()
+
+          createdAt:
+            finalOrder.created_at ||
+            new Date().toISOString()
         };
 
         const userData = {
-          fullName: finalOrder.full_name || '',
-          email: finalOrder.email || '',
-          phone: finalOrder.phone || ''
+          fullName:
+            finalOrder.full_name || "",
+
+          email:
+            finalOrder.email || "",
+
+          phone:
+            finalOrder.phone || ""
         };
 
-        const userBalance = await context.env.DB
-          .prepare(`SELECT COALESCE(wallet_balance, 0) AS wallet_balance FROM users WHERE id = ?`)
-          .bind(finalOrder.user_id)
-          .first();
+        const userBalance =
+          await context.env.DB
+            .prepare(`
+              SELECT
+                COALESCE(wallet_balance, 0)
+                AS wallet_balance
+              FROM users
+              WHERE id = ?
+            `)
+            .bind(finalOrder.user_id)
+            .first();
 
-        const newBalance = userBalance?.wallet_balance || 0;
+        const newBalance =
+          userBalance?.wallet_balance || 0;
 
-        const { sendCashbackAppliedNotification } = await import('../../lib/notification.js');
+        const {
+          sendCashbackAppliedNotification
+        } = await import(
+          "../../lib/notification.js"
+        );
+
         await sendCashbackAppliedNotification(
           context.env,
           orderData,
@@ -677,61 +1217,154 @@ export async function onRequestPost(context) {
           newBalance
         );
       }
+
     } catch (notificationError) {
-      console.error('❌ خطا در ارسال اعلان سفارش:', notificationError);
+      console.error(
+        "❌ خطا در ارسال اعلان سفارش:",
+        notificationError
+      );
     }
 
     return json({
       success: true,
       message: "order_updated",
-      cashback_result: cashbackResult,
+
+      cashback_result:
+        cashbackResult,
+
+      stock_restore_result:
+        stockRestoreResult,
+
       order: {
         ...finalOrder,
-        subtotal_amount: normalizeNumber(finalOrder.subtotal_amount),
-        shipping_amount: normalizeNumber(finalOrder.shipping_amount),
-        total_amount: normalizeNumber(finalOrder.total_amount),
-        wallet_used_amount: normalizeNumber(finalOrder.wallet_used_amount),
-        cashback_amount: normalizeNumber(finalOrder.cashback_amount),
-        payable_amount: payableAmount,
+
+        subtotal_amount:
+          normalizeNumber(
+            finalOrder.subtotal_amount
+          ),
+
+        shipping_amount:
+          normalizeNumber(
+            finalOrder.shipping_amount
+          ),
+
+        total_amount:
+          normalizeNumber(
+            finalOrder.total_amount
+          ),
+
+        wallet_used_amount:
+          normalizeNumber(
+            finalOrder.wallet_used_amount
+          ),
+
+        cashback_amount:
+          normalizeNumber(
+            finalOrder.cashback_amount
+          ),
+
+        payable_amount:
+          payableAmount,
+
         items
       }
     });
+
   } catch (error) {
-    return json({ success: false, error: String(error?.message || error) }, 500);
+    return json(
+      {
+        success: false,
+        error: String(
+          error?.message || error
+        )
+      },
+      500
+    );
   }
 }
 
 // ============================================
 // DELETE - حذف سفارش
 // ============================================
+
 export async function onRequestDelete(context) {
   try {
     const user = await getCurrentUser(context);
 
     if (!user || !isAdmin(user)) {
-      return json({ success: false, error: "unauthorized" }, 401);
+      return json(
+        {
+          success: false,
+          error: "unauthorized"
+        },
+        401
+      );
     }
 
-    const body = await context.request.json().catch(() => null);
-    const orderNumber = normalizeText(body?.order_number);
+    const body = await context.request
+      .json()
+      .catch(() => null);
+
+    const orderNumber = normalizeText(
+      body?.order_number
+    );
 
     if (!orderNumber) {
-      return json({ success: false, error: "order_number_required" }, 400);
+      return json(
+        {
+          success: false,
+          error: "order_number_required"
+        },
+        400
+      );
     }
 
-    const order = await getOrderByNumber(context.env.DB, orderNumber);
+    const order =
+      await getOrderByNumber(
+        context.env.DB,
+        orderNumber
+      );
 
     if (!order) {
-      return json({ success: false, error: "order_not_found" }, 404);
+      return json(
+        {
+          success: false,
+          error: "order_not_found"
+        },
+        404
+      );
     }
 
     await context.env.DB.batch([
-      context.env.DB.prepare(`DELETE FROM order_items WHERE order_id = ?`).bind(order.id),
-      context.env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(order.id)
+      context.env.DB
+        .prepare(`
+          DELETE FROM order_items
+          WHERE order_id = ?
+        `)
+        .bind(order.id),
+
+      context.env.DB
+        .prepare(`
+          DELETE FROM orders
+          WHERE id = ?
+        `)
+        .bind(order.id)
     ]);
 
-    return json({ success: true, message: "order_deleted" });
+    return json({
+      success: true,
+      message: "order_deleted"
+    });
+
   } catch (error) {
-    return json({ success: false, error: String(error?.message || error) }, 500);
+    return json(
+      {
+        success: false,
+        error: String(
+          error?.message || error
+        )
+      },
+      500
+    );
   }
 }

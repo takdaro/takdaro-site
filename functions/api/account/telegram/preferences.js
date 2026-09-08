@@ -42,17 +42,19 @@ export async function onRequestGet(context) {
     // دریافت تنظیمات کاربر
     const preferences = await getUserNotificationPreferences(env, user.id);
 
-    // تنظیمات پیش‌فرض در صورت عدم وجود
+    // ⭐ تنظیمات پیش‌فرض بر اساس ۱۱ وضعیت رسمی
     const defaultPrefs = {
-      order_created: true,
+      payment_pending: true,
       payment_success: true,
       payment_failed: true,
-      order_status_changed: true,
-      order_preparing: true,
-      order_shipped: true,
-      tracking_code_added: true,
-      order_completed: true,
-      order_cancelled: true,
+      order_confirmed: true,
+      courier_delivery: true,
+      bus_shipping: true,
+      shipped: true,
+      delivered: true,
+      completed: true,
+      cancelled: true,
+      returned: true,
       announcements: false,
       promotions: false,
       marketing: false
@@ -105,17 +107,19 @@ export async function onRequestPut(context) {
       }, 400);
     }
 
-    // فیلدهای مجاز
+    // ⭐ فیلدهای مجاز بر اساس ۱۱ وضعیت رسمی
     const allowedFields = [
-      'order_created',
+      'payment_pending',
       'payment_success',
       'payment_failed',
-      'order_status_changed',
-      'order_preparing',
-      'order_shipped',
-      'tracking_code_added',
-      'order_completed',
-      'order_cancelled',
+      'order_confirmed',
+      'courier_delivery',
+      'bus_shipping',
+      'shipped',
+      'delivered',
+      'completed',
+      'cancelled',
+      'returned',
       'announcements',
       'promotions',
       'marketing'

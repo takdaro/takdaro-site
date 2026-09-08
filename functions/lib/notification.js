@@ -35,6 +35,35 @@ import {
   sendSmsWithTemplate
 } from './sms.js';
 
+import {
+  getEmailSettings,
+  sendEmailWithTemplate,
+  sendUserEmailNotification,
+  sendAdminEmailNotification,
+  sendWalletEmailNotification,
+  testEmailNotification,
+  getEmailTemplate,
+  getAllEmailTemplates,
+  saveEmailTemplate,
+  toggleEmailTemplate,
+  getEmailSettings as getEmailSettingsRaw
+} from './email.js';
+
+import { getStatusLabel, isValidCanonicalStatus } from './status-mapping.js';
+
+// ============================================
+// ⭐⭐⭐ وارد کردن Web Push
+// ============================================
+
+import {
+  sendUserWebPushNotification,
+  getUserPushSubscriptions
+} from './web-push.js';
+
+import {
+  sendAdminFirebaseFcmNotification
+} from './firebase-fcm.js';
+
 // ============================================
 // توابع کمکی عمومی
 // ============================================
@@ -42,7 +71,7 @@ import {
 /**
  * دریافت تنظیمات یک کانال از دیتابیس
  * @param {Object} env - محیط Cloudflare
- * @param {string} channel - نام کانال ('telegram' | 'email' | 'sms')
+ * @param {string} channel - نام کانال ('telegram' | 'email' | 'sms' | 'web_push')
  * @returns {Promise<Object|null>} - تنظیمات کانال یا null
  */
 export async function getChannelSettings(env, channel) {
@@ -94,7 +123,7 @@ export async function getChannelSettings(env, channel) {
  * @returns {Promise<Object>} - نتیجه عملیات
  */
 export async function saveChannelSettings(env, channel, config, userId) {
-  const allowedChannels = ['telegram', 'email', 'sms'];
+  const allowedChannels = ['telegram', 'email', 'sms', 'web_push', 'mobile'];
   if (!allowedChannels.includes(channel)) {
     throw new Error(`کانال ${channel} معتبر نیست.`);
   }
@@ -106,6 +135,11 @@ export async function saveChannelSettings(env, channel, config, userId) {
     if (config.chat_id && !config.chat_id.trim()) {
       throw new Error('شناسه چت تلگرام معتبر نیست.');
     }
+  }
+
+  if (channel === 'email') {
+    // تنظیمات Email از طریق email.js مدیریت می‌شود
+    // اینجا فقط به‌روزرسانی is_enabled انجام می‌شود
   }
 
   const existing = await env.DB
@@ -288,7 +322,6 @@ export async function hasDuplicateLog(env, eventType, referenceId, channel = 'te
 async function sendTelegramNotification(env, eventType, message, replyMarkup = null, referenceId = null, checkDuplicate = true) {
   const results = [];
 
-  // دریافت تنظیمات تلگرام
   const telegramSettings = await getChannelSettings(env, 'telegram');
   
   if (!telegramSettings || !telegramSettings.is_enabled) {
@@ -313,7 +346,6 @@ async function sendTelegramNotification(env, eventType, message, replyMarkup = n
     return { success: false, results };
   }
 
-  // بررسی تکراری بودن
   if (checkDuplicate && referenceId) {
     const isDuplicate = await hasDuplicateLog(env, eventType, referenceId, 'telegram', 1);
     if (isDuplicate) {
@@ -326,7 +358,6 @@ async function sendTelegramNotification(env, eventType, message, replyMarkup = n
     }
   }
 
-  // ثبت لاگ اولیه
   const logId = await logNotification(env, {
     eventType: eventType,
     channel: 'telegram',
@@ -337,7 +368,6 @@ async function sendTelegramNotification(env, eventType, message, replyMarkup = n
     orderId: referenceId
   });
 
-  // ارسال پیام
   const sendResult = await sendTelegramMessage(botToken, chatId, message, { replyMarkup });
 
   if (sendResult.success) {
@@ -369,7 +399,6 @@ async function sendTelegramNotification(env, eventType, message, replyMarkup = n
  * تابع داخلی برای ارسال اعلان به SMS با استفاده از Template
  */
 async function sendSmsNotification(env, eventType, recipient, templateData = {}, referenceId = null, checkDuplicate = true) {
-  // دریافت تنظیمات SMS
   const smsSettings = await getSmsSettings(env);
   
   if (!smsSettings.is_enabled) {
@@ -386,7 +415,6 @@ async function sendSmsNotification(env, eventType, recipient, templateData = {},
     };
   }
 
-  // بررسی تکراری بودن
   if (checkDuplicate && referenceId) {
     const isDuplicate = await hasDuplicateLog(env, eventType, referenceId, 'sms', 1);
     if (isDuplicate) {
@@ -397,7 +425,6 @@ async function sendSmsNotification(env, eventType, recipient, templateData = {},
     }
   }
 
-  // ارسال SMS با Template
   const sendResult = await sendSmsWithTemplate(env, {
     eventType: eventType,
     recipient: recipient,
@@ -423,41 +450,619 @@ async function sendSmsNotification(env, eventType, recipient, templateData = {},
 }
 
 // ============================================
-// 1. اعلان سفارش جدید (ادمین) - با Template مجزا
+// ⭐⭐⭐ تابع اصلی ارسال اعلان به Web Push
+// ============================================
+
+/**
+ * تابع داخلی برای ارسال اعلان به Web Push
+ * @param {Object} env - محیط Cloudflare
+ * @param {number} userId - شناسه کاربر
+ * @param {string} eventType - نوع رویداد
+ * @param {Object} payload - محتوای اعلان
+ * @param {string} orderId - شناسه سفارش (اختیاری)
+ * @param {boolean} checkDuplicate - بررسی تکراری
+ * @returns {Promise<Object>} - نتیجه ارسال
+ */
+async function sendWebPushNotification(env, userId, eventType, payload, orderId = null, checkDuplicate = true) {
+  // بررسی فعال بودن کانال Web Push
+  const webPushSettings = await getChannelSettings(env, 'web_push');
+  
+  if (!webPushSettings || !webPushSettings.is_enabled) {
+    return {
+      success: false,
+      error: 'کانال Web Push فعال نیست یا تنظیمات وجود ندارد.'
+    };
+  }
+
+  if (!userId) {
+    return {
+      success: false,
+      error: 'شناسه کاربر مشخص نیست.'
+    };
+  }
+
+  // بررسی تنظیمات کاربر
+  const prefs = await getUserNotificationPreferences(env, userId);
+  if (prefs && prefs[eventType] === 0) {
+    return {
+      success: false,
+      error: 'این نوع اعلان توسط کاربر غیرفعال شده است.'
+    };
+  }
+
+  // بررسی تکراری
+  if (checkDuplicate && orderId) {
+    const isDuplicate = await hasDuplicateLog(env, eventType, orderId, 'web_push', 1);
+    if (isDuplicate) {
+      return {
+        success: false,
+        error: 'اعلان تکراری تشخیص داده شد (در یک ساعت گذشته ارسال شده است).'
+      };
+    }
+  }
+
+  // دریافت Subscription‌های کاربر
+  const subscriptions = await getUserPushSubscriptions(env, userId);
+  
+  if (!subscriptions || subscriptions.length === 0) {
+    return {
+      success: false,
+      error: 'هیچ دستگاه فعالی برای اعلان Web Push ثبت نشده است.'
+    };
+  }
+
+  // ارسال به تمام دستگاه‌ها
+  const results = await Promise.all(
+    subscriptions.map(async (subscription) => {
+      const result = await sendWebPushInternal(
+        env,
+        subscription,
+        payload,
+        {
+          eventType: eventType,
+          orderId: orderId,
+          userId: userId,
+          isUserNotification: true
+        }
+      );
+      return result;
+    })
+  );
+
+  const successCount = results.filter(r => r.success).length;
+  const failureCount = results.filter(r => !r.success).length;
+
+  return {
+    success: successCount > 0,
+    results: results,
+    summary: {
+      total: results.length,
+      success: successCount,
+      failed: failureCount
+    }
+  };
+}
+
+/**
+ * تابع داخلی برای ارسال Web Push به یک Subscription (با لاگ)
+ */
+async function sendWebPushInternal(env, subscription, payload, options = {}) {
+  const {
+    eventType = 'web_push',
+    orderId = null,
+    userId = null,
+    isUserNotification = true
+  } = options;
+
+  const endpoint = subscription?.endpoint;
+
+  if (!endpoint) {
+    return {
+      success: false,
+      error: 'Push endpoint وجود ندارد.'
+    };
+  }
+
+  // ثبت لاگ pending
+  const logId = await logNotification(env, {
+    eventType: eventType,
+    channel: 'web_push',
+    recipient: endpoint,
+    subject: payload?.title || '',
+    content: payload?.body || '',
+    status: 'pending',
+    orderId: orderId,
+    userId: userId,
+    isUserNotification: isUserNotification
+  });
+
+  try {
+    const result = await sendWebPushDirect(env, subscription, payload);
+
+    if (result.success) {
+      await updateLogStatus(env, logId, 'sent');
+      
+      // به‌روزرسانی last_used_at
+      await env.DB
+        .prepare(`
+          UPDATE push_subscriptions
+          SET last_used_at = CURRENT_TIMESTAMP
+          WHERE endpoint = ?
+        `)
+        .bind(endpoint)
+        .run();
+
+      return {
+        success: true,
+        log_id: logId,
+        status: result.status
+      };
+    } else {
+      const errorMessage = result.error || 'خطا در ارسال Web Push';
+      await updateLogStatus(env, logId, 'failed', errorMessage);
+
+      // اگر Subscription منقضی شده، غیرفعالش کن
+      if (result.expired) {
+        await env.DB
+          .prepare(`
+            UPDATE push_subscriptions
+            SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+            WHERE endpoint = ?
+          `)
+          .bind(endpoint)
+          .run();
+      }
+
+      return {
+        success: false,
+        log_id: logId,
+        error: errorMessage,
+        expired: result.expired || false
+      };
+    }
+  } catch (error) {
+    const errorMessage = String(error?.message || error);
+    await updateLogStatus(env, logId, 'failed', errorMessage);
+    return {
+      success: false,
+      log_id: logId,
+      error: errorMessage
+    };
+  }
+}
+
+/**
+ * تابع ارسال مستقیم Web Push (بدون لاگ - برای استفاده در sendWebPushInternal)
+ * این تابع از web-push.js استفاده می‌کند
+ */
+async function sendWebPushDirect(env, subscription, payload) {
+  // این تابع از توابع موجود در web-push.js استفاده می‌کند
+  // برای جلوگیری از import loop، از همان توابع استفاده می‌کنیم
+  
+  const { sendWebPush } = await import('./web-push.js');
+  
+  return sendWebPush(env, subscription, payload);
+}
+
+
+// ============================================
+// تنظیمات اعلان موبایل (FCM)
+// ============================================
+
+export const MOBILE_NOTIFICATION_EVENTS = [
+  { key: 'order_created', label: 'ثبت سفارش جدید' },
+  { key: 'payment_pending', label: 'در انتظار پرداخت' },
+  { key: 'payment_success', label: 'پرداخت موفق' },
+  { key: 'payment_failed', label: 'پرداخت ناموفق' },
+  { key: 'order_confirmed', label: 'تأیید سفارش' },
+  { key: 'courier_delivery', label: 'ارسال با پیک' },
+  { key: 'bus_shipping', label: 'ارسال با باربری' },
+  { key: 'shipped', label: 'ارسال شد' },
+  { key: 'delivered', label: 'تحویل داده شد' },
+  { key: 'completed', label: 'تکمیل شد' },
+  { key: 'cancelled', label: 'لغو شد' },
+  { key: 'returned', label: 'مرجوع شد' },
+  { key: 'chat_online', label: 'چت آنلاین' }
+];
+
+const MOBILE_NOTIFICATION_DEFAULTS = {
+  // ثبت سفارش به صورت پیش‌فرض فعال است.
+  order_created: true,
+
+  // 11 وضعیت سفارش به صورت پیش‌فرض غیرفعال هستند
+  // تا مدیر خودش موارد موردنیاز را فعال کند.
+  payment_pending: false,
+  payment_success: false,
+  payment_failed: false,
+  order_confirmed: false,
+  courier_delivery: false,
+  bus_shipping: false,
+  shipped: false,
+  delivered: false,
+  completed: false,
+  cancelled: false,
+  returned: false,
+
+  // چت آنلاین مستقل از وضعیت سفارش است.
+  chat_online: true
+};
+
+function normalizeMobileNotificationEvents(config) {
+  const configured =
+    config &&
+    typeof config === 'object' &&
+    config.events &&
+    typeof config.events === 'object'
+      ? config.events
+      : {};
+
+  const events = {};
+
+  for (const item of MOBILE_NOTIFICATION_EVENTS) {
+    if (
+      Object.prototype.hasOwnProperty.call(
+        configured,
+        item.key
+      )
+    ) {
+      events[item.key] =
+        configured[item.key] === true;
+    } else {
+      events[item.key] =
+        MOBILE_NOTIFICATION_DEFAULTS[item.key] === true;
+    }
+  }
+
+  return events;
+}
+
+export async function getMobileNotificationSettings(env) {
+  const settings =
+    await getChannelSettings(env, 'mobile');
+
+  if (!settings) {
+    return {
+      channel: 'mobile',
+      is_enabled: true,
+      config: {
+        events: {
+          ...MOBILE_NOTIFICATION_DEFAULTS
+        }
+      },
+      events: {
+        ...MOBILE_NOTIFICATION_DEFAULTS
+      },
+      exists: false
+    };
+  }
+
+  const events =
+    normalizeMobileNotificationEvents(
+      settings.config
+    );
+
+  return {
+    ...settings,
+    events,
+    exists: true
+  };
+}
+
+export async function saveMobileNotificationSettings(
+  env,
+  config,
+  userId
+) {
+  const existing =
+    await getChannelSettings(
+      env,
+      'mobile'
+    );
+
+  const events =
+    normalizeMobileNotificationEvents(
+      config
+    );
+
+  const mergedConfig = {
+    ...(existing?.config || {}),
+    ...(config || {}),
+    events
+  };
+
+  const enabled =
+    config &&
+    Object.prototype.hasOwnProperty.call(
+      config,
+      'is_enabled'
+    )
+      ? config.is_enabled === true
+      : existing
+        ? existing.is_enabled === true
+        : true;
+
+  const existingRow =
+    await env.DB
+      .prepare(`SELECT id FROM notification_settings WHERE channel = ?`)
+      .bind('mobile')
+      .first();
+
+  const configJson =
+    JSON.stringify(mergedConfig);
+
+  if (existingRow) {
+    await env.DB
+      .prepare(`
+        UPDATE notification_settings
+        SET
+          is_enabled = ?,
+          config = ?,
+          updated_by_user_id = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE channel = 'mobile'
+      `)
+      .bind(
+        enabled ? 1 : 0,
+        configJson,
+        userId
+      )
+      .run();
+  } else {
+    await env.DB
+      .prepare(`
+        INSERT INTO notification_settings (
+          channel,
+          is_enabled,
+          config,
+          updated_by_user_id,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          'mobile',
+          ?,
+          ?,
+          ?,
+          CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP
+        )
+      `)
+      .bind(
+        enabled ? 1 : 0,
+        configJson,
+        userId
+      )
+      .run();
+  }
+
+  return {
+    success: true,
+    channel: 'mobile',
+    is_enabled: enabled,
+    config: mergedConfig
+  };
+}
+
+export async function toggleMobileNotificationEvent(
+  env,
+  eventKey,
+  enabled,
+  userId
+) {
+  const validEvent =
+    MOBILE_NOTIFICATION_EVENTS.some(
+      (item) => item.key === eventKey
+    );
+
+  if (!validEvent) {
+    throw new Error(
+      `رویداد اعلان موبایل ${eventKey} معتبر نیست.`
+    );
+  }
+
+  const current =
+    await getMobileNotificationSettings(
+      env
+    );
+
+  const events = {
+    ...current.events,
+    [eventKey]: enabled === true
+  };
+
+  return saveMobileNotificationSettings(
+    env,
+    {
+      ...(current.config || {}),
+      events
+    },
+    userId
+  );
+}
+
+function getMobileEventKeyForFcm(
+  eventType,
+  data = {}
+) {
+  const newStatus = String(
+    data?.new_status || ''
+  ).trim().toLowerCase();
+
+  if (eventType === 'order_created') {
+    return 'order_created';
+  }
+
+  if (
+    eventType === 'payment_success'
+  ) {
+    return 'payment_success';
+  }
+
+  if (
+    eventType === 'payment_status_changed'
+  ) {
+    if (
+      newStatus === 'payment_pending' ||
+      newStatus === 'payment_success' ||
+      newStatus === 'payment_failed'
+    ) {
+      return newStatus;
+    }
+  }
+
+  if (
+    eventType === 'order_status_changed'
+  ) {
+    return MOBILE_NOTIFICATION_EVENTS.some(
+      (item) => item.key === newStatus
+    )
+      ? newStatus
+      : 'order_status_changed';
+  }
+
+  if (
+    eventType === 'order_cancelled'
+  ) {
+    return 'cancelled';
+  }
+
+  return eventType;
+}
+
+async function shouldSendAdminMobileFcm(
+  env,
+  eventType,
+  data = {}
+) {
+  // رویدادهای غیرسفارشی فعلی (کیف پول/Refund و ...)
+  // برای حفظ رفتار قبلی، تحت تنظیمات 11 وضعیت سفارش نیستند.
+  const controlledEvents = new Set(
+    MOBILE_NOTIFICATION_EVENTS.map(
+      (item) => item.key
+    )
+  );
+
+  const eventKey =
+    getMobileEventKeyForFcm(
+      eventType,
+      data
+    );
+
+  if (
+    eventKey === 'order_status_changed'
+  ) {
+    return {
+      allowed: false,
+      eventKey
+    };
+  }
+
+  if (!controlledEvents.has(eventKey)) {
+    return {
+      allowed: true,
+      eventKey
+    };
+  }
+
+  const settings =
+    await getMobileNotificationSettings(
+      env
+    );
+
+  if (
+    settings.is_enabled !== true
+  ) {
+    return {
+      allowed: false,
+      eventKey
+    };
+  }
+
+  return {
+    allowed:
+      settings.events[eventKey] === true,
+    eventKey
+  };
+}
+
+// ============================================
+// Android FCM - اعلان مستقل برای پنل مدیریت
+// ============================================
+
+async function sendAdminFcmNotification(env, eventType, title, body, orderId = null, data = {}) {
+  try {
+    const gate =
+      await shouldSendAdminMobileFcm(
+        env,
+        eventType,
+        data
+      );
+
+    if (!gate.allowed) {
+      return {
+        success: true,
+        skipped: true,
+        event_key: gate.eventKey,
+        reason: 'disabled_by_admin_settings',
+        results: []
+      };
+    }
+
+    return await sendAdminFirebaseFcmNotification(env, {
+      eventType,
+      title,
+      body,
+      orderId,
+      data: {
+        type: eventType,
+        event_key: gate.eventKey,
+        order_id: orderId || '',
+        ...data
+      }
+    });
+  } catch (error) {
+    const errorMessage = String(error?.message || error);
+    console.error(`❌ Android FCM error in ${eventType}:`, errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+      results: []
+    };
+  }
+}
+
+// ============================================
+// 1. اعلان سفارش جدید (ادمین)
 // ============================================
 export async function sendOrderCreatedNotification(env, orderData, userData, items, baseUrl = '') {
   const message = buildOrderCreatedMessage(orderData, userData, items);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, baseUrl);
   
-  // ارسال به تلگرام ادمین
   const telegramResult = await sendTelegramNotification(
     env,
     'order_created',
     message,
     replyMarkup,
     orderData.orderId,
-    true
+    false
   );
 
-  // ارسال به SMS ادمین (با Template مجزا)
   const smsSettings = await getSmsSettings(env);
   let smsResult = null;
   if (smsSettings.is_enabled && smsSettings.event_order_created_admin && smsSettings.admin_phone) {
-    // ⭐ استفاده از Template مجزا برای ادمین
     const templateData = {
       customer_name: userData.fullName || '',
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: orderData.paymentStatus || 'pending',
-      order_status: orderData.status || 'pending',
+      order_status: orderData.status || 'payment_pending',
       tracking_code: orderData.trackingCode || '',
-      admin_note: 'لطفاً سفارش را بررسی کنید'  // متغیر اختصاصی برای ادمین
+      admin_note: 'لطفاً سفارش را بررسی کنید'
     };
     
     smsResult = await sendSmsNotification(
       env,
-      'admin_order_created',  // ⭐ رویداد مجزا برای ادمین
+      'admin_order_created',
       smsSettings.admin_phone,
       templateData,
       orderData.orderId,
@@ -465,17 +1070,84 @@ export async function sendOrderCreatedNotification(env, orderData, userData, ite
     );
   }
 
+  // ============================================
+  // ⭐ ارسال Email به ادمین
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendAdminEmailNotification(
+        env,
+        'order_created',
+        orderData,
+        userData,
+        items,
+        baseUrl
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendOrderCreatedNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به ادمین
+  // ============================================
+  let webPushResult = null;
+  if (userData && userData.id) {
+    try {
+      const webPushSettings = await getChannelSettings(env, 'web_push');
+      if (webPushSettings && webPushSettings.is_enabled) {
+        webPushResult = await sendWebPushNotification(
+          env,
+          userData.id,
+          'order_created',
+          {
+            title: '🛒 سفارش جدید ثبت شد',
+            body: `سفارش ${orderData.orderNumber || ''} توسط ${userData.fullName || 'کاربر'} ثبت شد.`,
+            icon: '/assets/images/logo.png',
+            badge: '/assets/images/logo.png',
+            url: baseUrl ? `${baseUrl}/admin/orders` : '/admin/orders',
+            tag: `order-${orderData.orderId}`
+          },
+          orderData.orderId,
+          false
+        );
+      }
+    } catch (webPushError) {
+      console.error('❌ Web Push error in sendOrderCreatedNotification:', webPushError);
+      webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+    }
+  }
+
+    const fcmResult = await sendAdminFcmNotification(
+    env,
+    'order_created',
+    '🛒 سفارش جدید ثبت شد',
+    `سفارش ${orderData.orderNumber || ''} توسط ${userData.fullName || 'کاربر'} ثبت شد.`,
+    orderData.orderId,
+    {
+      order_number: orderData.orderNumber || '',
+      customer_name: userData.fullName || ''
+    }
+  );
+
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success) || (fcmResult && fcmResult.success),
     results: {
       telegram: telegramResult.results || [telegramResult],
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult,
+      fcm: fcmResult
     }
   };
 }
 
 // ============================================
-// 2. اعلان پرداخت موفق (ادمین) - با Template مجزا
+// 2. اعلان پرداخت موفق (ادمین)
 // ============================================
 export async function sendPaymentSuccessNotification(env, orderData, userData, paymentMethod = '') {
   const message = buildPaymentSuccessMessage(orderData, userData, paymentMethod);
@@ -498,15 +1170,14 @@ export async function sendPaymentSuccessNotification(env, orderData, userData, p
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: 'paid',
-      order_status: orderData.status || 'pending',
+      order_status: orderData.status || 'payment_success',
       tracking_code: orderData.trackingCode || '',
-      admin_note: 'پرداخت تأیید شد'  // متغیر اختصاصی برای ادمین
+      admin_note: 'پرداخت تأیید شد'
     };
     
     smsResult = await sendSmsNotification(
       env,
-      'admin_payment_success',  // ⭐ رویداد مجزا برای ادمین
+      'admin_payment_success',
       smsSettings.admin_phone,
       templateData,
       orderData.orderId,
@@ -514,11 +1185,78 @@ export async function sendPaymentSuccessNotification(env, orderData, userData, p
     );
   }
 
+  // ============================================
+  // ⭐ ارسال Email به ادمین
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendAdminEmailNotification(
+        env,
+        'payment_success',
+        orderData,
+        userData,
+        [],
+        ''
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendPaymentSuccessNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به ادمین
+  // ============================================
+  let webPushResult = null;
+  if (userData && userData.id) {
+    try {
+      const webPushSettings = await getChannelSettings(env, 'web_push');
+      if (webPushSettings && webPushSettings.is_enabled) {
+        webPushResult = await sendWebPushNotification(
+          env,
+          userData.id,
+          'payment_success',
+          {
+            title: '💰 پرداخت موفق',
+            body: `پرداخت سفارش ${orderData.orderNumber || ''} توسط ${userData.fullName || 'کاربر'} با موفقیت انجام شد.`,
+            icon: '/assets/images/logo.png',
+            badge: '/assets/images/logo.png',
+            url: `/admin/orders/${orderData.orderId}`,
+            tag: `payment-${orderData.orderId}`
+          },
+          orderData.orderId,
+          true
+        );
+      }
+    } catch (webPushError) {
+      console.error('❌ Web Push error in sendPaymentSuccessNotification:', webPushError);
+      webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+    }
+  }
+
+    const fcmResult = await sendAdminFcmNotification(
+    env,
+    'payment_success',
+    '💰 پرداخت موفق',
+    `پرداخت سفارش ${orderData.orderNumber || ''} توسط ${userData.fullName || 'کاربر'} با موفقیت انجام شد.`,
+    orderData.orderId,
+    {
+      order_number: orderData.orderNumber || '',
+      customer_name: userData.fullName || ''
+    }
+  );
+
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success) || (fcmResult && fcmResult.success),
     results: {
       telegram: telegramResult.results || [telegramResult],
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult,
+      fcm: fcmResult
     }
   };
 }
@@ -530,7 +1268,7 @@ export async function sendPaymentStatusChangedNotification(env, orderData, userD
   const message = buildPaymentStatusChangedMessage(orderData, userData, oldStatus, newStatus);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
-  return sendTelegramNotification(
+  const telegramResult = await sendTelegramNotification(
     env,
     'payment_status_changed',
     message,
@@ -538,16 +1276,34 @@ export async function sendPaymentStatusChangedNotification(env, orderData, userD
     orderData.orderId,
     true
   );
+
+  const fcmResult = await sendAdminFcmNotification(
+    env,
+    'payment_status_changed',
+    '💳 تغییر وضعیت پرداخت',
+    `وضعیت پرداخت سفارش ${orderData.orderNumber || ''} از "${oldStatus || 'نامشخص'}" به "${newStatus || 'تغییر یافت'}" تغییر کرد.`,
+    orderData.orderId,
+    {
+      order_number: orderData.orderNumber || '',
+      old_status: oldStatus || '',
+      new_status: newStatus || ''
+    }
+  );
+
+  return {
+    ...telegramResult,
+    fcm: fcmResult,
+    success: telegramResult.success || fcmResult.success
+  };
 }
 
 // ============================================
-// 4. اعلان تغییر وضعیت سفارش (ادمین) - با Template
+// 4. اعلان تغییر وضعیت سفارش (ادمین)
 // ============================================
 export async function sendOrderStatusChangedNotification(env, orderData, userData, oldStatus, newStatus) {
   const message = buildOrderStatusChangedMessage(orderData, userData, oldStatus, newStatus);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
-  // ارسال به تلگرام
   const telegramResult = await sendTelegramNotification(
     env,
     'order_status_changed',
@@ -557,13 +1313,10 @@ export async function sendOrderStatusChangedNotification(env, orderData, userDat
     false
   );
 
-  // ارسال به SMS (ادمین) با Template (فقط در صورت فعال بودن)
   const smsSettings = await getSmsSettings(env);
   let smsResult = null;
   
-  // بررسی اینکه آیا برای این وضعیت Template فعال است
   if (smsSettings.is_enabled && smsSettings.event_order_status_changed_user && smsSettings.admin_phone) {
-    // تعیین eventType بر اساس وضعیت جدید - استفاده مستقیم از وضعیت
     let eventType = newStatus || 'order_processing';
     
     const templateData = {
@@ -571,7 +1324,6 @@ export async function sendOrderStatusChangedNotification(env, orderData, userDat
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: orderData.paymentStatus || 'pending',
       order_status: newStatus || 'pending',
       tracking_code: orderData.trackingCode || ''
     };
@@ -586,23 +1338,91 @@ export async function sendOrderStatusChangedNotification(env, orderData, userDat
     );
   }
 
+  // ============================================
+  // ⭐ ارسال Email به ادمین
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendAdminEmailNotification(
+        env,
+        newStatus === 'cancelled' ? 'order_cancelled' : 'order_status_changed',
+        orderData,
+        userData,
+        [],
+        ''
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendOrderStatusChangedNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به ادمین
+  // ============================================
+  let webPushResult = null;
+  if (userData && userData.id) {
+    try {
+      const webPushSettings = await getChannelSettings(env, 'web_push');
+      if (webPushSettings && webPushSettings.is_enabled) {
+        const statusLabel = newStatus || 'تغییر یافت';
+        webPushResult = await sendWebPushNotification(
+          env,
+          userData.id,
+          'order_status_changed',
+          {
+            title: '📦 تغییر وضعیت سفارش',
+            body: `وضعیت سفارش ${orderData.orderNumber || ''} به "${statusLabel}" تغییر یافت.`,
+            icon: '/assets/images/logo.png',
+            badge: '/assets/images/logo.png',
+            url: `/admin/orders/${orderData.orderId}`,
+            tag: `order-status-${orderData.orderId}`
+          },
+          orderData.orderId,
+          false
+        );
+      }
+    } catch (webPushError) {
+      console.error('❌ Web Push error in sendOrderStatusChangedNotification:', webPushError);
+      webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+    }
+  }
+
+    const fcmResult = await sendAdminFcmNotification(
+    env,
+    'order_status_changed',
+    '📦 تغییر وضعیت سفارش',
+    `وضعیت سفارش ${orderData.orderNumber || ''} به "${newStatus || 'تغییر یافت'}" تغییر یافت.`,
+    orderData.orderId,
+    {
+      order_number: orderData.orderNumber || '',
+      old_status: oldStatus || '',
+      new_status: newStatus || ''
+    }
+  );
+
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success) || (fcmResult && fcmResult.success),
     results: {
       telegram: telegramResult.results || [telegramResult],
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult,
+      fcm: fcmResult
     }
   };
 }
 
 // ============================================
-// 5. اعلان لغو سفارش (ادمین) - با Template
+// 5. اعلان لغو سفارش (ادمین)
 // ============================================
 export async function sendOrderCancelledNotification(env, orderData, userData, refundAmount = 0) {
   const message = buildOrderCancelledMessage(orderData, userData, refundAmount);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
-  // ارسال به تلگرام
   const telegramResult = await sendTelegramNotification(
     env,
     'order_cancelled',
@@ -612,7 +1432,6 @@ export async function sendOrderCancelledNotification(env, orderData, userData, r
     false
   );
 
-  // ارسال به SMS (ادمین) با Template
   const smsSettings = await getSmsSettings(env);
   let smsResult = null;
   if (smsSettings.is_enabled && smsSettings.event_order_cancelled_user && smsSettings.admin_phone) {
@@ -621,7 +1440,6 @@ export async function sendOrderCancelledNotification(env, orderData, userData, r
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: orderData.paymentStatus || 'pending',
       order_status: 'cancelled',
       tracking_code: orderData.trackingCode || ''
     };
@@ -636,11 +1454,78 @@ export async function sendOrderCancelledNotification(env, orderData, userData, r
     );
   }
 
+  // ============================================
+  // ⭐ ارسال Email به ادمین
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendAdminEmailNotification(
+        env,
+        'order_cancelled',
+        orderData,
+        userData,
+        [],
+        ''
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendOrderCancelledNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به ادمین
+  // ============================================
+  let webPushResult = null;
+  if (userData && userData.id) {
+    try {
+      const webPushSettings = await getChannelSettings(env, 'web_push');
+      if (webPushSettings && webPushSettings.is_enabled) {
+        webPushResult = await sendWebPushNotification(
+          env,
+          userData.id,
+          'order_cancelled',
+          {
+            title: '❌ لغو سفارش',
+            body: `سفارش ${orderData.orderNumber || ''} توسط ${userData.fullName || 'کاربر'} لغو شد.${refundAmount > 0 ? ` مبلغ ${refundAmount.toLocaleString()} تومان بازگشت داده شد.` : ''}`,
+            icon: '/assets/images/logo.png',
+            badge: '/assets/images/logo.png',
+            url: `/admin/orders/${orderData.orderId}`,
+            tag: `order-cancel-${orderData.orderId}`
+          },
+          orderData.orderId,
+          false
+        );
+      }
+    } catch (webPushError) {
+      console.error('❌ Web Push error in sendOrderCancelledNotification:', webPushError);
+      webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+    }
+  }
+
+    const fcmResult = await sendAdminFcmNotification(
+    env,
+    'order_cancelled',
+    '❌ لغو سفارش',
+    `سفارش ${orderData.orderNumber || ''} توسط ${userData.fullName || 'کاربر'} لغو شد.${refundAmount > 0 ? ` مبلغ ${refundAmount.toLocaleString()} تومان بازگشت داده شد.` : ''}`,
+    orderData.orderId,
+    {
+      order_number: orderData.orderNumber || '',
+      refund_amount: refundAmount || 0
+    }
+  );
+
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success) || (fcmResult && fcmResult.success),
     results: {
       telegram: telegramResult.results || [telegramResult],
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult,
+      fcm: fcmResult
     }
   };
 }
@@ -652,7 +1537,7 @@ export async function sendRefundNotification(env, orderData, userData, refundAmo
   const message = buildRefundMessage(orderData, userData, refundAmount, refundMethod);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
-  return sendTelegramNotification(
+  const telegramResult = await sendTelegramNotification(
     env,
     'refund',
     message,
@@ -660,6 +1545,25 @@ export async function sendRefundNotification(env, orderData, userData, refundAmo
     orderData.orderId,
     true
   );
+
+  const fcmResult = await sendAdminFcmNotification(
+    env,
+    'refund',
+    '↩️ بازپرداخت سفارش',
+    `برای سفارش ${orderData.orderNumber || ''} بازپرداخت به مبلغ ${Number(refundAmount || 0).toLocaleString()} تومان ثبت شد.`,
+    orderData.orderId,
+    {
+      order_number: orderData.orderNumber || '',
+      refund_amount: refundAmount || 0,
+      refund_method: refundMethod || ''
+    }
+  );
+
+  return {
+    ...telegramResult,
+    fcm: fcmResult,
+    success: telegramResult.success || fcmResult.success
+  };
 }
 
 // ============================================
@@ -669,7 +1573,7 @@ export async function sendWalletTopupNotification(env, userData, amount, payment
   const message = buildWalletTopupMessage(userData, amount, paymentMethod, newBalance);
   const replyMarkup = createUserViewButton(userData.id, '');
   
-  return sendTelegramNotification(
+  const telegramResult = await sendTelegramNotification(
     env,
     'wallet_topup',
     message,
@@ -677,6 +1581,26 @@ export async function sendWalletTopupNotification(env, userData, amount, payment
     userData.id,
     true
   );
+
+  const fcmResult = await sendAdminFcmNotification(
+    env,
+    'wallet_topup',
+    '💰 شارژ کیف پول',
+    `کیف پول ${userData.fullName || 'کاربر'} به مبلغ ${Number(amount || 0).toLocaleString()} تومان شارژ شد.`,
+    null,
+    {
+      user_id: userData.id || '',
+      amount: amount || 0,
+      payment_method: paymentMethod || '',
+      new_balance: newBalance || 0
+    }
+  );
+
+  return {
+    ...telegramResult,
+    fcm: fcmResult,
+    success: telegramResult.success || fcmResult.success
+  };
 }
 
 // ============================================
@@ -686,7 +1610,7 @@ export async function sendWalletWithdrawalRequestNotification(env, userData, amo
   const message = buildWalletWithdrawalRequestMessage(userData, amount, destinationInfo, requestId);
   const replyMarkup = createUserViewButton(userData.id, '');
   
-  return sendTelegramNotification(
+  const telegramResult = await sendTelegramNotification(
     env,
     'wallet_withdrawal_requested',
     message,
@@ -694,6 +1618,26 @@ export async function sendWalletWithdrawalRequestNotification(env, userData, amo
     requestId || userData.id,
     true
   );
+
+  const fcmResult = await sendAdminFcmNotification(
+    env,
+    'wallet_withdrawal_requested',
+    '💸 درخواست برداشت کیف پول',
+    `درخواست برداشت ${Number(amount || 0).toLocaleString()} تومان توسط ${userData.fullName || 'کاربر'} ثبت شد.`,
+    null,
+    {
+      user_id: userData.id || '',
+      amount: amount || 0,
+      request_id: requestId || '',
+      destination_info: destinationInfo || ''
+    }
+  );
+
+  return {
+    ...telegramResult,
+    fcm: fcmResult,
+    success: telegramResult.success || fcmResult.success
+  };
 }
 
 // ============================================
@@ -703,14 +1647,42 @@ export async function sendWalletWithdrawalStatusNotification(env, userData, amou
   const message = buildWalletWithdrawalStatusMessage(userData, amount, oldStatus, newStatus, requestId, reason);
   const replyMarkup = createUserViewButton(userData.id, '');
   
-  return sendTelegramNotification(
+  const eventType = newStatus === 'approved'
+    ? 'wallet_withdrawal_approved'
+    : 'wallet_withdrawal_rejected';
+
+  const telegramResult = await sendTelegramNotification(
     env,
-    newStatus === 'approved' ? 'wallet_withdrawal_approved' : 'wallet_withdrawal_rejected',
+    eventType,
     message,
     replyMarkup,
     requestId || userData.id,
     true
   );
+
+  const fcmResult = await sendAdminFcmNotification(
+    env,
+    eventType,
+    newStatus === 'approved'
+      ? '✅ برداشت کیف پول تأیید شد'
+      : '❌ برداشت کیف پول رد شد',
+    `درخواست برداشت ${Number(amount || 0).toLocaleString()} تومان برای ${userData.fullName || 'کاربر'} ${newStatus === 'approved' ? 'تأیید شد' : 'رد شد'}.`,
+    null,
+    {
+      user_id: userData.id || '',
+      amount: amount || 0,
+      old_status: oldStatus || '',
+      new_status: newStatus || '',
+      request_id: requestId || '',
+      reason: reason || ''
+    }
+  );
+
+  return {
+    ...telegramResult,
+    fcm: fcmResult,
+    success: telegramResult.success || fcmResult.success
+  };
 }
 
 // ============================================
@@ -720,7 +1692,7 @@ export async function sendCashbackAppliedNotification(env, orderData, userData, 
   const message = buildCashbackAppliedMessage(orderData, userData, cashbackAmount, newBalance);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
-  return sendTelegramNotification(
+  const telegramResult = await sendTelegramNotification(
     env,
     'cashback_applied',
     message,
@@ -728,6 +1700,26 @@ export async function sendCashbackAppliedNotification(env, orderData, userData, 
     orderData.orderId,
     true
   );
+
+  const fcmResult = await sendAdminFcmNotification(
+    env,
+    'cashback_applied',
+    '🎁 کش‌بک اعمال شد',
+    `برای سفارش ${orderData.orderNumber || ''} مبلغ ${Number(cashbackAmount || 0).toLocaleString()} تومان کش‌بک اعمال شد.`,
+    orderData.orderId,
+    {
+      order_number: orderData.orderNumber || '',
+      user_id: userData.id || '',
+      cashback_amount: cashbackAmount || 0,
+      new_balance: newBalance || 0
+    }
+  );
+
+  return {
+    ...telegramResult,
+    fcm: fcmResult,
+    success: telegramResult.success || fcmResult.success
+  };
 }
 
 // ============================================
@@ -736,11 +1728,6 @@ export async function sendCashbackAppliedNotification(env, orderData, userData, 
 
 /**
  * ارسال پیام آزمایشی تلگرام برای تست
- * @param {Object} env - محیط Cloudflare
- * @param {string} botToken - توکن ربات
- * @param {string} chatId - شناسه چت
- * @param {number} userId - شناسه کاربر تست‌کننده
- * @returns {Promise<Object>} - نتیجه تست
  */
 export async function testTelegramNotification(env, botToken, chatId, userId) {
   const logId = await logNotification(env, {
@@ -771,11 +1758,6 @@ export async function testTelegramNotification(env, botToken, chatId, userId) {
 
 /**
  * ارسال پیام آزمایشی SMS برای تست
- * @param {Object} env - محیط Cloudflare
- * @param {string} phoneNumber - شماره تلفن
- * @param {number} userId - شناسه کاربر تست‌کننده
- * @param {string} eventType - نوع رویداد برای Template
- * @returns {Promise<Object>} - نتیجه تست
  */
 export async function testSmsNotification(env, phoneNumber, userId, eventType = 'order_created') {
   const logId = await logNotification(env, {
@@ -787,7 +1769,6 @@ export async function testSmsNotification(env, phoneNumber, userId, eventType = 
     status: 'pending'
   });
 
-  // دریافت Template
   const template = await getSmsTemplate(env, eventType);
   let message = '🔔 پیام آزمایشی\n\n✅ اتصال به سیستم SMS با موفقیت برقرار شد.\n\n📌 این پیام از پنل مدیریت ارسال شده است.';
   
@@ -797,7 +1778,6 @@ export async function testSmsNotification(env, phoneNumber, userId, eventType = 
       customer_phone: phoneNumber,
       order_number: 'TT-20260819-TEST',
       amount: '100000',
-      payment_status: 'pending',
       order_status: 'pending',
       tracking_code: 'TEST-123456'
     };
@@ -825,10 +1805,14 @@ export async function testSmsNotification(env, phoneNumber, userId, eventType = 
 }
 
 /**
+ * ارسال پیام آزمایشی Email برای تست
+ */
+export async function testEmailNotificationWrapper(env, recipient, userId) {
+  return testEmailNotification(env, recipient, userId);
+}
+
+/**
  * دریافت تاریخچه اعلان‌ها
- * @param {Object} env - محیط Cloudflare
- * @param {Object} options - گزینه‌های فیلتر
- * @returns {Promise<Object>} - لیست لاگ‌ها و تعداد کل
  */
 export async function getNotificationLogs(env, options = {}) {
   const {
@@ -933,8 +1917,6 @@ export async function getNotificationLogs(env, options = {}) {
 
 /**
  * دریافت آمار اعلان‌ها
- * @param {Object} env - محیط Cloudflare
- * @returns {Promise<Object>} - آمار
  */
 export async function getNotificationStats(env) {
   const totalResult = await env.DB
@@ -989,7 +1971,6 @@ export async function getNotificationStats(env) {
  * تابع داخلی برای ارسال اعلان به کاربر از طریق تلگرام
  */
 async function sendUserTelegramNotification(env, userId, eventType, message, replyMarkup = null, orderId = null, checkDuplicate = true) {
-  // دریافت اطلاعات کاربر
   const user = await env.DB
     .prepare(`SELECT id, full_name, email, phone FROM users WHERE id = ?`)
     .bind(userId)
@@ -999,7 +1980,6 @@ async function sendUserTelegramNotification(env, userId, eventType, message, rep
     return { success: false, error: 'کاربر یافت نشد.' };
   }
 
-  // دریافت chat_id کاربر
   const connection = await env.DB
     .prepare(`SELECT chat_id, is_active FROM user_telegram_connections WHERE user_id = ? AND is_active = 1`)
     .bind(userId)
@@ -1009,7 +1989,6 @@ async function sendUserTelegramNotification(env, userId, eventType, message, rep
     return { success: false, error: 'کاربر به تلگرام متصل نیست.' };
   }
 
-  // دریافت تنظیمات تلگرام
   const telegramSettings = await getChannelSettings(env, 'telegram');
   if (!telegramSettings || !telegramSettings.is_enabled) {
     return { success: false, error: 'کانال تلگرام فعال نیست.' };
@@ -1022,13 +2001,11 @@ async function sendUserTelegramNotification(env, userId, eventType, message, rep
     return { success: false, error: 'توکن ربات تلگرام تنظیم نشده است.' };
   }
 
-  // بررسی تنظیمات اعلان کاربر
   const prefs = await getUserNotificationPreferences(env, userId);
   if (prefs && prefs[eventType] === 0) {
     return { success: false, error: 'این نوع اعلان توسط کاربر غیرفعال شده است.' };
   }
 
-  // بررسی تکراری
   if (checkDuplicate && orderId) {
     const isDuplicate = await hasDuplicateLog(env, eventType, orderId, 'telegram', 1);
     if (isDuplicate) {
@@ -1036,7 +2013,6 @@ async function sendUserTelegramNotification(env, userId, eventType, message, rep
     }
   }
 
-  // ثبت لاگ
   const logId = await logNotification(env, {
     eventType: eventType,
     channel: 'telegram',
@@ -1049,12 +2025,10 @@ async function sendUserTelegramNotification(env, userId, eventType, message, rep
     isUserNotification: true
   });
 
-  // ارسال پیام
   const sendResult = await sendTelegramMessage(botToken, connection.chat_id, message, { replyMarkup });
 
   if (sendResult.success) {
     await updateLogStatus(env, logId, 'sent');
-    // به‌روزرسانی last_used_at
     await env.DB
       .prepare(`UPDATE user_telegram_connections SET last_used_at = CURRENT_TIMESTAMP WHERE user_id = ?`)
       .bind(userId)
@@ -1077,7 +2051,6 @@ async function sendUserSmsNotification(env, userId, eventType, templateData = {}
   try {
     console.log(`📱 sendUserSmsNotification - شروع: userId=${userId}, eventType=${eventType}, orderId=${orderId}`);
 
-    // دریافت اطلاعات کاربر
     const user = await env.DB
       .prepare(`SELECT id, full_name, email, phone FROM users WHERE id = ?`)
       .bind(userId)
@@ -1095,7 +2068,6 @@ async function sendUserSmsNotification(env, userId, eventType, templateData = {}
       return { success: false, error: 'کاربر شماره تلفن ندارد.' };
     }
 
-    // دریافت تنظیمات SMS
     const smsSettings = await getSmsSettings(env);
     console.log(`📱 sendUserSmsNotification - smsSettings: is_enabled=${smsSettings.is_enabled}`);
 
@@ -1104,7 +2076,6 @@ async function sendUserSmsNotification(env, userId, eventType, templateData = {}
       return { success: false, error: 'کانال SMS فعال نیست.' };
     }
 
-    // بررسی تنظیمات اعلان کاربر
     const prefs = await getUserNotificationPreferences(env, userId);
     console.log(`📱 sendUserSmsNotification - prefs:`, prefs);
 
@@ -1113,7 +2084,6 @@ async function sendUserSmsNotification(env, userId, eventType, templateData = {}
       return { success: false, error: 'این نوع اعلان توسط کاربر غیرفعال شده است.' };
     }
 
-    // بررسی تکراری
     if (checkDuplicate && orderId) {
       const isDuplicate = await hasDuplicateLog(env, eventType, orderId, 'sms', 1);
       if (isDuplicate) {
@@ -1122,7 +2092,6 @@ async function sendUserSmsNotification(env, userId, eventType, templateData = {}
       }
     }
 
-    // ارسال SMS با Template
     console.log(`📱 sendUserSmsNotification - در حال ارسال SMS با Template...`);
     const sendResult = await sendSmsWithTemplate(env, {
       eventType: eventType,
@@ -1158,6 +2127,19 @@ async function sendUserSmsNotification(env, userId, eventType, templateData = {}
   }
 }
 
+// ============================================
+// ⭐⭐⭐ تابع Web Push برای کاربران
+// ============================================
+
+/**
+ * تابع داخلی برای ارسال اعلان به کاربر از طریق Web Push
+ */
+async function sendUserWebPushNotificationInternal(env, userId, eventType, payload, orderId = null, checkDuplicate = true) {
+  // این تابع همان sendWebPushNotification است که قبلاً تعریف شده
+  // برای جلوگیری از تکرار، از همان استفاده می‌کنیم
+  return sendWebPushNotification(env, userId, eventType, payload, orderId, checkDuplicate);
+}
+
 /**
  * دریافت تنظیمات اعلان کاربر
  */
@@ -1169,7 +2151,6 @@ export async function getUserNotificationPreferences(env, userId) {
 
   if (!result) return null;
 
-  // تبدیل به فرمت boolean
   const prefs = {};
   const fields = [
     'order_created', 'payment_success', 'payment_failed',
@@ -1244,20 +2225,20 @@ export async function updateUserNotificationPreferences(env, userId, preferences
 }
 
 // ============================================
-// 11. اعلان ثبت سفارش برای کاربر - با Template
+// 11. اعلان ثبت سفارش برای کاربر
 // ============================================
 export async function sendUserOrderCreatedNotification(env, orderData, userData, items, baseUrl = '') {
   console.log('📱 sendUserOrderCreatedNotification - شروع:', {
     orderId: orderData.orderId,
     userId: userData.id,
     userPhone: userData.phone,
+    userEmail: userData.email,
     hasItems: Array.isArray(items) ? items.length : 0
   });
 
   const message = buildUserOrderCreatedMessage(orderData, userData, items);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
-  // ارسال به تلگرام کاربر
   const telegramResult = await sendUserTelegramNotification(
     env,
     userData.id,
@@ -1268,7 +2249,6 @@ export async function sendUserOrderCreatedNotification(env, orderData, userData,
     false
   );
 
-  // ارسال به SMS کاربر با Template
   const smsSettings = await getSmsSettings(env);
   console.log('📱 sendUserOrderCreatedNotification - smsSettings:', {
     is_enabled: smsSettings.is_enabled,
@@ -1282,15 +2262,14 @@ export async function sendUserOrderCreatedNotification(env, orderData, userData,
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: orderData.paymentStatus || 'pending',
-      order_status: orderData.status || 'pending',
+      order_status: orderData.status || 'payment_pending',
       tracking_code: orderData.trackingCode || ''
     };
     
     smsResult = await sendUserSmsNotification(
       env,
       userData.id,
-      'order_created',
+      'payment_pending',
       templateData,
       orderData.orderId,
       false
@@ -1298,23 +2277,74 @@ export async function sendUserOrderCreatedNotification(env, orderData, userData,
     console.log('📱 sendUserOrderCreatedNotification - smsResult:', smsResult);
   }
 
+  // ============================================
+  // ⭐ ارسال Email به کاربر
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendUserEmailNotification(
+        env,
+        userData.id,
+        'order_created',
+        orderData,
+        userData,
+        items,
+        baseUrl
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendUserOrderCreatedNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به کاربر
+  // ============================================
+  let webPushResult = null;
+  try {
+    const webPushSettings = await getChannelSettings(env, 'web_push');
+    if (webPushSettings && webPushSettings.is_enabled) {
+      webPushResult = await sendWebPushNotification(
+        env,
+        userData.id,
+        'order_created',
+        {
+          title: '🛒 سفارش شما ثبت شد',
+          body: `سفارش شماره ${orderData.orderNumber || ''} با موفقیت ثبت شد.`,
+          icon: '/assets/images/logo.png',
+          badge: '/assets/images/logo.png',
+          url: baseUrl ? `${baseUrl}/account/orders/${orderData.orderId}` : `/account/orders/${orderData.orderId}`,
+          tag: `user-order-${orderData.orderId}`
+        },
+        orderData.orderId,
+        false
+      );
+    }
+  } catch (webPushError) {
+    console.error('❌ Web Push error in sendUserOrderCreatedNotification:', webPushError);
+    webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+  }
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success),
     results: {
       telegram: telegramResult,
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult
     }
   };
 }
 
 // ============================================
-// 12. اعلان پرداخت موفق برای کاربر - با Template
+// 12. اعلان پرداخت موفق برای کاربر
 // ============================================
 export async function sendUserPaymentSuccessNotification(env, orderData, userData, paymentMethod = '', baseUrl = '') {
   const message = buildUserPaymentSuccessMessage(orderData, userData, paymentMethod);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
-  // ارسال به تلگرام کاربر
   const telegramResult = await sendUserTelegramNotification(
     env,
     userData.id,
@@ -1325,7 +2355,6 @@ export async function sendUserPaymentSuccessNotification(env, orderData, userDat
     true
   );
 
-  // ارسال به SMS کاربر با Template
   const smsSettings = await getSmsSettings(env);
   let smsResult = null;
   if (smsSettings.is_enabled && smsSettings.event_payment_success_user) {
@@ -1334,8 +2363,7 @@ export async function sendUserPaymentSuccessNotification(env, orderData, userDat
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: orderData.paymentStatus || 'pending',
-      order_status: orderData.status || 'pending',
+      order_status: orderData.status || 'payment_success',
       tracking_code: orderData.trackingCode || ''
     };
     
@@ -1349,44 +2377,89 @@ export async function sendUserPaymentSuccessNotification(env, orderData, userDat
     );
   }
 
+  // ============================================
+  // ⭐ ارسال Email به کاربر
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendUserEmailNotification(
+        env,
+        userData.id,
+        'payment_success',
+        orderData,
+        userData,
+        [],
+        baseUrl
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendUserPaymentSuccessNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به کاربر
+  // ============================================
+  let webPushResult = null;
+  try {
+    const webPushSettings = await getChannelSettings(env, 'web_push');
+    if (webPushSettings && webPushSettings.is_enabled) {
+      webPushResult = await sendWebPushNotification(
+        env,
+        userData.id,
+        'payment_success',
+        {
+          title: '💰 پرداخت شما موفق بود',
+          body: `پرداخت سفارش ${orderData.orderNumber || ''} با موفقیت انجام شد.`,
+          icon: '/assets/images/logo.png',
+          badge: '/assets/images/logo.png',
+          url: baseUrl ? `${baseUrl}/account/orders/${orderData.orderId}` : `/account/orders/${orderData.orderId}`,
+          tag: `user-payment-${orderData.orderId}`
+        },
+        orderData.orderId,
+        true
+      );
+    }
+  } catch (webPushError) {
+    console.error('❌ Web Push error in sendUserPaymentSuccessNotification:', webPushError);
+    webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+  }
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success),
     results: {
       telegram: telegramResult,
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult
     }
   };
 }
 
 // ============================================
-// 13. اعلان تغییر وضعیت سفارش برای کاربر - با Template (16 وضعیت کامل)
+// 13. اعلان تغییر وضعیت سفارش برای کاربر
 // ============================================
 export async function sendUserOrderStatusChangedNotification(env, orderData, userData, oldStatus, newStatus, trackingCode = '', baseUrl = '') {
-  // ⭐⭐ تعیین eventType با استفاده از Map 16 وضعیت کامل
   const statusEventMap = {
-    'order_created': 'order_created',
     'payment_pending': 'payment_pending',
     'payment_success': 'payment_success',
     'payment_failed': 'payment_failed',
-    'payment_review': 'payment_review',
     'order_confirmed': 'order_confirmed',
-    'processing': 'processing',
-    'ready_to_ship': 'ready_to_ship',
     'courier_delivery': 'courier_delivery',
     'bus_shipping': 'bus_shipping',
     'shipped': 'shipped',
     'delivered': 'delivered',
     'completed': 'completed',
     'cancelled': 'cancelled',
-    'returned': 'returned',
-    'processing_failed': 'processing_failed'
+    'returned': 'returned'
   };
-  let eventType = statusEventMap[newStatus] || 'order_processing';
+  let eventType = statusEventMap[newStatus] || 'order_status_changed';
 
   const message = buildUserOrderStatusChangedMessage(orderData, userData, oldStatus, newStatus, trackingCode);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
-  // ارسال به تلگرام کاربر
   const telegramResult = await sendUserTelegramNotification(
     env,
     userData.id,
@@ -1397,7 +2470,6 @@ export async function sendUserOrderStatusChangedNotification(env, orderData, use
     false
   );
 
-  // ارسال به SMS کاربر با Template
   const smsSettings = await getSmsSettings(env);
   let smsResult = null;
   if (smsSettings.is_enabled && smsSettings.event_order_status_changed_user) {
@@ -1406,7 +2478,6 @@ export async function sendUserOrderStatusChangedNotification(env, orderData, use
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: orderData.paymentStatus || 'pending',
       order_status: newStatus || 'pending',
       tracking_code: trackingCode || ''
     };
@@ -1421,23 +2492,75 @@ export async function sendUserOrderStatusChangedNotification(env, orderData, use
     );
   }
 
+  // ============================================
+  // ⭐ ارسال Email به کاربر
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendUserEmailNotification(
+        env,
+        userData.id,
+        eventType === 'cancelled' ? 'order_cancelled' : 'order_status_changed',
+        orderData,
+        userData,
+        [],
+        baseUrl
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendUserOrderStatusChangedNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به کاربر
+  // ============================================
+  let webPushResult = null;
+  try {
+    const webPushSettings = await getChannelSettings(env, 'web_push');
+    if (webPushSettings && webPushSettings.is_enabled) {
+      const statusLabel = newStatus || 'تغییر یافت';
+      webPushResult = await sendWebPushNotification(
+        env,
+        userData.id,
+        'order_status_changed',
+        {
+          title: '📦 به‌روزرسانی وضعیت سفارش',
+          body: `وضعیت سفارش ${orderData.orderNumber || ''} به "${statusLabel}" تغییر یافت.${trackingCode ? ` کد رهگیری: ${trackingCode}` : ''}`,
+          icon: '/assets/images/logo.png',
+          badge: '/assets/images/logo.png',
+          url: baseUrl ? `${baseUrl}/account/orders/${orderData.orderId}` : `/account/orders/${orderData.orderId}`,
+          tag: `user-order-status-${orderData.orderId}`
+        },
+        orderData.orderId,
+        false
+      );
+    }
+  } catch (webPushError) {
+    console.error('❌ Web Push error in sendUserOrderStatusChangedNotification:', webPushError);
+    webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+  }
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success),
     results: {
       telegram: telegramResult,
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult
     }
   };
 }
 
 // ============================================
-// 14. اعلان لغو سفارش برای کاربر - با Template
+// 14. اعلان لغو سفارش برای کاربر
 // ============================================
 export async function sendUserOrderCancelledNotification(env, orderData, userData, refundAmount = 0, baseUrl = '') {
   const message = buildUserOrderCancelledMessage(orderData, userData, refundAmount);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
-  // ارسال به تلگرام کاربر
   const telegramResult = await sendUserTelegramNotification(
     env,
     userData.id,
@@ -1448,7 +2571,6 @@ export async function sendUserOrderCancelledNotification(env, orderData, userDat
     false
   );
 
-  // ارسال به SMS کاربر با Template
   const smsSettings = await getSmsSettings(env);
   let smsResult = null;
   if (smsSettings.is_enabled && smsSettings.event_order_cancelled_user) {
@@ -1457,7 +2579,6 @@ export async function sendUserOrderCancelledNotification(env, orderData, userDat
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
       amount: orderData.totalAmount || 0,
-      payment_status: orderData.paymentStatus || 'pending',
       order_status: 'cancelled',
       tracking_code: orderData.trackingCode || ''
     };
@@ -1472,11 +2593,63 @@ export async function sendUserOrderCancelledNotification(env, orderData, userDat
     );
   }
 
+  // ============================================
+  // ⭐ ارسال Email به کاربر
+  // ============================================
+  let emailResult = null;
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (emailSettings.is_enabled) {
+      emailResult = await sendUserEmailNotification(
+        env,
+        userData.id,
+        'order_cancelled',
+        orderData,
+        userData,
+        [],
+        baseUrl
+      );
+    }
+  } catch (emailError) {
+    console.error('❌ Email error in sendUserOrderCancelledNotification:', emailError);
+    emailResult = { success: false, error: String(emailError?.message || emailError) };
+  }
+
+  // ============================================
+  // ⭐⭐⭐ Web Push به کاربر
+  // ============================================
+  let webPushResult = null;
+  try {
+    const webPushSettings = await getChannelSettings(env, 'web_push');
+    if (webPushSettings && webPushSettings.is_enabled) {
+      webPushResult = await sendWebPushNotification(
+        env,
+        userData.id,
+        'order_cancelled',
+        {
+          title: '❌ لغو سفارش',
+          body: `سفارش ${orderData.orderNumber || ''} لغو شد.${refundAmount > 0 ? ` مبلغ ${refundAmount.toLocaleString()} تومان به کیف پول شما بازگشت داده شد.` : ''}`,
+          icon: '/assets/images/logo.png',
+          badge: '/assets/images/logo.png',
+          url: baseUrl ? `${baseUrl}/account/orders/${orderData.orderId}` : `/account/orders/${orderData.orderId}`,
+          tag: `user-order-cancel-${orderData.orderId}`
+        },
+        orderData.orderId,
+        false
+      );
+    }
+  } catch (webPushError) {
+    console.error('❌ Web Push error in sendUserOrderCancelledNotification:', webPushError);
+    webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+  }
+
   return {
-    success: telegramResult.success || (smsResult && smsResult.success),
+    success: telegramResult.success || (smsResult && smsResult.success) || (emailResult && emailResult.success) || (webPushResult && webPushResult.success),
     results: {
       telegram: telegramResult,
-      sms: smsResult
+      sms: smsResult,
+      email: emailResult,
+      web_push: webPushResult
     }
   };
 }
@@ -1500,7 +2673,68 @@ export async function sendUserOrderTrackingNotification(env, orderData, userData
 }
 
 // ============================================
-// 16. تابع ارسال همزمان به ادمین و کاربر
+// ⭐⭐ 16. اعلان تراکنش کیف پول برای کاربر (Email)
+// ============================================
+export async function sendUserWalletNotification(env, userId, eventType, transactionData, userData) {
+  try {
+    const emailSettings = await getEmailSettingsRaw(env);
+    if (!emailSettings.is_enabled) {
+      return { success: false, error: 'کانال Email غیرفعال است.' };
+    }
+
+    const result = await sendWalletEmailNotification(
+      env,
+      userId,
+      eventType,
+      userData,
+      transactionData
+    );
+
+    // ============================================
+    // ⭐⭐⭐ Web Push برای کیف پول
+    // ============================================
+    let webPushResult = null;
+    try {
+      const webPushSettings = await getChannelSettings(env, 'web_push');
+      if (webPushSettings && webPushSettings.is_enabled && userData && userData.id) {
+        const amount = transactionData?.amount || 0;
+        const type = eventType === 'wallet_topup' ? 'شارژ' : 'برداشت';
+        webPushResult = await sendWebPushNotification(
+          env,
+          userData.id,
+          eventType,
+          {
+            title: `💰 ${type} کیف پول`,
+            body: `مبلغ ${amount.toLocaleString()} تومان ${type === 'شارژ' ? 'به' : 'از'} کیف پول شما ${type === 'شارژ' ? 'افزود' : 'کسر'} شد.`,
+            icon: '/assets/images/logo.png',
+            badge: '/assets/images/logo.png',
+            url: baseUrl ? `${baseUrl}/account/wallet` : '/account/wallet',
+            tag: `wallet-${eventType}-${Date.now()}`
+          },
+          null,
+          false
+        );
+      }
+    } catch (webPushError) {
+      console.error('❌ Web Push error in sendUserWalletNotification:', webPushError);
+      webPushResult = { success: false, error: String(webPushError?.message || webPushError) };
+    }
+
+    return {
+      ...result,
+      web_push: webPushResult
+    };
+  } catch (error) {
+    console.error('❌ sendUserWalletNotification error:', error);
+    return {
+      success: false,
+      error: String(error?.message || error)
+    };
+  }
+}
+
+// ============================================
+// 17. تابع ارسال همزمان به ادمین و کاربر
 // ============================================
 export async function sendNotificationToAdminAndUser(env, adminEventType, userEventType, orderData, userData, items, baseUrl = '', paymentMethod = '', trackingCode = '') {
   const results = {
@@ -1508,7 +2742,6 @@ export async function sendNotificationToAdminAndUser(env, adminEventType, userEv
     user: null
   };
 
-  // ارسال به ادمین
   if (adminEventType === 'order_created') {
     results.admin = await sendOrderCreatedNotification(env, orderData, userData, items, baseUrl);
   } else if (adminEventType === 'payment_success') {
@@ -1517,7 +2750,6 @@ export async function sendNotificationToAdminAndUser(env, adminEventType, userEv
     results.admin = { success: false, error: 'نیاز به پارامترهای بیشتر دارد.' };
   }
 
-  // ارسال به کاربر
   if (userEventType === 'order_created') {
     results.user = await sendUserOrderCreatedNotification(env, orderData, userData, items, baseUrl);
   } else if (userEventType === 'payment_success') {
@@ -1539,7 +2771,10 @@ export {
   sendTelegramNotification,
   sendUserTelegramNotification,
   sendSmsNotification,
-  sendUserSmsNotification
+  sendUserSmsNotification,
+  sendWebPushNotification,
+  sendUserWebPushNotificationInternal as sendUserWebPushNotification,
+  testEmailNotificationWrapper as testEmailNotification
 };
 
 // ============================================
@@ -1562,6 +2797,5 @@ export async function getSiteBaseUrl(env) {
   } catch (_) {
     // خطا را نادیده بگیر
   }
-  // مقدار پیش‌فرض
   return 'https://takdaro-site.pages.dev';
 }

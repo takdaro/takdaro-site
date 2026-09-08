@@ -11,28 +11,263 @@
   var productCreateBox = null;
   var productEditBox = null;
 
+  // ============================================
+  // توابع کمکی مستقل
+  // جلوگیری از خراب شدن جدول در صورت آماده نبودن
+  // برخی توابع سراسری در سیستم ماژولار
+  // ============================================
+
+  function escapeHtml(value) {
+    if (typeof window.esc === "function") {
+      return window.esc(value ?? "");
+    }
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatMoney(value) {
+    if (typeof window.money === "function") {
+      return window.money(value ?? 0);
+    }
+
+    var number = Number(value ?? 0);
+
+    if (!Number.isFinite(number)) {
+      number = 0;
+    }
+
+    return number.toLocaleString("fa-IR");
+  }
+
+  function formatProductDate(value) {
+    if (typeof window.formatDate === "function") {
+      try {
+        return window.formatDate(value);
+      } catch (_) {
+        // fallback
+      }
+    }
+
+    if (!value) {
+      return "—";
+    }
+
+    var date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return escapeHtml(value);
+    }
+
+    try {
+      return new Intl.DateTimeFormat(
+        "fa-IR",
+        {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        }
+      ).format(date);
+    } catch (_) {
+      return date.toLocaleString();
+    }
+  }
+
+  function productStatusHtml(status) {
+    if (typeof window.productStatusBadge === "function") {
+      try {
+        return window.productStatusBadge(status);
+      } catch (_) {
+        // fallback
+      }
+    }
+
+    var normalized =
+      String(status || "draft")
+        .toLowerCase()
+        .trim();
+
+    var label = "پیش‌نویس";
+    var className = "status-badge";
+
+    if (normalized === "published") {
+      label = "منتشرشده";
+      className += " status-badge--success";
+    } else if (normalized === "private") {
+      label = "خصوصی";
+      className += " status-badge--danger";
+    }
+
+    return (
+      '<span class="' +
+      className +
+      '">' +
+      escapeHtml(label) +
+      "</span>"
+    );
+  }
+
+  function getBoolean(value) {
+    return (
+      value === true ||
+      value === 1 ||
+      value === "1" ||
+      String(value ?? "").toLowerCase() === "true"
+    );
+  }
+
+  function getProductImage(product) {
+    if (!product || typeof product !== "object") {
+      return "";
+    }
+
+    if (product.primary_image) {
+      return String(product.primary_image);
+    }
+
+    if (product.primaryImage) {
+      return String(product.primaryImage);
+    }
+
+    if (
+      Array.isArray(product.images) &&
+      product.images.length > 0
+    ) {
+      var primary = product.images.find(
+        function(image) {
+          return (
+            image &&
+            (
+              image.is_primary === true ||
+              image.is_primary === 1 ||
+              image.isPrimary === true ||
+              image.isPrimary === 1
+            )
+          );
+        }
+      );
+
+      var image = primary || product.images[0];
+
+      if (typeof image === "string") {
+        return image;
+      }
+
+      if (image && typeof image === "object") {
+        return (
+          image.image_url ||
+          image.imageUrl ||
+          image.url ||
+          ""
+        );
+      }
+    }
+
+    return "";
+  }
+
+  function getDisplayPrice(product) {
+    if (!product || typeof product !== "object") {
+      return "تماس بگیرید";
+    }
+
+    if (product.display_price_formatted) {
+      return escapeHtml(product.display_price_formatted);
+    }
+
+    if (product.displayPriceFormatted) {
+      return escapeHtml(product.displayPriceFormatted);
+    }
+
+    if (
+      product.display_price !== null &&
+      product.display_price !== undefined &&
+      product.display_price !== ""
+    ) {
+      var displayPrice = Number(product.display_price);
+
+      if (Number.isFinite(displayPrice)) {
+        return formatMoney(displayPrice) + " تومان";
+      }
+    }
+
+    if (
+      product.calculated_price !== null &&
+      product.calculated_price !== undefined &&
+      product.calculated_price !== ""
+    ) {
+      var calculatedPrice = Number(product.calculated_price);
+
+      if (Number.isFinite(calculatedPrice)) {
+        return formatMoney(calculatedPrice) + " تومان";
+      }
+    }
+
+    if (
+      product.price !== null &&
+      product.price !== undefined &&
+      product.price !== ""
+    ) {
+      var price = Number(product.price);
+
+      if (Number.isFinite(price)) {
+        return formatMoney(price) + " تومان";
+      }
+    }
+
+    if (product.price_label) {
+      return escapeHtml(product.price_label);
+    }
+
+    return "تماس بگیرید";
+  }
+
   function refreshProductElements() {
-    productCreateBox = document.getElementById("product-create-box");
-    productEditBox = document.getElementById("product-edit-box");
+    productCreateBox =
+      document.getElementById(
+        "product-create-box"
+      );
+
+    productEditBox =
+      document.getElementById(
+        "product-edit-box"
+      );
   }
 
   // ============================================
-  // توابع کمکی
+  // بستن فرم افزودن
   // ============================================
+
   function closeProductCreateBox() {
     refreshProductElements();
 
     if (productCreateBox) {
-      productCreateBox.classList.add("admin-hidden");
+      productCreateBox.classList.add(
+        "admin-hidden"
+      );
+
       productCreateBox.innerHTML = "";
     }
   }
+
+  // ============================================
+  // بستن فرم ویرایش
+  // ============================================
 
   function closeProductEditBox() {
     refreshProductElements();
 
     if (productEditBox) {
-      productEditBox.classList.add("admin-hidden");
+      productEditBox.classList.add(
+        "admin-hidden"
+      );
+
       productEditBox.innerHTML = "";
     }
   }
@@ -40,6 +275,7 @@
   // ============================================
   // تولید HTML گالری تصاویر
   // ============================================
+
   function productGalleryHtml(image, index) {
     image = image || {};
     index = index || 0;
@@ -47,38 +283,42 @@
     var url =
       image.image_url ||
       image.imageUrl ||
+      image.url ||
       "";
 
     var alt =
       image.alt_text ||
       image.altText ||
+      image.alt ||
       "";
 
     var primary =
       image.is_primary === true ||
       image.is_primary === 1 ||
+      image.isPrimary === true ||
+      image.isPrimary === 1 ||
       index === 0;
 
     return (
       '<div class="product-gallery-item" data-gallery-item>' +
 
         '<img data-gallery-preview src="' +
-        window.esc(url) +
+        escapeHtml(url) +
         '" alt="' +
-        window.esc(alt) +
+        escapeHtml(alt) +
         '" onerror="this.style.display=\'none\'" />' +
 
         '<div class="form-field">' +
           '<label>مسیر تصویر</label>' +
           '<input data-gallery-url type="text" value="' +
-          window.esc(url) +
+          escapeHtml(url) +
           '" placeholder="/assets/images/..." />' +
         '</div>' +
 
         '<div class="form-field">' +
           '<label>متن جایگزین</label>' +
           '<input data-gallery-alt type="text" value="' +
-          window.esc(alt) +
+          escapeHtml(alt) +
           '" placeholder="نام تصویر" />' +
         '</div>' +
 
@@ -99,6 +339,7 @@
   // ============================================
   // تولید HTML فرم محصول
   // ============================================
+
   function productFormHtml(product) {
     product = product || {};
 
@@ -108,15 +349,19 @@
         : [];
 
     var imageRows =
-      images.map(function(image, index) {
-        return productGalleryHtml(
-          image,
-          index
-        );
-      }).join("");
+      images.map(
+        function(image, index) {
+          return productGalleryHtml(
+            image,
+            index
+          );
+        }
+      ).join("");
 
     var priceType =
-      product.price_type || "fixed";
+      product.price_type ||
+      product.priceType ||
+      "fixed";
 
     var isRateBased =
       priceType === "rate_based";
@@ -126,7 +371,7 @@
       (
         product.id
           ? "ویرایش محصول #" +
-            window.esc(product.id)
+            escapeHtml(product.id)
           : "افزودن محصول جدید"
       ) +
       '</h4>' +
@@ -136,27 +381,28 @@
         '<div class="form-field">' +
           '<label>نام محصول *</label>' +
           '<input data-product-field="name" type="text" value="' +
-          window.esc(product.name || "") +
+          escapeHtml(product.name || "") +
           '" placeholder="نام محصول" />' +
         '</div>' +
 
         '<div class="form-field">' +
           '<label>Slug انگلیسی *</label>' +
           '<input data-product-field="slug" type="text" value="' +
-          window.esc(product.slug || "") +
+          escapeHtml(product.slug || "") +
           '" placeholder="مثلاً tb-500" />' +
         '</div>' +
 
         '<div class="form-field">' +
           '<label>دسته‌بندی</label>' +
           '<input data-product-field="category" type="text" value="' +
-          window.esc(product.category || "") +
+          escapeHtml(product.category || "") +
           '" placeholder="مثلاً پپتاید" />' +
         '</div>' +
 
       '</div>' +
 
       '<div class="price-type-selector">' +
+
         '<label>' +
           '<input type="radio" name="price_type_radio" value="fixed" ' +
           (!isRateBased ? "checked" : "") +
@@ -168,6 +414,7 @@
           (isRateBased ? "checked" : "") +
           ' data-price-type-radio /> وابسته به نرخ ارز (دلار)' +
         '</label>' +
+
       '</div>' +
 
       '<div id="fixed-price-fields" class="filters-grid filters-grid-3" style="' +
@@ -184,14 +431,17 @@
         '<div class="form-field">' +
           '<label>برچسب قیمت</label>' +
           '<input data-product-field="price_label" type="text" value="' +
-          window.esc(product.price_label || "تماس بگیرید") +
+          escapeHtml(
+            product.price_label ||
+            "تماس بگیرید"
+          ) +
           '" />' +
         '</div>' +
 
         '<div class="form-field">' +
           '<label>' +
             '<input data-product-field="show_price" type="checkbox" ' +
-            (product.show_price ? "checked" : "") +
+            (getBoolean(product.show_price) ? "checked" : "") +
             ' /> نمایش قیمت به مشتری' +
           '</label>' +
         '</div>' +
@@ -207,7 +457,7 @@
           '<div class="form-field">' +
             '<label>قیمت پایه (دلار) *</label>' +
             '<input data-product-field="base_price" type="text" inputmode="numeric" value="' +
-            (product.base_price ?? "") +
+            (product.base_price ?? product.basePrice ?? "") +
             '" placeholder="مثلاً 10" />' +
             '<small class="admin-help">قیمت پایه محصول به دلار</small>' +
           '</div>' +
@@ -215,24 +465,52 @@
           '<div class="form-field">' +
             '<label>نوع سود</label>' +
             '<select data-product-field="profit_type">' +
+
               '<option value="none" ' +
-              (product.profit_type === "none" ? "selected" : "") +
+              (
+                (
+                  product.profit_type ||
+                  product.profitType ||
+                  "none"
+                ) === "none"
+                  ? "selected"
+                  : ""
+              ) +
               '>بدون سود</option>' +
 
               '<option value="percentage" ' +
-              (product.profit_type === "percentage" ? "selected" : "") +
+              (
+                (
+                  product.profit_type ||
+                  product.profitType
+                ) === "percentage"
+                  ? "selected"
+                  : ""
+              ) +
               '>درصدی</option>' +
 
               '<option value="fixed" ' +
-              (product.profit_type === "fixed" ? "selected" : "") +
+              (
+                (
+                  product.profit_type ||
+                  product.profitType
+                ) === "fixed"
+                  ? "selected"
+                  : ""
+              ) +
               '>مبلغ ثابت (تومان)</option>' +
+
             '</select>' +
           '</div>' +
 
           '<div class="form-field">' +
             '<label>مقدار سود</label>' +
             '<input data-product-field="profit_value" type="text" inputmode="numeric" value="' +
-            (product.profit_value ?? "") +
+            (
+              product.profit_value ??
+              product.profitValue ??
+              ""
+            ) +
             '" placeholder="مثلاً 20 یا 50000" />' +
             '<small class="admin-help">درصد یا مبلغ ثابت به تومان</small>' +
           '</div>' +
@@ -244,7 +522,11 @@
           '<div class="form-field">' +
             '<label>هزینه ثابت (تومان)</label>' +
             '<input data-product-field="fixed_fee" type="text" inputmode="numeric" value="' +
-            (product.fixed_fee ?? "") +
+            (
+              product.fixed_fee ??
+              product.fixedFee ??
+              ""
+            ) +
             '" placeholder="مثلاً 200000" />' +
             '<small class="admin-help">هزینه اضافی به تومان</small>' +
           '</div>' +
@@ -252,38 +534,93 @@
           '<div class="form-field">' +
             '<label>نوع گرد کردن</label>' +
             '<select data-product-field="rounding_type">' +
+
               '<option value="none" ' +
-              (product.rounding_type === "none" ? "selected" : "") +
+              (
+                (
+                  product.rounding_type ||
+                  product.roundingType ||
+                  "none"
+                ) === "none"
+                  ? "selected"
+                  : ""
+              ) +
               '>بدون گرد کردن</option>' +
 
               '<option value="1000" ' +
-              (product.rounding_type === "1000" ? "selected" : "") +
+              (
+                (
+                  product.rounding_type ||
+                  product.roundingType
+                ) === "1000"
+                  ? "selected"
+                  : ""
+              ) +
               '>۱,۰۰۰ تومان</option>' +
 
               '<option value="10000" ' +
-              (product.rounding_type === "10000" ? "selected" : "") +
+              (
+                (
+                  product.rounding_type ||
+                  product.roundingType
+                ) === "10000"
+                  ? "selected"
+                  : ""
+              ) +
               '>۱۰,۰۰۰ تومان</option>' +
 
               '<option value="100000" ' +
-              (product.rounding_type === "100000" ? "selected" : "") +
+              (
+                (
+                  product.rounding_type ||
+                  product.roundingType
+                ) === "100000"
+                  ? "selected"
+                  : ""
+              ) +
               '>۱۰۰,۰۰۰ تومان</option>' +
+
             '</select>' +
           '</div>' +
 
           '<div class="form-field">' +
             '<label>روش گرد کردن</label>' +
             '<select data-product-field="rounding_method">' +
+
               '<option value="nearest" ' +
-              (product.rounding_method === "nearest" ? "selected" : "") +
+              (
+                (
+                  product.rounding_method ||
+                  product.roundingMethod ||
+                  "nearest"
+                ) === "nearest"
+                  ? "selected"
+                  : ""
+              ) +
               '>نزدیک‌ترین</option>' +
 
               '<option value="up" ' +
-              (product.rounding_method === "up" ? "selected" : "") +
+              (
+                (
+                  product.rounding_method ||
+                  product.roundingMethod
+                ) === "up"
+                  ? "selected"
+                  : ""
+              ) +
               '>بالا</option>' +
 
               '<option value="down" ' +
-              (product.rounding_method === "down" ? "selected" : "") +
+              (
+                (
+                  product.rounding_method ||
+                  product.roundingMethod
+                ) === "down"
+                  ? "selected"
+                  : ""
+              ) +
               '>پایین</option>' +
+
             '</select>' +
           '</div>' +
 
@@ -291,13 +628,15 @@
 
         '<small class="admin-help" style="display:block;margin-top:8px;">' +
           'قیمت نهایی = (قیمت پایه × نرخ دلار) + سود + هزینه ثابت، سپس گرد کردن' +
+
           (
             product.calculated_price
               ? ' | قیمت محاسبه‌شده فعلی: <strong>' +
-                window.money(product.calculated_price) +
+                formatMoney(product.calculated_price) +
                 ' تومان</strong>'
               : ""
           ) +
+
         '</small>' +
 
       '</div>' +
@@ -314,7 +653,7 @@
         '<div class="form-field">' +
           '<label>برچسب موجودی</label>' +
           '<input data-product-field="stock_label" type="text" value="' +
-          window.esc(product.stock_label || "") +
+          escapeHtml(product.stock_label || "") +
           '" placeholder="موجود / ناموجود" />' +
         '</div>' +
 
@@ -330,14 +669,14 @@
         '<div class="form-field">' +
           '<label>آدرس صفحه محصول</label>' +
           '<input data-product-field="page_url" type="text" value="' +
-          window.esc(product.page_url || "") +
+          escapeHtml(product.page_url || "") +
           '" placeholder="products/example.html" />' +
         '</div>' +
 
         '<div class="form-field">' +
           '<label>' +
             '<input data-product-field="in_stock" type="checkbox" ' +
-            (product.in_stock ? "checked" : "") +
+            (getBoolean(product.in_stock) ? "checked" : "") +
             ' /> محصول موجود است' +
           '</label>' +
         '</div>' +
@@ -347,26 +686,28 @@
       '<div class="form-field">' +
         '<label>توضیح کوتاه</label>' +
         '<textarea data-product-field="short_description" rows="3" placeholder="توضیح کوتاه برای محصول">' +
-          window.esc(product.short_description || "") +
+          escapeHtml(product.short_description || "") +
         '</textarea>' +
       '</div>' +
 
       '<div class="form-field">' +
         '<label>توضیحات کامل</label>' +
         '<textarea data-product-field="description" rows="7" placeholder="توضیحات کامل محصول">' +
-          window.esc(product.description || "") +
+          escapeHtml(product.description || "") +
         '</textarea>' +
       '</div>' +
 
       '<div class="detail-card" style="margin-top:16px;background:var(--surface-2);">' +
 
         '<div class="products-toolbar">' +
+
           '<div>' +
             '<h4 style="margin:0">گالری تصاویر</h4>' +
             '<p class="product-file-help">برای تصویر جدید، مسیر آن را وارد کن؛ مثل: /assets/images/tb-500/1.png. انتخاب فایل فقط پیش‌نمایش محلی است و فایل را روی سرور آپلود نمی‌کند.</p>' +
           '</div>' +
 
           '<button class="btn btn-secondary" type="button" data-add-product-image>افزودن مسیر تصویر</button>' +
+
         '</div>' +
 
         '<div class="form-field">' +
@@ -383,13 +724,17 @@
       '<div class="panel-actions">' +
 
         '<button class="btn btn-primary" type="button" data-save-product>' +
-          (product.id ? "ذخیره تغییرات" : "ثبت محصول") +
+          (
+            product.id
+              ? "ذخیره تغییرات"
+              : "ثبت محصول"
+          ) +
         '</button>' +
 
         (
           product.id
             ? '<button class="btn btn-secondary" type="button" data-delete-current-product="' +
-              window.esc(product.id) +
+              escapeHtml(product.id) +
               '">حذف محصول</button>'
             : ""
         ) +
@@ -403,6 +748,7 @@
   // ============================================
   // اتصال رویدادهای فرم محصول
   // ============================================
+
   function bindProductForm(box, product) {
     product = product || {};
 
@@ -471,17 +817,19 @@
               "[data-product-gallery]"
             );
 
-          if (gallery) {
-            gallery.insertAdjacentHTML(
-              "beforeend",
-              productGalleryHtml(
-                {},
-                gallery.querySelectorAll(
-                  "[data-gallery-item]"
-                ).length
-              )
-            );
+          if (!gallery) {
+            return;
           }
+
+          gallery.insertAdjacentHTML(
+            "beforeend",
+            productGalleryHtml(
+              {},
+              gallery.querySelectorAll(
+                "[data-gallery-item]"
+              ).length
+            )
+          );
         }
       );
     }
@@ -501,15 +849,17 @@
               "[data-remove-product-image]"
             );
 
-          if (removeBtn) {
-            var item =
-              removeBtn.closest(
-                "[data-gallery-item]"
-              );
+          if (!removeBtn) {
+            return;
+          }
 
-            if (item) {
-              item.remove();
-            }
+          var item =
+            removeBtn.closest(
+              "[data-gallery-item]"
+            );
+
+          if (item) {
+            item.remove();
           }
         }
       );
@@ -518,29 +868,31 @@
         "input",
         function(event) {
           if (
-            event.target.matches(
+            !event.target.matches(
               "[data-gallery-url]"
             )
           ) {
-            var item =
-              event.target.closest(
-                "[data-gallery-item]"
-              );
+            return;
+          }
 
-            if (!item) return;
+          var item =
+            event.target.closest(
+              "[data-gallery-item]"
+            );
 
-            var preview =
-              item.querySelector(
-                "[data-gallery-preview]"
-              );
+          if (!item) {
+            return;
+          }
 
-            if (preview) {
-              preview.style.display =
-                "block";
+          var preview =
+            item.querySelector(
+              "[data-gallery-preview]"
+            );
 
-              preview.src =
-                event.target.value.trim();
-            }
+          if (preview) {
+            preview.style.display = "block";
+            preview.src =
+              event.target.value.trim();
           }
         }
       );
@@ -563,7 +915,7 @@
 
           var files =
             Array.from(
-              event.target.files
+              event.target.files || []
             );
 
           files.forEach(
@@ -575,33 +927,38 @@
               reader.onload =
                 function() {
 
-                  if (gallery) {
-                    gallery.insertAdjacentHTML(
-                      "beforeend",
-                      productGalleryHtml(
-                        {
-                          image_url:
-                            reader.result,
-                          alt_text:
-                            file.name
-                        },
-                        gallery.querySelectorAll(
-                          "[data-gallery-item]"
-                        ).length
-                      )
-                    );
+                  if (!gallery) {
+                    return;
                   }
+
+                  gallery.insertAdjacentHTML(
+                    "beforeend",
+                    productGalleryHtml(
+                      {
+                        image_url:
+                          reader.result,
+                        alt_text:
+                          file.name
+                      },
+                      gallery.querySelectorAll(
+                        "[data-gallery-item]"
+                      ).length
+                    )
+                  );
                 };
 
-              reader.readAsDataURL(
-                file
-              );
+              reader.readAsDataURL(file);
             }
           );
 
-          window.setAdminMessage(
-            "فایل‌ها فقط برای پیش‌نمایش اضافه شدند. پیش از ذخیره، مسیر واقعی /assets/images/... را وارد کن."
-          );
+          if (
+            typeof window.setAdminMessage ===
+            "function"
+          ) {
+            window.setAdminMessage(
+              "فایل‌ها فقط برای پیش‌نمایش اضافه شدند. پیش از ذخیره، مسیر واقعی /assets/images/... را وارد کن."
+            );
+          }
         }
       );
     }
@@ -641,56 +998,56 @@
             );
 
           var images =
-            Array.from(
-              galleryItems
-            ).map(
-              function(item, index) {
+            Array.from(galleryItems)
+              .map(
+                function(item, index) {
 
-                var urlInput =
-                  item.querySelector(
-                    "[data-gallery-url]"
+                  var urlInput =
+                    item.querySelector(
+                      "[data-gallery-url]"
+                    );
+
+                  var altInput =
+                    item.querySelector(
+                      "[data-gallery-alt]"
+                    );
+
+                  var primaryInput =
+                    item.querySelector(
+                      "[data-gallery-primary]"
+                    );
+
+                  return {
+                    image_url:
+                      urlInput
+                        ? urlInput.value.trim()
+                        : "",
+
+                    alt_text:
+                      altInput
+                        ? altInput.value.trim()
+                        : "",
+
+                    sort_order:
+                      index + 1,
+
+                    is_primary:
+                      primaryInput
+                        ? primaryInput.checked
+                        : false
+                  };
+                }
+              )
+              .filter(
+                function(image) {
+                  return (
+                    image.image_url &&
+                    !image.image_url.startsWith(
+                      "data:"
+                    )
                   );
-
-                var altInput =
-                  item.querySelector(
-                    "[data-gallery-alt]"
-                  );
-
-                var primaryInput =
-                  item.querySelector(
-                    "[data-gallery-primary]"
-                  );
-
-                return {
-                  image_url:
-                    urlInput
-                      ? urlInput.value.trim()
-                      : "",
-
-                  alt_text:
-                    altInput
-                      ? altInput.value.trim()
-                      : "",
-
-                  sort_order:
-                    index + 1,
-
-                  is_primary:
-                    primaryInput
-                      ? primaryInput.checked
-                      : false
-                };
-              }
-            ).filter(
-              function(image) {
-                return (
-                  image.image_url &&
-                  !image.image_url.startsWith(
-                    "data:"
-                  )
-                );
-              }
-            );
+                }
+              );
 
           var payload = {
             name:
@@ -777,75 +1134,140 @@
           };
 
           if (!payload.name) {
-            window.setAdminMessage(
-              "نام محصول الزامی است."
-            );
+            if (
+              typeof window.setAdminMessage ===
+              "function"
+            ) {
+              window.setAdminMessage(
+                "نام محصول الزامی است."
+              );
+            }
+
             return;
           }
 
           if (
-            payload.price_type ===
-            "rate_based"
-          ) {
-            if (
+            payload.price_type === "rate_based" &&
+            (
               !payload.base_price ||
               Number(payload.base_price) <= 0
+            )
+          ) {
+            if (
+              typeof window.setAdminMessage ===
+              "function"
             ) {
               window.setAdminMessage(
                 "برای محصولات وابسته به نرخ ارز، قیمت پایه به دلار الزامی است."
               );
-              return;
             }
-          }
 
-          var url =
-            product.id
-              ? "/api/admin/products/" +
-                encodeURIComponent(
-                  product.id
-                )
-              : "/api/admin/products";
-
-          var method =
-            product.id
-              ? "PUT"
-              : "POST";
-
-          var result =
-            await window.api(
-              url,
-              {
-                method:
-                  method,
-
-                body:
-                  JSON.stringify(
-                    payload
-                  )
-              }
-            );
-
-          if (
-            !result.ok ||
-            !result.data?.success
-          ) {
-            window.setAdminMessage(
-              result.data?.error ||
-              "ذخیره محصول انجام نشد."
-            );
             return;
           }
 
-          window.setAdminMessage(
-            result.data.message ||
-            "محصول با موفقیت ذخیره شد.",
-            "success"
-          );
+          if (
+            typeof window.api !== "function"
+          ) {
+            if (
+              typeof window.setAdminMessage ===
+              "function"
+            ) {
+              window.setAdminMessage(
+                "ارتباط با API هنوز آماده نشده است."
+              );
+            }
 
-          closeProductCreateBox();
-          closeProductEditBox();
+            return;
+          }
 
-          await loadProducts();
+          saveBtn.disabled = true;
+
+          var originalText =
+            saveBtn.textContent;
+
+          saveBtn.textContent =
+            "در حال ذخیره...";
+
+          try {
+
+            var url =
+              product.id
+                ? "/api/admin/products/" +
+                  encodeURIComponent(
+                    product.id
+                  )
+                : "/api/admin/products";
+
+            var method =
+              product.id
+                ? "PUT"
+                : "POST";
+
+            var result =
+              await window.api(
+                url,
+                {
+                  method: method,
+                  body: JSON.stringify(payload)
+                }
+              );
+
+            if (
+              !result ||
+              !result.ok ||
+              !result.data?.success
+            ) {
+              if (
+                typeof window.setAdminMessage ===
+                "function"
+              ) {
+                window.setAdminMessage(
+                  result?.data?.error ||
+                  "ذخیره محصول انجام نشد."
+                );
+              }
+
+              return;
+            }
+
+            if (
+              typeof window.setAdminMessage ===
+              "function"
+            ) {
+              window.setAdminMessage(
+                result.data.message ||
+                "محصول با موفقیت ذخیره شد.",
+                "success"
+              );
+            }
+
+            closeProductCreateBox();
+            closeProductEditBox();
+
+            await loadProducts();
+
+          } catch (error) {
+
+            console.error(
+              "Product save error:",
+              error
+            );
+
+            if (
+              typeof window.setAdminMessage ===
+              "function"
+            ) {
+              window.setAdminMessage(
+                "خطا در ارتباط با سرور هنگام ذخیره محصول."
+              );
+            }
+
+          } finally {
+
+            saveBtn.disabled = false;
+            saveBtn.textContent =
+              originalText;
+          }
         }
       );
     }
@@ -892,13 +1314,28 @@
   // ============================================
   // بارگذاری لیست محصولات
   // ============================================
+
   async function loadProducts() {
+
     var tbody =
       document.getElementById(
         "products-body"
       );
 
     if (!tbody) {
+      console.warn(
+        "Products table body not found."
+      );
+
+      return;
+    }
+
+    if (
+      typeof window.api !== "function"
+    ) {
+      tbody.innerHTML =
+        '<tr><td colspan="9">سیستم ارتباط با API هنوز آماده نشده است.</td></tr>';
+
       return;
     }
 
@@ -921,225 +1358,276 @@
       )?.value || "";
 
     if (search) {
-      params.set(
-        "search",
-        search
-      );
+      params.set("search", search);
     }
 
     if (category) {
-      params.set(
-        "category",
-        category
-      );
+      params.set("category", category);
     }
 
     if (status) {
-      params.set(
-        "status",
-        status
-      );
+      params.set("status", status);
     }
 
     tbody.innerHTML =
       '<tr><td colspan="9">در حال دریافت محصولات...</td></tr>';
 
-    var result =
-      await window.api(
-        "/api/admin/products" +
-        (
-          params.toString()
-            ? "?" + params.toString()
-            : ""
+    try {
+
+      var result =
+        await window.api(
+          "/api/admin/products" +
+          (
+            params.toString()
+              ? "?" + params.toString()
+              : ""
+          )
+        );
+
+      if (
+        !result ||
+        !result.ok ||
+        !result.data?.success
+      ) {
+        tbody.innerHTML =
+          '<tr><td colspan="9">' +
+          escapeHtml(
+            result?.data?.error ||
+            "دریافت محصولات انجام نشد."
+          ) +
+          "</td></tr>";
+
+        return;
+      }
+
+      var select =
+        document.getElementById(
+          "products-category"
+        );
+
+      var oldCategory =
+        select
+          ? select.value
+          : "";
+
+      if (select) {
+
+        var categories =
+          Array.isArray(
+            result.data.categories
+          )
+            ? result.data.categories
+            : [];
+
+        select.innerHTML =
+          '<option value="">همه دسته‌بندی‌ها</option>' +
+          categories.map(
+            function(c) {
+              return (
+                '<option value="' +
+                escapeHtml(c) +
+                '">' +
+                escapeHtml(c) +
+                "</option>"
+              );
+            }
+          ).join("");
+
+        select.value =
+          oldCategory;
+      }
+
+      var products =
+        Array.isArray(
+          result.data.products
         )
-      );
+          ? result.data.products
+          : [];
 
-    if (
-      !result.ok ||
-      !result.data?.success
-    ) {
-      tbody.innerHTML =
-        '<tr><td colspan="9">' +
-        window.esc(
-          result.data?.error ||
-          "دریافت محصولات انجام نشد."
-        ) +
-        "</td></tr>";
+      if (!products.length) {
+        tbody.innerHTML =
+          '<tr><td colspan="9">محصولی پیدا نشد.</td></tr>';
 
-      return;
-    }
+        return;
+      }
 
-    var select =
-      document.getElementById(
-        "products-category"
-      );
+      try {
 
-    var oldCategory =
-      select
-        ? select.value
-        : "";
-
-    if (select) {
-      select.innerHTML =
-        '<option value="">همه دسته‌بندی‌ها</option>' +
-        (
-          result.data.categories ||
-          []
-        ).map(
-          function(c) {
-            return (
-              '<option value="' +
-              window.esc(c) +
-              '">' +
-              window.esc(c) +
-              "</option>"
-            );
-          }
-        ).join("");
-
-      select.value =
-        oldCategory;
-    }
-
-    var products =
-      Array.isArray(
-        result.data.products
-      )
-        ? result.data.products
-        : [];
-
-    tbody.innerHTML =
-      products.length
-        ? products.map(
+        tbody.innerHTML =
+          products.map(
             function(product) {
 
+              product =
+                product &&
+                typeof product === "object"
+                  ? product
+                  : {};
+
               var img =
-                product.primary_image ||
-                (
-                  product.images &&
-                  product.images.length > 0
-                    ? product.images[0].image_url
-                    : ""
-                ) ||
-                "";
+                getProductImage(product);
 
               var displayPrice =
-                product.display_price_formatted ||
-                product.price_label ||
-                "تماس بگیرید";
+                getDisplayPrice(product);
 
               var priceType =
-                product.price_type ===
-                "rate_based"
+                (
+                  product.price_type ||
+                  product.priceType
+                ) === "rate_based"
                   ? "🔹 دلاری"
                   : "🔸 ثابت";
+
+              var hasStock =
+                getBoolean(product.in_stock) ||
+                Number(
+                  product.stock_quantity || 0
+                ) > 0;
+
+              var stockLabel =
+                product.stock_label ||
+                (
+                  hasStock
+                    ? "موجود"
+                    : "ناموجود"
+                );
 
               return (
                 "<tr>" +
 
-                "<td>" +
-                  (
-                    img
-                      ? '<img class="product-image-thumb" src="' +
-                        window.esc(img) +
-                        '" alt="' +
-                        window.esc(product.name) +
-                        '" onerror="this.outerHTML=\'<div class=product-empty-image>—</div>\'" />'
-                      : '<div class="product-empty-image">—</div>'
-                  ) +
-                "</td>" +
+                  "<td>" +
 
-                '<td class="table-number">' +
-                  window.esc(product.id) +
-                "</td>" +
+                    (
+                      img
+                        ? '<img class="product-image-thumb" src="' +
+                          escapeHtml(img) +
+                          '" alt="' +
+                          escapeHtml(product.name || "") +
+                          '" onerror="this.onerror=null;this.style.display=\'none\';this.parentNode.innerHTML=\'<div class=product-empty-image>—</div>\';" />'
 
-                "<td>" +
-                  "<strong>" +
-                  window.esc(product.name) +
-                  "</strong><br>" +
-                  '<small style="color:var(--muted)">' +
-                  window.esc(product.slug) +
-                  "</small>" +
-                "</td>" +
+                        : '<div class="product-empty-image">—</div>'
+                    ) +
 
-                "<td>" +
-                  window.esc(
-                    product.category || "—"
-                  ) +
-                "</td>" +
+                  "</td>" +
 
-                '<td class="table-number">' +
-                  displayPrice +
-                  "<br>" +
-                  '<small style="color:var(--muted)">' +
-                  priceType +
-                  "</small>" +
-                "</td>" +
+                  '<td class="table-number">' +
+                    escapeHtml(
+                      product.id ?? "—"
+                    ) +
+                  "</td>" +
 
-                "<td>" +
-                  (
-                    Number(product.in_stock) ||
-                    product.in_stock === true
-                  )
-                    ? '<span class="status-badge status-badge--success">' +
-                      window.esc(
-                        product.stock_label ||
-                        "موجود"
-                      ) +
-                      "</span><br><small>" +
-                      window.money(
-                        product.stock_quantity ||
-                        0
-                      ) +
-                      " عدد</small>"
+                  "<td>" +
+                    "<strong>" +
+                    escapeHtml(
+                      product.name || "بدون نام"
+                    ) +
+                    "</strong><br>" +
 
-                    : '<span class="status-badge status-badge--danger">' +
-                      window.esc(
-                        product.stock_label ||
-                        "ناموجود"
-                      ) +
-                      "</span>" +
-                "</td>" +
+                    '<small style="color:var(--muted)">' +
+                    escapeHtml(
+                      product.slug || "—"
+                    ) +
+                    "</small>" +
+                  "</td>" +
 
-                "<td>" +
-                  window.productStatusBadge(
-                    product.status
-                  ) +
-                "</td>" +
+                  "<td>" +
+                    escapeHtml(
+                      product.category || "—"
+                    ) +
+                  "</td>" +
 
-                '<td class="table-number">' +
-                  window.formatDate(
-                    product.updated_at ||
-                    product.created_at
-                  ) +
-                "</td>" +
+                  '<td class="table-number">' +
+                    displayPrice +
+                    "<br>" +
 
-                "<td>" +
-                  '<div class="panel-actions" style="margin-top:0">' +
+                    '<small style="color:var(--muted)">' +
+                    priceType +
+                    "</small>" +
+                  "</td>" +
 
-                    '<button class="btn btn-secondary" type="button" data-edit-product="' +
-                    window.esc(product.id) +
-                    '">ویرایش</button>' +
+                  "<td>" +
 
-                    '<button class="btn btn-secondary" type="button" data-delete-product="' +
-                    window.esc(product.id) +
-                    '">حذف</button>' +
+                    (
+                      hasStock
+                        ? '<span class="status-badge status-badge--success">' +
+                          escapeHtml(stockLabel) +
+                          "</span><br>" +
 
-                  "</div>" +
-                "</td>" +
+                          "<small>" +
+                          formatMoney(
+                            product.stock_quantity || 0
+                          ) +
+                          " عدد</small>"
+
+                        : '<span class="status-badge status-badge--danger">' +
+                          escapeHtml(stockLabel) +
+                          "</span>"
+                    ) +
+
+                  "</td>" +
+
+                  "<td>" +
+                    productStatusHtml(
+                      product.status
+                    ) +
+                  "</td>" +
+
+                  '<td class="table-number">' +
+                    formatProductDate(
+                      product.updated_at ||
+                      product.updatedAt ||
+                      product.created_at ||
+                      product.createdAt
+                    ) +
+                  "</td>" +
+
+                  "<td>" +
+                    '<div class="panel-actions" style="margin-top:0">' +
+
+                      '<button class="btn btn-secondary" type="button" data-edit-product="' +
+                      escapeHtml(product.id || "") +
+                      '">ویرایش</button>' +
+
+                      '<button class="btn btn-secondary" type="button" data-delete-product="' +
+                      escapeHtml(product.id || "") +
+                      '">حذف</button>' +
+
+                    "</div>" +
+                  "</td>" +
 
                 "</tr>"
               );
             }
-          ).join("")
+          ).join("");
 
-        : '<tr><td colspan="9">محصولی پیدا نشد.</td></tr>';
+      } catch (renderError) {
+
+        console.error(
+          "Products table render error:",
+          renderError
+        );
+
+        tbody.innerHTML =
+          '<tr><td colspan="9">خطا در نمایش اطلاعات جدول محصولات.</td></tr>';
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Products load error:",
+        error
+      );
+
+      tbody.innerHTML =
+        '<tr><td colspan="9">خطا در ارتباط با سرور هنگام دریافت محصولات.</td></tr>';
+    }
   }
 
   // ============================================
   // باز کردن فرم افزودن محصول
   // ============================================
+
   function openProductCreate() {
+
     refreshProductElements();
 
     closeProductEditBox();
@@ -1147,9 +1635,16 @@
     refreshProductElements();
 
     if (!productCreateBox) {
-      window.setAdminMessage(
-        "فرم افزودن محصول هنوز بارگذاری نشده است."
-      );
+
+      if (
+        typeof window.setAdminMessage ===
+        "function"
+      ) {
+        window.setAdminMessage(
+          "فرم افزودن محصول هنوز بارگذاری نشده است."
+        );
+      }
+
       return;
     }
 
@@ -1158,42 +1653,35 @@
     );
 
     productCreateBox.innerHTML =
-      productFormHtml({
-        show_price:
-          true,
-
-        in_stock:
-          true,
-
-        status:
-          "draft",
-
-        stock_label:
-          "موجود",
-
-        price_label:
-          "تماس بگیرید",
-
-        price_type:
-          "fixed"
-      });
+      productFormHtml(
+        {
+          show_price: true,
+          in_stock: true,
+          status: "draft",
+          stock_label: "موجود",
+          price_label: "تماس بگیرید",
+          price_type: "fixed"
+        }
+      );
 
     bindProductForm(
       productCreateBox
     );
 
-    productCreateBox.scrollIntoView({
-      behavior:
-        "smooth",
-      block:
-        "start"
-    });
+    productCreateBox.scrollIntoView(
+      {
+        behavior: "smooth",
+        block: "start"
+      }
+    );
   }
 
   // ============================================
   // باز کردن فرم ویرایش محصول
   // ============================================
+
   async function openProductEdit(id) {
+
     refreshProductElements();
 
     closeProductCreateBox();
@@ -1201,64 +1689,111 @@
     refreshProductElements();
 
     if (!productEditBox) {
-      window.setAdminMessage(
-        "فرم ویرایش محصول هنوز بارگذاری نشده است."
-      );
+
+      if (
+        typeof window.setAdminMessage ===
+        "function"
+      ) {
+        window.setAdminMessage(
+          "فرم ویرایش محصول هنوز بارگذاری نشده است."
+        );
+      }
+
       return;
     }
-
-    var result =
-      await window.api(
-        "/api/admin/products/" +
-        encodeURIComponent(id)
-      );
 
     if (
-      !result.ok ||
-      !result.data?.success
+      typeof window.api !== "function"
     ) {
-      window.setAdminMessage(
-        result.data?.error ||
-        "دریافت محصول انجام نشد."
-      );
+      if (
+        typeof window.setAdminMessage ===
+        "function"
+      ) {
+        window.setAdminMessage(
+          "ارتباط با API هنوز آماده نشده است."
+        );
+      }
+
       return;
     }
 
-    refreshProductElements();
+    try {
 
-    if (!productEditBox) {
-      window.setAdminMessage(
-        "فرم ویرایش محصول هنوز بارگذاری نشده است."
+      var result =
+        await window.api(
+          "/api/admin/products/" +
+          encodeURIComponent(id)
+        );
+
+      if (
+        !result ||
+        !result.ok ||
+        !result.data?.success
+      ) {
+        if (
+          typeof window.setAdminMessage ===
+          "function"
+        ) {
+          window.setAdminMessage(
+            result?.data?.error ||
+            "دریافت محصول انجام نشد."
+          );
+        }
+
+        return;
+      }
+
+      refreshProductElements();
+
+      if (!productEditBox) {
+        return;
+      }
+
+      productEditBox.classList.remove(
+        "admin-hidden"
       );
-      return;
+
+      productEditBox.innerHTML =
+        productFormHtml(
+          result.data.product || {}
+        );
+
+      bindProductForm(
+        productEditBox,
+        result.data.product || {}
+      );
+
+      productEditBox.scrollIntoView(
+        {
+          behavior: "smooth",
+          block: "start"
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Product edit load error:",
+        error
+      );
+
+      if (
+        typeof window.setAdminMessage ===
+        "function"
+      ) {
+        window.setAdminMessage(
+          "خطا در دریافت اطلاعات محصول."
+        );
+      }
     }
-
-    productEditBox.classList.remove(
-      "admin-hidden"
-    );
-
-    productEditBox.innerHTML =
-      productFormHtml(
-        result.data.product
-      );
-
-    bindProductForm(
-      productEditBox,
-      result.data.product
-    );
-
-    productEditBox.scrollIntoView({
-      behavior:
-        "smooth",
-      block:
-        "start"
-    });
   }
 
   // ============================================
   // حذف محصول
   // ============================================
+
   async function deleteProduct(id) {
+
     if (!id) {
       return;
     }
@@ -1279,43 +1814,90 @@
       return;
     }
 
-    var result =
-      await window.api(
-        "/api/admin/products/" +
-        encodeURIComponent(id),
-        {
-          method:
-            "DELETE"
-        }
-      );
-
     if (
-      !result.ok ||
-      !result.data?.success
+      typeof window.api !== "function"
     ) {
-      window.setAdminMessage(
-        result.data?.error ||
-        "حذف محصول انجام نشد."
-      );
+      if (
+        typeof window.setAdminMessage ===
+        "function"
+      ) {
+        window.setAdminMessage(
+          "ارتباط با API هنوز آماده نشده است."
+        );
+      }
+
       return;
     }
 
-    window.setAdminMessage(
-      result.data.message ||
-      "محصول حذف شد.",
-      "success"
-    );
+    try {
 
-    closeProductCreateBox();
-    closeProductEditBox();
+      var result =
+        await window.api(
+          "/api/admin/products/" +
+          encodeURIComponent(id),
+          {
+            method: "DELETE"
+          }
+        );
 
-    await loadProducts();
+      if (
+        !result ||
+        !result.ok ||
+        !result.data?.success
+      ) {
+        if (
+          typeof window.setAdminMessage ===
+          "function"
+        ) {
+          window.setAdminMessage(
+            result?.data?.error ||
+            "حذف محصول انجام نشد."
+          );
+        }
+
+        return;
+      }
+
+      if (
+        typeof window.setAdminMessage ===
+        "function"
+      ) {
+        window.setAdminMessage(
+          result.data.message ||
+          "محصول حذف شد.",
+          "success"
+        );
+      }
+
+      closeProductCreateBox();
+      closeProductEditBox();
+
+      await loadProducts();
+
+    } catch (error) {
+
+      console.error(
+        "Product delete error:",
+        error
+      );
+
+      if (
+        typeof window.setAdminMessage ===
+        "function"
+      ) {
+        window.setAdminMessage(
+          "خطا در حذف محصول."
+        );
+      }
+    }
   }
 
   // ============================================
   // Event Delegation برای تب محصولات
   // ============================================
+
   function setupProductEvents() {
+
     document.removeEventListener(
       "click",
       handleProductClick
@@ -1338,21 +1920,21 @@
   }
 
   // ============================================
-  // مدیریت کلیک‌های محصولات
+  // مدیریت کلیک‌ها
   // ============================================
-  function handleProductClick(
-    event
-  ) {
+
+  function handleProductClick(event) {
+
     var target =
       event.target;
 
-    // افزودن محصول
     var createBtn =
       target.closest(
         "#show-create-product-btn"
       );
 
     if (createBtn) {
+
       event.preventDefault();
 
       openProductCreate();
@@ -1360,13 +1942,13 @@
       return;
     }
 
-    // فیلتر محصولات
     var filterBtn =
       target.closest(
         "#products-filter-btn"
       );
 
     if (filterBtn) {
+
       event.preventDefault();
 
       loadProducts();
@@ -1374,13 +1956,13 @@
       return;
     }
 
-    // ویرایش محصول
     var editBtn =
       target.closest(
         "[data-edit-product]"
       );
 
     if (editBtn) {
+
       event.preventDefault();
 
       var editId =
@@ -1389,21 +1971,19 @@
         );
 
       if (editId) {
-        openProductEdit(
-          editId
-        );
+        openProductEdit(editId);
       }
 
       return;
     }
 
-    // حذف محصول
     var deleteBtn =
       target.closest(
         "[data-delete-product]"
       );
 
     if (deleteBtn) {
+
       event.preventDefault();
 
       var deleteId =
@@ -1416,21 +1996,16 @@
           Number(deleteId)
         );
       }
-
-      return;
     }
   }
 
   // ============================================
   // Enter برای جستجوی محصولات
   // ============================================
-  function handleProductKeydown(
-    event
-  ) {
-    if (
-      event.key !==
-      "Enter"
-    ) {
+
+  function handleProductKeydown(event) {
+
+    if (event.key !== "Enter") {
       return;
     }
 
@@ -1441,6 +2016,7 @@
       target.id ===
       "products-search"
     ) {
+
       event.preventDefault();
 
       loadProducts();
@@ -1450,6 +2026,7 @@
   // ============================================
   // صادر کردن توابع
   // ============================================
+
   window.loadProducts =
     loadProducts;
 
@@ -1481,8 +2058,9 @@
     setupProductEvents;
 
   // ============================================
-  // راه‌اندازی
+  // راه‌اندازی ماژول
   // ============================================
+
   refreshProductElements();
   setupProductEvents();
 
