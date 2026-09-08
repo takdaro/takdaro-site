@@ -20,51 +20,6 @@ function getCookie(cookieString, key) {
     : null;
 }
 
-/**
- * دریافت Bearer Token از هدر Authorization
- */
-function getBearerToken(request) {
-  const authorization =
-    request.headers.get("authorization") || "";
-
-  const match =
-    authorization.match(
-      /^Bearer\s+(.+)$/i
-    );
-
-  return match
-    ? match[1].trim()
-    : null;
-}
-
-/**
- * Hash کردن Mobile Session Token
- *
- * این الگوریتم باید دقیقاً با
- * /api/mobile/auth/login
- * یکسان باشد.
- */
-async function hashMobileToken(token) {
-  const buffer =
-    await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(token)
-    );
-
-  return Array.from(
-    new Uint8Array(buffer)
-  )
-    .map((byte) =>
-      byte
-        .toString(16)
-        .padStart(2, "0")
-    )
-    .join("");
-}
-
-/**
- * دریافت کاربر از Mobile Session Token
- */
 async function getCurrentUserFromMobileToken(context) {
   try {
     const result = await getMobileUser(context);
