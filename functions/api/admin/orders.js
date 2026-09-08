@@ -1,15 +1,4 @@
-// ============================================
-// API مدیریت سفارش‌ها (فقط ادمین)
-// ============================================
-
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-
-  return target ? target.slice(key.length + 1) : null;
-}
+import { requireAdmin } from "../../lib/admin";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -22,35 +11,6 @@ function normalizeText(value) {
 function normalizeNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-async function getCurrentUser(context) {
-  const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie(cookieString, "session_id");
-
-  if (!sessionId) return null;
-
-  return await context.env.DB.prepare(`
-    SELECT
-      id,
-      full_name,
-      email,
-      phone,
-      role
-    FROM users
-    WHERE id = (
-      SELECT user_id
-      FROM sessions
-      WHERE id = ?
-      LIMIT 1
-    )
-    LIMIT 1
-  `).bind(sessionId).first();
-}
-
-function isAdmin(user) {
-  const role = String(user?.role || "").toLowerCase();
-  return role === "admin" || role === "super_admin";
 }
 
 async function getOrderByNumber(db, orderNumber) {
@@ -596,9 +556,9 @@ const ALLOWED_PAYMENT_STATUSES = [
 
 export async function onRequestGet(context) {
   try {
-    const user = await getCurrentUser(context);
+    const adminAccess = await requireAdmin(context);
 
-    if (!user || !isAdmin(user)) {
+    if (!adminAccess.ok) {
       return json(
         {
           success: false,
@@ -607,6 +567,8 @@ export async function onRequestGet(context) {
         401
       );
     }
+
+    const user = adminAccess.user;
 
     const url = new URL(context.request.url);
 
@@ -779,9 +741,9 @@ export async function onRequestGet(context) {
 
 export async function onRequestPost(context) {
   try {
-    const user = await getCurrentUser(context);
+    const adminAccess = await requireAdmin(context);
 
-    if (!user || !isAdmin(user)) {
+    if (!adminAccess.ok) {
       return json(
         {
           success: false,
@@ -790,6 +752,8 @@ export async function onRequestPost(context) {
         401
       );
     }
+
+    const user = adminAccess.user;
 
     const body = await context.request
       .json()
@@ -1289,9 +1253,9 @@ export async function onRequestPost(context) {
 
 export async function onRequestDelete(context) {
   try {
-    const user = await getCurrentUser(context);
+    const adminAccess = await requireAdmin(context);
 
-    if (!user || !isAdmin(user)) {
+    if (!adminAccess.ok) {
       return json(
         {
           success: false,
@@ -1300,6 +1264,8 @@ export async function onRequestDelete(context) {
         401
       );
     }
+
+    const user = adminAccess.user;
 
     const body = await context.request
       .json()
