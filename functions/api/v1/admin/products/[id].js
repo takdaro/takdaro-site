@@ -3,4 +3,4 @@ export {
   onRequestGet,
   onRequestPut,
   onRequestDelete
-} from "../../../../admin/products/[id]";
+} from "../../../admin/products/[id]";
