@@ -209,12 +209,14 @@ export async function onRequestGet(context) {
         }
       }
 
+      delete safeConfig.bot_token;
+
       return json({
         success: true,
         channel: channel,
         is_enabled: settings.is_enabled,
         config: safeConfig,
-        has_token: !!settings.config?.bot_token,
+        has_token: !!context.env.TELEGRAM_BOT_TOKEN || !!settings.config?.bot_token,
         updated_at: settings.updated_at
       });
     }
