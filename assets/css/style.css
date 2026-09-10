@@ -59,8 +59,8 @@
   --primary: #023047;
   --primary-dark: #023047;
   --primary-deep: #023047;
-  --secondary: #219EBC;
-  --secondary-soft: #d8f1ee;
+  --secondary: #209EBB;
+  --secondary-soft: #e5f7fb;
 
   --text: #17323b;
   --text-soft: #34505a;
@@ -75,8 +75,8 @@
   --warning: #a56a00;
 
   /* ===== رنگ‌های جدید برای المان‌های خاص ===== */
-  --accent-yellow: #FFB703;
-  --accent-orange: #FB8500;
+  --accent-yellow: #FFB701;
+  --accent-orange: #FC8500;
   --accent-blue-light: #8ECAE6;
 
   --shadow-xs: 0 4px 12px rgba(2, 48, 71, 0.05);
@@ -2176,3 +2176,24 @@ select:focus-visible {
     scroll-margin-top: 100px;
   }
 }
+
+/* Mobile polish */
+@media (max-width: 560px) {
+  .hero { padding: 42px 0 58px; }
+  .hero h1 { font-size: clamp(1.75rem, 8vw, 2.15rem); line-height: 1.55; }
+  .hero p { line-height: 1.95; }
+  .hero-actions, .cta-actions { gap: 10px; }
+  .btn { min-height: 48px; padding: 13px 18px; border-radius: 12px; }
+  .section { padding: 54px 0; }
+  .card, .info-card, .value-card, .process-item { border-radius: 18px; }
+}
+
+/* Takdaro visual theme */
+:root{--primary:#023047;--primary-dark:#012536;--secondary:#209EBB;--accent-yellow:#FFB701;--accent-orange:#FC8500;--accent-blue-light:#8ECAE6;--bg:#f5fbfd;--surface:#fff;--text:#17323b;--border:#dcecf1;--shadow:0 14px 35px rgba(2,48,71,.10)}
+body{background:var(--bg);color:var(--text)}
+.site-header,.topbar{background:rgba(2,48,71,.96);color:#fff;box-shadow:0 8px 25px rgba(2,48,71,.12)}
+.hero{background:radial-gradient(circle at 12% 18%,rgba(142,202,230,.35),transparent 28%),linear-gradient(120deg,var(--primary),#075875 55%,var(--secondary));color:#fff;border-radius:0 0 32px 32px}.hero h1,.page-header h1{color:#fff;line-height:1.5}.hero p{color:#e8faff;line-height:2}.hero-badge{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:var(--accent-yellow);border-radius:999px;padding:8px 15px}
+.btn{border-radius:12px;min-height:46px;transition:transform .2s,box-shadow .2s}.btn:hover{transform:translateY(-2px)}.btn-primary{background:linear-gradient(135deg,var(--accent-yellow),var(--accent-orange));color:var(--primary);box-shadow:0 10px 22px rgba(252,133,0,.25)}
+.card,.stat-card,.info-card,.value-card,.process-item,.product-card,.checkout-card,.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow)}.card:hover,.product-card:hover{box-shadow:0 20px 40px rgba(2,48,71,.15);transform:translateY(-4px)}
+input,select,textarea{border:1px solid var(--border-strong);border-radius:11px;background:#fff;color:var(--text)}input:focus,select:focus,textarea:focus{border-color:var(--secondary);box-shadow:0 0 0 4px rgba(32,158,187,.14);outline:0}.site-footer{background:var(--primary);color:#c8edf5}
+@media(max-width:560px){.hero{border-radius:0 0 22px 22px;padding:42px 0 58px}.hero h1,.page-header h1{font-size:clamp(1.7rem,8vw,2.15rem);line-height:1.6}.hero p{font-size:.93rem}.hero-actions,.cta-actions{gap:10px}.btn{width:100%;min-height:48px;padding:13px 18px}.section{padding:54px 0}.card,.stat-card,.info-card,.value-card,.process-item,.product-card{border-radius:17px}}
