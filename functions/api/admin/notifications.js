@@ -200,7 +200,7 @@ export async function onRequestGet(context) {
       }
 
       const safeConfig = { ...settings.config };
-      if (safeConfig.bot_token) {
+      if (channel === 'telegram' && safeConfig.bot_token) {
         const token = safeConfig.bot_token;
         if (token.length > 10) {
           safeConfig.bot_token_display = token.substring(0, 6) + '...' + token.substring(token.length - 4);
@@ -738,7 +738,7 @@ export async function onRequestPost(context) {
       if (!botToken || !chatId) {
         const settings = await getChannelSettings(context.env, 'telegram');
         if (settings && settings.config) {
-          botToken = botToken || settings.config.bot_token;
+          botToken = botToken || context.env.TELEGRAM_BOT_TOKEN || settings.config.bot_token;
           chatId = chatId || settings.config.chat_id;
         }
       }
