@@ -1,13 +1,7 @@
+import { requireAdmin } from "../../lib/admin";
 // ============================================
-// API مدیریت حمل‌ونقل (فقط ادمین)\n\nimport { requireAdmin } from "../../lib/admin";
+// API مدیریت حمل‌ونقل (فقط ادمین)
 // ============================================
-
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -22,35 +16,14 @@ function normalizeNumber(value) {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
 }
 
-async function getCurrentUser(context) {
-  const cookieString = context.request.headers.get("cookie") || "";
-  const sessionId = getCookie(cookieString, "session_id");
-
-  if (!sessionId) return null;
-
-  return await context.env.DB.prepare(`
-    SELECT id, full_name, email, phone, role
-    FROM users
-    WHERE id = (SELECT user_id FROM sessions WHERE id = ? LIMIT 1)
-    LIMIT 1
-  `).bind(sessionId).first();
-}
-
-function isAdmin(user) {
-  const role = String(user?.role || "").toLowerCase();
-  return role === "admin" || role === "super_admin";
-}
 
 // ============================================
 // GET - دریافت روش‌های حمل‌ونقل
 // ============================================
 export async function onRequestGet(context) {
   try {
-    const user = await getCurrentUser(context);
-
-    if (!user || !isAdmin(user)) {
-      return json({ success: false, error: "unauthorized" }, 401);
-    }
+    const adminCheck = await requireAdmin(context);
+    if (!adminCheck.ok) return adminCheck.response;
 
     const url = new URL(context.request.url);
     const action = url.searchParams.get("action");
@@ -154,11 +127,8 @@ export async function onRequestGet(context) {
 // ============================================
 export async function onRequestPost(context) {
   try {
-    const user = await getCurrentUser(context);
-
-    if (!user || !isAdmin(user)) {
-      return json({ success: false, error: "unauthorized" }, 401);
-    }
+    const adminCheck = await requireAdmin(context);
+    if (!adminCheck.ok) return adminCheck.response;
 
     const body = await context.request.json().catch(() => null);
     if (!body) {

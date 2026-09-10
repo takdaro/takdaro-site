@@ -129,11 +129,14 @@ export async function saveChannelSettings(env, channel, config, userId) {
   }
 
   if (channel === 'telegram') {
-    if (config.bot_token && config.bot_token.length < 20) {
-      throw new Error('توکن ربات تلگرام معتبر نیست.');
-    }
     if (config.chat_id && !config.chat_id.trim()) {
       throw new Error('شناسه چت تلگرام معتبر نیست.');
+    }
+
+    // SECURITY: Bot Token must only live in Cloudflare Secrets.
+    // Never persist it in D1 notification_settings.config.
+    if (Object.prototype.hasOwnProperty.call(config, 'bot_token')) {
+      delete config.bot_token;
     }
   }
 
@@ -334,7 +337,7 @@ async function sendTelegramNotification(env, eventType, message, replyMarkup = n
   }
 
   const config = telegramSettings.config || {};
-  const botToken = config.bot_token || env.TELEGRAM_BOT_TOKEN;
+  const botToken = env.TELEGRAM_BOT_TOKEN;
   const chatId = config.chat_id;
 
   if (!botToken || !chatId) {
@@ -1729,7 +1732,16 @@ export async function sendCashbackAppliedNotification(env, orderData, userData, 
 /**
  * ارسال پیام آزمایشی تلگرام برای تست
  */
-export async function testTelegramNotification(env, botToken, chatId, userId) {
+export async function testTelegramNotification(env, _botToken, chatId, userId) {
+  const botToken = env.TELEGRAM_BOT_TOKEN;
+
+  if (!botToken) {
+    return {
+      success: false,
+      log_id: null,
+      error: 'توکن ربات تلگرام در Cloudflare Secret تنظیم نشده است.'
+    };
+  }
   const logId = await logNotification(env, {
     eventType: 'test',
     channel: 'telegram',
@@ -1995,7 +2007,7 @@ async function sendUserTelegramNotification(env, userId, eventType, message, rep
   }
 
   const config = telegramSettings.config || {};
-  const botToken = config.bot_token || env.TELEGRAM_BOT_TOKEN;
+  const botToken = env.TELEGRAM_BOT_TOKEN;
 
   if (!botToken) {
     return { success: false, error: 'توکن ربات تلگرام تنظیم نشده است.' };
