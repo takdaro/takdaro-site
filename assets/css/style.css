@@ -59,8 +59,8 @@
   --primary: #023047;
   --primary-dark: #023047;
   --primary-deep: #023047;
-  --secondary: #219EBC;
-  --secondary-soft: #d8f1ee;
+  --secondary: #209EBB;
+  --secondary-soft: #e5f7fb;
 
   --text: #17323b;
   --text-soft: #34505a;
@@ -75,8 +75,8 @@
   --warning: #a56a00;
 
   /* ===== رنگ‌های جدید برای المان‌های خاص ===== */
-  --accent-yellow: #FFB703;
-  --accent-orange: #FB8500;
+  --accent-yellow: #FFB701;
+  --accent-orange: #FC8500;
   --accent-blue-light: #8ECAE6;
 
   --shadow-xs: 0 4px 12px rgba(2, 48, 71, 0.05);
@@ -2175,4 +2175,15 @@ select:focus-visible {
   .admin-panel-body {
     scroll-margin-top: 100px;
   }
+}
+
+/* Mobile polish */
+@media (max-width: 560px) {
+  .hero { padding: 42px 0 58px; }
+  .hero h1 { font-size: clamp(1.75rem, 8vw, 2.15rem); line-height: 1.55; }
+  .hero p { line-height: 1.95; }
+  .hero-actions, .cta-actions { gap: 10px; }
+  .btn { min-height: 48px; padding: 13px 18px; border-radius: 12px; }
+  .section { padding: 54px 0; }
+  .card, .info-card, .value-card, .process-item { border-radius: 18px; }
 }
