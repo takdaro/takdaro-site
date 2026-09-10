@@ -472,7 +472,7 @@ export async function onRequestPost(context) {
       const sent = rows.filter(item => item.success === true).length;
       return json({
         success: result?.success === true,
-        stage: rows.length ? 'fcm_send' : 'firebase_setup',
+        stage: result?.stage || (rows.length ? 'fcm_send' : 'device_lookup'),
         total, sent, failed: rows.filter(item => item.success !== true).length,
         error: result?.error || null,
         // Do not expose push tokens or raw provider responses.
@@ -481,7 +481,9 @@ export async function onRequestPost(context) {
           status: item.status || null,
           error: item.error || null
         }))
-      }, result?.success ? 200 : 502);
+      // The diagnostic completed even when Firebase rejected the send.
+      // Keep the details in JSON rather than using a gateway-error status.
+      }, 200);
     }
 
     // ============================================
