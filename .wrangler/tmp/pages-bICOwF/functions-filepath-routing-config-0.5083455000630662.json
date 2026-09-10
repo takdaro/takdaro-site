@@ -1,6 +1,110 @@
 {
   "routes": [
     {
+      "routePath": "/api/v1/admin/auth/login",
+      "mountPath": "/api/v1/admin/auth",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/auth/login.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/auth/logout",
+      "mountPath": "/api/v1/admin/auth",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/auth/logout.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/auth/me",
+      "mountPath": "/api/v1/admin/auth",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/auth/me.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/rates/current",
+      "mountPath": "/api/v1/admin/rates",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/rates/current.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/rates/current",
+      "mountPath": "/api/v1/admin/rates",
+      "method": "OPTIONS",
+      "module": [
+        "api/v1/admin/rates/current.js:onRequestOptions"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/rates/history",
+      "mountPath": "/api/v1/admin/rates",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/rates/history.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/rates/history",
+      "mountPath": "/api/v1/admin/rates",
+      "method": "OPTIONS",
+      "module": [
+        "api/v1/admin/rates/history.js:onRequestOptions"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/rates/update",
+      "mountPath": "/api/v1/admin/rates",
+      "method": "OPTIONS",
+      "module": [
+        "api/v1/admin/rates/update.js:onRequestOptions"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/rates/update",
+      "mountPath": "/api/v1/admin/rates",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/rates/update.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/rates/update-prices",
+      "mountPath": "/api/v1/admin/rates",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/rates/update-prices.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/products/:id",
+      "mountPath": "/api/v1/admin/products",
+      "method": "DELETE",
+      "module": [
+        "api/v1/admin/products/[id].js:onRequestDelete"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/products/:id",
+      "mountPath": "/api/v1/admin/products",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/products/[id].js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/products/:id",
+      "mountPath": "/api/v1/admin/products",
+      "method": "PUT",
+      "module": [
+        "api/v1/admin/products/[id].js:onRequestPut"
+      ]
+    },
+    {
       "routePath": "/api/account/addresses/:id/default",
       "mountPath": "/api/account/addresses/:id",
       "method": "POST",
@@ -89,6 +193,14 @@
       ]
     },
     {
+      "routePath": "/api/mobile/auth/logout",
+      "mountPath": "/api/mobile/auth",
+      "method": "POST",
+      "module": [
+        "api/mobile/auth/logout.js:onRequestPost"
+      ]
+    },
+    {
       "routePath": "/api/mobile/auth/me",
       "mountPath": "/api/mobile/auth",
       "method": "GET",
@@ -110,6 +222,150 @@
       "method": "POST",
       "module": [
         "api/mobile/notifications/device.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/notifications",
+      "mountPath": "/api/v1/admin",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/notifications.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/notifications",
+      "mountPath": "/api/v1/admin",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/notifications.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/orders",
+      "mountPath": "/api/v1/admin",
+      "method": "DELETE",
+      "module": [
+        "api/v1/admin/orders.js:onRequestDelete"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/orders",
+      "mountPath": "/api/v1/admin",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/orders.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/orders",
+      "mountPath": "/api/v1/admin",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/orders.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/products",
+      "mountPath": "/api/v1/admin",
+      "method": "DELETE",
+      "module": [
+        "api/v1/admin/products.js:onRequestDelete"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/products",
+      "mountPath": "/api/v1/admin",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/products.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/products",
+      "mountPath": "/api/v1/admin",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/products.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/products",
+      "mountPath": "/api/v1/admin",
+      "method": "PUT",
+      "module": [
+        "api/v1/admin/products.js:onRequestPut"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/settings",
+      "mountPath": "/api/v1/admin",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/settings.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/settings",
+      "mountPath": "/api/v1/admin",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/settings.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/shipping",
+      "mountPath": "/api/v1/admin",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/shipping.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/shipping",
+      "mountPath": "/api/v1/admin",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/shipping.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/wallet",
+      "mountPath": "/api/v1/admin",
+      "method": "GET",
+      "module": [
+        "api/v1/admin/wallet.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/admin/wallet",
+      "mountPath": "/api/v1/admin",
+      "method": "POST",
+      "module": [
+        "api/v1/admin/wallet.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/shipping/calculate",
+      "mountPath": "/api/v1/shipping",
+      "method": "POST",
+      "module": [
+        "api/v1/shipping/calculate.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/shipping/methods",
+      "mountPath": "/api/v1/shipping",
+      "method": "GET",
+      "module": [
+        "api/v1/shipping/methods.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/shipping/provinces",
+      "mountPath": "/api/v1/shipping",
+      "method": "GET",
+      "module": [
+        "api/v1/shipping/provinces.js:onRequestGet"
       ]
     },
     {
@@ -622,6 +878,22 @@
       "method": "POST",
       "module": [
         "api/telegram/webhook.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/v1/products",
+      "mountPath": "/api/v1",
+      "method": "GET",
+      "module": [
+        "api/v1/products.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/v1/products",
+      "mountPath": "/api/v1",
+      "method": "OPTIONS",
+      "module": [
+        "api/v1/products.js:onRequestOptions"
       ]
     },
     {
