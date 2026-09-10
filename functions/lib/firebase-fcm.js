@@ -1044,7 +1044,11 @@ export async function sendFirebaseFcmNotification(
     orderId = null,
   } = {}
 ) {
+  let stage = 'service_account';
   try {
+    // Validate configuration before attempting Google authorization.
+    getFirebaseServiceAccount(env);
+    stage = 'google_authorization';
     const {
       accessToken,
       projectId,
@@ -1053,6 +1057,7 @@ export async function sendFirebaseFcmNotification(
         env
       );
 
+    stage = 'device_lookup';
     let device;
 
     // ----------------------------------------
@@ -1327,6 +1332,7 @@ export async function sendFirebaseFcmNotification(
       error:
         errorMessage,
 
+      stage,
       results: [],
     };
   }
