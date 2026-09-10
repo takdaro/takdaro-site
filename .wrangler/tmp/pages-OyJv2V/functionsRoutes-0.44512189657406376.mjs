@@ -1,16 +1,3 @@
-import { onRequestPost as __api_v1_admin_auth_login_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\auth\\login.js"
-import { onRequestPost as __api_v1_admin_auth_logout_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\auth\\logout.js"
-import { onRequestGet as __api_v1_admin_auth_me_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\auth\\me.js"
-import { onRequestGet as __api_v1_admin_rates_current_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\rates\\current.js"
-import { onRequestOptions as __api_v1_admin_rates_current_js_onRequestOptions } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\rates\\current.js"
-import { onRequestGet as __api_v1_admin_rates_history_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\rates\\history.js"
-import { onRequestOptions as __api_v1_admin_rates_history_js_onRequestOptions } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\rates\\history.js"
-import { onRequestOptions as __api_v1_admin_rates_update_js_onRequestOptions } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\rates\\update.js"
-import { onRequestPost as __api_v1_admin_rates_update_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\rates\\update.js"
-import { onRequestPost as __api_v1_admin_rates_update_prices_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\rates\\update-prices.js"
-import { onRequestDelete as __api_v1_admin_products__id__js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\products\\[id].js"
-import { onRequestGet as __api_v1_admin_products__id__js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\products\\[id].js"
-import { onRequestPut as __api_v1_admin_products__id__js_onRequestPut } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\products\\[id].js"
 import { onRequestPost as __api_account_addresses__id__default_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\addresses\\[id]\\default.js"
 import { onRequestPost as __api_account_push_subscribe_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\push\\subscribe.js"
 import { onRequestPost as __api_account_push_unsubscribe_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\push\\unsubscribe.js"
@@ -22,28 +9,9 @@ import { onRequestGet as __api_account_telegram_status_js_onRequestGet } from "C
 import { onRequestPost as __api_account_telegram_track_order_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\telegram\\track-order.js"
 import { onRequestPost as __api_admin_users_password_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\admin\\users\\password.js"
 import { onRequestPost as __api_mobile_auth_login_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\mobile\\auth\\login.js"
-import { onRequestPost as __api_mobile_auth_logout_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\mobile\\auth\\logout.js"
 import { onRequestGet as __api_mobile_auth_me_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\mobile\\auth\\me.js"
 import { onRequestDelete as __api_mobile_notifications_device_js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\mobile\\notifications\\device.js"
 import { onRequestPost as __api_mobile_notifications_device_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\mobile\\notifications\\device.js"
-import { onRequestGet as __api_v1_admin_notifications_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\notifications.js"
-import { onRequestPost as __api_v1_admin_notifications_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\notifications.js"
-import { onRequestDelete as __api_v1_admin_orders_js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\orders.js"
-import { onRequestGet as __api_v1_admin_orders_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\orders.js"
-import { onRequestPost as __api_v1_admin_orders_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\orders.js"
-import { onRequestDelete as __api_v1_admin_products_js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\products.js"
-import { onRequestGet as __api_v1_admin_products_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\products.js"
-import { onRequestPost as __api_v1_admin_products_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\products.js"
-import { onRequestPut as __api_v1_admin_products_js_onRequestPut } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\products.js"
-import { onRequestGet as __api_v1_admin_settings_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\settings.js"
-import { onRequestPost as __api_v1_admin_settings_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\settings.js"
-import { onRequestGet as __api_v1_admin_shipping_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\shipping.js"
-import { onRequestPost as __api_v1_admin_shipping_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\shipping.js"
-import { onRequestGet as __api_v1_admin_wallet_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\wallet.js"
-import { onRequestPost as __api_v1_admin_wallet_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\admin\\wallet.js"
-import { onRequestPost as __api_v1_shipping_calculate_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\shipping\\calculate.js"
-import { onRequestGet as __api_v1_shipping_methods_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\shipping\\methods.js"
-import { onRequestGet as __api_v1_shipping_provinces_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\shipping\\provinces.js"
 import { onRequestDelete as __api_account_addresses__id__js_onRequestDelete } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\addresses\\[id].js"
 import { onRequestPut as __api_account_addresses__id__js_onRequestPut } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\addresses\\[id].js"
 import { onRequestGet as __api_account_orders__order__js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\account\\orders\\[order].js"
@@ -108,8 +76,6 @@ import { onRequestPost as __api_shipping_calculate_js_onRequestPost } from "C:\\
 import { onRequestGet as __api_shipping_methods_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\methods.js"
 import { onRequestGet as __api_shipping_provinces_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\shipping\\provinces.js"
 import { onRequestPost as __api_telegram_webhook_js_onRequestPost } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\telegram\\webhook.js"
-import { onRequestGet as __api_v1_products_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\products.js"
-import { onRequestOptions as __api_v1_products_js_onRequestOptions } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\v1\\products.js"
 import { onRequestGet as __api_catalog_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\catalog.js"
 import { onRequestGet as __api_products_js_onRequestGet } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\products.js"
 import { onRequestOptions as __api_products_js_onRequestOptions } from "C:\\Users\\ASUS\\Documents\\takdaro-site\\functions\\api\\products.js"
@@ -117,97 +83,6 @@ import { onRequestGet as __api_test_db_js_onRequestGet } from "C:\\Users\\ASUS\\
 
 export const routes = [
     {
-      routePath: "/api/v1/admin/auth/login",
-      mountPath: "/api/v1/admin/auth",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_auth_login_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/auth/logout",
-      mountPath: "/api/v1/admin/auth",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_auth_logout_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/auth/me",
-      mountPath: "/api/v1/admin/auth",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_auth_me_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/rates/current",
-      mountPath: "/api/v1/admin/rates",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_rates_current_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/rates/current",
-      mountPath: "/api/v1/admin/rates",
-      method: "OPTIONS",
-      middlewares: [],
-      modules: [__api_v1_admin_rates_current_js_onRequestOptions],
-    },
-  {
-      routePath: "/api/v1/admin/rates/history",
-      mountPath: "/api/v1/admin/rates",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_rates_history_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/rates/history",
-      mountPath: "/api/v1/admin/rates",
-      method: "OPTIONS",
-      middlewares: [],
-      modules: [__api_v1_admin_rates_history_js_onRequestOptions],
-    },
-  {
-      routePath: "/api/v1/admin/rates/update",
-      mountPath: "/api/v1/admin/rates",
-      method: "OPTIONS",
-      middlewares: [],
-      modules: [__api_v1_admin_rates_update_js_onRequestOptions],
-    },
-  {
-      routePath: "/api/v1/admin/rates/update",
-      mountPath: "/api/v1/admin/rates",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_rates_update_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/rates/update-prices",
-      mountPath: "/api/v1/admin/rates",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_rates_update_prices_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/products/:id",
-      mountPath: "/api/v1/admin/products",
-      method: "DELETE",
-      middlewares: [],
-      modules: [__api_v1_admin_products__id__js_onRequestDelete],
-    },
-  {
-      routePath: "/api/v1/admin/products/:id",
-      mountPath: "/api/v1/admin/products",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_products__id__js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/products/:id",
-      mountPath: "/api/v1/admin/products",
-      method: "PUT",
-      middlewares: [],
-      modules: [__api_v1_admin_products__id__js_onRequestPut],
-    },
-  {
       routePath: "/api/account/addresses/:id/default",
       mountPath: "/api/account/addresses/:id",
       method: "POST",
@@ -285,13 +160,6 @@ export const routes = [
       modules: [__api_mobile_auth_login_js_onRequestPost],
     },
   {
-      routePath: "/api/mobile/auth/logout",
-      mountPath: "/api/mobile/auth",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_mobile_auth_logout_js_onRequestPost],
-    },
-  {
       routePath: "/api/mobile/auth/me",
       mountPath: "/api/mobile/auth",
       method: "GET",
@@ -311,132 +179,6 @@ export const routes = [
       method: "POST",
       middlewares: [],
       modules: [__api_mobile_notifications_device_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/notifications",
-      mountPath: "/api/v1/admin",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_notifications_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/notifications",
-      mountPath: "/api/v1/admin",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_notifications_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/orders",
-      mountPath: "/api/v1/admin",
-      method: "DELETE",
-      middlewares: [],
-      modules: [__api_v1_admin_orders_js_onRequestDelete],
-    },
-  {
-      routePath: "/api/v1/admin/orders",
-      mountPath: "/api/v1/admin",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_orders_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/orders",
-      mountPath: "/api/v1/admin",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_orders_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/products",
-      mountPath: "/api/v1/admin",
-      method: "DELETE",
-      middlewares: [],
-      modules: [__api_v1_admin_products_js_onRequestDelete],
-    },
-  {
-      routePath: "/api/v1/admin/products",
-      mountPath: "/api/v1/admin",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_products_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/products",
-      mountPath: "/api/v1/admin",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_products_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/products",
-      mountPath: "/api/v1/admin",
-      method: "PUT",
-      middlewares: [],
-      modules: [__api_v1_admin_products_js_onRequestPut],
-    },
-  {
-      routePath: "/api/v1/admin/settings",
-      mountPath: "/api/v1/admin",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_settings_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/settings",
-      mountPath: "/api/v1/admin",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_settings_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/shipping",
-      mountPath: "/api/v1/admin",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_shipping_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/shipping",
-      mountPath: "/api/v1/admin",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_shipping_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/admin/wallet",
-      mountPath: "/api/v1/admin",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_admin_wallet_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/admin/wallet",
-      mountPath: "/api/v1/admin",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_admin_wallet_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/shipping/calculate",
-      mountPath: "/api/v1/shipping",
-      method: "POST",
-      middlewares: [],
-      modules: [__api_v1_shipping_calculate_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/shipping/methods",
-      mountPath: "/api/v1/shipping",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_shipping_methods_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/shipping/provinces",
-      mountPath: "/api/v1/shipping",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_shipping_provinces_js_onRequestGet],
     },
   {
       routePath: "/api/account/addresses/:id",
@@ -885,20 +627,6 @@ export const routes = [
       method: "POST",
       middlewares: [],
       modules: [__api_telegram_webhook_js_onRequestPost],
-    },
-  {
-      routePath: "/api/v1/products",
-      mountPath: "/api/v1",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_v1_products_js_onRequestGet],
-    },
-  {
-      routePath: "/api/v1/products",
-      mountPath: "/api/v1",
-      method: "OPTIONS",
-      middlewares: [],
-      modules: [__api_v1_products_js_onRequestOptions],
     },
   {
       routePath: "/api/catalog",
