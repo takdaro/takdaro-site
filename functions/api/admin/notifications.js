@@ -3,6 +3,7 @@
 // ============================================
 
 import { requireAdmin } from '../../lib/admin.js';
+import { testFirebaseFcmNotification } from '../../lib/firebase-fcm.js';
 import { 
   getChannelSettings, 
   saveChannelSettings, 
@@ -449,6 +450,39 @@ export async function onRequestPost(context) {
     const action = body.action || 'save_settings';
     const channel = body.channel || 'telegram';
     const adminUser = adminCheck.user;
+
+    // Only test devices owned by the authenticated administrator.
+    if (action === 'test_mobile_fcm') {
+      const userId = Number(adminUser.id);
+      if (!Number.isSafeInteger(userId) || userId <= 0) {
+        return json({ success: false, error: 'invalid_admin_id' }, 403);
+      }
+      const devices = await context.env.DB.prepare(`
+        SELECT COUNT(*) AS total FROM admin_mobile_devices
+        WHERE user_id = ? AND platform = 'android' AND is_active = 1
+      `).bind(userId).first();
+      const total = Number(devices?.total || 0);
+      if (!total) {
+        return json({ success: false, stage: 'device_registration',
+          error: 'هیچ دستگاه Android فعال برای این حساب ثبت نشده است.',
+          total: 0, sent: 0, failed: 0 }, 409);
+      }
+      const result = await testFirebaseFcmNotification(context.env, userId);
+      const rows = Array.isArray(result?.results) ? result.results : [];
+      const sent = rows.filter(item => item.success === true).length;
+      return json({
+        success: result?.success === true,
+        stage: rows.length ? 'fcm_send' : 'firebase_setup',
+        total, sent, failed: rows.filter(item => item.success !== true).length,
+        error: result?.error || null,
+        // Do not expose push tokens or raw provider responses.
+        results: rows.map(item => ({
+          success: item.success === true,
+          status: item.status || null,
+          error: item.error || null
+        }))
+      }, result?.success ? 200 : 502);
+    }
 
     // ============================================
     // ذخیره یا به‌روزرسانی Template SMS
