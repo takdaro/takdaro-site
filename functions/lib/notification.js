@@ -948,15 +948,6 @@ async function shouldSendAdminMobileFcm(
       data
     );
 
-  if (
-    eventKey === 'order_status_changed'
-  ) {
-    return {
-      allowed: false,
-      eventKey
-    };
-  }
-
   if (!controlledEvents.has(eventKey)) {
     return {
       allowed: true,
@@ -1008,7 +999,7 @@ async function sendAdminFcmNotification(env, eventType, title, body, orderId = n
       };
     }
 
-    return await sendAdminFirebaseFcmNotification(env, {
+    const result = await sendAdminFirebaseFcmNotification(env, {
       eventType,
       title,
       body,
@@ -1020,6 +1011,19 @@ async function sendAdminFcmNotification(env, eventType, title, body, orderId = n
         ...data
       }
     });
+
+    console.log('Admin mobile FCM result', {
+      eventType,
+      eventKey: gate.eventKey,
+      success: result?.success === true,
+      skipped: result?.skipped === true,
+      total: result?.summary?.total ?? result?.results?.length ?? 0,
+      sent: result?.summary?.success ?? 0,
+      failed: result?.summary?.failed ?? 0,
+      error: result?.error || null
+    });
+
+    return result;
   } catch (error) {
     const errorMessage = String(error?.message || error);
     console.error(`❌ Android FCM error in ${eventType}:`, errorMessage);
