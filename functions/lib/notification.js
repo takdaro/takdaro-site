@@ -147,7 +147,7 @@ export async function saveChannelSettings(env, channel, config, userId) {
     .bind(channel)
     .first();
 
-  const configJson = JSON.stringify(config);
+  // Telegram bot tokens belong in Cloudflare Secrets, never in D1.const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n  // Keep only non-sensitive channel settings in the shared database.const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n  const persistedConfig = channel === 'telegram'const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n    ? { chat_id: String(config.chat_id || '').trim() }const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n    : config;const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n  const configJson = JSON.stringify(persistedConfig);
 
   if (existing) {
     await env.DB
@@ -168,7 +168,7 @@ export async function saveChannelSettings(env, channel, config, userId) {
       .run();
   }
 
-  return { success: true, channel, config };
+  return { success: true, channel, config: persistedConfig };
 }
 
 /**
@@ -1739,7 +1739,7 @@ export async function testTelegramNotification(env, botToken, chatId, userId) {
     status: 'pending'
   });
 
-  const testMessage = `🔔 <b>پیام آزمایشی</b>\n\n✅ اتصال به ربات تلگرام با موفقیت برقرار شد.\n\n🕐 زمان: ${new Date().toLocaleString('fa-IR')}\n\n📌 این پیام از پنل مدیریت ارسال شده است.`;
+  const testMessage = `🔔 <b>پیام آزمایشی</b>const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;nconst botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n✅ اتصال به ربات تلگرام با موفقیت برقرار شد.const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;nconst botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n🕐 زمان: ${new Date().toLocaleString('fa-IR')}const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;nconst botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n📌 این پیام از پنل مدیریت ارسال شده است.`;
 
   const sendResult = await sendTelegramMessage(botToken, chatId, testMessage);
 
@@ -1770,7 +1770,7 @@ export async function testSmsNotification(env, phoneNumber, userId, eventType = 
   });
 
   const template = await getSmsTemplate(env, eventType);
-  let message = '🔔 پیام آزمایشی\n\n✅ اتصال به سیستم SMS با موفقیت برقرار شد.\n\n📌 این پیام از پنل مدیریت ارسال شده است.';
+  let message = '🔔 پیام آزمایشیconst botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;nconst botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n✅ اتصال به سیستم SMS با موفقیت برقرار شد.const botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;nconst botToken = env.TELEGRAM_BOT_TOKEN || config.bot_token;n📌 این پیام از پنل مدیریت ارسال شده است.';
   
   if (template) {
     const testData = {
