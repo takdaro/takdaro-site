@@ -458,6 +458,13 @@
     await loadPartial("site-cart", `${base}components/cart-drawer.html`);
     await loadPartial("bottom-nav", `${base}components/bottom-nav.html`);
 
+    // مقصدهای داخل صفحه بعد از بارگذاری partialها قابل اسکرول هستند.
+    if (window.location.hash) {
+      setTimeout(() => {
+        document.querySelector(window.location.hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+    }
+
     setupCartDrawer();
     setupBottomNav();
 
