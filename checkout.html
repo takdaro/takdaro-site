@@ -1124,7 +1124,7 @@
       const maxUsable = getMaxWalletUsable(baseTotal);
       const walletUsed = getWalletAppliedAmount(baseTotal);
       const payableAmount = Math.max(0, baseTotal - walletUsed);
-      const cashbackBase = baseTotal;
+      const cashbackBase = payableAmount;
       const cashbackAmount = getCashbackAmount(cashbackBase);
 
       if (walletBalanceEl) walletBalanceEl.textContent = `${formatNumber(walletState.balance)} تومان`;
@@ -1173,7 +1173,7 @@
       const totalAmount = subtotal + shippingCost;
       const walletUsedAmount = getWalletAppliedAmount(totalAmount);
       const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
-      const cashbackBase = totalAmount;
+      const cashbackBase = payableAmount;
       const cashbackAmount = getCashbackAmount(cashbackBase);
 
       return {

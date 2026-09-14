@@ -179,6 +179,7 @@ export async function onRequestGet(context) {
     await ensureWalletTables(db);
 
     const url = new URL(context.request.url);
+    const search = normalizeText(url.searchParams.get("search"));
     const userId = Number(
       url.searchParams.get("user_id") ||
       url.searchParams.get("userId") ||
@@ -194,6 +195,27 @@ export async function onRequestGet(context) {
     const cashbackStatuses = normalizeStatuses(
       await getSetting(db, "cashback_statuses", "completed")
     );
+
+    if ((search || url.searchParams.get("view") === "users") && userId <= 0) {
+      const pattern = `%${search}%`;
+      const users = await db.prepare(`
+        SELECT id, full_name, email, phone, role,
+          COALESCE(wallet_balance, 0) AS wallet_balance
+        FROM users
+        WHERE full_name LIKE ? OR email LIKE ? OR phone LIKE ? OR CAST(id AS TEXT) LIKE ?
+        ORDER BY id DESC
+        LIMIT ?
+      `).bind(pattern, pattern, pattern, pattern, limit).all();
+
+      return json({
+        success: true,
+        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+        users: (users?.results || []).map((user) => ({
+          ...user,
+          wallet_balance: toMoney(user.wallet_balance)
+        }))
+      });
+    }
 
     if (userId > 0) {
       const user = await db

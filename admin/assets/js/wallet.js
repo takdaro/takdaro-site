@@ -9,6 +9,31 @@
   // متغیرهای محلی
   // ============================================
   var currentWalletPayload = null;
+  var userSearchSequence = 0;
+
+  async function searchWalletUsers() {
+    var sequence = ++userSearchSequence;
+    var select = document.getElementById("wallet-user-id");
+    var status = document.getElementById("wallet-search-status");
+    if (!select || !status) return;
+    status.textContent = "در حال دریافت کاربران…";
+    try {
+      var query = document.getElementById("wallet-user-search")?.value.trim() || "";
+      var result = await window.api("/api/v1/admin/wallet?view=users&limit=200&search=" + encodeURIComponent(query));
+      if (sequence !== userSearchSequence) return;
+      if (!result.ok || !result.data?.success) throw new Error(result.data?.error || "دریافت کاربران انجام نشد.");
+      var selected = select.value;
+      select.replaceChildren(new Option("یک کاربر انتخاب کنید", ""));
+      (result.data.users || []).forEach(function(user) {
+        var label = [user.full_name, user.email, user.phone].filter(Boolean).join(" — ");
+        select.add(new Option(label, String(user.id)));
+      });
+      select.value = selected;
+      status.textContent = result.data.users?.length ? "کاربر موردنظر را انتخاب کنید؛ برای نتیجهٔ دقیق‌تر جست‌وجو کنید." : "کاربری پیدا نشد.";
+    } catch (error) {
+      if (sequence === userSearchSequence) status.textContent = error.message || "ارتباط برقرار نشد.";
+    }
+  }
 
   // این عناصر بعداً با fetch داخل DOM تزریق می‌شوند.
   // بنابراین باید هر بار قبل از استفاده مجدداً پیدا شوند.
@@ -556,7 +581,7 @@
 
     if (!userId) {
       window.setAdminMessage(
-        "شناسه کاربر را وارد کن."
+        "یک کاربر از فهرست انتخاب کن."
       );
       return;
     }
@@ -639,9 +664,6 @@
       user
     );
 
-    renderWalletSettings(
-      payload.settings || {}
-    );
 
     renderWalletHistory(
       txs
@@ -866,6 +888,35 @@
   ) {
     var target =
       event.target;
+
+    var sectionButton = target.closest("[data-wallet-section]");
+    if (sectionButton) {
+      var cashback = sectionButton.dataset.walletSection === "cashback";
+      document.getElementById("wallet-management-panel").classList.toggle("admin-hidden", cashback);
+      document.getElementById("wallet-cashback-panel").classList.toggle("admin-hidden", !cashback);
+      document.querySelectorAll("[data-wallet-section]").forEach(function(button) {
+        var active = button === sectionButton;
+        button.setAttribute("aria-pressed", String(active));
+        button.classList.toggle("btn-primary", active);
+        button.classList.toggle("btn-secondary", !active);
+      });
+      if (cashback && !document.getElementById("cashback-percent")) {
+        var status = document.getElementById("wallet-cashback-status");
+        status.textContent = "در حال دریافت تنظیمات…";
+        window.api("/api/v1/admin/wallet?limit=1").then(function(result) {
+          if (!result.ok || !result.data?.success) throw new Error(result.data?.error || "دریافت تنظیمات انجام نشد؛ دوباره روی کش‌بک بزنید.");
+          renderWalletSettings(result.data.settings);
+          status.textContent = "";
+        }).catch(function(error) { status.textContent = error.message; });
+      }
+      return;
+    }
+
+    if (target.closest("#wallet-search-btn")) {
+      event.preventDefault();
+      void searchWalletUsers();
+      return;
+    }
 
     // بارگذاری کیف پول
     if (

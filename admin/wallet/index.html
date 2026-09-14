@@ -2,10 +2,19 @@
 <!-- WALLET                                    -->
 <!-- ========================================== -->
 <div class="wallet-shell">
+  <div class="wallet-toolbar" aria-label="بخش‌های کیف پول">
+    <button type="button" class="btn btn-primary" data-wallet-section="management" aria-pressed="true">مدیریت کیف پول</button>
+    <button type="button" class="btn btn-secondary" data-wallet-section="cashback" aria-pressed="false">کش‌بک</button>
+  </div>
+  <div id="wallet-management-panel">
   <div class="wallet-toolbar">
     <div class="form-field">
-      <label for="wallet-user-id">شناسه کاربر</label>
-      <input id="wallet-user-id" type="number" min="1" placeholder="مثلاً 1" />
+      <label for="wallet-user-search">جست‌وجوی کاربر</label>
+      <input id="wallet-user-search" type="search" placeholder="نام، ایمیل یا شماره تماس" />
+      <button class="btn btn-secondary" type="button" id="wallet-search-btn">نمایش کاربران</button>
+      <label for="wallet-user-id">انتخاب کاربر</label>
+      <select id="wallet-user-id"><option value="">ابتدا کاربران را جست‌وجو کنید</option></select>
+      <span id="wallet-search-status" role="status" aria-live="polite"></span>
     </div>
     <div class="form-field">
       <label for="wallet-quick-type">نوع سریع</label>
@@ -34,7 +43,7 @@
   </div>
 
   <div id="wallet-empty-state" class="wallet-empty">
-    برای مشاهده و مدیریت کیف پول، شناسه کاربر را وارد کن و روی «بارگذاری کیف پول» بزن.
+    کاربر را از فهرست انتخاب کن و روی «بارگذاری کیف پول» بزن.
   </div>
 
   <div id="wallet-content" class="admin-hidden">
@@ -48,7 +57,12 @@
       <div id="wallet-adjust-box" class="wallet-adjust-card"></div>
     </div>
 
-    <div id="wallet-settings-box" class="wallet-settings-card"></div>
     <div id="wallet-history-box" class="wallet-history-card"></div>
+  </div>
+  </div>
+  <div id="wallet-cashback-panel" class="admin-hidden">
+    <p>درصد کش‌بک برای همهٔ کاربران اعمال می‌شود و به انتخاب کاربر وابسته نیست.</p>
+    <p id="wallet-cashback-status" role="status"></p>
+    <div id="wallet-settings-box" class="wallet-settings-card"></div>
   </div>
 </div>
