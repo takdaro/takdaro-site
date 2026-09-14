@@ -1,68 +1,266 @@
 <!-- ========================================== -->
 <!-- WALLET                                    -->
 <!-- ========================================== -->
+
 <div class="wallet-shell">
-  <div class="wallet-toolbar" aria-label="بخش‌های کیف پول">
-    <button type="button" class="btn btn-primary" data-wallet-section="management" aria-pressed="true">مدیریت کیف پول</button>
-    <button type="button" class="btn btn-secondary" data-wallet-section="cashback" aria-pressed="false">کش‌بک</button>
+
+  <!-- ======================================== -->
+  <!-- تب‌های اصلی کیف پول                     -->
+  <!-- ======================================== -->
+
+  <div class="wallet-section-tabs" aria-label="بخش‌های کیف پول">
+
+    <button
+      type="button"
+      class="btn btn-primary"
+      data-wallet-section="management"
+      aria-pressed="true">
+      مدیریت کیف پول
+    </button>
+
+    <button
+      type="button"
+      class="btn btn-secondary"
+      data-wallet-section="cashback"
+      aria-pressed="false">
+      کش‌بک
+    </button>
+
   </div>
+
+
+  <!-- ======================================== -->
+  <!-- مدیریت کیف پول                          -->
+  <!-- ======================================== -->
+
   <div id="wallet-management-panel">
-  <div class="wallet-toolbar">
-    <div class="form-field">
-      <label for="wallet-user-search">جست‌وجوی کاربر</label>
-      <input id="wallet-user-search" type="search" placeholder="نام، ایمیل یا شماره تماس" />
-      <button class="btn btn-secondary" type="button" id="wallet-search-btn">نمایش کاربران</button>
-      <label for="wallet-user-id">انتخاب کاربر</label>
-      <select id="wallet-user-id"><option value="">ابتدا کاربران را جست‌وجو کنید</option></select>
-      <span id="wallet-search-status" role="status" aria-live="polite"></span>
+
+    <!-- ====================================== -->
+    <!-- جستجو و انتخاب کاربر                   -->
+    <!-- ====================================== -->
+
+    <div class="wallet-management-toolbar">
+
+      <div class="form-field wallet-user-search-field">
+
+        <label for="wallet-user-search">
+          جست‌وجوی کاربر
+        </label>
+
+        <input
+          id="wallet-user-search"
+          type="search"
+          placeholder="نام، ایمیل یا شماره تماس"
+        />
+
+        <button
+          class="btn btn-secondary"
+          type="button"
+          id="wallet-search-btn">
+          نمایش کاربران
+        </button>
+
+        <label for="wallet-user-id">
+          انتخاب کاربر
+        </label>
+
+        <select id="wallet-user-id">
+          <option value="">
+            ابتدا کاربران را جست‌وجو کنید
+          </option>
+        </select>
+
+        <span
+          id="wallet-search-status"
+          role="status"
+          aria-live="polite">
+        </span>
+
+      </div>
+
+
+      <!-- نوع تراکنش -->
+
+      <div class="form-field">
+
+        <label for="wallet-quick-type">
+          نوع سریع
+        </label>
+
+        <select id="wallet-quick-type">
+
+          <option value="">
+            همه نوع‌ها
+          </option>
+
+          <option value="credit">
+            واریز
+          </option>
+
+          <option value="debit">
+            برداشت
+          </option>
+
+          <option value="cashback">
+            کش‌بک
+          </option>
+
+          <option value="refund">
+            بازگشت وجه
+          </option>
+
+          <option value="adjustment">
+            تعدیل
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- تعداد تراکنش -->
+
+      <div class="form-field">
+
+        <label for="wallet-limit">
+          تعداد تراکنش
+        </label>
+
+        <select id="wallet-limit">
+
+          <option value="20">
+            20
+          </option>
+
+          <option value="50" selected>
+            50
+          </option>
+
+          <option value="100">
+            100
+          </option>
+
+          <option value="200">
+            200
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- بارگذاری -->
+
+      <div class="form-field wallet-load-action">
+
+        <label>
+          اقدام
+        </label>
+
+        <button
+          class="btn btn-primary"
+          type="button"
+          id="wallet-load-btn">
+          بارگذاری کیف پول
+        </button>
+
+      </div>
+
     </div>
-    <div class="form-field">
-      <label for="wallet-quick-type">نوع سریع</label>
-      <select id="wallet-quick-type">
-        <option value="">همه نوع‌ها</option>
-        <option value="credit">واریز</option>
-        <option value="debit">برداشت</option>
-        <option value="cashback">کش‌بک</option>
-        <option value="refund">بازگشت وجه</option>
-        <option value="adjustment">تعدیل</option>
-      </select>
+
+
+    <!-- ====================================== -->
+    <!-- حالت خالی                             -->
+    <!-- ====================================== -->
+
+    <div
+      id="wallet-empty-state"
+      class="wallet-empty">
+
+      کاربر را از فهرست انتخاب کن و روی
+      «بارگذاری کیف پول» بزن.
+
     </div>
-    <div class="form-field">
-      <label for="wallet-limit">تعداد تراکنش</label>
-      <select id="wallet-limit">
-        <option value="20">20</option>
-        <option value="50" selected>50</option>
-        <option value="100">100</option>
-        <option value="200">200</option>
-      </select>
+
+
+    <!-- ====================================== -->
+    <!-- اطلاعات کیف پول                       -->
+    <!-- ====================================== -->
+
+    <div
+      id="wallet-content"
+      class="admin-hidden">
+
+
+      <!-- Hero + Summary -->
+
+      <div class="wallet-overview">
+
+        <div
+          id="wallet-hero-card"
+          class="wallet-hero">
+        </div>
+
+        <div
+          id="wallet-summary-cards"
+          class="wallet-summary-grid">
+        </div>
+
+      </div>
+
+
+      <!-- اطلاعات کاربر + عملیات -->
+
+      <div class="wallet-grid">
+
+        <div
+          id="wallet-user-box"
+          class="wallet-user-card">
+        </div>
+
+        <div
+          id="wallet-adjust-box"
+          class="wallet-adjust-card">
+        </div>
+
+      </div>
+
+
+      <!-- تاریخچه -->
+
+      <div
+        id="wallet-history-box"
+        class="wallet-history-card">
+      </div>
+
     </div>
-    <div class="form-field" style="justify-content:flex-end;">
-      <label style="opacity:0;">اقدام</label>
-      <button class="btn btn-primary" type="button" id="wallet-load-btn">بارگذاری کیف پول</button>
-    </div>
+
   </div>
 
-  <div id="wallet-empty-state" class="wallet-empty">
-    کاربر را از فهرست انتخاب کن و روی «بارگذاری کیف پول» بزن.
-  </div>
 
-  <div id="wallet-content" class="admin-hidden">
-    <div class="wallet-overview">
-      <div id="wallet-hero-card" class="wallet-hero"></div>
-      <div id="wallet-summary-cards" class="wallet-summary-grid"></div>
+  <!-- ======================================== -->
+  <!-- CASHBACK                                 -->
+  <!-- ======================================== -->
+
+  <div
+    id="wallet-cashback-panel"
+    class="admin-hidden">
+
+    <p>
+      درصد کش‌بک برای همهٔ کاربران اعمال می‌شود
+      و به انتخاب کاربر وابسته نیست.
+    </p>
+
+    <p
+      id="wallet-cashback-status"
+      role="status">
+    </p>
+
+    <div
+      id="wallet-settings-box"
+      class="wallet-settings-card">
     </div>
 
-    <div class="wallet-grid">
-      <div id="wallet-user-box" class="wallet-user-card"></div>
-      <div id="wallet-adjust-box" class="wallet-adjust-card"></div>
-    </div>
+  </div>
 
-    <div id="wallet-history-box" class="wallet-history-card"></div>
-  </div>
-  </div>
-  <div id="wallet-cashback-panel" class="admin-hidden">
-    <p>درصد کش‌بک برای همهٔ کاربران اعمال می‌شود و به انتخاب کاربر وابسته نیست.</p>
-    <p id="wallet-cashback-status" role="status"></p>
-    <div id="wallet-settings-box" class="wallet-settings-card"></div>
-  </div>
 </div>
