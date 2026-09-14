@@ -28,3 +28,84 @@ BEGIN
       expired_at = NULL
   WHERE id = NEW.id;
 END;
+
+-- The existing order API creates a cashback_reversal debit using the original
+-- cashback amount. For phase-1 cashback rows, correct that debit to only the
+-- still-unspent amount so permanent wallet credit is never removed.
+CREATE TRIGGER IF NOT EXISTS trg_wallet_cashback_safe_reversal
+AFTER INSERT ON wallet_transactions
+WHEN NEW.type = 'debit'
+  AND NEW.source = 'cashback_reversal'
+  AND NEW.status = 'completed'
+  AND EXISTS (
+    SELECT 1
+    FROM wallet_transactions cb
+    WHERE cb.user_id = NEW.user_id
+      AND cb.order_id = NEW.order_id
+      AND cb.type = 'cashback'
+      AND cb.status = 'completed'
+      AND cb.remaining_amount IS NOT NULL
+  )
+BEGIN
+  UPDATE users
+  SET wallet_balance = MAX(
+        0,
+        COALESCE(wallet_balance, 0)
+        + MAX(
+            0,
+            ABS(COALESCE(NEW.amount, 0))
+            - COALESCE((
+                SELECT cb.remaining_amount
+                FROM wallet_transactions cb
+                WHERE cb.user_id = NEW.user_id
+                  AND cb.order_id = NEW.order_id
+                  AND cb.type = 'cashback'
+                  AND cb.status = 'completed'
+                  AND cb.remaining_amount IS NOT NULL
+                ORDER BY cb.id DESC
+                LIMIT 1
+              ), 0)
+          )
+      ),
+      updated_at = CURRENT_TIMESTAMP
+  WHERE id = NEW.user_id;
+
+  UPDATE wallet_transactions
+  SET amount = COALESCE((
+        SELECT cb.remaining_amount
+        FROM wallet_transactions cb
+        WHERE cb.user_id = NEW.user_id
+          AND cb.order_id = NEW.order_id
+          AND cb.type = 'cashback'
+          AND cb.status = 'completed'
+          AND cb.remaining_amount IS NOT NULL
+        ORDER BY cb.id DESC
+        LIMIT 1
+      ), 0),
+      balance_after = MAX(
+        0,
+        COALESCE(NEW.balance_before, 0)
+        - COALESCE((
+            SELECT cb.remaining_amount
+            FROM wallet_transactions cb
+            WHERE cb.user_id = NEW.user_id
+              AND cb.order_id = NEW.order_id
+              AND cb.type = 'cashback'
+              AND cb.status = 'completed'
+              AND cb.remaining_amount IS NOT NULL
+            ORDER BY cb.id DESC
+            LIMIT 1
+          ), 0)
+      ),
+      updated_at = CURRENT_TIMESTAMP
+  WHERE id = NEW.id;
+
+  UPDATE wallet_transactions
+  SET remaining_amount = 0,
+      updated_at = CURRENT_TIMESTAMP
+  WHERE user_id = NEW.user_id
+    AND order_id = NEW.order_id
+    AND type = 'cashback'
+    AND status = 'completed'
+    AND remaining_amount IS NOT NULL;
+END;
