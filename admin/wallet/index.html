@@ -18,7 +18,7 @@
       class="btn btn-secondary"
       data-wallet-section="cashback"
       aria-pressed="false"
-      onclick="setTimeout(async function(){var s=document.getElementById('wallet-cashback-status');try{if(s)s.textContent='در حال دریافت تنظیمات…';var r=await window.api('/api/v1/admin/wallet?limit=1');if(!r.ok||!r.data?.success)throw new Error(r.data?.error||'دریافت تنظیمات انجام نشد.');var x=r.data.settings||{};var el=function(id){return document.getElementById(id)};if(el('cashback-phase1-enabled'))el('cashback-phase1-enabled').value=(x.cashback_enabled===false||x.cashback_enabled===0||x.cashback_enabled==='0')?'0':'1';if(el('cashback-phase1-percent'))el('cashback-phase1-percent').value=x.cashback_percent??0;if(el('cashback-phase1-min'))el('cashback-phase1-min').value=x.cashback_min_order_amount??0;if(el('cashback-phase1-max'))el('cashback-phase1-max').value=x.cashback_max_per_order??0;if(el('cashback-phase1-eligibility'))el('cashback-phase1-eligibility').value=x.cashback_eligibility_mode||'all';if(el('cashback-phase1-selected'))el('cashback-phase1-selected').value=Array.isArray(x.cashback_selected_user_ids)?x.cashback_selected_user_ids.join(', '):(x.cashback_selected_user_ids||'');if(el('cashback-phase1-expiry'))el('cashback-phase1-expiry').value=x.cashback_expiry_months??6;if(el('cashback-phase1-statuses'))el('cashback-phase1-statuses').value=Array.isArray(x.cashback_statuses)?x.cashback_statuses.join(', '):(x.cashback_statuses||'completed');if(el('cashback-selected-users-field'))el('cashback-selected-users-field').style.display=(el('cashback-phase1-eligibility')?.value==='selected')?'flex':'none';if(s)s.textContent='';}catch(e){if(s)s.textContent=e.message||'خطا در دریافت تنظیمات';}},80)">
+      onclick="setTimeout(async function(){var s=document.getElementById('wallet-cashback-status');try{if(s)s.textContent='در حال دریافت تنظیمات…';var r=await window.api('/api/v1/admin/wallet?limit=1');if(!r.ok||!r.data?.success)throw new Error(r.data?.error||'دریافت تنظیمات انجام نشد.');var x=r.data.settings||{};var el=function(id){return document.getElementById(id)};var enabled=!(x.cashback_enabled===false||x.cashback_enabled===0||x.cashback_enabled==='0');if(el('cashback-phase1-enabled'))el('cashback-phase1-enabled').value=enabled?'1':'0';if(el('cashback-toggle-on')){el('cashback-toggle-on').className=enabled?'btn btn-primary':'btn btn-secondary';el('cashback-toggle-on').setAttribute('aria-pressed',enabled?'true':'false')}if(el('cashback-toggle-off')){el('cashback-toggle-off').className=!enabled?'btn btn-primary':'btn btn-secondary';el('cashback-toggle-off').setAttribute('aria-pressed',!enabled?'true':'false')}if(el('cashback-toggle-state')){el('cashback-toggle-state').textContent=enabled?'🟢 کش‌بک فعال است':'⚪ کش‌بک غیرفعال است'}if(el('cashback-phase1-percent'))el('cashback-phase1-percent').value=x.cashback_percent??0;if(el('cashback-phase1-min'))el('cashback-phase1-min').value=x.cashback_min_order_amount??0;if(el('cashback-phase1-max'))el('cashback-phase1-max').value=x.cashback_max_per_order??0;if(el('cashback-phase1-eligibility'))el('cashback-phase1-eligibility').value=x.cashback_eligibility_mode||'all';if(el('cashback-phase1-selected'))el('cashback-phase1-selected').value=Array.isArray(x.cashback_selected_user_ids)?x.cashback_selected_user_ids.join(', '):(x.cashback_selected_user_ids||'');if(el('cashback-phase1-expiry'))el('cashback-phase1-expiry').value=x.cashback_expiry_months??6;if(el('cashback-phase1-statuses'))el('cashback-phase1-statuses').value=Array.isArray(x.cashback_statuses)?x.cashback_statuses.join(', '):(x.cashback_statuses||'completed');if(el('cashback-selected-users-field'))el('cashback-selected-users-field').style.display=(el('cashback-phase1-eligibility')?.value==='selected')?'flex':'none';if(s)s.textContent='';}catch(e){if(s)s.textContent=e.message||'خطا در دریافت تنظیمات';}},80)">
       کش‌بک
     </button>
   </div>
@@ -84,36 +84,37 @@
   </div>
 
   <!-- ======================================== -->
-  <!-- CASHBACK - PHASE 1                      -->
+  <!-- CASHBACK                                -->
   <!-- ======================================== -->
   <div id="wallet-cashback-panel" class="admin-hidden">
 
     <p style="margin:0 0 14px;line-height:2;color:var(--text-soft);">
       قوانین کش‌بک از این بخش مدیریت می‌شوند. می‌توان کش‌بک را برای همه، کاربران VIP یا کاربران انتخاب‌شده فعال کرد.
-      غیرفعال‌کردن کش‌بک فقط از ثبت کش‌بک جدید جلوگیری می‌کند و موجودی قبلی کاربران را حذف نمی‌کند.
+      <strong>غیرفعال‌کردن کش‌بک فقط از ثبت کش‌بک جدید جلوگیری می‌کند و هیچ‌کدام از موجودی‌های کش‌بک قبلی کاربران را حذف نمی‌کند.</strong>
     </p>
 
     <p id="wallet-cashback-status" role="status" aria-live="polite"></p>
 
-    <!-- جعبه قدیمی برای سازگاری با wallet.js نگه داشته شده اما نمایش داده نمی‌شود -->
     <div id="wallet-settings-box" class="wallet-settings-card" style="display:none"></div>
 
     <div id="wallet-cashback-phase1-box" class="wallet-settings-card">
       <div class="wallet-card-head">
         <div>
           <h4>تنظیمات کش‌بک</h4>
-          <p>قوانین اصلی صدور کش‌بک، سقف، حداقل سفارش، کاربران مجاز و تاریخ انقضا.</p>
+          <p>قوانین اصلی صدور کش‌بک، سقف، حداقل سفارش، کاربران مجاز و مدت اعتبار.</p>
         </div>
       </div>
 
       <div class="filters-grid filters-grid-2">
         <div class="form-field">
-          <label for="cashback-phase1-enabled">وضعیت کش‌بک</label>
-          <select id="cashback-phase1-enabled">
-            <option value="1">فعال</option>
-            <option value="0">غیرفعال</option>
-          </select>
-          <small>در حالت غیرفعال، کش‌بک جدید صادر نمی‌شود؛ موجودی قبلی باقی می‌ماند.</small>
+          <label>وضعیت کش‌بک</label>
+          <input id="cashback-phase1-enabled" type="hidden" value="1" />
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button type="button" id="cashback-toggle-on" class="btn btn-primary" aria-pressed="true" onclick="var e=document.getElementById('cashback-phase1-enabled');if(e)e.value='1';this.className='btn btn-primary';this.setAttribute('aria-pressed','true');var o=document.getElementById('cashback-toggle-off');if(o){o.className='btn btn-secondary';o.setAttribute('aria-pressed','false')}var st=document.getElementById('cashback-toggle-state');if(st)st.textContent='🟢 کش‌بک فعال است';">روشن</button>
+            <button type="button" id="cashback-toggle-off" class="btn btn-secondary" aria-pressed="false" onclick="var e=document.getElementById('cashback-phase1-enabled');if(e)e.value='0';this.className='btn btn-primary';this.setAttribute('aria-pressed','true');var o=document.getElementById('cashback-toggle-on');if(o){o.className='btn btn-secondary';o.setAttribute('aria-pressed','false')}var st=document.getElementById('cashback-toggle-state');if(st)st.textContent='⚪ کش‌بک غیرفعال است';">خاموش</button>
+            <strong id="cashback-toggle-state" style="color:var(--text-soft);">🟢 کش‌بک فعال است</strong>
+          </div>
+          <small>خاموش‌کردن فقط جلوی صدور کش‌بک جدید را می‌گیرد. موجودی قبلی کاربران باقی می‌ماند و تا تاریخ انقضای خودش قابل استفاده است.</small>
         </div>
 
         <div class="form-field">
@@ -165,7 +166,7 @@
             <option value="11">۱۱ ماه</option>
             <option value="12">۱۲ ماه</option>
           </select>
-          <small>فقط کش‌بک‌های جدید طبق این مدت منقضی می‌شوند.</small>
+          <small>مدت اعتبار از زمان واریز کش‌بک به کیف پول محاسبه می‌شود و تغییر این گزینه روی کش‌بک‌های قبلی اثر نمی‌گذارد.</small>
         </div>
 
         <div class="form-field">
