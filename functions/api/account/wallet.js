@@ -1,163 +1,40 @@
-function getCookie(cookieString, key) {
-  if (!cookieString) return null;
-
-  const cookies = cookieString.split("; ");
-  const target = cookies.find((item) => item.startsWith(key + "="));
-  return target ? target.slice(key.length + 1) : null;
-}
+import { getCurrentUser } from "../../lib/admin";
+import { getCashbackSettings, isCashbackEligible } from "../../lib/cashback.js";
+import { expireCashbackForUser, getWalletBreakdown } from "../../lib/cashback-balance.js";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
 }
 
-async function getCurrentUser(request, env) {
-  const sessionId = getCookie(request.headers.get("cookie") || "", "session_id");
-  if (!sessionId) return null;
-
-  return await env.DB.prepare(`
-    SELECT
-      id,
-      full_name,
-      email,
-      phone,
-      role,
-      COALESCE(wallet_balance, 0) AS wallet_balance
-    FROM users
-    WHERE id = (
-      SELECT user_id
-      FROM sessions
-      WHERE id = ?
-      LIMIT 1
-    )
-    LIMIT 1
-  `).bind(sessionId).first();
-}
-
-function normalizeStatuses(rawValue) {
-  if (!rawValue) return ["completed"];
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (Array.isArray(parsed)) {
-      const list = parsed
-        .map((item) => String(item || "").trim().toLowerCase())
-        .filter(Boolean);
-      return list.length ? list : ["completed"];
-    }
-  } catch (_) {}
-
-  const list = String(rawValue)
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-
-  return list.length ? list : ["completed"];
-}
-
-async function getWalletSettings(env) {
-  const defaults = {
-    cashback_percent: 0,
-    cashback_statuses: ["completed"]
-  };
-
-  const attempts = [
-    {
-      table: "app_settings",
-      keyColumn: "setting_key",
-      valueColumn: "setting_value"
-    },
-    {
-      table: "site_settings",
-      keyColumn: "key",
-      valueColumn: "value"
-    }
-  ];
-
-  for (const attempt of attempts) {
-    try {
-      const rows = await env.DB.prepare(`
-        SELECT ${attempt.keyColumn} AS setting_key, ${attempt.valueColumn} AS setting_value
-        FROM ${attempt.table}
-        WHERE ${attempt.keyColumn} IN ('cashback_percent', 'cashback_statuses')
-      `).all();
-
-      const results = Array.isArray(rows?.results) ? rows.results : [];
-      if (!results.length) continue;
-
-      const map = {};
-      for (const row of results) {
-        map[String(row?.setting_key || "").trim()] = row?.setting_value;
-      }
-
-      let cashbackPercent = Number(map.cashback_percent || 0);
-      if (!Number.isFinite(cashbackPercent) || cashbackPercent < 0) {
-        cashbackPercent = 0;
-      }
-
-      return {
-        cashback_percent: cashbackPercent,
-        cashback_statuses: normalizeStatuses(map.cashback_statuses)
-      };
-    } catch (error) {
-      const message = String(error?.message || error || "");
-      const ignorable =
-        message.includes("no such table") ||
-        message.includes("no such column");
-
-      if (!ignorable) {
-        throw error;
-      }
-    }
-  }
-
-  return defaults;
-}
-
 export async function onRequestGet(context) {
   try {
-    const user = await getCurrentUser(context.request, context.env);
+    const user = await getCurrentUser(context);
+    if (!user) return json({ success: false, error: "unauthorized" }, 401);
 
-    if (!user) {
-      return json({ success: false, error: "unauthorized" }, 401);
-    }
+    await expireCashbackForUser(context.env.DB, user.id);
 
-    const [transactionsQuery, settings] = await Promise.all([
-      context.env.DB.prepare(`
-        SELECT
-          id,
-          type,
-          amount,
-          balance_before,
-          balance_after,
-          status,
-          reference_type,
-          reference_id,
-          note,
-          created_by_user_id,
-          created_at
-        FROM wallet_transactions
-        WHERE user_id = ?
-        ORDER BY id DESC
-        LIMIT 100
-      `).bind(user.id).all(),
-      getWalletSettings(context.env)
-    ]);
+    const settings = await getCashbackSettings(context.env.DB);
+    const breakdown = await getWalletBreakdown(context.env.DB, user.id);
+    const transactionsQuery = await context.env.DB.prepare(`
+      SELECT id, type, amount, balance_before, balance_after, status, source,
+             reference_type, reference_id, note, order_id, order_number,
+             remaining_amount, expires_at, expired_at, created_by_user_id, created_at
+      FROM wallet_transactions
+      WHERE user_id = ?
+      ORDER BY id DESC
+      LIMIT 100
+    `).bind(user.id).all();
 
-    const transactions = Array.isArray(transactionsQuery?.results)
-      ? transactionsQuery.results.map((tx) => ({
-          id: Number(tx.id || 0),
-          type: tx.type || "",
-          amount: Number(tx.amount || 0),
-          balance_before: Number(tx.balance_before || 0),
-          balance_after: Number(tx.balance_after || 0),
-          status: tx.status || "",
-          reference_type: tx.reference_type || "",
-          reference_id: tx.reference_id || "",
-          note: tx.note || "",
-          created_by_user_id: tx.created_by_user_id ? Number(tx.created_by_user_id) : null,
-          created_at: tx.created_at || null
-        }))
-      : [];
+    const transactions = (transactionsQuery?.results || []).map((tx) => ({
+      ...tx,
+      id: Number(tx.id || 0),
+      amount: Number(tx.amount || 0),
+      balance_before: Number(tx.balance_before || 0),
+      balance_after: Number(tx.balance_after || 0),
+      remaining_amount: tx.remaining_amount == null ? null : Number(tx.remaining_amount || 0)
+    }));
+
+    const eligible = isCashbackEligible(settings, user);
 
     return json({
       success: true,
@@ -167,20 +44,19 @@ export async function onRequestGet(context) {
         email: user.email || "",
         phone: user.phone || "",
         role: user.role || "customer",
-        wallet_balance: Number(user.wallet_balance || 0)
+        wallet_balance: breakdown.wallet_balance,
+        cashback_balance: breakdown.cashback_balance,
+        permanent_balance: breakdown.permanent_balance
       },
-      wallet_balance: Number(user.wallet_balance || 0),
+      wallet_balance: breakdown.wallet_balance,
+      cashback_balance: breakdown.cashback_balance,
+      permanent_balance: breakdown.permanent_balance,
       cashback_percent: Number(settings.cashback_percent || 0),
-      settings: {
-        cashback_percent: Number(settings.cashback_percent || 0),
-        cashback_statuses: settings.cashback_statuses
-      },
+      cashback_eligible: eligible,
+      settings: { ...settings, cashback_eligible: eligible },
       transactions
     });
   } catch (error) {
-    return json(
-      { success: false, error: String(error?.message || error) },
-      500
-    );
+    return json({ success: false, error: String(error?.message || error) }, 500);
   }
 }
