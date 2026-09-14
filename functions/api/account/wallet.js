@@ -54,10 +54,51 @@ function normalizeStatuses(rawValue) {
   return list.length ? list : ["completed"];
 }
 
+function normalizeBoolean(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["1", "true", "yes", "on", "enabled"].includes(normalized)) return true;
+  if (["0", "false", "no", "off", "disabled"].includes(normalized)) return false;
+  return fallback;
+}
+
+function normalizeIdList(rawValue) {
+  let list = [];
+
+  if (Array.isArray(rawValue)) {
+    list = rawValue;
+  } else if (typeof rawValue === "string") {
+    try {
+      const parsed = JSON.parse(rawValue);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch (_) {
+      list = rawValue.split(",");
+    }
+  }
+
+  return [...new Set(
+    list
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0)
+  )];
+}
+
+function normalizeMonths(value, fallback = 3) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.min(12, Math.round(parsed)));
+}
+
 async function getWalletSettings(env) {
   const defaults = {
+    cashback_enabled: true,
     cashback_percent: 0,
-    cashback_statuses: ["completed"]
+    cashback_statuses: ["completed"],
+    cashback_min_order_amount: 0,
+    cashback_max_amount: 0,
+    cashback_expiry_months: 3,
+    cashback_eligibility_mode: "all",
+    cashback_eligible_user_ids: []
   };
 
   const attempts = [
@@ -78,7 +119,16 @@ async function getWalletSettings(env) {
       const rows = await env.DB.prepare(`
         SELECT ${attempt.keyColumn} AS setting_key, ${attempt.valueColumn} AS setting_value
         FROM ${attempt.table}
-        WHERE ${attempt.keyColumn} IN ('cashback_percent', 'cashback_statuses')
+        WHERE ${attempt.keyColumn} IN (
+          'cashback_enabled',
+          'cashback_percent',
+          'cashback_statuses',
+          'cashback_min_order_amount',
+          'cashback_max_amount',
+          'cashback_expiry_months',
+          'cashback_eligibility_mode',
+          'cashback_eligible_user_ids'
+        )
       `).all();
 
       const results = Array.isArray(rows?.results) ? rows.results : [];
@@ -95,8 +145,17 @@ async function getWalletSettings(env) {
       }
 
       return {
+        cashback_enabled: normalizeBoolean(map.cashback_enabled ?? "1", true),
         cashback_percent: cashbackPercent,
-        cashback_statuses: normalizeStatuses(map.cashback_statuses)
+        cashback_statuses: normalizeStatuses(map.cashback_statuses),
+        cashback_min_order_amount: Math.max(0, Number(map.cashback_min_order_amount || 0) || 0),
+        cashback_max_amount: Math.max(0, Number(map.cashback_max_amount || 0) || 0),
+        cashback_expiry_months: normalizeMonths(map.cashback_expiry_months),
+        cashback_eligibility_mode:
+          String(map.cashback_eligibility_mode || "all").trim().toLowerCase() === "selected"
+            ? "selected"
+            : "all",
+        cashback_eligible_user_ids: normalizeIdList(map.cashback_eligible_user_ids)
       };
     } catch (error) {
       const message = String(error?.message || error || "");
@@ -172,8 +231,17 @@ export async function onRequestGet(context) {
       wallet_balance: Number(user.wallet_balance || 0),
       cashback_percent: Number(settings.cashback_percent || 0),
       settings: {
+        cashback_enabled: settings.cashback_enabled,
         cashback_percent: Number(settings.cashback_percent || 0),
-        cashback_statuses: settings.cashback_statuses
+        cashback_statuses: settings.cashback_statuses,
+        cashback_min_order_amount: Number(settings.cashback_min_order_amount || 0),
+        cashback_max_amount: Number(settings.cashback_max_amount || 0),
+        cashback_expiry_months: Number(settings.cashback_expiry_months || 3),
+        cashback_eligibility_mode: settings.cashback_eligibility_mode,
+        cashback_eligible_user_ids: settings.cashback_eligible_user_ids,
+        cashback_user_eligible:
+          settings.cashback_eligibility_mode !== "selected" ||
+          settings.cashback_eligible_user_ids.includes(Number(user.id))
       },
       transactions
     });

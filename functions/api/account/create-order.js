@@ -222,10 +222,51 @@ function normalizeStatuses(rawValue) {
     : ["completed"];
 }
 
+function normalizeBoolean(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  const normalized = normalizeText(value).toLowerCase();
+  if (["1", "true", "yes", "on", "enabled"].includes(normalized)) return true;
+  if (["0", "false", "no", "off", "disabled"].includes(normalized)) return false;
+  return fallback;
+}
+
+function normalizeIdList(rawValue) {
+  let list = [];
+
+  if (Array.isArray(rawValue)) {
+    list = rawValue;
+  } else if (typeof rawValue === "string") {
+    try {
+      const parsed = JSON.parse(rawValue);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch (_) {
+      list = rawValue.split(",");
+    }
+  }
+
+  return [...new Set(
+    list
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0)
+  )];
+}
+
+function normalizeMonths(value, fallback = 3) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.min(12, Math.round(parsed)));
+}
+
 async function getCashbackSettings(db) {
   const defaults = {
+    cashbackEnabled: true,
     cashbackPercent: 0,
-    cashbackStatuses: ["completed"]
+    cashbackStatuses: ["completed"],
+    cashbackMinOrderAmount: 0,
+    cashbackMaxAmount: 0,
+    cashbackExpiryMonths: 3,
+    cashbackEligibilityMode: "all",
+    cashbackEligibleUserIds: []
   };
 
   try {
@@ -233,8 +274,14 @@ async function getCashbackSettings(db) {
       SELECT setting_key, setting_value
       FROM app_settings
       WHERE setting_key IN (
+        'cashback_enabled',
         'cashback_percent',
-        'cashback_statuses'
+        'cashback_statuses',
+        'cashback_min_order_amount',
+        'cashback_max_amount',
+        'cashback_expiry_months',
+        'cashback_eligibility_mode',
+        'cashback_eligible_user_ids'
       )
     `).all();
 
@@ -271,12 +318,44 @@ async function getCashbackSettings(db) {
     );
 
     return {
+      cashbackEnabled: normalizeBoolean(settingsMap.cashback_enabled ?? "1", true),
       cashbackPercent,
-      cashbackStatuses
+      cashbackStatuses,
+      cashbackMinOrderAmount: normalizeNumber(settingsMap.cashback_min_order_amount),
+      cashbackMaxAmount: normalizeNumber(settingsMap.cashback_max_amount),
+      cashbackExpiryMonths: normalizeMonths(settingsMap.cashback_expiry_months),
+      cashbackEligibilityMode:
+        normalizeText(settingsMap.cashback_eligibility_mode).toLowerCase() === "selected"
+          ? "selected"
+          : "all",
+      cashbackEligibleUserIds: normalizeIdList(settingsMap.cashback_eligible_user_ids)
     };
   } catch (_) {
     return defaults;
   }
+}
+
+function calculateCashbackAmount(settings, userId, payableAmount) {
+  if (!settings.cashbackEnabled) return 0;
+  if (settings.cashbackEligibilityMode === "selected" &&
+      !settings.cashbackEligibleUserIds.includes(Number(userId))) {
+    return 0;
+  }
+  if (payableAmount <= 0) return 0;
+  if (settings.cashbackMinOrderAmount > 0 &&
+      payableAmount < settings.cashbackMinOrderAmount) {
+    return 0;
+  }
+
+  const percent = Math.max(0, Math.min(100, Number(settings.cashbackPercent || 0)));
+  if (percent <= 0) return 0;
+
+  const calculated = Math.round((payableAmount * percent) / 100);
+  if (settings.cashbackMaxAmount > 0) {
+    return Math.min(calculated, settings.cashbackMaxAmount);
+  }
+
+  return calculated;
 }
 
 async function createOrUpdateAddress(context, user, address) {
@@ -789,17 +868,16 @@ export async function onRequestPost(context) {
       totalAmount - walletUsedAmount
     );
 
-    const { cashbackPercent } =
+    const cashbackSettings =
       await getCashbackSettings(context.env.DB);
 
     const cashbackBase = payableAmount;
 
-    const cashbackAmount =
-      cashbackBase > 0
-        ? Math.round(
-            (cashbackBase * cashbackPercent) / 100
-          )
-        : 0;
+    const cashbackAmount = calculateCashbackAmount(
+      cashbackSettings,
+      user.id,
+      cashbackBase
+    );
 
     const savedAddress =
       await createOrUpdateAddress(
@@ -1152,9 +1230,10 @@ export async function onRequestPost(context) {
         wallet_used_amount: walletUsedAmount,
         payable_amount: payableAmount,
 
-        cashback_percent: cashbackPercent,
+        cashback_percent: cashbackSettings.cashbackPercent,
         cashback_base: cashbackBase,
         cashback_amount: cashbackAmount,
+        cashback_expiry_months: cashbackSettings.cashbackExpiryMonths,
 
         cashback_status:
           cashbackAmount > 0
