@@ -54,7 +54,11 @@
       loaded: false,
       available: false,
       balance: 0,
-      cashbackPercent: 0
+      cashbackPercent: 0,
+      cashbackEnabled: false,
+      cashbackEligible: false,
+      cashbackMinOrder: 0,
+      cashbackMaxPerOrder: 0
     }
   };
 
@@ -80,12 +84,8 @@
   }
 
   function parsePrice(raw) {
-    if (typeof raw === "number" && Number.isFinite(raw)) {
-      return Math.max(0, Math.round(raw));
-    }
-    if (raw === null || raw === undefined || raw === "") {
-      return null;
-    }
+    if (typeof raw === "number" && Number.isFinite(raw)) return Math.max(0, Math.round(raw));
+    if (raw === null || raw === undefined || raw === "") return null;
     const normalized = toEnglishDigits(String(raw)).replace(/[^\d]/g, "");
     if (!normalized) return null;
     const amount = Number(normalized);
@@ -109,14 +109,10 @@
   function findProductByIdentifiers(productId, slug) {
     const safeId = String(productId ?? "").trim();
     const safeSlug = String(slug ?? "").trim();
-    return (
-      getProducts().find((product) => {
-        return (
-          (safeSlug && String(product?.slug || "").trim() === safeSlug) ||
-          (safeId && String(product?.id ?? "").trim() === safeId)
-        );
-      }) || null
-    );
+    return getProducts().find((product) =>
+      (safeSlug && String(product?.slug || "").trim() === safeSlug) ||
+      (safeId && String(product?.id ?? "").trim() === safeId)
+    ) || null;
   }
 
   function setCheckoutMessage(message, type = "info") {
@@ -124,143 +120,80 @@
     els.checkoutMessage.textContent = message || "";
     els.checkoutMessage.className = "checkout-message";
     if (!message) return;
-    if (type === "success") {
-      els.checkoutMessage.classList.add("is-success");
-    } else if (type === "error") {
-      els.checkoutMessage.classList.add("is-error");
-    } else {
-      els.checkoutMessage.classList.add("is-info");
-    }
+    els.checkoutMessage.classList.add(type === "success" ? "is-success" : type === "error" ? "is-error" : "is-info");
   }
 
   function getProductImage(product) {
-    const firstImage = Array.isArray(product?.images) && product.images.length
-      ? String(product.images[0] || "").trim()
-      : "";
+    const firstImage = Array.isArray(product?.images) && product.images.length ? String(product.images[0] || "").trim() : "";
     const primaryImage = String(product?.primaryImage || "").trim();
     const resolved = primaryImage || firstImage;
     if (!resolved) return "./assets/images/placeholder.png";
-    if (resolved.startsWith("http://") || resolved.startsWith("https://")) return resolved;
+    if (/^https?:\/\//i.test(resolved)) return resolved;
     if (resolved.startsWith("/")) return `.${resolved}`;
     return `./${resolved.replace(/^\.?\//, "")}`;
   }
 
   function getSelectedShippingFee() {
-    const value = els.province?.value || "";
-    return SHIPPING_FEES[value] || 0;
+    return SHIPPING_FEES[els.province?.value || ""] || 0;
   }
 
   function getSelectedShippingLabel() {
-    const value = els.province?.value || "";
-    return SHIPPING_LABELS[value] || "";
+    return SHIPPING_LABELS[els.province?.value || ""] || "";
   }
 
   function getCartItems() {
-    try {
-      if (window.CartStore?.getCartDetailed) {
-        const items = window.CartStore.getCartDetailed();
-        if (Array.isArray(items)) return items;
-      }
-    } catch (_) {}
-    try {
-      if (window.CartStore?.getItems) {
-        const items = window.CartStore.getItems();
-        if (Array.isArray(items)) return items;
-      }
-    } catch (_) {}
-    try {
-      if (window.Cart?.getItems) {
-        const items = window.Cart.getItems();
-        if (Array.isArray(items)) return items;
-      }
-    } catch (_) {}
+    try { if (window.CartStore?.getCartDetailed) { const x = window.CartStore.getCartDetailed(); if (Array.isArray(x)) return x; } } catch (_) {}
+    try { if (window.CartStore?.getItems) { const x = window.CartStore.getItems(); if (Array.isArray(x)) return x; } } catch (_) {}
+    try { if (window.Cart?.getItems) { const x = window.Cart.getItems(); if (Array.isArray(x)) return x; } } catch (_) {}
     return [];
   }
 
   function clearCart() {
-    try {
-      if (window.CartStore?.clearCart) {
-        window.CartStore.clearCart();
-        return;
-      }
-    } catch (_) {}
-    try {
-      if (window.Cart?.clear) {
-        window.Cart.clear();
-        return;
-      }
-    } catch (_) {}
+    try { if (window.CartStore?.clearCart) return window.CartStore.clearCart(); } catch (_) {}
+    try { if (window.Cart?.clear) return window.Cart.clear(); } catch (_) {}
   }
 
   function normalizeCartItems(items) {
-    return (Array.isArray(items) ? items : [])
-      .map((item) => {
-        const detailedProduct = item?.product || null;
-        const productId = item?.productId ?? item?.product_id ?? detailedProduct?.id ?? null;
-        const slug = String(item?.slug || detailedProduct?.slug || "").trim();
-        const liveProduct = findProductByIdentifiers(productId, slug);
-        const quantity = Math.max(1, Number(item?.quantity ?? item?.qty ?? 1) || 1);
-
-        const product = liveProduct || detailedProduct || {};
-        
-        let unitPrice = null;
-        if (liveProduct?.displayPrice !== undefined && liveProduct?.displayPrice !== null) {
-          unitPrice = parsePrice(liveProduct.displayPrice);
-        } else if (liveProduct?.price !== undefined && liveProduct?.price !== null) {
-          unitPrice = parsePrice(liveProduct.price);
-        } else if (detailedProduct?.price !== undefined && detailedProduct?.price !== null) {
-          unitPrice = parsePrice(detailedProduct.price);
-        } else {
-          unitPrice = parsePrice(item?.unitPrice ?? item?.unit_price ?? item?.price);
-        }
-
-        const totalPrice = unitPrice !== null ? unitPrice * quantity : null;
-
-        return {
-          productId: product?.id ?? productId,
+    return (Array.isArray(items) ? items : []).map((item) => {
+      const detailedProduct = item?.product || null;
+      const productId = item?.productId ?? item?.product_id ?? detailedProduct?.id ?? null;
+      const slug = String(item?.slug || detailedProduct?.slug || "").trim();
+      const liveProduct = findProductByIdentifiers(productId, slug);
+      const quantity = Math.max(1, Number(item?.quantity ?? item?.qty ?? 1) || 1);
+      const product = liveProduct || detailedProduct || {};
+      let unitPrice = null;
+      if (liveProduct?.displayPrice != null) unitPrice = parsePrice(liveProduct.displayPrice);
+      else if (liveProduct?.price != null) unitPrice = parsePrice(liveProduct.price);
+      else if (detailedProduct?.price != null) unitPrice = parsePrice(detailedProduct.price);
+      else unitPrice = parsePrice(item?.unitPrice ?? item?.unit_price ?? item?.price);
+      return {
+        productId: product?.id ?? productId,
+        slug: product?.slug || slug,
+        quantity,
+        product: {
+          id: product?.id ?? productId,
           slug: product?.slug || slug,
-          quantity,
-          product: {
-            id: product?.id ?? productId,
-            slug: product?.slug || slug,
-            name: product?.name || item?.name || "محصول",
-            category: product?.category || "",
-            pageUrl: product?.pageUrl || "",
-            images: Array.isArray(product?.images) ? product.images : [],
-            primaryImage: product?.primaryImage || ""
-          },
-          unitPrice,
-          totalPrice
-        };
-      })
-      .filter((item) => item.quantity > 0);
+          name: product?.name || item?.name || "محصول",
+          category: product?.category || "",
+          pageUrl: product?.pageUrl || "",
+          images: Array.isArray(product?.images) ? product.images : [],
+          primaryImage: product?.primaryImage || ""
+        },
+        unitPrice,
+        totalPrice: unitPrice !== null ? unitPrice * quantity : null
+      };
+    }).filter((item) => item.quantity > 0);
   }
 
   function getCartPricing(items = normalizeCartItems(getCartItems())) {
     const shippingFee = getSelectedShippingFee();
-    let totalQty = 0;
-    let subtotal = 0;
-    let hasNumericPrice = true;
-
+    let totalQty = 0, subtotal = 0, hasNumericPrice = true;
     for (const item of items) {
       totalQty += item.quantity;
-      if (item.unitPrice === null) {
-        hasNumericPrice = false;
-        continue;
-      }
+      if (item.unitPrice === null) { hasNumericPrice = false; continue; }
       subtotal += item.unitPrice * item.quantity;
     }
-
-    const total = hasNumericPrice ? subtotal + shippingFee : null;
-
-    return {
-      items,
-      totalQty,
-      subtotal,
-      shippingFee,
-      total,
-      hasNumericPrice
-    };
+    return { items, totalQty, subtotal, shippingFee, total: hasNumericPrice ? subtotal + shippingFee : null, hasNumericPrice };
   }
 
   function getMaxWalletUsable(totalAmount) {
@@ -269,125 +202,95 @@
   }
 
   function getRequestedWalletAmount(totalAmount) {
-    if (!state.wallet.available) return 0;
-    if (!els.walletUseToggle?.checked || !els.walletUseAmount) return 0;
+    if (!state.wallet.available || !els.walletUseToggle?.checked || !els.walletUseAmount) return 0;
     const maxUsable = getMaxWalletUsable(totalAmount);
     const raw = String(els.walletUseAmount.value || "").trim();
     if (!raw) return maxUsable;
     const amount = parsePrice(raw);
-    if (amount === null) return 0;
-    return Math.max(0, Math.min(amount, maxUsable));
+    return amount === null ? 0 : Math.max(0, Math.min(amount, maxUsable));
   }
 
   function getWalletAppliedAmount(totalAmount) {
-    if (totalAmount === null) return 0;
-    return getRequestedWalletAmount(totalAmount);
+    return totalAmount === null ? 0 : getRequestedWalletAmount(totalAmount);
   }
 
-  function getCashbackAmount(baseAmount) {
+  function getCashbackAmount(totalAmount, walletUsed) {
+    if (!state.wallet.cashbackEnabled || !state.wallet.cashbackEligible) return 0;
+    if (Number(totalAmount || 0) < Number(state.wallet.cashbackMinOrder || 0)) return 0;
+    const baseAmount = Math.max(0, Number(totalAmount || 0) - Number(walletUsed || 0));
     const percent = Number(state.wallet.cashbackPercent || 0);
-    if (!baseAmount || baseAmount <= 0 || percent <= 0) return 0;
-    return Math.max(0, Math.round((baseAmount * percent) / 100));
+    if (baseAmount <= 0 || percent <= 0) return 0;
+    let amount = Math.max(0, Math.round((baseAmount * percent) / 100));
+    const cap = Number(state.wallet.cashbackMaxPerOrder || 0);
+    if (cap > 0) amount = Math.min(amount, cap);
+    return amount;
   }
 
   function resetWalletState() {
-    state.wallet.loaded = false;
-    state.wallet.available = false;
-    state.wallet.balance = 0;
-    state.wallet.cashbackPercent = 0;
+    state.wallet = { loaded: false, available: false, balance: 0, cashbackPercent: 0, cashbackEnabled: false, cashbackEligible: false, cashbackMinOrder: 0, cashbackMaxPerOrder: 0 };
   }
 
   function applyWalletState(payload) {
-    const balanceCandidates = [
-      payload?.wallet_balance,
-      payload?.user?.wallet_balance,
-      payload?.wallet?.balance,
-      payload?.balance
-    ];
-    const cashbackCandidates = [
-      payload?.cashback_percent,
-      payload?.settings?.cashback_percent,
-      payload?.wallet?.cashback_percent
-    ];
-
+    const balanceCandidates = [payload?.wallet_balance, payload?.user?.wallet_balance, payload?.wallet?.balance, payload?.balance];
     let resolvedBalance = null;
     for (const candidate of balanceCandidates) {
       const parsed = parsePrice(candidate);
-      if (parsed !== null) {
-        resolvedBalance = parsed;
-        break;
-      }
+      if (parsed !== null) { resolvedBalance = parsed; break; }
     }
+    if (resolvedBalance === null) { resetWalletState(); return false; }
 
-    let resolvedCashback = 0;
-    for (const candidate of cashbackCandidates) {
-      const parsed = Number(candidate);
-      if (Number.isFinite(parsed) && parsed >= 0) {
-        resolvedCashback = parsed;
-        break;
-      }
-    }
-
-    if (resolvedBalance === null) {
-      resetWalletState();
-      return false;
-    }
+    const settings = payload?.settings || {};
+    const enabledValue = settings.cashback_enabled;
+    const enabled = enabledValue === true || ["1", "true", "on", "yes"].includes(String(enabledValue ?? "1").toLowerCase());
+    const percent = Math.max(0, Number(payload?.cashback_percent ?? settings.cashback_percent ?? 0) || 0);
+    const rawMode = String(settings.cashback_eligibility_mode || "all").toLowerCase();
+    const mode = ["all", "vip", "selected"].includes(rawMode) ? rawMode : "all";
+    const user = payload?.user || {};
+    const selectedIds = Array.isArray(settings.cashback_selected_user_ids)
+      ? settings.cashback_selected_user_ids.map(Number)
+      : String(settings.cashback_selected_user_ids || "").split(",").map(Number);
+    const userId = Number(user?.id || 0);
+    const role = String(user?.role || "").trim().toLowerCase();
+    const eligible = enabled && percent > 0 && (
+      mode === "all" ||
+      (mode === "vip" && role === "vip") ||
+      (mode === "selected" && userId > 0 && selectedIds.includes(userId))
+    );
 
     state.wallet.loaded = true;
     state.wallet.available = true;
     state.wallet.balance = resolvedBalance;
-    state.wallet.cashbackPercent = Math.max(0, resolvedCashback);
+    state.wallet.cashbackPercent = percent;
+    state.wallet.cashbackEnabled = enabled;
+    state.wallet.cashbackEligible = eligible;
+    state.wallet.cashbackMinOrder = Math.max(0, Number(settings.cashback_min_order_amount || 0) || 0);
+    state.wallet.cashbackMaxPerOrder = Math.max(0, Number(settings.cashback_max_per_order || 0) || 0);
     return true;
   }
 
   async function loadCurrentRate() {
     try {
-      const response = await fetch("/api/rate/current", {
-        method: "GET",
-        credentials: "same-origin"
-      });
+      const response = await fetch("/api/rate/current", { method: "GET", credentials: "same-origin" });
       const data = await response.json();
-      if (data.success) {
-        state.currentRate = data.rate;
-      }
-    } catch (_) {
-      state.currentRate = null;
-    }
+      if (data.success) state.currentRate = data.rate;
+    } catch (_) { state.currentRate = null; }
   }
 
   async function loadWalletData() {
     resetWalletState();
     try {
-      const response = await fetch("/api/account/wallet", {
-        method: "GET",
-        credentials: "same-origin",
-        headers: { Accept: "application/json" }
-      });
-      let data = null;
-      try {
-        data = await response.json();
-      } catch (_) {
-        data = null;
-      }
-      if (!response.ok || !data?.success) {
-        updateWalletUi();
-        return;
-      }
+      const response = await fetch("/api/account/wallet", { method: "GET", credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) { updateWalletUi(); return; }
       applyWalletState(data);
       updateWalletUi();
-    } catch (_) {
-      resetWalletState();
-      updateWalletUi();
-    }
+    } catch (_) { resetWalletState(); updateWalletUi(); }
   }
 
   function updateWalletUi() {
     const pricing = getCartPricing();
     const walletVisible = state.wallet.available && pricing.total !== null;
-
-    if (els.walletBox) {
-      els.walletBox.hidden = !walletVisible;
-    }
+    if (els.walletBox) els.walletBox.hidden = !walletVisible;
 
     if (!walletVisible) {
       if (els.walletUseFields) els.walletUseFields.hidden = true;
@@ -397,55 +300,27 @@
       if (els.summaryWalletUsed) els.summaryWalletUsed.textContent = "0 تومان";
       if (els.summaryCashback) els.summaryCashback.textContent = "0 تومان";
       if (els.walletHelpText) els.walletHelpText.textContent = "کیف پول برای این سفارش در دسترس نیست.";
-      if (els.summaryTotal) {
-        els.summaryTotal.textContent = pricing.total !== null
-          ? `${formatNumber(pricing.total)} تومان`
-          : "تماس بگیرید";
-      }
+      if (els.summaryTotal) els.summaryTotal.textContent = pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
       return;
     }
 
     const maxUsable = getMaxWalletUsable(pricing.total);
     const walletUsed = getWalletAppliedAmount(pricing.total);
     const payableAmount = Math.max(0, pricing.total - walletUsed);
-    const cashbackBase = payableAmount;
-    const cashbackAmount = getCashbackAmount(cashbackBase);
+    const cashbackAmount = getCashbackAmount(pricing.total, walletUsed);
 
-    if (els.walletBalance) {
-      els.walletBalance.textContent = `${formatNumber(state.wallet.balance)} تومان`;
-    }
-
-    if (els.walletUseFields) {
-      els.walletUseFields.hidden = !els.walletUseToggle?.checked;
-    }
-
-    if (els.walletUseAmount) {
-      els.walletUseAmount.max = String(maxUsable);
-    }
-
-    if (els.walletDiscountRow) {
-      els.walletDiscountRow.hidden = walletUsed <= 0;
-    }
-
-    if (els.summaryWalletUsed) {
-      els.summaryWalletUsed.textContent = `${formatNumber(walletUsed)} تومان`;
-    }
-
-    if (els.cashbackRow) {
-      els.cashbackRow.hidden = cashbackAmount <= 0;
-    }
-
-    if (els.summaryCashback) {
-      els.summaryCashback.textContent = `${formatNumber(cashbackAmount)} تومان`;
-    }
-
-    if (els.summaryTotal) {
-      els.summaryTotal.textContent = `${formatNumber(payableAmount)} تومان`;
-    }
-
+    if (els.walletBalance) els.walletBalance.textContent = `${formatNumber(state.wallet.balance)} تومان`;
+    if (els.walletUseFields) els.walletUseFields.hidden = !els.walletUseToggle?.checked;
+    if (els.walletUseAmount) els.walletUseAmount.max = String(maxUsable);
+    if (els.walletDiscountRow) els.walletDiscountRow.hidden = walletUsed <= 0;
+    if (els.summaryWalletUsed) els.summaryWalletUsed.textContent = `${formatNumber(walletUsed)} تومان`;
+    if (els.cashbackRow) els.cashbackRow.hidden = !state.wallet.cashbackEligible || cashbackAmount <= 0;
+    if (els.summaryCashback) els.summaryCashback.textContent = `${formatNumber(cashbackAmount)} تومان`;
+    if (els.summaryTotal) els.summaryTotal.textContent = `${formatNumber(payableAmount)} تومان`;
     if (els.walletHelpText) {
-      els.walletHelpText.textContent =
-        `حداکثر قابل استفاده از کیف پول: ${formatNumber(maxUsable)} تومان — کش‌بک این سفارش: ${formatNumber(cashbackAmount)} تومان`;
+      els.walletHelpText.textContent = state.wallet.cashbackEligible
+        ? `حداکثر قابل استفاده از کیف پول: ${formatNumber(maxUsable)} تومان — کش‌بک این سفارش: ${formatNumber(cashbackAmount)} تومان`
+        : `حداکثر قابل استفاده از کیف پول: ${formatNumber(maxUsable)} تومان`;
     }
   }
 
@@ -453,30 +328,11 @@
     const today = new Date();
     const pricing = getCartPricing();
     const items = pricing.items;
-
-    if (els.invoiceDate) {
-      els.invoiceDate.textContent = `تاریخ: ${today.toLocaleDateString("fa-IR")}`;
-    }
-
-    if (els.invoiceItemsCount) {
-      els.invoiceItemsCount.textContent = `اقلام: ${formatNumber(items.length)}`;
-    }
-
-    if (els.summaryQty) {
-      els.summaryQty.textContent = formatNumber(pricing.totalQty);
-    }
-
-    if (els.summarySubtotal) {
-      els.summarySubtotal.textContent = pricing.hasNumericPrice
-        ? `${formatNumber(pricing.subtotal)} تومان`
-        : "تماس بگیرید";
-    }
-
-    if (els.summaryShipping) {
-      els.summaryShipping.textContent = pricing.hasNumericPrice
-        ? `${formatNumber(pricing.shippingFee)} تومان`
-        : "-";
-    }
+    if (els.invoiceDate) els.invoiceDate.textContent = `تاریخ: ${today.toLocaleDateString("fa-IR")}`;
+    if (els.invoiceItemsCount) els.invoiceItemsCount.textContent = `اقلام: ${formatNumber(items.length)}`;
+    if (els.summaryQty) els.summaryQty.textContent = formatNumber(pricing.totalQty);
+    if (els.summarySubtotal) els.summarySubtotal.textContent = pricing.hasNumericPrice ? `${formatNumber(pricing.subtotal)} تومان` : "تماس بگیرید";
+    if (els.summaryShipping) els.summaryShipping.textContent = pricing.hasNumericPrice ? `${formatNumber(pricing.shippingFee)} تومان` : "-";
 
     if (!items.length) {
       if (els.checkoutEmpty) els.checkoutEmpty.hidden = false;
@@ -498,56 +354,23 @@
         const imageSrc = getProductImage(product);
         const productName = product.name || "محصول";
         const productCategory = product.category || "-";
-
-        return `
-          <tr>
-            <td>
-              <div class="invoice-product">
-                <img
-                  class="invoice-product__image"
-                  src="${esc(imageSrc)}"
-                  alt="${esc(productName)}"
-                  loading="lazy"
-                />
-                <div class="invoice-product__info">
-                  <strong>${esc(productName)}</strong>
-                  <span>${esc(productCategory)}</span>
-                </div>
-              </div>
-            </td>
-            <td class="invoice-number">${formatNumber(item.quantity)}</td>
-            <td class="invoice-number">${formatMoney(item.unitPrice)}</td>
-            <td class="invoice-number">${formatMoney(item.totalPrice)}</td>
-          </tr>
-        `;
+        return `<tr><td><div class="invoice-product"><img class="invoice-product__image" src="${esc(imageSrc)}" alt="${esc(productName)}" loading="lazy" /><div class="invoice-product__info"><strong>${esc(productName)}</strong><span>${esc(productCategory)}</span></div></div></td><td class="invoice-number">${formatNumber(item.quantity)}</td><td class="invoice-number">${formatMoney(item.unitPrice)}</td><td class="invoice-number">${formatMoney(item.totalPrice)}</td></tr>`;
       }).join("");
     }
 
-    if (!state.wallet.available) {
-      if (els.summaryTotal) {
-        els.summaryTotal.textContent = pricing.total !== null
-          ? `${formatNumber(pricing.total)} تومان`
-          : "تماس بگیرید";
-      }
-    }
-
+    if (!state.wallet.available && els.summaryTotal) els.summaryTotal.textContent = pricing.total !== null ? `${formatNumber(pricing.total)} تومان` : "تماس بگیرید";
     updateWalletUi();
   }
 
   function splitFullName(fullName) {
-    const safe = String(fullName || "").trim();
-    const parts = safe.split(/\s+/).filter(Boolean);
-    return {
-      firstName: parts[0] || "",
-      lastName: parts.slice(1).join(" ")
-    };
+    const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+    return { firstName: parts[0] || "", lastName: parts.slice(1).join(" ") };
   }
 
   function provinceValueFromAddress(address) {
     const stateName = String(address?.state || "").trim();
     if (!stateName) return "";
-    if (stateName.includes("تهران")) return "tehran";
-    return "iran-provinces";
+    return stateName.includes("تهران") ? "tehran" : "iran-provinces";
   }
 
   async function tryFillUserData() {
@@ -557,77 +380,30 @@
       const profileUser = profileResult?.data?.user || null;
       if (!profileUser) return;
       state.currentUser = profileUser;
-
       const nameParts = splitFullName(profileUser.full_name || profileUser.fullname);
-
       if (els.firstName && !els.firstName.value) els.firstName.value = nameParts.firstName;
       if (els.lastName && !els.lastName.value) els.lastName.value = nameParts.lastName;
       if (els.phone && !els.phone.value) els.phone.value = profileUser.phone || "";
-
-      const addressesResponse = await fetch("/api/account/addresses", {
-        credentials: "same-origin",
-        headers: { Accept: "application/json" }
-      });
-
-      let addressesData = null;
-      try {
-        addressesData = await addressesResponse.json();
-      } catch (_) {
-        addressesData = null;
-      }
-
+      const addressesResponse = await fetch("/api/account/addresses", { credentials: "same-origin", headers: { Accept: "application/json" } });
+      const addressesData = await addressesResponse.json().catch(() => null);
       if (!addressesResponse.ok || !addressesData?.success) return;
-
       const addresses = Array.isArray(addressesData.addresses) ? addressesData.addresses : [];
-      const shippingAddress =
-        addresses.find((item) => item.type === "shipping" && Number(item.is_default) === 1) ||
-        addresses.find((item) => item.type === "shipping") ||
-        addresses.find((item) => Number(item.is_default) === 1) ||
-        addresses[0];
-
+      const shippingAddress = addresses.find((item) => item.type === "shipping" && Number(item.is_default) === 1) || addresses.find((item) => item.type === "shipping") || addresses.find((item) => Number(item.is_default) === 1) || addresses[0];
       if (!shippingAddress) return;
-
-      if (els.province && !els.province.value) {
-        els.province.value = provinceValueFromAddress(shippingAddress);
-      }
-
-      if (els.city && !els.city.value) {
-        els.city.value = shippingAddress.city || "";
-      }
-
-      if (els.postalCode && !els.postalCode.value) {
-        els.postalCode.value = shippingAddress.postal_code || shippingAddress.postalCode || "";
-      }
-
-      if (els.phone && !els.phone.value) {
-        els.phone.value = shippingAddress.phone || "";
-      }
-
-      if (els.address && !els.address.value) {
-        els.address.value = shippingAddress.address_line || shippingAddress.addressLine || "";
-      }
+      if (els.province && !els.province.value) els.province.value = provinceValueFromAddress(shippingAddress);
+      if (els.city && !els.city.value) els.city.value = shippingAddress.city || "";
+      if (els.postalCode && !els.postalCode.value) els.postalCode.value = shippingAddress.postal_code || shippingAddress.postalCode || "";
+      if (els.phone && !els.phone.value) els.phone.value = shippingAddress.phone || "";
+      if (els.address && !els.address.value) els.address.value = shippingAddress.address_line || shippingAddress.addressLine || "";
     } catch (_) {}
   }
 
   function validateForm(data) {
-    if (!data.firstName || !data.lastName || !data.province || !data.provinceLabel || !data.city || !data.postalCode || !data.phone || !data.address) {
-      setCheckoutMessage("لطفاً همه فیلدهای ضروری را کامل کنید.", "error");
-      return false;
-    }
-
+    if (!data.firstName || !data.lastName || !data.province || !data.provinceLabel || !data.city || !data.postalCode || !data.phone || !data.address) { setCheckoutMessage("لطفاً همه فیلدهای ضروری را کامل کنید.", "error"); return false; }
     const phone = toEnglishDigits(data.phone).replace(/[^\d]/g, "");
     const postalCode = toEnglishDigits(data.postalCode).replace(/[^\d]/g, "");
-
-    if (phone.length < 10) {
-      setCheckoutMessage("شماره تماس معتبر وارد کنید.", "error");
-      return false;
-    }
-
-    if (postalCode.length !== 10) {
-      setCheckoutMessage("کد پستی باید ۱۰ رقم باشد.", "error");
-      return false;
-    }
-
+    if (phone.length < 10) { setCheckoutMessage("شماره تماس معتبر وارد کنید.", "error"); return false; }
+    if (postalCode.length !== 10) { setCheckoutMessage("کد پستی باید ۱۰ رقم باشد.", "error"); return false; }
     return true;
   }
 
@@ -638,36 +414,18 @@
     const totalAmount = pricing.total || 0;
     const walletUsedAmount = getWalletAppliedAmount(pricing.total);
     const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
-    const cashbackBase = payableAmount;
-    const cashbackAmount = getCashbackAmount(cashbackBase);
-
+    const cashbackAmount = getCashbackAmount(totalAmount, walletUsedAmount);
     return {
-      address: {
-        type: "shipping",
-        full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-        address_line: formData.address,
-        postal_code: toEnglishDigits(formData.postalCode).replace(/[^\d]/g, ""),
-        phone: toEnglishDigits(formData.phone).replace(/[^\d]/g, ""),
-        city: formData.city,
-        state: formData.provinceLabel
-      },
+      address: { type: "shipping", full_name: `${formData.firstName} ${formData.lastName}`.trim(), address_line: formData.address, postal_code: toEnglishDigits(formData.postalCode).replace(/[^\d]/g, ""), phone: toEnglishDigits(formData.phone).replace(/[^\d]/g, ""), city: formData.city, state: formData.provinceLabel },
       order: {
-        items: items.map((item) => ({
-          product_id: item.productId,
-          name: item.product?.name || item.slug || "محصول",
-          qty: item.quantity,
-          unit_price: item.unitPrice || 0,
-          row_total: item.totalPrice || 0,
-          rate_at_purchase: state.currentRate?.rate || null,
-          currency_code: state.currentRate?.currency_code || 'USD'
-        })),
+        items: items.map((item) => ({ product_id: item.productId, name: item.product?.name || item.slug || "محصول", qty: item.quantity, unit_price: item.unitPrice || 0, row_total: item.totalPrice || 0, rate_at_purchase: state.currentRate?.rate || null, currency_code: state.currentRate?.currency_code || 'USD' })),
         subtotal_amount: subtotal,
         shipping_amount: shippingAmount,
         total_amount: totalAmount,
         payable_amount: payableAmount,
         use_wallet: walletUsedAmount > 0,
         wallet_used_amount: walletUsedAmount,
-        cashback_base: cashbackBase,
+        cashback_base: Math.max(0, totalAmount - walletUsedAmount),
         cashback_amount: cashbackAmount
       }
     };
@@ -676,108 +434,45 @@
   async function submitCheckout(event) {
     event.preventDefault();
     setCheckoutMessage("");
-
     const items = getCartPricing().items;
-    if (!items.length) {
-      setCheckoutMessage("سبد خرید شما خالی است.", "error");
-      return;
-    }
-
-    const formData = {
-      firstName: normalizeText(els.firstName?.value),
-      lastName: normalizeText(els.lastName?.value),
-      province: normalizeText(els.province?.value),
-      provinceLabel: getSelectedShippingLabel(),
-      city: normalizeText(els.city?.value),
-      postalCode: normalizeText(els.postalCode?.value),
-      phone: normalizeText(els.phone?.value),
-      address: normalizeText(els.address?.value)
-    };
-
-    if (!validateForm(formData)) {
-      return;
-    }
-
-    if (els.submitOrderBtn) {
-      els.submitOrderBtn.disabled = true;
-      els.submitOrderBtn.textContent = "در حال ثبت سفارش...";
-    }
-
+    if (!items.length) return setCheckoutMessage("سبد خرید شما خالی است.", "error");
+    const formData = { firstName: normalizeText(els.firstName?.value), lastName: normalizeText(els.lastName?.value), province: normalizeText(els.province?.value), provinceLabel: getSelectedShippingLabel(), city: normalizeText(els.city?.value), postalCode: normalizeText(els.postalCode?.value), phone: normalizeText(els.phone?.value), address: normalizeText(els.address?.value) };
+    if (!validateForm(formData)) return;
+    if (els.submitOrderBtn) { els.submitOrderBtn.disabled = true; els.submitOrderBtn.textContent = "در حال ثبت سفارش..."; }
     setCheckoutMessage("در حال ثبت سفارش...", "info");
-
     try {
-      const payload = buildOrderPayload(items, formData);
-
-      const response = await fetch("/api/account/create-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        credentials: "same-origin",
-        body: JSON.stringify(payload)
-      });
-
+      const response = await fetch("/api/account/create-order", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, credentials: "same-origin", body: JSON.stringify(buildOrderPayload(items, formData)) });
       const data = await response.json().catch(() => null);
-
       if (!response.ok || !data?.success) {
         setCheckoutMessage(data?.error || "ثبت سفارش انجام نشد.", "error");
-        if (els.submitOrderBtn) {
-          els.submitOrderBtn.disabled = false;
-          els.submitOrderBtn.textContent = "ثبت سفارش";
-        }
+        if (els.submitOrderBtn) { els.submitOrderBtn.disabled = false; els.submitOrderBtn.textContent = "ثبت سفارش"; }
         return;
       }
-
       clearCart();
-
       if (els.walletUseToggle) els.walletUseToggle.checked = false;
       if (els.walletUseAmount) els.walletUseAmount.value = "";
       resetWalletState();
       renderCheckout();
-
-      const createdOrder = data.order || {};
-      const orderNumber = createdOrder.order_number || "-";
-
+      const orderNumber = data.order?.order_number || "-";
       setCheckoutMessage(`سفارش ${orderNumber} با موفقیت ثبت شد. در حال انتقال...`, "success");
-
-      setTimeout(() => {
-        window.location.href = `/invoice.html?order=${encodeURIComponent(orderNumber)}`;
-      }, 1000);
-
+      setTimeout(() => { window.location.href = `/invoice.html?order=${encodeURIComponent(orderNumber)}`; }, 1000);
     } catch (error) {
       console.error("خطا در ثبت سفارش:", error);
       setCheckoutMessage("خطا در ارتباط با سرور. دوباره تلاش کنید.", "error");
-      if (els.submitOrderBtn) {
-        els.submitOrderBtn.disabled = false;
-        els.submitOrderBtn.textContent = "ثبت سفارش";
-      }
+      if (els.submitOrderBtn) { els.submitOrderBtn.disabled = false; els.submitOrderBtn.textContent = "ثبت سفارش"; }
     }
   }
 
   function bindEvents() {
-    if (els.province) {
-      els.province.addEventListener("change", () => {
-        renderCheckout();
-      });
-    }
-
-    if (els.walletUseToggle) {
-      els.walletUseToggle.addEventListener("change", () => {
-        const pricing = getCartPricing();
-        const maxUsable = getMaxWalletUsable(pricing.total);
-        if (els.walletUseToggle.checked && els.walletUseAmount && !String(els.walletUseAmount.value || "").trim() && maxUsable > 0) {
-          els.walletUseAmount.value = String(maxUsable);
-        }
-        updateWalletUi();
-      });
-    }
-
+    if (els.province) els.province.addEventListener("change", renderCheckout);
+    if (els.walletUseToggle) els.walletUseToggle.addEventListener("change", () => {
+      const pricing = getCartPricing();
+      const maxUsable = getMaxWalletUsable(pricing.total);
+      if (els.walletUseToggle.checked && els.walletUseAmount && !String(els.walletUseAmount.value || "").trim() && maxUsable > 0) els.walletUseAmount.value = String(maxUsable);
+      updateWalletUi();
+    });
     if (els.walletUseAmount) {
-      els.walletUseAmount.addEventListener("input", () => {
-        updateWalletUi();
-      });
-
+      els.walletUseAmount.addEventListener("input", updateWalletUi);
       els.walletUseAmount.addEventListener("blur", () => {
         const pricing = getCartPricing();
         const maxUsable = getMaxWalletUsable(pricing.total);
@@ -786,11 +481,7 @@
         updateWalletUi();
       });
     }
-
-    if (els.checkoutForm) {
-      els.checkoutForm.addEventListener("submit", submitCheckout);
-    }
-
+    if (els.checkoutForm) els.checkoutForm.addEventListener("submit", submitCheckout);
     document.addEventListener("cart:updated", renderCheckout);
     document.addEventListener("products:ready", renderCheckout);
   }
@@ -798,9 +489,7 @@
   async function waitForProductsReady() {
     if (window.PRODUCTS_READY === true) return;
     if (window.PRODUCTS_LOADING && typeof window.PRODUCTS_LOADING.then === "function") {
-      try {
-        await window.PRODUCTS_LOADING;
-      } catch (_) {}
+      try { await window.PRODUCTS_LOADING; } catch (_) {}
     }
   }
 
@@ -814,9 +503,6 @@
     bindEvents();
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
+  else init();
 })();
