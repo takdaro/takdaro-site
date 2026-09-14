@@ -167,12 +167,61 @@
     return null;
   }
 
+  function stripInlineCashbackHelpText() {
+    const help = document.getElementById("wallet-help-text");
+    if (!help) return;
+    const current = String(help.textContent || "").trim();
+    if (!current) return;
+    const dashIndex = current.indexOf("—");
+    if (dashIndex >= 0) {
+      help.textContent = current.slice(0, dashIndex).trim();
+      return;
+    }
+    if (/کش‌بک|بازگشت/i.test(current)) {
+      help.textContent = "می‌توانید تمام یا بخشی از موجودی کیف پول خود را استفاده کنید.";
+    }
+  }
+
   function removeCheckoutCashbackUi() {
     const cashbackRow = document.getElementById("cashback-row");
     if (cashbackRow) cashbackRow.hidden = true;
     const summaryCashback = document.getElementById("summary-cashback");
     if (summaryCashback) summaryCashback.textContent = formatMoney(0);
     document.getElementById("cashback-rules-note")?.remove();
+    stripInlineCashbackHelpText();
+  }
+
+  function installSafeCheckoutCashbackHide() {
+    if (!document.getElementById("cashback-hidden-style")) {
+      const style = document.createElement("style");
+      style.id = "cashback-hidden-style";
+      style.textContent = "#cashback-row{display:none!important}";
+      document.head.appendChild(style);
+    }
+
+    const clean = () => {
+      removeCheckoutCashbackUi();
+      stripInlineCashbackHelpText();
+    };
+
+    const scheduleClean = () => setTimeout(clean, 0);
+    document.addEventListener("input", e => {
+      if (["wallet-use-amount"].includes(e.target?.id)) scheduleClean();
+    }, true);
+    document.addEventListener("change", e => {
+      if (["wallet-use-toggle", "wallet-use-amount", "province", "city"].includes(e.target?.id)) scheduleClean();
+    }, true);
+    document.addEventListener("cart:updated", scheduleClean);
+    document.addEventListener("products:ready", scheduleClean);
+
+    clean();
+    setTimeout(clean, 250);
+    setTimeout(clean, 1000);
+    setTimeout(clean, 2500);
+  }
+
+  function clearSafeCheckoutCashbackHide() {
+    document.getElementById("cashback-hidden-style")?.remove();
   }
 
   function ensureCheckoutRulesNote() {
@@ -209,10 +258,11 @@
     const user = walletData?.user || {};
 
     if (!shouldExposeCashback(walletData)) {
-      removeCheckoutCashbackUi();
+      installSafeCheckoutCashbackHide();
       return;
     }
 
+    clearSafeCheckoutCashbackHide();
     const note = ensureCheckoutRulesNote();
 
     function refreshPreview() {
@@ -380,7 +430,7 @@
     if (isCheckout) {
       const walletData = await fetchCustomerWalletData(4);
       if (walletData) initCheckoutCashbackPreview(walletData);
-      else removeCheckoutCashbackUi();
+      else installSafeCheckoutCashbackHide();
     }
 
     if (isInvoice) {
