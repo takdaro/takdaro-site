@@ -167,12 +167,67 @@
     return null;
   }
 
+  function scrubWalletCashbackText() {
+    const help = document.getElementById("wallet-help-text");
+    if (!help) return;
+    const current = String(help.textContent || "").trim();
+    const cleaned = current
+      .replace(/\s*[—–-]\s*(?:کش‌بک این سفارش|درصد بازگشت فعلی)\s*[:：]\s*[^\n]*/gi, "")
+      .replace(/\s*(?:کش‌بک این سفارش|درصد بازگشت فعلی)\s*[:：]\s*[^\n]*/gi, "")
+      .trim();
+    const fallback = "می‌توانید تمام یا بخشی از موجودی کیف پول خود را استفاده کنید.";
+    const next = cleaned || fallback;
+    if (current !== next) help.textContent = next;
+  }
+
   function removeCheckoutCashbackUi() {
     const cashbackRow = document.getElementById("cashback-row");
-    if (cashbackRow) cashbackRow.hidden = true;
+    if (cashbackRow) {
+      cashbackRow.hidden = true;
+      cashbackRow.style.setProperty("display", "none", "important");
+    }
     const summaryCashback = document.getElementById("summary-cashback");
-    if (summaryCashback) summaryCashback.textContent = formatMoney(0);
+    if (summaryCashback && summaryCashback.textContent !== formatMoney(0)) summaryCashback.textContent = formatMoney(0);
     document.getElementById("cashback-rules-note")?.remove();
+    scrubWalletCashbackText();
+  }
+
+  function installCheckoutCashbackPrivacyGuard() {
+    if (document.documentElement.dataset.cashbackPrivacyGuard === "1") {
+      removeCheckoutCashbackUi();
+      return;
+    }
+    document.documentElement.dataset.cashbackPrivacyGuard = "1";
+    removeCheckoutCashbackUi();
+
+    let queued = false;
+    const enforce = () => {
+      if (queued) return;
+      queued = true;
+      queueMicrotask(() => {
+        queued = false;
+        removeCheckoutCashbackUi();
+      });
+    };
+
+    const target = document.getElementById("checkout-content") || document.body;
+    if (!target) return;
+    const observer = new MutationObserver(enforce);
+    observer.observe(target, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["hidden", "style"]
+    });
+
+    document.addEventListener("input", enforce, true);
+    document.addEventListener("change", enforce, true);
+    document.addEventListener("cart:updated", enforce);
+    document.addEventListener("products:ready", enforce);
+    setTimeout(enforce, 0);
+    setTimeout(enforce, 250);
+    setTimeout(enforce, 1000);
   }
 
   function ensureCheckoutRulesNote() {
@@ -209,10 +264,11 @@
     const user = walletData?.user || {};
 
     if (!shouldExposeCashback(walletData)) {
-      removeCheckoutCashbackUi();
+      installCheckoutCashbackPrivacyGuard();
       return;
     }
 
+    cashbackRow.style.removeProperty("display");
     const note = ensureCheckoutRulesNote();
 
     function refreshPreview() {
@@ -380,7 +436,7 @@
     if (isCheckout) {
       const walletData = await fetchCustomerWalletData(4);
       if (walletData) initCheckoutCashbackPreview(walletData);
-      else removeCheckoutCashbackUi();
+      else installCheckoutCashbackPrivacyGuard();
     }
 
     if (isInvoice) {
