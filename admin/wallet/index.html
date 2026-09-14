@@ -4,12 +4,7 @@
 
 <div class="wallet-shell">
 
-  <!-- ======================================== -->
-  <!-- تب‌های اصلی کیف پول                     -->
-  <!-- ======================================== -->
-
   <div class="wallet-section-tabs" aria-label="بخش‌های کیف پول">
-
     <button
       type="button"
       class="btn btn-primary"
@@ -22,245 +17,173 @@
       type="button"
       class="btn btn-secondary"
       data-wallet-section="cashback"
-      aria-pressed="false">
+      aria-pressed="false"
+      onclick="setTimeout(async function(){var s=document.getElementById('wallet-cashback-status');try{if(s)s.textContent='در حال دریافت تنظیمات…';var r=await window.api('/api/v1/admin/wallet?limit=1');if(!r.ok||!r.data?.success)throw new Error(r.data?.error||'دریافت تنظیمات انجام نشد.');var x=r.data.settings||{};var el=function(id){return document.getElementById(id)};if(el('cashback-phase1-enabled'))el('cashback-phase1-enabled').value=(x.cashback_enabled===false||x.cashback_enabled===0||x.cashback_enabled==='0')?'0':'1';if(el('cashback-phase1-percent'))el('cashback-phase1-percent').value=x.cashback_percent??0;if(el('cashback-phase1-min'))el('cashback-phase1-min').value=x.cashback_min_order_amount??0;if(el('cashback-phase1-max'))el('cashback-phase1-max').value=x.cashback_max_per_order??0;if(el('cashback-phase1-eligibility'))el('cashback-phase1-eligibility').value=x.cashback_eligibility_mode||'all';if(el('cashback-phase1-selected'))el('cashback-phase1-selected').value=Array.isArray(x.cashback_selected_user_ids)?x.cashback_selected_user_ids.join(', '):(x.cashback_selected_user_ids||'');if(el('cashback-phase1-expiry'))el('cashback-phase1-expiry').value=x.cashback_expiry_months??6;if(el('cashback-phase1-statuses'))el('cashback-phase1-statuses').value=Array.isArray(x.cashback_statuses)?x.cashback_statuses.join(', '):(x.cashback_statuses||'completed');if(el('cashback-selected-users-field'))el('cashback-selected-users-field').style.display=(el('cashback-phase1-eligibility')?.value==='selected')?'flex':'none';if(s)s.textContent='';}catch(e){if(s)s.textContent=e.message||'خطا در دریافت تنظیمات';}},80)">
       کش‌بک
     </button>
-
   </div>
 
-
-  <!-- ======================================== -->
-  <!-- مدیریت کیف پول                          -->
-  <!-- ======================================== -->
-
   <div id="wallet-management-panel">
-
-    <!-- ====================================== -->
-    <!-- جستجو و انتخاب کاربر                   -->
-    <!-- ====================================== -->
-
     <div class="wallet-management-toolbar">
-
       <div class="form-field wallet-user-search-field">
-
-        <label for="wallet-user-search">
-          جست‌وجوی کاربر
-        </label>
-
-        <input
-          id="wallet-user-search"
-          type="search"
-          placeholder="نام، ایمیل یا شماره تماس"
-        />
-
-        <button
-          class="btn btn-secondary"
-          type="button"
-          id="wallet-search-btn">
-          نمایش کاربران
-        </button>
-
-        <label for="wallet-user-id">
-          انتخاب کاربر
-        </label>
-
+        <label for="wallet-user-search">جست‌وجوی کاربر</label>
+        <input id="wallet-user-search" type="search" placeholder="نام، ایمیل یا شماره تماس" />
+        <button class="btn btn-secondary" type="button" id="wallet-search-btn">نمایش کاربران</button>
+        <label for="wallet-user-id">انتخاب کاربر</label>
         <select id="wallet-user-id">
-          <option value="">
-            ابتدا کاربران را جست‌وجو کنید
-          </option>
+          <option value="">ابتدا کاربران را جست‌وجو کنید</option>
         </select>
-
-        <span
-          id="wallet-search-status"
-          role="status"
-          aria-live="polite">
-        </span>
-
+        <span id="wallet-search-status" role="status" aria-live="polite"></span>
       </div>
 
-
-      <!-- نوع تراکنش -->
-
       <div class="form-field">
-
-        <label for="wallet-quick-type">
-          نوع سریع
-        </label>
-
+        <label for="wallet-quick-type">نوع سریع</label>
         <select id="wallet-quick-type">
-
-          <option value="">
-            همه نوع‌ها
-          </option>
-
-          <option value="credit">
-            واریز
-          </option>
-
-          <option value="debit">
-            برداشت
-          </option>
-
-          <option value="cashback">
-            کش‌بک
-          </option>
-
-          <option value="refund">
-            بازگشت وجه
-          </option>
-
-          <option value="adjustment">
-            تعدیل
-          </option>
-
+          <option value="">همه نوع‌ها</option>
+          <option value="credit">واریز</option>
+          <option value="debit">برداشت</option>
+          <option value="cashback">کش‌بک</option>
+          <option value="refund">بازگشت وجه</option>
+          <option value="adjustment">تعدیل</option>
         </select>
-
       </div>
-
-
-      <!-- تعداد تراکنش -->
 
       <div class="form-field">
-
-        <label for="wallet-limit">
-          تعداد تراکنش
-        </label>
-
+        <label for="wallet-limit">تعداد تراکنش</label>
         <select id="wallet-limit">
-
-          <option value="20">
-            20
-          </option>
-
-          <option value="50" selected>
-            50
-          </option>
-
-          <option value="100">
-            100
-          </option>
-
-          <option value="200">
-            200
-          </option>
-
+          <option value="20">20</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="200">200</option>
         </select>
-
       </div>
-
-
-      <!-- بارگذاری -->
 
       <div class="form-field wallet-load-action">
+        <label>اقدام</label>
+        <button class="btn btn-primary" type="button" id="wallet-load-btn">بارگذاری کیف پول</button>
+      </div>
+    </div>
 
-        <label>
-          اقدام
-        </label>
+    <div id="wallet-empty-state" class="wallet-empty">
+      کاربر را از فهرست انتخاب کن و روی «بارگذاری کیف پول» بزن.
+    </div>
 
+    <div id="wallet-content" class="admin-hidden">
+      <div class="wallet-overview">
+        <div id="wallet-hero-card" class="wallet-hero"></div>
+        <div id="wallet-summary-cards" class="wallet-summary-grid"></div>
+      </div>
+
+      <div class="wallet-grid">
+        <div id="wallet-user-box" class="wallet-user-card"></div>
+        <div id="wallet-adjust-box" class="wallet-adjust-card"></div>
+      </div>
+
+      <div id="wallet-history-box" class="wallet-history-card"></div>
+    </div>
+  </div>
+
+  <!-- ======================================== -->
+  <!-- CASHBACK - PHASE 1                      -->
+  <!-- ======================================== -->
+  <div id="wallet-cashback-panel" class="admin-hidden">
+
+    <p style="margin:0 0 14px;line-height:2;color:var(--text-soft);">
+      قوانین کش‌بک از این بخش مدیریت می‌شوند. می‌توان کش‌بک را برای همه، کاربران VIP یا کاربران انتخاب‌شده فعال کرد.
+      غیرفعال‌کردن کش‌بک فقط از ثبت کش‌بک جدید جلوگیری می‌کند و موجودی قبلی کاربران را حذف نمی‌کند.
+    </p>
+
+    <p id="wallet-cashback-status" role="status" aria-live="polite"></p>
+
+    <!-- جعبه قدیمی برای سازگاری با wallet.js نگه داشته شده اما نمایش داده نمی‌شود -->
+    <div id="wallet-settings-box" class="wallet-settings-card" style="display:none"></div>
+
+    <div id="wallet-cashback-phase1-box" class="wallet-settings-card">
+      <div class="wallet-card-head">
+        <div>
+          <h4>تنظیمات کش‌بک</h4>
+          <p>قوانین اصلی صدور کش‌بک، سقف، حداقل سفارش، کاربران مجاز و تاریخ انقضا.</p>
+        </div>
+      </div>
+
+      <div class="filters-grid filters-grid-2">
+        <div class="form-field">
+          <label for="cashback-phase1-enabled">وضعیت کش‌بک</label>
+          <select id="cashback-phase1-enabled">
+            <option value="1">فعال</option>
+            <option value="0">غیرفعال</option>
+          </select>
+          <small>در حالت غیرفعال، کش‌بک جدید صادر نمی‌شود؛ موجودی قبلی باقی می‌ماند.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="cashback-phase1-percent">درصد کش‌بک</label>
+          <input id="cashback-phase1-percent" type="number" min="0" max="100" step="0.01" value="0" />
+        </div>
+
+        <div class="form-field">
+          <label for="cashback-phase1-min">حداقل مبلغ سفارش برای کش‌بک</label>
+          <input id="cashback-phase1-min" type="number" min="0" step="1000" value="0" placeholder="مثلاً 1000000" />
+          <small>۰ یعنی بدون حداقل مبلغ.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="cashback-phase1-max">حداکثر کش‌بک هر سفارش</label>
+          <input id="cashback-phase1-max" type="number" min="0" step="1000" value="0" placeholder="مثلاً 500000" />
+          <small>۰ یعنی بدون سقف.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="cashback-phase1-eligibility">کاربران مجاز</label>
+          <select id="cashback-phase1-eligibility" onchange="var f=document.getElementById('cashback-selected-users-field');if(f)f.style.display=this.value==='selected'?'flex':'none'">
+            <option value="all">همه کاربران</option>
+            <option value="vip">فقط VIP</option>
+            <option value="selected">فقط کاربران انتخاب‌شده</option>
+          </select>
+        </div>
+
+        <div class="form-field" id="cashback-selected-users-field" style="display:none">
+          <label for="cashback-phase1-selected">شناسه کاربران انتخاب‌شده</label>
+          <input id="cashback-phase1-selected" type="text" placeholder="مثلاً 12, 28, 41" />
+          <small>شناسه کاربران را با ویرگول جدا کنید.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="cashback-phase1-expiry">مدت اعتبار کش‌بک</label>
+          <select id="cashback-phase1-expiry">
+            <option value="0">بدون انقضا</option>
+            <option value="1">۱ ماه</option>
+            <option value="2">۲ ماه</option>
+            <option value="3">۳ ماه</option>
+            <option value="4">۴ ماه</option>
+            <option value="5">۵ ماه</option>
+            <option value="6">۶ ماه</option>
+            <option value="7">۷ ماه</option>
+            <option value="8">۸ ماه</option>
+            <option value="9">۹ ماه</option>
+            <option value="10">۱۰ ماه</option>
+            <option value="11">۱۱ ماه</option>
+            <option value="12">۱۲ ماه</option>
+          </select>
+          <small>فقط کش‌بک‌های جدید طبق این مدت منقضی می‌شوند.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="cashback-phase1-statuses">وضعیت‌های مجاز سفارش</label>
+          <input id="cashback-phase1-statuses" type="text" value="completed" placeholder="completed, processing" />
+          <small>برای ثبت خودکار کش‌بک پس از رسیدن سفارش به وضعیت مجاز.</small>
+        </div>
+      </div>
+
+      <div class="wallet-inline-actions">
         <button
           class="btn btn-primary"
           type="button"
-          id="wallet-load-btn">
-          بارگذاری کیف پول
+          id="cashback-phase1-save-btn"
+          onclick="(async function(btn){var s=document.getElementById('wallet-cashback-status');var g=function(id){return document.getElementById(id)};try{btn.disabled=true;if(s)s.textContent='در حال ذخیره تنظیمات…';var ids=(g('cashback-phase1-selected')?.value||'').split(',').map(function(v){return Number(v.trim())}).filter(function(v){return Number.isInteger(v)&&v>0});var statuses=(g('cashback-phase1-statuses')?.value||'completed').split(',').map(function(v){return v.trim().toLowerCase()}).filter(Boolean);var payload={action:'save_settings',cashback_enabled:g('cashback-phase1-enabled')?.value==='1',cashback_percent:Number(g('cashback-phase1-percent')?.value||0),cashback_min_order_amount:Number(g('cashback-phase1-min')?.value||0),cashback_max_per_order:Number(g('cashback-phase1-max')?.value||0),cashback_eligibility_mode:g('cashback-phase1-eligibility')?.value||'all',cashback_selected_user_ids:ids,cashback_expiry_months:Number(g('cashback-phase1-expiry')?.value||0),cashback_statuses:statuses};var r=await window.api('/api/v1/admin/wallet',{method:'POST',body:JSON.stringify(payload)});if(!r.ok||!r.data?.success)throw new Error(r.data?.error||'ذخیره تنظیمات انجام نشد.');if(s)s.textContent='تنظیمات کش‌بک با موفقیت ذخیره شد.';if(typeof window.setAdminMessage==='function')window.setAdminMessage('تنظیمات کش‌بک با موفقیت ذخیره شد.','success');}catch(e){if(s)s.textContent=e.message||'خطا در ذخیره تنظیمات';if(typeof window.setAdminMessage==='function')window.setAdminMessage(e.message||'خطا در ذخیره تنظیمات');}finally{btn.disabled=false;}})(this)">
+          ذخیره تنظیمات کش‌بک
         </button>
-
       </div>
-
     </div>
-
-
-    <!-- ====================================== -->
-    <!-- حالت خالی                             -->
-    <!-- ====================================== -->
-
-    <div
-      id="wallet-empty-state"
-      class="wallet-empty">
-
-      کاربر را از فهرست انتخاب کن و روی
-      «بارگذاری کیف پول» بزن.
-
-    </div>
-
-
-    <!-- ====================================== -->
-    <!-- اطلاعات کیف پول                       -->
-    <!-- ====================================== -->
-
-    <div
-      id="wallet-content"
-      class="admin-hidden">
-
-
-      <!-- Hero + Summary -->
-
-      <div class="wallet-overview">
-
-        <div
-          id="wallet-hero-card"
-          class="wallet-hero">
-        </div>
-
-        <div
-          id="wallet-summary-cards"
-          class="wallet-summary-grid">
-        </div>
-
-      </div>
-
-
-      <!-- اطلاعات کاربر + عملیات -->
-
-      <div class="wallet-grid">
-
-        <div
-          id="wallet-user-box"
-          class="wallet-user-card">
-        </div>
-
-        <div
-          id="wallet-adjust-box"
-          class="wallet-adjust-card">
-        </div>
-
-      </div>
-
-
-      <!-- تاریخچه -->
-
-      <div
-        id="wallet-history-box"
-        class="wallet-history-card">
-      </div>
-
-    </div>
-
   </div>
-
-
-  <!-- ======================================== -->
-  <!-- CASHBACK                                 -->
-  <!-- ======================================== -->
-
-  <div
-    id="wallet-cashback-panel"
-    class="admin-hidden">
-
-    <p>
-      درصد کش‌بک برای همهٔ کاربران اعمال می‌شود
-      و به انتخاب کاربر وابسته نیست.
-    </p>
-
-    <p
-      id="wallet-cashback-status"
-      role="status">
-    </p>
-
-    <div
-      id="wallet-settings-box"
-      class="wallet-settings-card">
-    </div>
-
-  </div>
-
 </div>
