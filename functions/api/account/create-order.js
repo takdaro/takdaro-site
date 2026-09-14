@@ -4,6 +4,15 @@ import {
   sendOrderCreatedNotification,
   sendUserOrderCreatedNotification
 } from "../../lib/notification";
+import {
+  getCashbackSettings,
+  calculateCashback
+} from "../../lib/cashback.js";
+import {
+  expireCashbackForUser,
+  getWalletBreakdown,
+  consumeCashbackFirst
+} from "../../lib/cashback-balance.js";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -193,92 +202,6 @@ function extractCurrencyCode(item) {
   ) || "USD";
 }
 
-function normalizeStatuses(rawValue) {
-  if (!rawValue) {
-    return ["completed"];
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-
-    if (Array.isArray(parsed)) {
-      const list = parsed
-        .map((item) => String(item || "").trim().toLowerCase())
-        .filter(Boolean);
-
-      return list.length
-        ? list
-        : ["completed"];
-    }
-  } catch (_) {}
-
-  const list = String(rawValue)
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-
-  return list.length
-    ? list
-    : ["completed"];
-}
-
-async function getCashbackSettings(db) {
-  const defaults = {
-    cashbackPercent: 0,
-    cashbackStatuses: ["completed"]
-  };
-
-  try {
-    const rows = await db.prepare(`
-      SELECT setting_key, setting_value
-      FROM app_settings
-      WHERE setting_key IN (
-        'cashback_percent',
-        'cashback_statuses'
-      )
-    `).all();
-
-    const results = Array.isArray(rows?.results)
-      ? rows.results
-      : [];
-
-    if (!results.length) {
-      return defaults;
-    }
-
-    const settingsMap = {};
-
-    for (const row of results) {
-      settingsMap[
-        String(row?.setting_key || "").trim()
-      ] = row?.setting_value;
-    }
-
-    let cashbackPercent = Math.max(
-      0,
-      Math.min(
-        100,
-        Number(settingsMap.cashback_percent || 0)
-      )
-    );
-
-    if (!Number.isFinite(cashbackPercent)) {
-      cashbackPercent = 0;
-    }
-
-    const cashbackStatuses = normalizeStatuses(
-      settingsMap.cashback_statuses
-    );
-
-    return {
-      cashbackPercent,
-      cashbackStatuses
-    };
-  } catch (_) {
-    return defaults;
-  }
-}
-
 async function createOrUpdateAddress(context, user, address) {
   const fullName =
     normalizeText(address.full_name) ||
@@ -458,9 +381,6 @@ async function hasWalletUseTransaction(db, userId, orderId) {
   return !!row;
 }
 
-// ============================================
-// بررسی و آماده‌سازی موجودی محصولات
-// ============================================
 async function validateProductStock(db, normalizedItems) {
   const requestedQuantities = new Map();
 
@@ -476,13 +396,8 @@ async function validateProductStock(db, normalizedItems) {
       };
     }
 
-    const previousQuantity =
-      requestedQuantities.get(productId) || 0;
-
-    requestedQuantities.set(
-      productId,
-      previousQuantity + quantity
-    );
+    const previousQuantity = requestedQuantities.get(productId) || 0;
+    requestedQuantities.set(productId, previousQuantity + quantity);
   }
 
   for (const [productId, requestedQuantity] of requestedQuantities) {
@@ -514,12 +429,8 @@ async function validateProductStock(db, normalizedItems) {
       Number.parseInt(product.stock_quantity, 10) || 0
     );
 
-    const isPublished =
-      String(product.status || "").toLowerCase() === "published";
-
-    const isInStock =
-      Number(product.in_stock) === 1 &&
-      availableQuantity > 0;
+    const isPublished = String(product.status || "").toLowerCase() === "published";
+    const isInStock = Number(product.in_stock) === 1 && availableQuantity > 0;
 
     if (!isPublished || !isInStock) {
       return {
@@ -544,15 +455,9 @@ async function validateProductStock(db, normalizedItems) {
     }
   }
 
-  return {
-    success: true,
-    requestedQuantities
-  };
+  return { success: true, requestedQuantities };
 }
 
-// ============================================
-// کم کردن موجودی محصولات
-// ============================================
 async function decreaseProductStock(db, requestedQuantities) {
   const updatedProducts = [];
 
@@ -572,17 +477,10 @@ async function decreaseProductStock(db, requestedQuantities) {
           AND in_stock = 1
           AND stock_quantity >= ?
       `)
-      .bind(
-        quantity,
-        quantity,
-        productId,
-        quantity
-      )
+      .bind(quantity, quantity, productId, quantity)
       .run();
 
-    const changes = Number(
-      updateResult?.meta?.changes || 0
-    );
+    const changes = Number(updateResult?.meta?.changes || 0);
 
     if (changes !== 1) {
       return {
@@ -610,86 +508,44 @@ async function decreaseProductStock(db, requestedQuantities) {
       product_id: productId,
       product_name: updatedProduct?.name || "",
       purchased_quantity: quantity,
-      remaining_quantity: Math.max(
-        0,
-        Number(updatedProduct?.stock_quantity) || 0
-      ),
+      remaining_quantity: Math.max(0, Number(updatedProduct?.stock_quantity) || 0),
       in_stock: Number(updatedProduct?.in_stock) === 1
     });
   }
 
-  return {
-    success: true,
-    products: updatedProducts
-  };
+  return { success: true, products: updatedProducts };
 }
 
-// ============================================
-// POST - ایجاد سفارش جدید
-// ============================================
 export async function onRequestPost(context) {
   try {
     const user = await getCurrentUser(context);
 
     if (!user) {
-      return json(
-        {
-          success: false,
-          error: "unauthorized"
-        },
-        401
-      );
+      return json({ success: false, error: "unauthorized" }, 401);
     }
 
-    const body = await context.request
-      .json()
-      .catch(() => null);
-
+    const body = await context.request.json().catch(() => null);
     const validationError = validatePayload(body);
 
     if (validationError) {
-      return json(
-        {
-          success: false,
-          error: validationError
-        },
-        400
-      );
+      return json({ success: false, error: validationError }, 400);
     }
 
     let currentRate = null;
 
     try {
-      const rateResult = await getCurrentRate(
-        context.env,
-        "USD"
-      );
-
-      if (rateResult) {
-        currentRate = rateResult.rate;
-      }
+      const rateResult = await getCurrentRate(context.env, "USD");
+      if (rateResult) currentRate = rateResult.rate;
     } catch (_) {
       currentRate = 196000;
     }
 
     const address = body.address || {};
     const order = body.order || {};
-
-    const items = Array.isArray(order.items)
-      ? order.items
-      : [];
-
-    const shippingAmount = normalizeNumber(
-      order.shipping_amount
-    );
-
-    const submittedSubtotalAmount = normalizeNumber(
-      order.subtotal_amount
-    );
-
-    const submittedTotalAmount = normalizeNumber(
-      order.total_amount
-    );
+    const items = Array.isArray(order.items) ? order.items : [];
+    const shippingAmount = normalizeNumber(order.shipping_amount);
+    const submittedSubtotalAmount = normalizeNumber(order.subtotal_amount);
+    const submittedTotalAmount = normalizeNumber(order.total_amount);
 
     let recalculatedSubtotal = 0;
 
@@ -699,11 +555,8 @@ export async function onRequestPost(context) {
       const quantity = extractItemQuantity(item);
       const unitPrice = extractItemUnitPrice(item);
       const totalPrice = extractItemTotalPrice(item);
-      const rateAtPurchase =
-        extractRateAtPurchase(item) || currentRate;
-
-      const currencyCode =
-        extractCurrencyCode(item);
+      const rateAtPurchase = extractRateAtPurchase(item) || currentRate;
+      const currencyCode = extractCurrencyCode(item);
 
       recalculatedSubtotal += totalPrice;
 
@@ -718,35 +571,20 @@ export async function onRequestPost(context) {
       };
     });
 
-    const subtotalAmount =
-      recalculatedSubtotal > 0
-        ? recalculatedSubtotal
-        : submittedSubtotalAmount;
+    const subtotalAmount = recalculatedSubtotal > 0
+      ? recalculatedSubtotal
+      : submittedSubtotalAmount;
 
-    const totalAmount =
-      subtotalAmount + shippingAmount;
+    const totalAmount = subtotalAmount + shippingAmount;
 
-    if (
-      submittedTotalAmount > 0 &&
-      totalAmount !== submittedTotalAmount
-    ) {
-      return json(
-        {
-          success: false,
-          error: "total-mismatch"
-        },
-        400
-      );
+    if (submittedTotalAmount > 0 && totalAmount !== submittedTotalAmount) {
+      return json({ success: false, error: "total-mismatch" }, 400);
     }
 
-    // ============================================
-    // بررسی موجودی قبل از ثبت سفارش
-    // ============================================
-    const stockValidation =
-      await validateProductStock(
-        context.env.DB,
-        normalizedItems
-      );
+    const stockValidation = await validateProductStock(
+      context.env.DB,
+      normalizedItems
+    );
 
     if (!stockValidation.success) {
       return json(
@@ -755,14 +593,15 @@ export async function onRequestPost(context) {
           error: stockValidation.error,
           product_id: stockValidation.product_id || null,
           product_name: stockValidation.product_name || "",
-          available_quantity:
-            stockValidation.available_quantity ?? null,
-          requested_quantity:
-            stockValidation.requested_quantity ?? null
+          available_quantity: stockValidation.available_quantity ?? null,
+          requested_quantity: stockValidation.requested_quantity ?? null
         },
         400
       );
     }
+
+    await expireCashbackForUser(context.env.DB, user.id);
+    const walletBreakdown = await getWalletBreakdown(context.env.DB, user.id);
 
     const requestedWalletUse = normalizeNumber(
       order.wallet_used_amount ??
@@ -770,48 +609,23 @@ export async function onRequestPost(context) {
       body.wallet_used_amount
     );
 
-    const balanceBefore = normalizeNumber(
-      user.wallet_balance
-    );
+    const balanceBefore = normalizeNumber(walletBreakdown.wallet_balance);
+    const maxWalletUsable = Math.min(balanceBefore, totalAmount);
+    const walletUsedAmount = Math.min(requestedWalletUse, maxWalletUsable);
+    const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
 
-    const maxWalletUsable = Math.min(
-      balanceBefore,
-      totalAmount
-    );
-
-    const walletUsedAmount = Math.min(
-      requestedWalletUse,
-      maxWalletUsable
-    );
-
-    const payableAmount = Math.max(
-      0,
-      totalAmount - walletUsedAmount
-    );
-
-    const { cashbackPercent } =
-      await getCashbackSettings(context.env.DB);
-
+    const cashbackSettings = await getCashbackSettings(context.env.DB);
+    const cashbackPercent = Number(cashbackSettings.cashback_percent || 0);
     const cashbackBase = payableAmount;
+    const cashbackAmount = calculateCashback(
+      cashbackSettings,
+      user,
+      totalAmount,
+      cashbackBase
+    );
 
-    const cashbackAmount =
-      cashbackBase > 0
-        ? Math.round(
-            (cashbackBase * cashbackPercent) / 100
-          )
-        : 0;
-
-    const savedAddress =
-      await createOrUpdateAddress(
-        context,
-        user,
-        address
-      );
-
-    const orderNumber =
-      await generateUniqueOrderNumber(
-        context.env.DB
-      );
+    const savedAddress = await createOrUpdateAddress(context, user, address);
+    const orderNumber = await generateUniqueOrderNumber(context.env.DB);
 
     const orderInsert = await context.env.DB
       .prepare(`
@@ -832,23 +646,7 @@ export async function onRequestPost(context) {
           created_at,
           updated_at
         )
-        VALUES (
-          ?,
-          ?,
-          ?,
-          'payment_pending',
-          'pending',
-          ?,
-          ?,
-          ?,
-          ?,
-          ?,
-          ?,
-          ?,
-          ?,
-          CURRENT_TIMESTAMP,
-          CURRENT_TIMESTAMP
-        )
+        VALUES (?, ?, ?, 'payment_pending', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `)
       .bind(
         user.id,
@@ -860,29 +658,17 @@ export async function onRequestPost(context) {
         walletUsedAmount,
         payableAmount,
         cashbackAmount,
-        cashbackAmount > 0
-          ? "pending"
-          : "none",
+        cashbackAmount > 0 ? "pending" : "none",
         normalizeText(order.notes || body.notes)
       )
       .run();
 
-    const orderId =
-      orderInsert.meta?.last_row_id ?? null;
+    const orderId = orderInsert.meta?.last_row_id ?? null;
 
     if (!orderId) {
-      return json(
-        {
-          success: false,
-          error: "order-create-failed"
-        },
-        500
-      );
+      return json({ success: false, error: "order-create-failed" }, 500);
     }
 
-    // ============================================
-    // ثبت آیتم‌های سفارش
-    // ============================================
     for (const item of normalizedItems) {
       await context.env.DB
         .prepare(`
@@ -898,18 +684,7 @@ export async function onRequestPost(context) {
             created_at,
             updated_at
           )
-          VALUES (
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-            CURRENT_TIMESTAMP,
-            CURRENT_TIMESTAMP
-          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `)
         .bind(
           orderId,
@@ -924,57 +699,40 @@ export async function onRequestPost(context) {
         .run();
     }
 
-    // ============================================
-    // کم کردن موجودی محصولات
-    // ============================================
-    const stockUpdateResult =
-      await decreaseProductStock(
-        context.env.DB,
-        stockValidation.requestedQuantities
-      );
+    const stockUpdateResult = await decreaseProductStock(
+      context.env.DB,
+      stockValidation.requestedQuantities
+    );
 
     if (!stockUpdateResult.success) {
       return json(
         {
           success: false,
           error: stockUpdateResult.error,
-          product_id:
-            stockUpdateResult.product_id || null
+          product_id: stockUpdateResult.product_id || null
         },
         409
       );
     }
 
-    // ============================================
-    // استفاده از کیف پول
-    // ============================================
     if (walletUsedAmount > 0) {
-      const alreadyHasWalletTx =
-        await hasWalletUseTransaction(
-          context.env.DB,
-          user.id,
-          orderId
-        );
+      const alreadyHasWalletTx = await hasWalletUseTransaction(
+        context.env.DB,
+        user.id,
+        orderId
+      );
 
       if (!alreadyHasWalletTx) {
-        const balanceAfter = Math.max(
-          0,
-          balanceBefore - walletUsedAmount
-        );
+        const balanceAfter = Math.max(0, balanceBefore - walletUsedAmount);
 
         await context.env.DB.batch([
           context.env.DB
             .prepare(`
               UPDATE users
-              SET
-                wallet_balance = ?,
-                updated_at = CURRENT_TIMESTAMP
+              SET wallet_balance = ?, updated_at = CURRENT_TIMESTAMP
               WHERE id = ?
             `)
-            .bind(
-              balanceAfter,
-              user.id
-            ),
+            .bind(balanceAfter, user.id),
 
           context.env.DB
             .prepare(`
@@ -996,24 +754,7 @@ export async function onRequestPost(context) {
                 created_at,
                 updated_at
               )
-              VALUES (
-                ?,
-                'debit',
-                ?,
-                ?,
-                ?,
-                'completed',
-                'checkout',
-                ?,
-                ?,
-                ?,
-                ?,
-                'order',
-                ?,
-                ?,
-                CURRENT_TIMESTAMP,
-                CURRENT_TIMESTAMP
-              )
+              VALUES (?, 'debit', ?, ?, ?, 'completed', 'checkout', ?, ?, ?, ?, 'order', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             `)
             .bind(
               user.id,
@@ -1028,42 +769,37 @@ export async function onRequestPost(context) {
               user.id
             )
         ]);
+
+        await consumeCashbackFirst(
+          context.env.DB,
+          user.id,
+          walletUsedAmount
+        );
       }
     }
 
-    // ============================================
-    // ارسال اعلان‌ها در پس‌زمینه
-    // ============================================
     context.waitUntil(
       (async () => {
         try {
           let baseUrl = "";
 
           try {
-            const urlResult =
-              await context.env.DB
-                .prepare(`
-                  SELECT setting_value
-                  FROM app_settings
-                  WHERE setting_key = 'site_base_url'
-                `)
-                .first();
+            const urlResult = await context.env.DB
+              .prepare(`
+                SELECT setting_value
+                FROM app_settings
+                WHERE setting_key = 'site_base_url'
+              `)
+              .first();
 
-            if (urlResult) {
-              baseUrl =
-                urlResult.setting_value || "";
-            }
+            if (urlResult) baseUrl = urlResult.setting_value || "";
           } catch (_) {
             baseUrl = "";
           }
 
           if (!baseUrl) {
-            const requestUrl = new URL(
-              context.request.url
-            );
-
-            baseUrl =
-              `${requestUrl.protocol}//${requestUrl.host}`;
+            const requestUrl = new URL(context.request.url);
+            baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
           }
 
           const orderData = {
@@ -1086,7 +822,6 @@ export async function onRequestPost(context) {
             phone: user.phone || ""
           };
 
-          // ⭐ ارسال اعلان به کاربر (شامل Email)
           try {
             await sendUserOrderCreatedNotification(
               context.env,
@@ -1096,13 +831,9 @@ export async function onRequestPost(context) {
               baseUrl
             );
           } catch (userError) {
-            console.error(
-              "خطا در ارسال اعلان کاربر:",
-              userError
-            );
+            console.error("خطا در ارسال اعلان کاربر:", userError);
           }
 
-          // ⭐ ارسال اعلان به ادمین (شامل Email)
           try {
             await sendOrderCreatedNotification(
               context.env,
@@ -1112,16 +843,10 @@ export async function onRequestPost(context) {
               baseUrl
             );
           } catch (adminError) {
-            console.error(
-              "خطا در ارسال اعلان ادمین:",
-              adminError
-            );
+            console.error("خطا در ارسال اعلان ادمین:", adminError);
           }
         } catch (notificationError) {
-          console.error(
-            "خطا در ارسال اعلان:",
-            notificationError
-          );
+          console.error("خطا در ارسال اعلان:", notificationError);
         }
       })()
     );
@@ -1133,9 +858,7 @@ export async function onRequestPost(context) {
         order_number: orderNumber,
         status: "payment_pending",
         payment_status: "pending",
-
         address_id: savedAddress.id,
-
         address: {
           full_name: savedAddress.full_name,
           address_line: savedAddress.address_line,
@@ -1144,37 +867,25 @@ export async function onRequestPost(context) {
           city: savedAddress.city,
           state: savedAddress.state
         },
-
         subtotal_amount: subtotalAmount,
         shipping_amount: shippingAmount,
         total_amount: totalAmount,
-
         wallet_used_amount: walletUsedAmount,
         payable_amount: payableAmount,
-
         cashback_percent: cashbackPercent,
         cashback_base: cashbackBase,
         cashback_amount: cashbackAmount,
-
-        cashback_status:
-          cashbackAmount > 0
-            ? "pending"
-            : "none",
-
+        cashback_status: cashbackAmount > 0 ? "pending" : "none",
         items_count: normalizedItems.length,
         rate_at_purchase: currentRate,
-
-        stock_updates:
-          stockUpdateResult.products
+        stock_updates: stockUpdateResult.products
       }
     });
   } catch (error) {
     return json(
       {
         success: false,
-        error: String(
-          error?.message || error
-        )
+        error: String(error?.message || error)
       },
       500
     );
