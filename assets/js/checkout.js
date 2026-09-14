@@ -408,7 +408,7 @@
     const maxUsable = getMaxWalletUsable(pricing.total);
     const walletUsed = getWalletAppliedAmount(pricing.total);
     const payableAmount = Math.max(0, pricing.total - walletUsed);
-    const cashbackBase = pricing.total;
+    const cashbackBase = payableAmount;
     const cashbackAmount = getCashbackAmount(cashbackBase);
 
     if (els.walletBalance) {
@@ -638,7 +638,7 @@
     const totalAmount = pricing.total || 0;
     const walletUsedAmount = getWalletAppliedAmount(pricing.total);
     const payableAmount = Math.max(0, totalAmount - walletUsedAmount);
-    const cashbackBase = totalAmount;
+    const cashbackBase = payableAmount;
     const cashbackAmount = getCashbackAmount(cashbackBase);
 
     return {
