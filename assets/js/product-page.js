@@ -127,6 +127,14 @@
   function renderProduct(product) {
     if (!product) return;
 
+    // Customer-facing order: short description, user quantity selection, then full details.
+    const details = document.querySelector('.product-details');
+    const purchase = details?.querySelector('.product-single__purchase');
+    const fullDescription = details?.querySelector('.product-single__content');
+    if (details && purchase && fullDescription) {
+      details.insertBefore(purchase, fullDescription);
+    }
+
     setText("[data-product-name]", product.name || "بدون نام");
     setText("[data-product-category]", product.category || "محصول");
 
