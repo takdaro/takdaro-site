@@ -1,6 +1,12 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
 import { sendUserWalletNotification } from "../../lib/notification.js";
 import { getEmailSettings } from "../../lib/email.js";
+import { getCashbackSettings } from "../../lib/cashback.js";
+import {
+  expireCashbackForUser,
+  getWalletBreakdown,
+  consumeCashbackFirst
+} from "../../lib/cashback-balance.js";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -57,15 +63,6 @@ async function ensureWalletTables(db) {
   `).run();
 }
 
-async function getSetting(db, key, fallback = null) {
-  const row = await db
-    .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1`)
-    .bind(key)
-    .first();
-
-  return row ? row.setting_value : fallback;
-}
-
 async function setSetting(db, key, value) {
   await db
     .prepare(`
@@ -81,14 +78,9 @@ async function setSetting(db, key, value) {
 
 function normalizeWalletType(value) {
   const type = normalizeText(value).toLowerCase();
-
   if (type === "manual_credit") return "credit";
   if (type === "manual_debit") return "debit";
-
-  if (["credit", "debit", "cashback", "refund", "adjustment"].includes(type)) {
-    return type;
-  }
-
+  if (["credit", "debit", "cashback", "refund", "adjustment"].includes(type)) return type;
   return "";
 }
 
@@ -99,12 +91,8 @@ function getSignedAmountByType(type, amount) {
 
 function normalizeStatuses(input) {
   let list = [];
-
-  if (Array.isArray(input)) {
-    list = input;
-  } else if (typeof input === "string") {
-    list = input.split(",");
-  }
+  if (Array.isArray(input)) list = input;
+  else if (typeof input === "string") list = input.split(",");
 
   const normalized = list
     .map((item) => normalizeText(item).toLowerCase())
@@ -113,42 +101,39 @@ function normalizeStatuses(input) {
   return normalized.length ? [...new Set(normalized)] : ["completed"];
 }
 
+function normalizeEligibilityMode(value) {
+  const mode = normalizeText(value).toLowerCase();
+  return ["all", "vip", "selected"].includes(mode) ? mode : "all";
+}
+
+function normalizeSelectedUserIds(value) {
+  const list = Array.isArray(value) ? value : String(value || "").split(",");
+  return [...new Set(
+    list
+      .map((item) => Number(String(item).trim()))
+      .filter((id) => Number.isInteger(id) && id > 0)
+  )];
+}
+
 function formatTransactionRow(row) {
   return {
     ...row,
     amount: toMoney(row.amount),
     balance_before: toMoney(row.balance_before),
-    balance_after: toMoney(row.balance_after)
+    balance_after: toMoney(row.balance_after),
+    remaining_amount: row.remaining_amount == null ? null : toMoney(row.remaining_amount)
   };
 }
 
-function buildSettingsPayload(cashbackPercent, cashbackStatuses) {
-  return {
-    cashback_percent: Number(cashbackPercent) || 0,
-    cashback_statuses: Array.isArray(cashbackStatuses) ? cashbackStatuses : ["completed"]
-  };
-}
-
-// ============================================
-// تابع ارسال اعلان کیف پول
-// ============================================
 async function sendWalletNotification(env, userId, transactionData, userData) {
   try {
-    // تعیین eventType بر اساس نوع تراکنش
-    let eventType = 'wallet_credit';
-    const type = transactionData.type || '';
-    
-    if (type === 'debit') {
-      eventType = 'wallet_debit';
-    } else if (type === 'cashback') {
-      eventType = 'cashback_applied';
-    } else if (type === 'refund') {
-      eventType = 'refund_applied';
-    } else if (type === 'credit' || type === 'adjustment') {
-      eventType = 'wallet_credit';
-    }
+    let eventType = "wallet_credit";
+    const type = transactionData.type || "";
 
-    // ارسال اعلان Email
+    if (type === "debit") eventType = "wallet_debit";
+    else if (type === "cashback") eventType = "cashback_applied";
+    else if (type === "refund") eventType = "refund_applied";
+
     const emailResult = await sendUserWalletNotification(
       env,
       userId,
@@ -157,16 +142,10 @@ async function sendWalletNotification(env, userId, transactionData, userData) {
       userData
     );
 
-    return {
-      success: emailResult?.success || false,
-      email: emailResult
-    };
+    return { success: emailResult?.success || false, email: emailResult };
   } catch (error) {
-    console.error('❌ sendWalletNotification error:', error);
-    return {
-      success: false,
-      error: String(error?.message || error)
-    };
+    console.error("sendWalletNotification error:", error);
+    return { success: false, error: String(error?.message || error) };
   }
 }
 
@@ -191,10 +170,7 @@ export async function onRequestGet(context) {
       200
     );
 
-    const cashbackPercent = Number(await getSetting(db, "cashback_percent", "0")) || 0;
-    const cashbackStatuses = normalizeStatuses(
-      await getSetting(db, "cashback_statuses", "completed")
-    );
+    const settings = await getCashbackSettings(db);
 
     if ((search || url.searchParams.get("view") === "users") && userId <= 0) {
       const pattern = `%${search}%`;
@@ -209,7 +185,7 @@ export async function onRequestGet(context) {
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+        settings,
         users: (users?.results || []).map((user) => ({
           ...user,
           wallet_balance: toMoney(user.wallet_balance)
@@ -218,14 +194,11 @@ export async function onRequestGet(context) {
     }
 
     if (userId > 0) {
+      await expireCashbackForUser(db, userId);
+
       const user = await db
         .prepare(`
-          SELECT
-            id,
-            full_name,
-            email,
-            phone,
-            role,
+          SELECT id, full_name, email, phone, role,
             COALESCE(wallet_balance, 0) AS wallet_balance
           FROM users
           WHERE id = ?
@@ -237,6 +210,8 @@ export async function onRequestGet(context) {
       if (!user) {
         return json({ success: false, error: "user_not_found" }, 404);
       }
+
+      const breakdown = await getWalletBreakdown(db, userId);
 
       const txns = await db
         .prepare(`
@@ -256,6 +231,9 @@ export async function onRequestGet(context) {
             reference_type,
             reference_id,
             created_by_user_id,
+            remaining_amount,
+            expires_at,
+            expired_at,
             created_at,
             updated_at
           FROM wallet_transactions
@@ -268,10 +246,12 @@ export async function onRequestGet(context) {
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+        settings,
         user: {
           ...user,
-          wallet_balance: toMoney(user.wallet_balance)
+          wallet_balance: breakdown.wallet_balance,
+          cashback_balance: breakdown.cashback_balance,
+          permanent_balance: breakdown.permanent_balance
         },
         transactions: (txns?.results || []).map(formatTransactionRow)
       });
@@ -295,6 +275,9 @@ export async function onRequestGet(context) {
           wt.reference_type,
           wt.reference_id,
           wt.created_by_user_id,
+          wt.remaining_amount,
+          wt.expires_at,
+          wt.expired_at,
           wt.created_at,
           wt.updated_at,
           u.full_name,
@@ -309,7 +292,7 @@ export async function onRequestGet(context) {
 
     return json({
       success: true,
-      settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+      settings,
       transactions: (latest?.results || []).map(formatTransactionRow)
     });
   } catch (error) {
@@ -331,33 +314,40 @@ export async function onRequestPost(context) {
     if (action === "save_settings") {
       const cashbackPercent = Math.max(
         0,
-        Math.min(
-          Number(
-            pickFirst(body?.cashback_percent, body?.cashbackPercent, 0)
-          ) || 0,
-          100
-        )
+        Math.min(Number(pickFirst(body?.cashback_percent, body?.cashbackPercent, 0)) || 0, 100)
       );
-
       const cashbackStatuses = normalizeStatuses(
         pickFirst(body?.cashback_statuses, body?.cashbackStatuses, "completed")
       );
+      const cashbackEnabled = body?.cashback_enabled === false || String(body?.cashback_enabled) === "0" ? 0 : 1;
+      const minOrderAmount = Math.max(0, toMoney(body?.cashback_min_order_amount));
+      const maxPerOrder = Math.max(0, toMoney(body?.cashback_max_per_order));
+      const eligibilityMode = normalizeEligibilityMode(body?.cashback_eligibility_mode);
+      const selectedUserIds = normalizeSelectedUserIds(body?.cashback_selected_user_ids);
+      const expiryMonths = Math.min(12, Math.max(0, Math.round(Number(body?.cashback_expiry_months ?? 6) || 0)));
 
-      await setSetting(db, "cashback_percent", String(cashbackPercent));
-      await setSetting(db, "cashback_statuses", cashbackStatuses.join(","));
+      await Promise.all([
+        setSetting(db, "cashback_enabled", String(cashbackEnabled)),
+        setSetting(db, "cashback_percent", String(cashbackPercent)),
+        setSetting(db, "cashback_statuses", cashbackStatuses.join(",")),
+        setSetting(db, "cashback_min_order_amount", String(minOrderAmount)),
+        setSetting(db, "cashback_max_per_order", String(maxPerOrder)),
+        setSetting(db, "cashback_eligibility_mode", eligibilityMode),
+        setSetting(db, "cashback_selected_user_ids", selectedUserIds.join(",")),
+        setSetting(db, "cashback_expiry_months", String(expiryMonths))
+      ]);
+
+      const settings = await getCashbackSettings(db);
 
       await logAdminAction(context, {
         admin_user_id: adminCheck.user.id,
         action: "wallet_save_settings",
         target_type: "wallet_settings",
         target_id: "cashback",
-        description: `cashback_percent=${cashbackPercent}, statuses=${cashbackStatuses.join(",")}`
+        description: `enabled=${cashbackEnabled}, percent=${cashbackPercent}, min=${minOrderAmount}, max=${maxPerOrder}, mode=${eligibilityMode}, expiry=${expiryMonths}`
       });
 
-      return json({
-        success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses)
-      });
+      return json({ success: true, settings });
     }
 
     const userId = Number(pickFirst(body?.user_id, body?.userId, 0) || 0);
@@ -367,18 +357,14 @@ export async function onRequestPost(context) {
     const source = normalizeText(
       pickFirst(body?.source, body?.reference_type, body?.referenceType, "admin")
     ).toLowerCase() || "admin";
-
     const referenceType = normalizeText(
       pickFirst(body?.reference_type, body?.referenceType, source, "admin")
     ).toLowerCase() || "admin";
-
     const referenceId = normalizeText(
       pickFirst(body?.reference_id, body?.referenceId, body?.reference)
     );
-
     const orderIdRaw = pickFirst(body?.order_id, body?.orderId, 0);
     const orderId = Number(orderIdRaw || 0) || null;
-
     const orderNumber = normalizeText(
       pickFirst(body?.order_number, body?.orderNumber)
     );
@@ -386,17 +372,15 @@ export async function onRequestPost(context) {
     if (!userId || amount <= 0) {
       return json({ success: false, error: "user_id_and_amount_required" }, 400);
     }
-
     if (!type) {
       return json({ success: false, error: "invalid_type" }, 400);
     }
 
+    await expireCashbackForUser(db, userId);
+
     const user = await db
       .prepare(`
-        SELECT
-          id,
-          full_name,
-          email,
+        SELECT id, full_name, email, phone,
           COALESCE(wallet_balance, 0) AS wallet_balance
         FROM users
         WHERE id = ?
@@ -461,17 +445,18 @@ export async function onRequestPost(context) {
       )
     ]);
 
-    // ============================================
-    // ⭐⭐ ارسال اعلان Email برای تراکنش کیف پول
-    // ============================================
+    if (type === "debit") {
+      await consumeCashbackFirst(db, userId, amount);
+    }
+
     const transactionData = {
-      id: null, // بعد از ثبت، id مشخص می‌شود
-      type: type,
+      id: null,
+      type,
       amount: signedAmount,
       balance_before: balanceBefore,
       balance_after: balanceAfter,
       note: note || null,
-      source: source,
+      source,
       reference_type: referenceType,
       reference_id: referenceId || null,
       order_id: orderId,
@@ -481,30 +466,25 @@ export async function onRequestPost(context) {
 
     const userData = {
       id: user.id,
-      fullName: user.full_name || '',
-      email: user.email || '',
-      phone: user.phone || ''
+      fullName: user.full_name || "",
+      email: user.email || "",
+      phone: user.phone || ""
     };
 
-    // ارسال اعلان در پس‌زمینه
     context.waitUntil(
       (async () => {
         try {
-          // بررسی فعال بودن Email
           const emailSettings = await getEmailSettings(context.env);
           if (emailSettings.is_enabled && user.email) {
-            const notifResult = await sendWalletNotification(
+            await sendWalletNotification(
               context.env,
               userId,
               transactionData,
               userData
             );
-            console.log('📧 Wallet email notification result:', notifResult);
-          } else {
-            console.log('📧 Wallet email skipped: email disabled or user has no email');
           }
         } catch (notifError) {
-          console.error('❌ Wallet email notification error:', notifError);
+          console.error("Wallet email notification error:", notifError);
         }
       })()
     );
