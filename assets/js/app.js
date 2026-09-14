@@ -132,6 +132,12 @@
     return true;
   }
 
+  function shouldExposeCashback(walletData) {
+    if (!walletData) return false;
+    const settings = normalizeCashbackSettings(walletData);
+    return isCashbackEligible(walletData?.user || {}, settings);
+  }
+
   function calculateCashback(totalAmount, walletUsed, user, settings) {
     const total = Math.max(0, Number(totalAmount || 0));
     const used = Math.max(0, Number(walletUsed || 0));
@@ -161,6 +167,14 @@
     return null;
   }
 
+  function removeCheckoutCashbackUi() {
+    const cashbackRow = document.getElementById("cashback-row");
+    if (cashbackRow) cashbackRow.hidden = true;
+    const summaryCashback = document.getElementById("summary-cashback");
+    if (summaryCashback) summaryCashback.textContent = formatMoney(0);
+    document.getElementById("cashback-rules-note")?.remove();
+  }
+
   function ensureCheckoutRulesNote() {
     const cashbackRow = document.getElementById("cashback-row");
     if (!cashbackRow) return null;
@@ -173,17 +187,13 @@
     return note;
   }
 
-  function buildCashbackRulesText(settings, user) {
+  function buildCashbackRulesText(settings) {
     const parts = [];
     if (settings.minOrder > 0) parts.push(`حداقل مبلغ سفارش برای دریافت کش‌بک ${formatMoney(settings.minOrder)} است.`);
     if (settings.maxPerOrder > 0) parts.push(`حداکثر کش‌بک هر سفارش ${formatMoney(settings.maxPerOrder)} است.`);
     parts.push(settings.expiryMonths > 0
       ? `اعتبار کش‌بک ${new Intl.NumberFormat("fa-IR").format(settings.expiryMonths)} ماه از زمان واریز به کیف پول است.`
       : "کش‌بک این طرح بدون تاریخ انقضا ثبت می‌شود.");
-    if (settings.mode === "vip") parts.push("این طرح فقط برای کاربران VIP فعال است.");
-    else if (settings.mode === "selected") parts.push("این طرح فقط برای کاربران انتخاب‌شده فعال است.");
-    else parts.push("این طرح برای همه کاربران فعال است.");
-    if (!isCashbackEligible(user, settings)) parts.push("حساب فعلی در گروه دریافت‌کنندگان این طرح قرار ندارد.");
     return parts.join(" ");
   }
 
@@ -197,6 +207,12 @@
 
     const settings = normalizeCashbackSettings(walletData);
     const user = walletData?.user || {};
+
+    if (!shouldExposeCashback(walletData)) {
+      removeCheckoutCashbackUi();
+      return;
+    }
+
     const note = ensureCheckoutRulesNote();
 
     function refreshPreview() {
@@ -208,9 +224,8 @@
       summaryCashback.textContent = formatMoney(cashback);
       cashbackRow.hidden = cashback <= 0;
       if (!note) return;
-      if (!settings.enabled || settings.percent <= 0) note.textContent = "در حال حاضر طرح کش‌بک غیرفعال است. موجودی کش‌بک قبلی شما همچنان تا تاریخ انقضای خودش قابل استفاده است.";
-      else if (total > 0 && total < settings.minOrder) note.textContent = `برای دریافت کش‌بک، حداقل مبلغ سفارش باید ${formatMoney(settings.minOrder)} باشد.`;
-      else note.textContent = buildCashbackRulesText(settings, user);
+      if (total > 0 && total < settings.minOrder) note.textContent = `برای دریافت کش‌بک، حداقل مبلغ سفارش باید ${formatMoney(settings.minOrder)} باشد.`;
+      else note.textContent = buildCashbackRulesText(settings);
     }
 
     refreshPreview();
@@ -242,9 +257,10 @@
   }
 
   function showInvoiceCashbackPopup(walletData) {
+    if (!walletData || !shouldExposeCashback(walletData)) return;
     if (document.getElementById("cashback-info-popup")) return;
-    const settings = normalizeCashbackSettings(walletData || {});
-    const user = walletData?.user || {};
+
+    const settings = normalizeCashbackSettings(walletData);
     const cashback = parseMoney(document.getElementById("summary-cashback")?.textContent);
     const total = parseMoney(document.getElementById("summary-total")?.textContent);
     injectPopupStyles();
@@ -257,9 +273,7 @@
     else rules.push("مدت اعتبار کش‌بک: بدون انقضا");
 
     let resultText = "";
-    if (!settings.enabled || settings.percent <= 0) resultText = "در حال حاضر صدور کش‌بک جدید غیرفعال است. موجودی کش‌بک قبلی شما حذف نمی‌شود و تا تاریخ انقضای خودش قابل استفاده است.";
-    else if (!isCashbackEligible(user, settings)) resultText = "این حساب در گروه کاربران مجاز این طرح قرار ندارد.";
-    else if (settings.minOrder > 0 && total < settings.minOrder) resultText = `این سفارش به حداقل مبلغ ${formatMoney(settings.minOrder)} برای دریافت کش‌بک نرسیده است.`;
+    if (settings.minOrder > 0 && total < settings.minOrder) resultText = `این سفارش به حداقل مبلغ ${formatMoney(settings.minOrder)} برای دریافت کش‌بک نرسیده است.`;
     else if (cashback > 0) resultText = `کش‌بک این سفارش ${formatMoney(cashback)} است و پس از نهایی‌شدن سفارش طبق وضعیت‌های مجاز به کیف پول شما اضافه می‌شود.`;
     else resultText = "برای این سفارش کش‌بکی ثبت نشده است.";
 
@@ -284,12 +298,23 @@
     overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
   }
 
+  function removeAccountCashbackUi() {
+    document.getElementById("account-cashback-breakdown")?.remove();
+    document.getElementById("account-cashback-expiry")?.remove();
+  }
+
   function renderAccountCashbackSummary(walletData) {
     const walletBalance = document.getElementById("wallet-balance");
     if (!walletBalance || !walletData) return;
-    injectPopupStyles();
 
     walletBalance.textContent = formatMoney(walletData.wallet_balance || walletData.user?.wallet_balance || 0);
+
+    if (!shouldExposeCashback(walletData)) {
+      removeAccountCashbackUi();
+      return;
+    }
+
+    injectPopupStyles();
 
     const total = Number(walletData.wallet_balance || walletData.user?.wallet_balance || 0);
     const permanent = Number(walletData.permanent_balance || 0);
@@ -355,6 +380,7 @@
     if (isCheckout) {
       const walletData = await fetchCustomerWalletData(4);
       if (walletData) initCheckoutCashbackPreview(walletData);
+      else removeCheckoutCashbackUi();
     }
 
     if (isInvoice) {
@@ -368,7 +394,7 @@
 
         clearInterval(waitForInvoice);
         const walletData = await fetchCustomerWalletData(6);
-        showInvoiceCashbackPopup(walletData || { settings: { cashback_enabled: false } });
+        if (walletData && shouldExposeCashback(walletData)) showInvoiceCashbackPopup(walletData);
       }, 200);
     }
   }
