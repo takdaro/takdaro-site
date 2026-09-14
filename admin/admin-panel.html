@@ -2051,6 +2051,233 @@
         padding: 12px 14px;
       }
     }
+  
+
+    /* =========================================================
+       WALLET FINAL LAYOUT FIX
+       جلوگیری از خروج محتوا از ستون اصلی پنل مدیریت
+       ========================================================= */
+
+    #admin-panel-wallet,
+    #admin-panel-wallet .admin-module,
+    #admin-panel-wallet .wallet-shell,
+    #admin-panel-wallet #wallet-management-panel,
+    #admin-panel-wallet #wallet-cashback-panel,
+    #admin-panel-wallet #wallet-content {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      overflow: visible;
+    }
+
+    #admin-panel-wallet .wallet-shell,
+    #admin-panel-wallet .wallet-shell * {
+      box-sizing: border-box;
+    }
+
+    #admin-panel-wallet .wallet-section-tabs {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    #admin-panel-wallet .wallet-management-toolbar {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    #admin-panel-wallet .wallet-management-toolbar > *,
+    #admin-panel-wallet .wallet-user-search-field,
+    #admin-panel-wallet .wallet-user-search-field input,
+    #admin-panel-wallet .wallet-user-search-field select,
+    #admin-panel-wallet .wallet-management-toolbar input,
+    #admin-panel-wallet .wallet-management-toolbar select,
+    #admin-panel-wallet .wallet-management-toolbar button {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    #admin-panel-wallet .wallet-overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      margin-bottom: 18px;
+    }
+
+    #admin-panel-wallet .wallet-hero {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    #admin-panel-wallet .wallet-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    #admin-panel-wallet .wallet-summary-grid > *,
+    #admin-panel-wallet .wallet-mini-card {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    #admin-panel-wallet .wallet-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 16px;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      margin-bottom: 18px;
+      align-items: start;
+    }
+
+    #admin-panel-wallet .wallet-grid > *,
+    #admin-panel-wallet .wallet-user-card,
+    #admin-panel-wallet .wallet-adjust-card {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    #admin-panel-wallet .wallet-adjust-card .filters-grid,
+    #admin-panel-wallet .wallet-adjust-card .filters-grid.filters-grid-2,
+    #admin-panel-wallet .wallet-adjust-card .filters-grid.filters-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    #admin-panel-wallet .wallet-adjust-card .filters-grid > *,
+    #admin-panel-wallet .wallet-adjust-card input,
+    #admin-panel-wallet .wallet-adjust-card select,
+    #admin-panel-wallet .wallet-adjust-card textarea,
+    #admin-panel-wallet .wallet-adjust-card button {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    #admin-panel-wallet .wallet-history-card {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    #admin-panel-wallet .wallet-history-tools {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 180px) minmax(0, 180px);
+      gap: 12px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    #admin-panel-wallet .wallet-history-tools > * {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    #admin-panel-wallet .wallet-history-card .table-wrap {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #admin-panel-wallet .wallet-user-name,
+    #admin-panel-wallet .wallet-user-email,
+    #admin-panel-wallet .wallet-user-row span,
+    #admin-panel-wallet .wallet-user-row strong,
+    #admin-panel-wallet .wallet-balance strong,
+    #admin-panel-wallet .wallet-meta-pill,
+    #admin-panel-wallet .wallet-note {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    @media (max-width: 1280px) {
+      #admin-panel-wallet .wallet-management-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      #admin-panel-wallet .wallet-overview,
+      #admin-panel-wallet .wallet-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      #admin-panel-wallet .wallet-section-tabs {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      #admin-panel-wallet .wallet-section-tabs .btn {
+        width: 100%;
+        min-width: 0;
+      }
+
+      #admin-panel-wallet .wallet-management-toolbar,
+      #admin-panel-wallet .wallet-overview,
+      #admin-panel-wallet .wallet-summary-grid,
+      #admin-panel-wallet .wallet-grid,
+      #admin-panel-wallet .wallet-history-tools,
+      #admin-panel-wallet .wallet-adjust-card .filters-grid,
+      #admin-panel-wallet .wallet-adjust-card .filters-grid.filters-grid-2,
+      #admin-panel-wallet .wallet-adjust-card .filters-grid.filters-grid-3 {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+
+      #admin-panel-wallet .wallet-inline-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
+      }
+
+      #admin-panel-wallet .wallet-inline-actions .btn,
+      #admin-panel-wallet .wallet-inline-actions button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #admin-panel-wallet .wallet-management-toolbar,
+      #admin-panel-wallet .wallet-summary-grid,
+      #admin-panel-wallet .wallet-adjust-card .filters-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+    }
+
   </style>
 </head>
 <body>
