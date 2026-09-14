@@ -596,7 +596,11 @@
       loaded: false,
       available: false,
       balance: 0,
-      cashbackPercent: 0
+      cashbackPercent: 0,
+      cashbackEnabled: true,
+      cashbackMinOrderAmount: 0,
+      cashbackMaxAmount: 0,
+      cashbackUserEligible: true
     };
 
     // ============================================
@@ -1007,6 +1011,10 @@
       walletState.available = false;
       walletState.balance = 0;
       walletState.cashbackPercent = 0;
+      walletState.cashbackEnabled = true;
+      walletState.cashbackMinOrderAmount = 0;
+      walletState.cashbackMaxAmount = 0;
+      walletState.cashbackUserEligible = true;
     }
 
     function applyWalletState(payload) {
@@ -1030,6 +1038,7 @@
         payload?.data?.settings?.cashback_percent,
         payload?.data?.wallet?.cashback_percent
       ];
+      const settings = payload?.settings || payload?.data?.settings || {};
 
       let resolvedBalance = null;
       for (const candidate of balanceCandidates) {
@@ -1049,6 +1058,10 @@
       walletState.available = true;
       walletState.balance = resolvedBalance;
       walletState.cashbackPercent = Math.max(0, resolvedCashback);
+      walletState.cashbackEnabled = settings.cashback_enabled !== false;
+      walletState.cashbackMinOrderAmount = Number(settings.cashback_min_order_amount || 0) || 0;
+      walletState.cashbackMaxAmount = Number(settings.cashback_max_amount || 0) || 0;
+      walletState.cashbackUserEligible = settings.cashback_user_eligible !== false;
       return true;
     }
 
@@ -1099,8 +1112,11 @@
 
     function getCashbackAmount(baseAmount) {
       const percent = Number(walletState.cashbackPercent || 0);
+      if (!walletState.cashbackEnabled || !walletState.cashbackUserEligible) return 0;
       if (!baseAmount || baseAmount <= 0 || percent <= 0) return 0;
-      return Math.max(0, Math.round((baseAmount * percent) / 100));
+      if (walletState.cashbackMinOrderAmount > 0 && baseAmount < walletState.cashbackMinOrderAmount) return 0;
+      const amount = Math.max(0, Math.round((baseAmount * percent) / 100));
+      return walletState.cashbackMaxAmount > 0 ? Math.min(amount, walletState.cashbackMaxAmount) : amount;
     }
 
     function updateWalletUi() {

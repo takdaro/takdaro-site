@@ -113,6 +113,46 @@ function normalizeStatuses(input) {
   return normalized.length ? [...new Set(normalized)] : ["completed"];
 }
 
+function normalizeBoolean(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  const normalized = normalizeText(value).toLowerCase();
+  if (["1", "true", "yes", "on", "enabled"].includes(normalized)) return true;
+  if (["0", "false", "no", "off", "disabled"].includes(normalized)) return false;
+  return fallback;
+}
+
+function normalizeEligibilityMode(value) {
+  const mode = normalizeText(value).toLowerCase();
+  return mode === "selected" ? "selected" : "all";
+}
+
+function normalizeIdList(input) {
+  let list = [];
+
+  if (Array.isArray(input)) {
+    list = input;
+  } else if (typeof input === "string") {
+    try {
+      const parsed = JSON.parse(input);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch (_) {
+      list = input.split(",");
+    }
+  }
+
+  return [...new Set(
+    list
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item > 0)
+  )];
+}
+
+function normalizeMonths(value, fallback = 3) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.min(12, Math.round(parsed)));
+}
+
 function formatTransactionRow(row) {
   return {
     ...row,
@@ -122,11 +162,55 @@ function formatTransactionRow(row) {
   };
 }
 
-function buildSettingsPayload(cashbackPercent, cashbackStatuses) {
+function buildSettingsPayload(settings = {}) {
   return {
-    cashback_percent: Number(cashbackPercent) || 0,
-    cashback_statuses: Array.isArray(cashbackStatuses) ? cashbackStatuses : ["completed"]
+    cashback_enabled: normalizeBoolean(settings.cashback_enabled, true),
+    cashback_percent: Number(settings.cashback_percent) || 0,
+    cashback_statuses: Array.isArray(settings.cashback_statuses)
+      ? settings.cashback_statuses
+      : ["completed"],
+    cashback_min_order_amount: toMoney(settings.cashback_min_order_amount),
+    cashback_max_amount: toMoney(settings.cashback_max_amount),
+    cashback_expiry_months: normalizeMonths(settings.cashback_expiry_months),
+    cashback_eligibility_mode: normalizeEligibilityMode(settings.cashback_eligibility_mode),
+    cashback_eligible_user_ids: normalizeIdList(settings.cashback_eligible_user_ids)
   };
+}
+
+async function getCashbackSettings(db) {
+  const keys = [
+    "cashback_enabled",
+    "cashback_percent",
+    "cashback_statuses",
+    "cashback_min_order_amount",
+    "cashback_max_amount",
+    "cashback_expiry_months",
+    "cashback_eligibility_mode",
+    "cashback_eligible_user_ids"
+  ];
+
+  const placeholders = keys.map(() => "?").join(",");
+  const rows = await db.prepare(`
+    SELECT setting_key, setting_value
+    FROM app_settings
+    WHERE setting_key IN (${placeholders})
+  `).bind(...keys).all();
+
+  const map = {};
+  for (const row of rows?.results || []) {
+    map[normalizeText(row.setting_key)] = row.setting_value;
+  }
+
+  return buildSettingsPayload({
+    cashback_enabled: map.cashback_enabled ?? "1",
+    cashback_percent: map.cashback_percent ?? "0",
+    cashback_statuses: normalizeStatuses(map.cashback_statuses ?? "completed"),
+    cashback_min_order_amount: map.cashback_min_order_amount ?? "0",
+    cashback_max_amount: map.cashback_max_amount ?? "0",
+    cashback_expiry_months: map.cashback_expiry_months ?? "3",
+    cashback_eligibility_mode: map.cashback_eligibility_mode ?? "all",
+    cashback_eligible_user_ids: map.cashback_eligible_user_ids ?? "[]"
+  });
 }
 
 // ============================================
@@ -191,10 +275,7 @@ export async function onRequestGet(context) {
       200
     );
 
-    const cashbackPercent = Number(await getSetting(db, "cashback_percent", "0")) || 0;
-    const cashbackStatuses = normalizeStatuses(
-      await getSetting(db, "cashback_statuses", "completed")
-    );
+    const cashbackSettings = await getCashbackSettings(db);
 
     if ((search || url.searchParams.get("view") === "users") && userId <= 0) {
       const pattern = `%${search}%`;
@@ -209,7 +290,7 @@ export async function onRequestGet(context) {
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+        settings: cashbackSettings,
         users: (users?.results || []).map((user) => ({
           ...user,
           wallet_balance: toMoney(user.wallet_balance)
@@ -268,7 +349,7 @@ export async function onRequestGet(context) {
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+        settings: cashbackSettings,
         user: {
           ...user,
           wallet_balance: toMoney(user.wallet_balance)
@@ -309,7 +390,7 @@ export async function onRequestGet(context) {
 
     return json({
       success: true,
-      settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+      settings: cashbackSettings,
       transactions: (latest?.results || []).map(formatTransactionRow)
     });
   } catch (error) {
@@ -343,20 +424,64 @@ export async function onRequestPost(context) {
         pickFirst(body?.cashback_statuses, body?.cashbackStatuses, "completed")
       );
 
+      const cashbackEnabled = normalizeBoolean(
+        pickFirst(body?.cashback_enabled, body?.cashbackEnabled, "1"),
+        true
+      );
+
+      const cashbackMinOrderAmount = Math.max(
+        0,
+        toMoney(pickFirst(body?.cashback_min_order_amount, body?.cashbackMinOrderAmount, 0))
+      );
+
+      const cashbackMaxAmount = Math.max(
+        0,
+        toMoney(pickFirst(body?.cashback_max_amount, body?.cashbackMaxAmount, 0))
+      );
+
+      const cashbackExpiryMonths = normalizeMonths(
+        pickFirst(body?.cashback_expiry_months, body?.cashbackExpiryMonths, 3)
+      );
+
+      const cashbackEligibilityMode = normalizeEligibilityMode(
+        pickFirst(body?.cashback_eligibility_mode, body?.cashbackEligibilityMode, "all")
+      );
+
+      const cashbackEligibleUserIds = normalizeIdList(
+        body?.cashback_eligible_user_ids ?? body?.cashbackEligibleUserIds ?? []
+      );
+
+      await setSetting(db, "cashback_enabled", cashbackEnabled ? "1" : "0");
       await setSetting(db, "cashback_percent", String(cashbackPercent));
       await setSetting(db, "cashback_statuses", cashbackStatuses.join(","));
+      await setSetting(db, "cashback_min_order_amount", String(cashbackMinOrderAmount));
+      await setSetting(db, "cashback_max_amount", String(cashbackMaxAmount));
+      await setSetting(db, "cashback_expiry_months", String(cashbackExpiryMonths));
+      await setSetting(db, "cashback_eligibility_mode", cashbackEligibilityMode);
+      await setSetting(db, "cashback_eligible_user_ids", JSON.stringify(cashbackEligibleUserIds));
 
       await logAdminAction(context, {
         admin_user_id: adminCheck.user.id,
         action: "wallet_save_settings",
         target_type: "wallet_settings",
         target_id: "cashback",
-        description: `cashback_percent=${cashbackPercent}, statuses=${cashbackStatuses.join(",")}`
+        description: `cashback_enabled=${cashbackEnabled}, cashback_percent=${cashbackPercent}, min=${cashbackMinOrderAmount}, max=${cashbackMaxAmount}, expiry_months=${cashbackExpiryMonths}, eligibility=${cashbackEligibilityMode}, statuses=${cashbackStatuses.join(",")}`
+      });
+
+      const settings = buildSettingsPayload({
+        cashback_enabled: cashbackEnabled,
+        cashback_percent: cashbackPercent,
+        cashback_statuses: cashbackStatuses,
+        cashback_min_order_amount: cashbackMinOrderAmount,
+        cashback_max_amount: cashbackMaxAmount,
+        cashback_expiry_months: cashbackExpiryMonths,
+        cashback_eligibility_mode: cashbackEligibilityMode,
+        cashback_eligible_user_ids: cashbackEligibleUserIds
       });
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses)
+        settings
       });
     }
 
