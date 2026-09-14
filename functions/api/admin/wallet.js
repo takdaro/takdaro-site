@@ -1,6 +1,7 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
 import { sendUserWalletNotification } from "../../lib/notification.js";
 import { getEmailSettings } from "../../lib/email.js";
+import { getCashbackSettings, saveCashbackSettings } from "../../lib/cashback-settings.js";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -57,28 +58,6 @@ async function ensureWalletTables(db) {
   `).run();
 }
 
-async function getSetting(db, key, fallback = null) {
-  const row = await db
-    .prepare(`SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1`)
-    .bind(key)
-    .first();
-
-  return row ? row.setting_value : fallback;
-}
-
-async function setSetting(db, key, value) {
-  await db
-    .prepare(`
-      INSERT INTO app_settings (setting_key, setting_value, updated_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(setting_key) DO UPDATE SET
-        setting_value = excluded.setting_value,
-        updated_at = CURRENT_TIMESTAMP
-    `)
-    .bind(key, String(value))
-    .run();
-}
-
 function normalizeWalletType(value) {
   const type = normalizeText(value).toLowerCase();
 
@@ -119,13 +98,6 @@ function formatTransactionRow(row) {
     amount: toMoney(row.amount),
     balance_before: toMoney(row.balance_before),
     balance_after: toMoney(row.balance_after)
-  };
-}
-
-function buildSettingsPayload(cashbackPercent, cashbackStatuses) {
-  return {
-    cashback_percent: Number(cashbackPercent) || 0,
-    cashback_statuses: Array.isArray(cashbackStatuses) ? cashbackStatuses : ["completed"]
   };
 }
 
@@ -191,10 +163,7 @@ export async function onRequestGet(context) {
       200
     );
 
-    const cashbackPercent = Number(await getSetting(db, "cashback_percent", "0")) || 0;
-    const cashbackStatuses = normalizeStatuses(
-      await getSetting(db, "cashback_statuses", "completed")
-    );
+    const cashbackSettings = await getCashbackSettings(db);
 
     if ((search || url.searchParams.get("view") === "users") && userId <= 0) {
       const pattern = `%${search}%`;
@@ -209,7 +178,7 @@ export async function onRequestGet(context) {
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+        settings: cashbackSettings,
         users: (users?.results || []).map((user) => ({
           ...user,
           wallet_balance: toMoney(user.wallet_balance)
@@ -268,7 +237,7 @@ export async function onRequestGet(context) {
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+        settings: cashbackSettings,
         user: {
           ...user,
           wallet_balance: toMoney(user.wallet_balance)
@@ -309,7 +278,7 @@ export async function onRequestGet(context) {
 
     return json({
       success: true,
-      settings: buildSettingsPayload(cashbackPercent, cashbackStatuses),
+      settings: cashbackSettings,
       transactions: (latest?.results || []).map(formatTransactionRow)
     });
   } catch (error) {
@@ -329,34 +298,25 @@ export async function onRequestPost(context) {
     const action = normalizeText(body?.action).toLowerCase();
 
     if (action === "save_settings") {
-      const cashbackPercent = Math.max(
-        0,
-        Math.min(
-          Number(
-            pickFirst(body?.cashback_percent, body?.cashbackPercent, 0)
-          ) || 0,
-          100
+      const settings = await saveCashbackSettings(db, {
+        ...body,
+        cashback_percent: pickFirst(body?.cashback_percent, body?.cashbackPercent, 0),
+        cashback_statuses: normalizeStatuses(
+          pickFirst(body?.cashback_statuses, body?.cashbackStatuses, "completed")
         )
-      );
-
-      const cashbackStatuses = normalizeStatuses(
-        pickFirst(body?.cashback_statuses, body?.cashbackStatuses, "completed")
-      );
-
-      await setSetting(db, "cashback_percent", String(cashbackPercent));
-      await setSetting(db, "cashback_statuses", cashbackStatuses.join(","));
+      });
 
       await logAdminAction(context, {
         admin_user_id: adminCheck.user.id,
         action: "wallet_save_settings",
         target_type: "wallet_settings",
         target_id: "cashback",
-        description: `cashback_percent=${cashbackPercent}, statuses=${cashbackStatuses.join(",")}`
+        description: `cashback_settings=${JSON.stringify(settings)}`
       });
 
       return json({
         success: true,
-        settings: buildSettingsPayload(cashbackPercent, cashbackStatuses)
+        settings
       });
     }
 
