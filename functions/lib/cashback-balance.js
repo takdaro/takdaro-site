@@ -24,10 +24,22 @@ export async function expireCashbackForUser(db, userId) {
   await db.batch([
     db.prepare(`
       UPDATE users
-      SET wallet_balance = MAX(0, COALESCE(wallet_balance, 0) - ?),
+      SET wallet_balance = MAX(
+            0,
+            COALESCE(wallet_balance, 0) - COALESCE((
+              SELECT SUM(remaining_amount)
+              FROM wallet_transactions
+              WHERE user_id = ?
+                AND type = 'cashback'
+                AND status = 'completed'
+                AND COALESCE(remaining_amount, 0) > 0
+                AND expires_at IS NOT NULL
+                AND expires_at <= CURRENT_TIMESTAMP
+            ), 0)
+          ),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).bind(amount, id),
+    `).bind(id, id),
     db.prepare(`
       UPDATE wallet_transactions
       SET remaining_amount = 0,
