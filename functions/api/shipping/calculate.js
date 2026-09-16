@@ -37,6 +37,7 @@ async function getShippingCost(db, province, city, subtotal = 0) {
     FROM shipping_costs sc
     INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
     WHERE sc.province = ? AND sc.city = ? AND sc.is_active = 1 AND sm.is_active = 1
+    ORDER BY sc.updated_at DESC, sc.id DESC
     LIMIT 1
   `).bind(normalizedProvince, normalizedCity).first();
 

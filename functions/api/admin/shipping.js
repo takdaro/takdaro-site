@@ -94,7 +94,7 @@ export async function onRequestGet(context) {
         FROM shipping_costs sc
         INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
         WHERE sc.province = ? AND LOWER(sc.city) != 'default'
-        ORDER BY sc.city ASC, sm.sort_order ASC, sm.id ASC
+        ORDER BY sc.city ASC, sc.is_active DESC, sc.updated_at DESC, sc.id DESC, sm.sort_order ASC, sm.id ASC
       `).bind(province).all();
 
       return json({ success: true, costs: Array.isArray(result?.results) ? result.results : [] });
@@ -125,7 +125,7 @@ export async function onRequestGet(context) {
         FROM shipping_costs sc
         INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
         WHERE sc.province = ? AND sc.city = ?
-        ORDER BY sm.sort_order ASC
+        ORDER BY sc.is_active DESC, sc.updated_at DESC, sc.id DESC, sm.sort_order ASC
       `).bind(province, city).all();
 
       const costs = Array.isArray(result?.results) ? result.results : [];
@@ -370,24 +370,24 @@ export async function onRequestPost(context) {
       const finalCost = cost_type === "fixed" ? cost_amount : defaultCost + extra_cost;
       const savedExtraCost = cost_type === "extra" ? extra_cost : 0;
 
-      const existing = await context.env.DB.prepare(`
-        SELECT id FROM shipping_costs 
-        WHERE province = ? AND city = ? AND shipping_method_id = ?
-      `).bind(province, city, shipping_method_id).first();
-
-      let result;
-      if (existing) {
-        result = await context.env.DB.prepare(`
+      await context.env.DB.batch([
+        context.env.DB.prepare(`
           UPDATE shipping_costs
-          SET cost_type = ?, cost_amount = ?, extra_cost = ?, delivery_time = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
-          WHERE province = ? AND city = ? AND shipping_method_id = ?
-        `).bind(cost_type, finalCost, savedExtraCost, delivery_time, is_active, province, city, shipping_method_id).run();
-      } else {
-        result = await context.env.DB.prepare(`
+          SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+          WHERE province = ? AND city = ? AND shipping_method_id != ? AND is_active = 1
+        `).bind(province, city, shipping_method_id),
+        context.env.DB.prepare(`
           INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(province, city, shipping_method_id, cost_type, finalCost, savedExtraCost, delivery_time, is_active).run();
-      }
+          ON CONFLICT(province, city, shipping_method_id) DO UPDATE SET
+            cost_type = excluded.cost_type,
+            cost_amount = excluded.cost_amount,
+            extra_cost = excluded.extra_cost,
+            delivery_time = excluded.delivery_time,
+            is_active = excluded.is_active,
+            updated_at = CURRENT_TIMESTAMP
+        `).bind(province, city, shipping_method_id, cost_type, finalCost, savedExtraCost, delivery_time, is_active)
+      ]);
 
       return json({
         success: true,
@@ -425,17 +425,24 @@ export async function onRequestPost(context) {
 
       const extra_cost = cost_type === "extra" ? amount : 0;
       const cost_amount = cost_type === "fixed" ? amount : Number(method.default_cost || 0) + amount;
-      const statements = cities.map((city) => context.env.DB.prepare(`
-        INSERT INTO shipping_costs
-          (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, '', 1)
-          ON CONFLICT(province, city, shipping_method_id) DO UPDATE SET
-            cost_type = excluded.cost_type,
-            cost_amount = excluded.cost_amount,
-            extra_cost = excluded.extra_cost,
-            is_active = 1,
-            updated_at = CURRENT_TIMESTAMP
-      `).bind(province, city, shipping_method_id, cost_type, cost_amount, extra_cost));
+      const statements = cities.flatMap((city) => [
+        context.env.DB.prepare(`
+          UPDATE shipping_costs
+          SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+          WHERE province = ? AND city = ? AND shipping_method_id != ? AND is_active = 1
+        `).bind(province, city, shipping_method_id),
+        context.env.DB.prepare(`
+          INSERT INTO shipping_costs
+            (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, '', 1)
+            ON CONFLICT(province, city, shipping_method_id) DO UPDATE SET
+              cost_type = excluded.cost_type,
+              cost_amount = excluded.cost_amount,
+              extra_cost = excluded.extra_cost,
+              is_active = 1,
+              updated_at = CURRENT_TIMESTAMP
+        `).bind(province, city, shipping_method_id, cost_type, cost_amount, extra_cost)
+      ]);
 
       await context.env.DB.batch(statements);
 

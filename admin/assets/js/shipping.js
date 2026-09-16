@@ -832,21 +832,20 @@
       '<option value="fixed">هزینه ثابت (مبلغ نهایی)</option><option value="extra">متغیر (مازاد بر پایه)</option></select></label>' +
       '<label class="shipping-city-bulk-field"><span data-shipping-bulk-amount-label>مبلغ ثابت نهایی برای هر شهر (تومان)</span><input type="text" inputmode="numeric" data-shipping-bulk-amount placeholder="مثلاً ۱۲۰۰۰۰" /></label>' +
       '<button type="button" class="btn btn-primary" data-shipping-apply-bulk>اعمال روی شهرهای انتخاب‌شده</button>' +
-      '<p class="shipping-city-bulk-note">روش انتخاب‌شده برای شهرهای انتخابی فعال می‌شود؛ سایر روش‌های هر شهر دست‌نخورده می‌مانند.</p>' +
+      '<p class="shipping-city-bulk-note">روش انتخاب‌شده برای هر شهر فعال می‌شود و روش قبلی همان شهر غیرفعال خواهد شد.</p>' +
       '</div>' +
       '<div class="table-wrap shipping-city-table-wrap"><table class="admin-table shipping-city-table">' +
-      '<thead><tr><th><label class="shipping-city-select-all"><input type="checkbox" data-shipping-select-all-cities /> انتخاب همه</label></th><th>روش‌ها و هزینه‌ها</th><th>وضعیت</th><th>اقدام</th></tr></thead>' +
+      '<thead><tr><th><label class="shipping-city-select-all"><input type="checkbox" data-shipping-select-all-cities /> انتخاب همه</label></th><th>روش ارسال و هزینه</th><th>وضعیت</th><th>اقدام</th></tr></thead>' +
       '<tbody>' + cities.map(function (city) {
         var cityCosts = state.provinceCosts.filter(function (cost) {
           return cost.city === city;
         });
-        var summaries = cityCosts.length
-          ? cityCosts.map(function (cost) {
-              return esc(cost.method_name || "روش ارسال") + " — " +
-                money(cost.cost_amount || 0) + " تومان";
-            }).join("<br>")
-          : '<span class="admin-help">هزینه‌ای ثبت نشده</span>';
-        var active = cityCosts.some(function (cost) { return Number(cost.is_active) === 1; });
+        var activeCost = cityCosts.find(function (cost) { return Number(cost.is_active) === 1; });
+        var summaries = activeCost
+          ? esc(activeCost.method_name || "روش ارسال") + " — " +
+            money(activeCost.cost_amount || 0) + " تومان"
+          : '<span class="admin-help">روش فعالی ثبت نشده</span>';
+        var active = Boolean(activeCost);
 
         return '<tr><td><label class="shipping-city-row-select"><input type="checkbox" data-shipping-city-checkbox value="' + esc(city) + '" /> <span>' + esc(city) + '</span></label></td><td>' + summaries + "</td><td>" +
           (active
