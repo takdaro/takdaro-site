@@ -79,6 +79,10 @@
       }
       var blocked = []; try { blocked = JSON.parse(data.settings && data.settings.blocked_weekdays || '[]'); } catch (_) {}
       document.querySelectorAll('#blocked-weekdays input').forEach(function (input) { input.checked = blocked.includes(Number(input.value)); });
+      var settings = data.settings || {};
+      var minDays = document.getElementById('delivery-min-days'); if (minDays) minDays.value = settings.minimum_days || '2';
+      var horizon = document.getElementById('delivery-horizon-days'); if (horizon) horizon.value = settings.horizon_days || '14';
+      var cutoff = document.getElementById('delivery-same-day-cutoff'); if (cutoff) cutoff.value = settings.same_day_cutoff || '14:00';
       weekdayRows = data.schedules || []; renderWeeklyRows(weekdayRows);
     } catch (_) { }
   }
@@ -93,6 +97,9 @@
         return { weekday:Number(row.dataset.weekday), title:'زمان ارسال', active:row.querySelector('[data-active]').checked, start_time:row.querySelector('[data-start]').value, end_time:row.querySelector('[data-end]').value, capacity:row.querySelector('[data-capacity]').value, cutoff_hours:row.querySelector('[data-cutoff]').value };
       });
       post({ action:'save_weekly_slots', rows:rows }).then(load);
+    }
+    if (target.id === 'save-delivery-defaults') {
+      post({ action:'save_defaults', minimum_days:document.getElementById('delivery-min-days').value, horizon_days:document.getElementById('delivery-horizon-days').value, same_day_cutoff:document.getElementById('delivery-same-day-cutoff').value }).then(load);
     }
     if (target.dataset.holidayDelete) post({ action:'holiday_delete', id:target.dataset.holidayDelete }).then(load);
   });
