@@ -183,6 +183,70 @@
 }
 
 /* Order detail sections */
+.dashboard-currency-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 24px;
+  padding: 20px 22px;
+  border: 1px solid #d7e9ec;
+  border-radius: 18px;
+  background: linear-gradient(115deg, #f2fbfb 0%, #fff 72%);
+  box-shadow: 0 8px 22px rgba(16, 74, 91, .06);
+}
+
+.dashboard-currency-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  place-items: center;
+  border-radius: 15px;
+  background: #e1f5f5;
+  font-size: 25px;
+}
+
+.dashboard-currency-content {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.dashboard-currency-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dashboard-currency-content strong {
+  color: var(--primary);
+  font-size: 23px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-currency-content small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dashboard-currency-action {
+  min-height: 40px;
+  margin-inline-start: auto;
+  padding: 8px 14px;
+  border: 1px solid #cfe3e7;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dashboard-currency-action:hover {
+  border-color: var(--secondary);
+  background: #f7fcfc;
+}
+
 #order-detail {
   padding: 22px;
   background: #f7fafc;
@@ -408,6 +472,10 @@
 }
 
 @media (max-width: 460px) {
+  .dashboard-currency-card { gap: 11px; padding: 16px; }
+  .dashboard-currency-icon { width: 44px; height: 44px; flex-basis: 44px; }
+  .dashboard-currency-content strong { font-size: 19px; }
+  .dashboard-currency-action { padding-inline: 10px; font-size: 12px; }
   .order-detail-facts,
   .order-detail-facts--three { grid-template-columns: 1fr; }
   .order-detail-card-heading { align-items: flex-start; }

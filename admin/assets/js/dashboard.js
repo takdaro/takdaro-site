@@ -8,7 +8,42 @@
   // ============================================
   // بارگذاری داشبورد
   // ============================================
+  async function loadDashboardRate() {
+    var rateDisplay = document.getElementById("dashboard-usd-rate");
+    var rateMeta = document.getElementById("dashboard-usd-rate-meta");
+    var manageButton = document.getElementById("dashboard-open-rates");
+    if (!rateDisplay) return;
+
+    if (manageButton && manageButton.dataset.bound !== "true") {
+      manageButton.dataset.bound = "true";
+      manageButton.addEventListener("click", function() {
+        document.querySelector('.admin-menu-btn[data-admin-panel="rates"]')?.click();
+      });
+    }
+
+    rateDisplay.textContent = "در حال دریافت نرخ...";
+    if (rateMeta) rateMeta.textContent = "منبع: مدیریت نرخ ارز";
+
+    try {
+      var result = await window.api("/api/rate/current?currency=USD");
+      if (!result.ok || !result.data?.success || !result.data.rate?.rate) {
+        throw new Error(result.data?.error || "نرخ دلار در مدیریت نرخ ارز ثبت نشده است.");
+      }
+
+      var rate = result.data.rate;
+      rateDisplay.textContent = rate.rate_formatted || window.money(rate.rate) + " تومان";
+      if (rateMeta) {
+        var updatedAt = rate.updated_at ? " · بروزرسانی: " + window.formatDate(rate.updated_at) : "";
+        rateMeta.textContent = "منبع: " + (rate.source_label || "مدیریت نرخ ارز") + updatedAt;
+      }
+    } catch (error) {
+      rateDisplay.textContent = "نرخ در دسترس نیست";
+      if (rateMeta) rateMeta.textContent = error.message || "دریافت نرخ ارز ناموفق بود.";
+    }
+  }
+
   async function loadDashboard() {
+    loadDashboardRate();
     var result = await window.api("/api/admin/stats");
     if (!result.ok || !result.data?.success) {
       window.setAdminMessage(result.data?.error || "دریافت آمار انجام نشد.");
