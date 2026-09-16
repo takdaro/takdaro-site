@@ -62,15 +62,25 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   const cutoff = String(settings.same_day_cutoff || "14:00").match(/^(\d{1,2}):(\d{2})$/);
   const blockedSetting = (() => { try { return JSON.parse(settings.blocked_weekdays || "[]"); } catch (_) { return []; } })();
   const blockedWeekdays = new Set((Array.isArray(blockedSetting) ? blockedSetting : []).map(Number));
+  const holidays = new Set((holidayResult.results || []).map((row) => normalizeDate(row.holiday_date)));
   const tehran = localDateParts(now);
   const today = Date.UTC(tehran.year, tehran.month - 1, tehran.day);
   const cutoffReached = !!cutoff && tehran.hour * 60 + tehran.minute >= Number(cutoff[1]) * 60 + Number(cutoff[2]);
-  const firstSelectableOffset = Math.max(minimumDays, cutoffReached ? 1 : 0);
-  const lastSelectableOffset = Math.min(horizonDays, 6);
+  const firstOffsetToConsider = cutoffReached ? 1 : 0;
+  const eligibleDateOffsets = [];
+  for (let offset = firstOffsetToConsider; offset <= horizonDays; offset++) {
+    const timestamp = today + offset * 86400000;
+    const weekday = new Date(timestamp).getUTCDay();
+    const jalaliDate = jalaliDateFromUtc(new Date(timestamp));
+    const isDeliveryDay = !blockedWeekdays.has(weekday) && !holidays.has(jalaliDate);
+    if (isDeliveryDay) eligibleDateOffsets.push(offset);
+  }
+  const preparationDaysToSkip = Math.max(0, minimumDays - (firstOffsetToConsider === 0 ? 1 : 0));
+  const selectableDates = eligibleDateOffsets.slice(preparationDaysToSkip, preparationDaysToSkip + 7);
+  const lastSelectableOffset = selectableDates.length ? selectableDates[selectableDates.length - 1] : horizonDays;
   const fromTs = today - 40 * 86400000;
   const toTs = today + lastSelectableOffset * 86400000 + 40 * 86400000;
   const schedules = (scheduleResult.results || []).filter((schedule) => locationMatches(schedule, options.province || "", options.city || "", options.shippingMethodId));
-  const holidays = new Set((holidayResult.results || []).map((row) => normalizeDate(row.holiday_date)));
   const fromDate = jalaliDateFromUtc(new Date(fromTs));
   const toDate = jalaliDateFromUtc(new Date(toTs));
   const bookingResult = await db.prepare(`
@@ -84,12 +94,13 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   const bookings = new Map((bookingResult.results || []).map((row) => [`${normalizeDate(row.delivery_date)}|${Number(row.delivery_slot_id)}`, Number(row.booked || 0)]));
 
   const days = [];
-  for (let offset = 0; offset <= 6; offset++) {
+  const selectableDateSet = new Set(selectableDates);
+  for (const offset of selectableDates) {
     const timestamp = today + offset * 86400000;
     const date = new Date(timestamp);
     const jalaliDate = jalaliDateFromUtc(date);
     const weekday = date.getUTCDay();
-    const eligible = offset >= firstSelectableOffset && offset <= lastSelectableOffset && !blockedWeekdays.has(weekday) && !holidays.has(jalaliDate);
+    const eligible = selectableDateSet.has(offset) && !blockedWeekdays.has(weekday) && !holidays.has(jalaliDate);
     let candidates = [];
     if (eligible) {
       const specific = schedules.filter((schedule) => normalizeDate(schedule.specific_date) === jalaliDate);
