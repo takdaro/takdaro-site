@@ -66,17 +66,22 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   const tehran = localDateParts(now);
   const today = Date.UTC(tehran.year, tehran.month - 1, tehran.day);
   const cutoffReached = !!cutoff && tehran.hour * 60 + tehran.minute >= Number(cutoff[1]) * 60 + Number(cutoff[2]);
-  const firstOffsetToConsider = cutoffReached ? 1 : 0;
   const eligibleDateOffsets = [];
-  for (let offset = firstOffsetToConsider; offset <= horizonDays; offset++) {
+  for (let offset = 0; offset <= horizonDays; offset++) {
     const timestamp = today + offset * 86400000;
     const weekday = new Date(timestamp).getUTCDay();
     const jalaliDate = jalaliDateFromUtc(new Date(timestamp));
     const isDeliveryDay = !blockedWeekdays.has(weekday) && !holidays.has(jalaliDate);
     if (isDeliveryDay) eligibleDateOffsets.push(offset);
   }
-  const preparationDaysToSkip = Math.max(0, minimumDays - (firstOffsetToConsider === 0 ? 1 : 0));
-  const selectableDates = eligibleDateOffsets.slice(preparationDaysToSkip, preparationDaysToSkip + 7);
+  // Count the order date as the first preparation day when it is an open day.
+  // The same-day cutoff only disables delivery today; it must not shift the
+  // configured preparation window by an extra day.
+  const preparationDaysToSkip = Math.max(0, minimumDays - 1);
+  const selectableDates = eligibleDateOffsets
+    .slice(preparationDaysToSkip)
+    .filter((offset) => !(cutoffReached && offset === 0))
+    .slice(0, 7);
   const lastSelectableOffset = selectableDates.length ? selectableDates[selectableDates.length - 1] : horizonDays;
   const fromTs = today - 40 * 86400000;
   const toTs = today + lastSelectableOffset * 86400000 + 40 * 86400000;
