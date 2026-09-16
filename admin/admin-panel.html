@@ -1112,6 +1112,55 @@
       display: block !important;
     }
 
+    /* Compact city cost list: keep columns inside the panel and actions together. */
+    .shipping-city-table-wrap .shipping-city-table {
+      width: 100%;
+      min-width: 0;
+      table-layout: fixed;
+    }
+
+    .shipping-city-table-wrap .shipping-city-table th,
+    .shipping-city-table-wrap .shipping-city-table td {
+      min-width: 0;
+      padding: 10px 12px;
+      white-space: normal;
+      line-height: 1.55;
+    }
+
+    .shipping-city-table-wrap .shipping-city-table th:nth-child(1),
+    .shipping-city-table-wrap .shipping-city-table td:nth-child(1) { width: 18%; }
+    .shipping-city-table-wrap .shipping-city-table th:nth-child(2),
+    .shipping-city-table-wrap .shipping-city-table td:nth-child(2) { width: 44%; }
+    .shipping-city-table-wrap .shipping-city-table th:nth-child(3),
+    .shipping-city-table-wrap .shipping-city-table td:nth-child(3) { width: 18%; }
+    .shipping-city-table-wrap .shipping-city-table th:nth-child(4),
+    .shipping-city-table-wrap .shipping-city-table td:nth-child(4) { width: 20%; }
+
+    .shipping-city-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .shipping-city-actions .btn {
+      min-height: 38px;
+      padding: 7px 10px;
+      font-size: .9rem;
+    }
+
+    .shipping-city-delete {
+      color: #b42318;
+      border: 1px solid #f2b8b5;
+      background: #fff7f6;
+    }
+
+    .shipping-city-delete:hover {
+      color: #fff;
+      border-color: #b42318;
+      background: #b42318;
+    }
+
     /* ===== Rates ===== */
     .rate-change-positive {
       color: var(--success);

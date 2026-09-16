@@ -818,7 +818,7 @@
       return '<div class="wallet-empty">برای این استان شهری در فهرست ارسال ثبت نشده است.</div>';
     }
 
-    return '<div class="table-wrap"><table class="admin-table">' +
+    return '<div class="table-wrap shipping-city-table-wrap"><table class="admin-table shipping-city-table">' +
       '<thead><tr><th>شهر</th><th>روش‌ها و هزینه‌ها</th><th>وضعیت</th><th>اقدام</th></tr></thead>' +
       '<tbody>' + cities.map(function (city) {
         var cityCosts = state.provinceCosts.filter(function (cost) {
@@ -836,8 +836,12 @@
           (active
             ? '<span class="status-badge status-badge--success">فعال</span>'
             : '<span class="status-badge status-badge--danger">غیرفعال / ثبت‌نشده</span>') +
-          '</td><td><button type="button" class="btn btn-secondary" data-shipping-edit-city="' +
-          esc(city) + '">ویرایش</button></td></tr>';
+          '</td><td><div class="shipping-city-actions">' +
+          '<button type="button" class="btn btn-secondary" data-shipping-edit-city="' +
+          esc(city) + '">ویرایش</button>' +
+          '<button type="button" class="btn shipping-city-delete" data-shipping-delete-city="' +
+          esc(city) + '" data-province="' + esc(state.selectedProvince) + '" data-city="' +
+          esc(city) + '">حذف شهر</button></div></td></tr>';
       }).join("") + '</tbody></table></div>';
   }
 
