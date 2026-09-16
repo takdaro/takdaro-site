@@ -126,6 +126,17 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
     const unavailableReason = isHoliday ? "holiday" : isBlockedWeekday ? "no_courier" : slots.length ? null : "no_available_slot";
     days.push({ date: jalaliDate, weekday, available: slots.length > 0, holiday: isHoliday, unavailable_reason: unavailableReason, slots });
   }
+  // Include configured public holidays during the preparation lead time so
+  // checkout can display them as red, disabled date options as well.
+  const holidayLeadInEnd = firstSelectableOffset == null ? horizonDays + 1 : firstSelectableOffset;
+  for (let offset = 0; offset < holidayLeadInEnd; offset++) {
+    const timestamp = today + offset * 86400000;
+    const date = new Date(timestamp);
+    const jalaliDate = jalaliDateFromUtc(date);
+    if (!holidays.has(jalaliDate)) continue;
+    days.push({ date: jalaliDate, weekday: date.getUTCDay(), available: false, holiday: true, unavailable_reason: "holiday", slots: [] });
+  }
+  days.sort((a, b) => a.date.localeCompare(b.date));
   return { days, settings: { minimum_days: minimumDays, horizon_days: horizonDays } };
 }
 
