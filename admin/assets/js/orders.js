@@ -97,6 +97,7 @@
     var walletUsedAmount = Number(order.wallet_used_amount || 0);
     var payableAmount = order.payable_amount != null ? Number(order.payable_amount || 0) : Math.max(0, totalAmount - walletUsedAmount);
     var cashbackAmount = Number(order.cashback_amount || 0);
+    var deliveryParts = [order.delivery_date, (order.delivery_time_from && order.delivery_time_to) ? order.delivery_time_from + " تا " + order.delivery_time_to : ""].filter(Boolean);
 
     box.classList.remove("admin-hidden");
     box.innerHTML = 
@@ -113,6 +114,7 @@
         'مانده قابل پرداخت: ' + window.money(payableAmount) + ' تومان<br>' +
         'کش‌بک: ' + window.money(cashbackAmount) + ' تومان<br>' +
         'وضعیت کش‌بک: ' + window.esc(order.cashback_status || "-") + '<br>' +
+        window.esc(order.delivery_label || "زمان ارسال") + ': ' + window.esc(deliveryParts.join("، ") || "-") + '<br>' +
         'نرخ دلار در زمان ثبت: ' + (order.rate_at_purchase ? window.money(order.rate_at_purchase) + ' تومان' : '-') + '<br>' +
         'تاریخ: ' + window.formatDate(order.created_at) +
       '</p>';

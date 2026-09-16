@@ -97,6 +97,10 @@ async function getOrderByNumber(db, orderNumber) {
         COALESCE(o.cashback_status, 'none')
           AS cashback_status,
         o.notes,
+        o.delivery_date,
+        o.delivery_slot_id,
+        o.delivery_time_from,
+        o.delivery_time_to,
         o.created_at,
         o.updated_at,
         u.full_name,
@@ -999,6 +1003,12 @@ export async function onRequestGet(context) {
         order.id
       );
 
+    let deliveryLabel = "زمان ارسال";
+    try {
+      const labelSetting = await context.env.DB.prepare("SELECT setting_value FROM delivery_settings WHERE setting_key = 'delivery_notification_label' LIMIT 1").first();
+      if (labelSetting?.setting_value) deliveryLabel = String(labelSetting.setting_value);
+    } catch (_) {}
+
     const shippingAddress =
       order.address_id
         ? {
@@ -1047,6 +1057,16 @@ export async function onRequestGet(context) {
           order.cashback_status || "none",
         notes:
           order.notes || "",
+        delivery_date:
+          order.delivery_date || "",
+        delivery_slot_id:
+          order.delivery_slot_id || null,
+        delivery_time_from:
+          order.delivery_time_from || "",
+        delivery_time_to:
+          order.delivery_time_to || "",
+        delivery_label:
+          deliveryLabel,
         created_at:
           order.created_at || null,
         updated_at:
