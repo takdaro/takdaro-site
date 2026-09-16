@@ -182,12 +182,23 @@
 
 }
 
-/* Order detail sections */
+/* Dashboard spacing */
+.stats-grid.admin-dashboard-stats {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin: 0 0 24px;
+}
+
+.admin-dashboard-stats .stat-card {
+  min-width: 0;
+  margin: 0;
+}
+
 .dashboard-currency-card {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 0 0 24px;
+  margin: 24px 0;
   padding: 20px 22px;
   border: 1px solid #d7e9ec;
   border-radius: 18px;
@@ -247,6 +258,7 @@
   background: #f7fcfc;
 }
 
+/* Order detail sections */
 #order-detail {
   padding: 22px;
   background: #f7fafc;
