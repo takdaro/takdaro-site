@@ -117,6 +117,7 @@
       var placement = document.getElementById('delivery-checkout-placement'); if (placement) placement.value = settings.checkout_placement || 'after_shipping';
       var checkoutMessage = document.getElementById('delivery-checkout-message'); if (checkoutMessage) checkoutMessage.value = settings.checkout_message || '';
       var notificationLabel = document.getElementById('delivery-notification-label'); if (notificationLabel) notificationLabel.value = settings.delivery_notification_label || 'زمان ارسال';
+      var alwaysShow = document.getElementById('delivery-always-show'); if (alwaysShow) alwaysShow.checked = settings.delivery_always_visible !== '0';
       var paymentRule = {}; try { paymentRule = JSON.parse(settings.payment_location_rule || '{}'); } catch (_) {}
       var paymentLocation = document.getElementById('delivery-payment-location'); if (paymentLocation) paymentLocation.value = paymentRule.location || '';
       var disabledMethods = document.getElementById('delivery-disabled-methods'); if (disabledMethods) disabledMethods.value = paymentRule.methods || '';
@@ -143,7 +144,7 @@
       post({ action:'save_defaults', minimum_days:document.getElementById('delivery-min-days').value, horizon_days:document.getElementById('delivery-horizon-days').value, same_day_cutoff:document.getElementById('delivery-same-day-cutoff').value }).then(load);
     }
     if (target.id === 'save-delivery-display') {
-      post({ action:'save_display', checkout_placement:document.getElementById('delivery-checkout-placement').value, checkout_message:document.getElementById('delivery-checkout-message').value, delivery_notification_label:document.getElementById('delivery-notification-label').value }).then(load);
+      post({ action:'save_display', checkout_placement:document.getElementById('delivery-checkout-placement').value, checkout_message:document.getElementById('delivery-checkout-message').value, delivery_notification_label:document.getElementById('delivery-notification-label').value, delivery_always_visible:document.getElementById('delivery-always-show').checked ? '1' : '0' }).then(load);
     }
     if (target.id === 'save-delivery-payment-location') {
       post({ action:'save_payment_location', location:document.getElementById('delivery-payment-location').value, methods:document.getElementById('delivery-disabled-methods').value, enabled:document.getElementById('delivery-payment-location-enabled').checked }).then(load);
