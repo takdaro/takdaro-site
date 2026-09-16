@@ -621,7 +621,7 @@
       shippingCost: null,
       isLoading: false
     };
-    const deliveryState = { days: [], selectedDate: "", requestId: 0 };
+    const deliveryState = { days: [], selectedDate: "", requestId: 0, availabilityDateKey: "" };
 
     // ============================================
     // توابع کمکی
@@ -655,6 +655,17 @@
 
     function persianDigits(value) {
       return String(value ?? "").replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
+    }
+
+    function tehranJalaliDateKey() {
+      const parts = new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", {
+        timeZone: "Asia/Tehran",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
+      const values = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+      return `${values.year}/${values.month}/${values.day}`;
     }
 
     function clearDeliverySelection() {
@@ -701,6 +712,7 @@
         if (requestId !== deliveryState.requestId) return;
         if (!response.ok || !result?.success) throw new Error(result?.error || "availability_unavailable");
         deliveryState.days = Array.isArray(result.days) ? result.days : [];
+        deliveryState.availabilityDateKey = tehranJalaliDateKey();
         const weekdayNames = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
         deliveryDateInput.innerHTML = '<option value="">انتخاب روز ارسال</option>';
         deliveryState.days.forEach((day) => {
@@ -728,6 +740,7 @@
       } catch (error) {
         if (requestId !== deliveryState.requestId) return;
         deliveryState.days = [];
+        deliveryState.availabilityDateKey = "";
         deliveryDateInput.innerHTML = '<option value="">روزهای ارسال در دسترس نیست</option>';
         deliveryDateInput.disabled = true;
         if (deliveryPickerHelp) deliveryPickerHelp.textContent = "روزهای ارسال بارگذاری نشدند؛ لطفاً دوباره شهر را انتخاب کنید.";
@@ -1489,6 +1502,25 @@
     deliveryDateInput?.addEventListener("change", function () {
       selectDeliveryDate(this.value);
     });
+
+    deliveryDateInput?.addEventListener("focus", function () {
+      if (shippingState.shippingMethod && deliveryState.availabilityDateKey !== tehranJalaliDateKey()) {
+        loadDeliveryAvailability();
+      }
+    });
+
+    // Keep the seven-day checkout list current if the page stays open across Tehran midnight.
+    window.setInterval(function () {
+      if (
+        shippingState.shippingMethod &&
+        shippingState.currentProvince &&
+        shippingState.currentCity &&
+        deliveryState.availabilityDateKey &&
+        deliveryState.availabilityDateKey !== tehranJalaliDateKey()
+      ) {
+        loadDeliveryAvailability();
+      }
+    }, 60 * 1000);
 
     provinceSelect?.addEventListener("change", async function () {
       const province = this.value;
