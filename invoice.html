@@ -654,6 +654,20 @@
               </div>
             </div>
 
+            <div class="invoice-section" id="delivery-invoice-section" hidden>
+              <h3>🚚 زمان ارسال سفارش</h3>
+              <div class="invoice-summary-grid">
+                <div class="summary-item">
+                  <span class="label">تاریخ ارسال</span>
+                  <span class="value" id="delivery-invoice-date">-</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">بازهٔ ساعت ارسال</span>
+                  <span class="value" id="delivery-invoice-time">-</span>
+                </div>
+              </div>
+            </div>
+
             <div class="invoice-section">
               <h3>📦 اقلام سفارش</h3>
               <p class="section-desc">لیست کالاهای ثبت‌شده در این سفارش.</p>
@@ -866,6 +880,9 @@
         metaOrderNumber: document.getElementById('meta-order-number'),
         metaCreatedAt: document.getElementById('meta-created-at'),
         metaStatus: document.getElementById('meta-status'),
+        deliverySection: document.getElementById('delivery-invoice-section'),
+        deliveryDate: document.getElementById('delivery-invoice-date'),
+        deliveryTime: document.getElementById('delivery-invoice-time'),
 
         itemsBody: document.getElementById('invoice-items-body'),
 
@@ -911,6 +928,10 @@
       function formatPrice(value) {
         const num = Number(value || 0);
         return num.toLocaleString('fa-IR') + ' تومان';
+      }
+
+      function persianDigits(value) {
+        return String(value ?? '').replace(/\d/g, digit => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]);
       }
 
       function formatDate(value) {
@@ -1168,6 +1189,15 @@
         els.metaCreatedAt.textContent = formatDate(order.created_at);
 
         els.metaStatus.innerHTML = getStatusBadge(order.status);
+
+        const deliveryDate = String(order.delivery_date || '').trim();
+        const deliveryTimeFrom = String(order.delivery_time_from || '').trim();
+        const deliveryTimeTo = String(order.delivery_time_to || '').trim();
+        if (els.deliverySection) els.deliverySection.hidden = !deliveryDate;
+        if (els.deliveryDate) els.deliveryDate.textContent = deliveryDate ? persianDigits(deliveryDate.replace(/-/g, '/')) : '-';
+        if (els.deliveryTime) els.deliveryTime.textContent = deliveryTimeFrom && deliveryTimeTo
+          ? `${persianDigits(deliveryTimeFrom)} تا ${persianDigits(deliveryTimeTo)}`
+          : 'ثبت نشده';
 
         const items = Array.isArray(order.items) ? order.items : [];
         if (items.length) {
