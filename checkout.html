@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -511,6 +511,7 @@
                   <input type="hidden" id="shipping-method" value="" />
                   <p class="checkout-note" id="shipping-method-info">هزینه ارسال بر اساس شهر انتخابی محاسبه می‌شود.</p>
                 </div>
+                <div class="form-grid-2"><div class="form-field"><label for="delivery-date">تاریخ ارسال</label><input id="delivery-date" type="text" inputmode="numeric" placeholder="۱۴۰۵/۰۱/۰۵" pattern="[۰-۹0-9]{4}/[۰-۹0-9]{2}/[۰-۹0-9]{2}" required /></div><div class="form-field"><label for="delivery-slot">بازه زمانی ارسال (اختیاری)</label><select id="delivery-slot"><option value="">بدون انتخاب بازه</option></select></div></div>
 
                 <div class="form-grid-2">
                   <div class="form-field">
@@ -1318,6 +1319,8 @@
           postalCode: document.getElementById("postal-code").value.trim(),
           phone: document.getElementById("phone").value.trim(),
           address: document.getElementById("address").value.trim()
+          ,delivery_date: document.getElementById("delivery-date").value
+          ,delivery_slot_id: document.getElementById("delivery-slot").value
         };
 
         if (!validateForm(formData)) return;
@@ -1327,6 +1330,8 @@
 
         try {
           const payload = buildOrderPayload(items, formData);
+          payload.order.delivery_date = formData.delivery_date;
+          payload.order.delivery_slot_id = formData.delivery_slot_id || null;
 
           const response = await fetch("/api/account/create-order", {
             method: "POST",
@@ -1446,3 +1451,4 @@
   </script>
 </body>
 </html>
+

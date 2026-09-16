@@ -674,6 +674,7 @@ export async function onRequestPost(context) {
 
     const address = body.address || {};
     const order = body.order || {};
+    if (!String(order.delivery_date || '').trim()) return json({ success: false, error: 'delivery_date_required' }, 400);
 
     const items = Array.isArray(order.items)
       ? order.items
@@ -828,6 +829,10 @@ export async function onRequestPost(context) {
           payable_amount,
           cashback_amount,
           cashback_status,
+          delivery_date,
+          delivery_slot_id,
+          delivery_time_from,
+          delivery_time_to,
           notes,
           created_at,
           updated_at
@@ -838,6 +843,10 @@ export async function onRequestPost(context) {
           ?,
           'payment_pending',
           'pending',
+          ?,
+          ?,
+          ?,
+          ?,
           ?,
           ?,
           ?,
@@ -863,6 +872,10 @@ export async function onRequestPost(context) {
         cashbackAmount > 0
           ? "pending"
           : "none",
+        normalizeText(order.delivery_date),
+        order.delivery_slot_id || null,
+        normalizeText(order.delivery_time_from),
+        normalizeText(order.delivery_time_to),
         normalizeText(order.notes || body.notes)
       )
       .run();

@@ -1711,6 +1711,7 @@
                 <button class="admin-menu-btn" type="button" data-admin-panel="wallet" role="tab" aria-selected="false" aria-controls="admin-panel-wallet" id="admin-tab-wallet">کیف پول</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="products" role="tab" aria-selected="false" aria-controls="admin-panel-products" id="admin-tab-products">محصولات</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="shipping" role="tab" aria-selected="false" aria-controls="admin-panel-shipping" id="admin-tab-shipping">🚚 حمل‌ونقل</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="delivery-schedules" role="tab" aria-selected="false" aria-controls="admin-panel-delivery-schedules" id="admin-tab-delivery-schedules">🗓️ زمان‌بندی ارسال</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="rates" role="tab" aria-selected="false" aria-controls="admin-panel-rates" id="admin-tab-rates">💰 مدیریت نرخ ارز</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="invoice" role="tab" aria-selected="false" aria-controls="admin-panel-invoice" id="admin-tab-invoice">تنظیمات فاکتور</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="notifications" role="tab" aria-selected="false" aria-controls="admin-panel-notifications" id="admin-tab-notifications">🔔 اعلان‌ها</button>
@@ -1754,6 +1755,7 @@
               <div id="admin-panel-shipping" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-shipping">
                 <div class="admin-loading">در حال بارگذاری حمل‌ونقل...</div>
               </div>
+              <div id="admin-panel-delivery-schedules" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-delivery-schedules"><div class="admin-loading">در حال بارگذاری زمان‌بندی ارسال...</div></div>
 
               <div id="admin-panel-rates" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-rates">
                 <div class="admin-loading">در حال بارگذاری نرخ ارز...</div>
@@ -1801,6 +1803,7 @@
   <script src="assets/js/wallet.js"></script>
   <script src="assets/js/products.js"></script>
   <script src="assets/js/shipping.js"></script>
+  <script src="assets/js/delivery-schedules.js"></script>
   <script src="assets/js/rates.js"></script>
   <script src="assets/js/invoice.js"></script>
   <script src="assets/js/sms.js"></script>
@@ -1844,6 +1847,7 @@
           { name: 'wallet', container: 'admin-panel-wallet' },
           { name: 'products', container: 'admin-panel-products' },
           { name: 'shipping', container: 'admin-panel-shipping' },
+          { name: 'delivery-schedules', container: 'admin-panel-delivery-schedules' },
           { name: 'rates', container: 'admin-panel-rates' },
           { name: 'invoice', container: 'admin-panel-invoice' },
           { name: 'notifications', container: 'admin-panel-notifications' }
