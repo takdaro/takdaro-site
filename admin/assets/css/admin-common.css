@@ -182,6 +182,237 @@
 
 }
 
+/* Order detail sections */
+#order-detail {
+  padding: 22px;
+  background: #f7fafc;
+}
+
+.order-detail-layout {
+  display: grid;
+  gap: 18px;
+  color: #263746;
+}
+
+.order-detail-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #dce6ee;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(29, 55, 76, .045);
+}
+
+.order-detail-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.order-detail-card-heading h3 {
+  margin: 3px 0 0;
+  color: #203747;
+  font-size: 19px;
+}
+
+.order-detail-eyebrow {
+  color: #73869a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.order-detail-status {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 1px solid #cfe6e8;
+  border-radius: 999px;
+  background: #effafa;
+  color: #087f8c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.order-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.order-detail-facts--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.order-detail-fact {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  padding: 13px 15px;
+  border: 1px solid #edf1f5;
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+
+.order-detail-fact span {
+  color: #738396;
+  font-size: 12px;
+}
+
+.order-detail-fact strong {
+  overflow-wrap: anywhere;
+  color: #263746;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.order-detail-fact--highlight {
+  border-color: #c7e8e8;
+  background: #f0fbfa;
+}
+
+.order-detail-fact--highlight strong {
+  color: #087f8c;
+}
+
+.order-detail-fact--rate {
+  border-color: #f0dfbd;
+  background: #fffaf0;
+}
+
+.order-detail-fact--wide {
+  grid-column: 1 / -1;
+}
+
+.order-detail-help {
+  margin: -7px 0 18px;
+  color: #718096;
+  line-height: 1.8;
+}
+
+.order-detail-delivery-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.order-detail-delivery-fields label {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  color: #425466;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.order-detail-delivery-fields input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #d7e1ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #263746;
+  font: inherit;
+}
+
+.order-detail-date-field input {
+  padding-left: 48px;
+  cursor: pointer;
+}
+
+.order-detail-calendar-toggle {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: #edf4f7;
+  cursor: pointer;
+}
+
+.order-detail-calendar {
+  position: absolute;
+  z-index: 1000;
+  top: 100%;
+  right: 0;
+  width: min(340px, calc(100vw - 48px));
+  padding: 12px;
+  margin-top: 6px;
+  border: 1px solid #d6e2ec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(22, 43, 62, .18);
+}
+
+.order-detail-calendar[hidden] {
+  display: none;
+}
+
+.order-detail-calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 7px;
+  border-radius: 9px;
+  background: #f3f7fa;
+}
+
+.order-detail-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+  direction: rtl;
+}
+
+.order-detail-products .table-wrap {
+  margin: 0;
+}
+
+.order-detail-products .admin-table {
+  min-width: 620px;
+}
+
+.order-detail-products .admin-table th,
+.order-detail-products .admin-table td {
+  white-space: normal;
+}
+
+.order-detail-status-card .panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.order-detail-status-card .panel-actions select {
+  min-width: 200px;
+  flex: 1 1 240px;
+}
+
+@media (max-width: 760px) {
+  #order-detail { padding: 14px; }
+  .order-detail-card { padding: 17px; border-radius: 14px; }
+  .order-detail-facts--three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .order-detail-delivery-fields { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 460px) {
+  .order-detail-facts,
+  .order-detail-facts--three { grid-template-columns: 1fr; }
+  .order-detail-card-heading { align-items: flex-start; }
+}
+
 
 /* ============================================
 

@@ -205,86 +205,66 @@
     var cashbackAmount = Number(order.cashback_amount || 0);
     var deliveryParts = [order.delivery_date ? persianDigits(String(order.delivery_date).replace(/-/g, "/")) : "", (order.delivery_time_from && order.delivery_time_to) ? persianDigits(order.delivery_time_from) + " تا " + persianDigits(order.delivery_time_to) : ""].filter(Boolean);
 
-    box.classList.remove("admin-hidden");
-    box.innerHTML = 
-      '<h4>جزئیات سفارش ' + window.esc(order.order_number || "-") + '</h4>' +
-      '<p>' +
-        'کاربر: ' + window.esc(order.full_name || "-") + '<br>' +
-        'ایمیل: ' + window.esc(order.email || "-") + '<br>' +
-        'شماره: ' + window.esc(order.phone || "-") + '<br>' +
-        'وضعیت: ' + window.esc(window.faOrderStatus(order.status)) + '<br>' +
-        // ⭐ حذف شد: 'وضعیت پرداخت: ' + window.esc(window.faPaymentStatus(order.payment_status)) + '<br>' +
-        'مبلغ فاکتور: ' + window.money(totalAmount) + ' تومان<br>' +
-        'مبلغ ارسال: ' + window.money(shippingAmount) + ' تومان<br>' +
-        'برداشت از کیف پول: ' + window.money(walletUsedAmount) + ' تومان<br>' +
-        'مانده قابل پرداخت: ' + window.money(payableAmount) + ' تومان<br>' +
-        'کش‌بک: ' + window.money(cashbackAmount) + ' تومان<br>' +
-        'وضعیت کش‌بک: ' + window.esc(order.cashback_status || "-") + '<br>' +
-        window.esc(order.delivery_label || "زمان ارسال") + ': ' + window.esc(deliveryParts.join("، ") || "-") + '<br>' +
-        'نرخ دلار در زمان ثبت: ' + (order.rate_at_purchase ? window.money(order.rate_at_purchase) + ' تومان' : '-') + '<br>' +
-        'تاریخ: ' + window.formatDate(order.created_at) +
-      '</p>';
-
-    box.innerHTML +=
-      '<div class="detail-card" style="margin-top:16px;padding:18px;">' +
-        '<h4>ویرایش زمان ارسال</h4>' +
-        '<p>تاریخ شمسی و ساعت دلخواه را وارد کنید؛ این تغییر به ظرفیت و برنامهٔ عمومی ارسال محدود نیست.</p>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0;">' +
-          '<label style="position:relative;">تاریخ ارسال (شمسی)<input id="edit-delivery-date" type="text" inputmode="numeric" dir="ltr" readonly placeholder="برای انتخاب تاریخ کلیک کنید" style="cursor:pointer;padding-left:42px;"><button type="button" id="edit-delivery-calendar-toggle" aria-label="باز کردن تقویم" style="position:absolute;left:7px;top:31px;width:34px;height:34px;border:0;border-radius:8px;background:#edf4f7;cursor:pointer;">📅</button><div id="edit-delivery-calendar" hidden style="position:absolute;z-index:1000;top:100%;right:0;width:min(340px,calc(100vw - 48px));padding:12px;margin-top:6px;border:1px solid #d6e2ec;border-radius:14px;background:#fff;box-shadow:0 14px 36px rgba(22,43,62,.18);"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:7px;border-radius:9px;background:#f3f7fa;"><button type="button" id="edit-delivery-month-prev" aria-label="ماه قبل">‹</button><strong id="edit-delivery-calendar-title"></strong><button type="button" id="edit-delivery-month-next" aria-label="ماه بعد">›</button></div><div id="edit-delivery-calendar-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;direction:rtl;"></div></div></label>' +
-          '<label>ساعت شروع<input id="edit-delivery-time-from" type="time" value="' + window.esc(order.delivery_time_from || "") + '"></label>' +
-          '<label>ساعت پایان<input id="edit-delivery-time-to" type="time" value="' + window.esc(order.delivery_time_to || "") + '"></label>' +
-        '</div>' +
-        '<button class="btn btn-primary" type="button" id="save-delivery-schedule-btn">ذخیره زمان ارسال</button>' +
-      '</div>';
-
-    if (address) {
-      box.innerHTML += 
-        '<div class="detail-card" style="margin-top:16px;">' +
-          '<h4>آدرس ارسال</h4>' +
-          '<p>' +
-            'نام: ' + window.esc(address.full_name || "-") + '<br>' +
-            'موبایل: ' + window.esc(address.phone || "-") + '<br>' +
-            'آدرس: ' + window.esc(address.address_line || "-") + '<br>' +
-            'شهر: ' + window.esc(address.city || "-") + '<br>' +
-            'استان: ' + window.esc(address.state || "-") + '<br>' +
-            'کد پستی: ' + window.esc(address.postal_code || "-") +
-          '</p>' +
-        '</div>';
+    function detailFact(label, value, modifier) {
+      return '<div class="order-detail-fact' + (modifier ? ' ' + modifier : '') + '"><span>' + window.esc(label) + '</span><strong>' + window.esc(value || "-") + '</strong></div>';
     }
 
-    // ساخت dropdown با ۱۲ وضعیت نهایی
+    // ساخت dropdown با وضعیت‌های نهایی سفارش
     var statusOptions = ORDER_STATUSES.map(function(s) {
       var selected = (s.value === order.status) ? ' selected' : '';
       return '<option value="' + s.value + '"' + selected + '>' + s.label + '</option>';
     }).join('');
 
-    box.innerHTML +=
-      '<div class="panel-actions">' +
-        '<select id="detail-status">' +
-          statusOptions +
-        '</select>' +
-        '<button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button>' +
-        '<button class="btn btn-secondary" type="button" id="delete-order-detail-btn">حذف سفارش</button>' +
-      '</div>';
+    box.classList.remove("admin-hidden");
+    box.innerHTML =
+      '<div class="order-detail-layout">' +
+        '<section class="order-detail-card order-detail-overview">' +
+          '<div class="order-detail-card-heading"><div><span class="order-detail-eyebrow">مدیریت سفارش</span><h3>سفارش ' + window.esc(order.order_number || "-") + '</h3></div><span class="order-detail-status">' + window.esc(window.faOrderStatus(order.status)) + '</span></div>' +
+          '<div class="order-detail-facts order-detail-facts--three">' +
+            detailFact('نام مشتری', order.full_name) +
+            detailFact('ایمیل', order.email) +
+            detailFact('شماره تماس', order.phone) +
+            detailFact('تاریخ ثبت سفارش', window.formatDate(order.created_at)) +
+            detailFact(order.delivery_label || 'زمان ارسال انتخاب‌شده', deliveryParts.join('، ')) +
+          '</div>' +
+        '</section>' +
 
-    if (items.length) {
-      box.innerHTML += 
-        '<div class="table-wrap" style="margin-top:16px;">' +
-          '<table class="admin-table">' +
-            '<thead><tr><th>محصول</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th></tr></thead>' +
-            '<tbody>' +
-            items.map(function(item) {
-              return '<tr>' +
-                '<td>' + window.esc(item.product_name || "-") + '</td>' +
-                '<td class="table-number">' + window.esc(item.quantity) + '</td>' +
-                '<td class="table-number">' + window.money(item.unit_price) + '</td>' +
-                '<td class="table-number">' + window.money(item.total_price) + '</td>' +
-              '</tr>';
-            }).join("") +
-            '</tbody>' +
-          '</table>' +
+        '<section class="order-detail-card order-detail-financial">' +
+          '<div class="order-detail-card-heading"><div><span class="order-detail-eyebrow">مبالغ سفارش</span><h3>خلاصه مالی</h3></div></div>' +
+          '<div class="order-detail-facts order-detail-facts--three">' +
+            detailFact('مبلغ فاکتور', window.money(totalAmount) + ' تومان', 'order-detail-fact--amount') +
+            detailFact('هزینه ارسال', window.money(shippingAmount) + ' تومان') +
+            detailFact('برداشت از کیف پول', window.money(walletUsedAmount) + ' تومان') +
+            detailFact('مانده قابل پرداخت', window.money(payableAmount) + ' تومان', 'order-detail-fact--highlight') +
+            detailFact('کش‌بک', window.money(cashbackAmount) + ' تومان') +
+            detailFact('وضعیت کش‌بک', order.cashback_status) +
+            detailFact('نرخ دلار هنگام ثبت سفارش', order.rate_at_purchase ? window.money(order.rate_at_purchase) + ' تومان' : 'ثبت نشده', 'order-detail-fact--rate') +
+          '</div>' +
+        '</section>' +
+
+        '<section class="order-detail-card order-detail-delivery">' +
+          '<div class="order-detail-card-heading"><div><span class="order-detail-eyebrow">اطلاعات قابل ویرایش</span><h3>زمان ارسال</h3></div></div>' +
+          '<p class="order-detail-help">تاریخ شمسی و بازهٔ زمانی ارسال را انتخاب کنید. این تغییر به ظرفیت و برنامهٔ عمومی ارسال محدود نیست.</p>' +
+          '<div class="order-detail-delivery-fields">' +
+            '<label class="order-detail-date-field">تاریخ ارسال (شمسی)<input id="edit-delivery-date" type="text" inputmode="numeric" dir="ltr" readonly placeholder="برای انتخاب تاریخ کلیک کنید"><button class="order-detail-calendar-toggle" type="button" id="edit-delivery-calendar-toggle" aria-label="باز کردن تقویم">📅</button><div id="edit-delivery-calendar" class="order-detail-calendar" hidden><div class="order-detail-calendar-heading"><button type="button" id="edit-delivery-month-prev" aria-label="ماه قبل">‹</button><strong id="edit-delivery-calendar-title"></strong><button type="button" id="edit-delivery-month-next" aria-label="ماه بعد">›</button></div><div id="edit-delivery-calendar-grid" class="order-detail-calendar-grid"></div></div></label>' +
+            '<label>ساعت شروع<input id="edit-delivery-time-from" type="time" value="' + window.esc(order.delivery_time_from || "") + '"></label>' +
+            '<label>ساعت پایان<input id="edit-delivery-time-to" type="time" value="' + window.esc(order.delivery_time_to || "") + '"></label>' +
+          '</div>' +
+          '<button class="btn btn-primary" type="button" id="save-delivery-schedule-btn">ذخیره زمان ارسال</button>' +
+        '</section>' +
+
+        (address ? '<section class="order-detail-card order-detail-address"><div class="order-detail-card-heading"><div><span class="order-detail-eyebrow">اطلاعات تحویل</span><h3>آدرس ارسال</h3></div></div><div class="order-detail-facts order-detail-facts--three">' +
+          detailFact('تحویل‌گیرنده', address.full_name) + detailFact('موبایل', address.phone) + detailFact('استان', address.state) + detailFact('شهر', address.city) + detailFact('کد پستی', address.postal_code) + detailFact('نشانی', address.address_line, 'order-detail-fact--wide') +
+        '</div></section>' : '') +
+
+        '<section class="order-detail-card order-detail-status-card"><div class="order-detail-card-heading"><div><span class="order-detail-eyebrow">اقدامات</span><h3>وضعیت سفارش</h3></div></div><div class="panel-actions"><select id="detail-status">' + statusOptions + '</select><button class="btn btn-primary" type="button" id="save-order-status-btn">ذخیره وضعیت</button><button class="btn btn-secondary" type="button" id="delete-order-detail-btn">حذف سفارش</button></div></section>' +
+
+        (items.length ? '<section class="order-detail-card order-detail-products"><div class="order-detail-card-heading"><div><span class="order-detail-eyebrow">اقلام فاکتور</span><h3>محصولات سفارش</h3></div></div><div class="table-wrap"><table class="admin-table"><thead><tr><th>محصول</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th></tr></thead><tbody>' +
+          items.map(function(item) {
+            return '<tr><td>' + window.esc(item.product_name || "-") + '</td><td class="table-number">' + window.esc(item.quantity) + '</td><td class="table-number">' + window.money(item.unit_price) + '</td><td class="table-number">' + window.money(item.total_price) + '</td></tr>';
+          }).join("") +
+        '</tbody></table></div></section>' : '') +
       '</div>';
-    }
 
     // Bind after all detail markup is appended: later innerHTML writes recreate
     // earlier nodes and would otherwise discard the calendar click handlers.
