@@ -83,6 +83,13 @@
       var minDays = document.getElementById('delivery-min-days'); if (minDays) minDays.value = settings.minimum_days || '2';
       var horizon = document.getElementById('delivery-horizon-days'); if (horizon) horizon.value = settings.horizon_days || '14';
       var cutoff = document.getElementById('delivery-same-day-cutoff'); if (cutoff) cutoff.value = settings.same_day_cutoff || '14:00';
+      var placement = document.getElementById('delivery-product-placement'); if (placement) placement.value = settings.product_placement || 'before_summary';
+      var showCheckout = document.getElementById('delivery-show-checkout'); if (showCheckout) showCheckout.checked = settings.show_checkout === '1';
+      var showCart = document.getElementById('delivery-show-cart'); if (showCart) showCart.checked = settings.show_cart !== '0';
+      var paymentRule = {}; try { paymentRule = JSON.parse(settings.payment_location_rule || '{}'); } catch (_) {}
+      var paymentLocation = document.getElementById('delivery-payment-location'); if (paymentLocation) paymentLocation.value = paymentRule.location || '';
+      var disabledMethods = document.getElementById('delivery-disabled-methods'); if (disabledMethods) disabledMethods.value = paymentRule.methods || '';
+      var paymentEnabled = document.getElementById('delivery-payment-location-enabled'); if (paymentEnabled) paymentEnabled.checked = !!paymentRule.enabled;
       weekdayRows = data.schedules || []; renderWeeklyRows(weekdayRows);
     } catch (_) { }
   }
@@ -100,6 +107,12 @@
     }
     if (target.id === 'save-delivery-defaults') {
       post({ action:'save_defaults', minimum_days:document.getElementById('delivery-min-days').value, horizon_days:document.getElementById('delivery-horizon-days').value, same_day_cutoff:document.getElementById('delivery-same-day-cutoff').value }).then(load);
+    }
+    if (target.id === 'save-delivery-display') {
+      post({ action:'save_display', product_placement:document.getElementById('delivery-product-placement').value, show_checkout:document.getElementById('delivery-show-checkout').checked, show_cart:document.getElementById('delivery-show-cart').checked }).then(load);
+    }
+    if (target.id === 'save-delivery-payment-location') {
+      post({ action:'save_payment_location', location:document.getElementById('delivery-payment-location').value, methods:document.getElementById('delivery-disabled-methods').value, enabled:document.getElementById('delivery-payment-location-enabled').checked }).then(load);
     }
     if (target.dataset.holidayDelete) post({ action:'holiday_delete', id:target.dataset.holidayDelete }).then(load);
   });
