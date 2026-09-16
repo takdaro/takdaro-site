@@ -445,9 +445,9 @@
     return (
       '<div ' +
         'class="detail-card" ' +
-        'data-shipping-method-form' +
+        'data-shipping-method-form ' +
         (isEdit
-          ? ' data-method-id="' + esc(method.id) + '"'
+          ? 'data-method-id="' + esc(method.id) + '" '
           : "") +
         'style="margin-top:16px;">' +
 
