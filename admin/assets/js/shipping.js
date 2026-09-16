@@ -14,6 +14,7 @@
     methods: [],
     costs: [],
     thresholds: [],
+    provinces: {},
     selectedProvince: "",
     selectedCity: "",
     loadedCosts: false
@@ -143,6 +144,47 @@
     return state.methods;
   }
 
+  async function loadProvinceCatalog() {
+    var result = await api("/api/shipping/provinces");
+    if (!result.ok || !result.data || !result.data.success) {
+      state.provinces = {};
+      showMessage("دریافت فهرست استان‌ها و شهرها انجام نشد.", "error");
+      return state.provinces;
+    }
+
+    state.provinces = result.data.provinces || {};
+    return state.provinces;
+  }
+
+  function provinceOptions(selectedProvince) {
+    return Object.keys(state.provinces)
+      .sort(function (a, b) { return a.localeCompare(b, "fa"); })
+      .map(function (province) {
+        return '<option value="' + esc(province) + '"' +
+          (province === selectedProvince ? " selected" : "") + ">" +
+          esc(province) + "</option>";
+      })
+      .join("");
+  }
+
+  function cityOptions(province, selectedCity) {
+    var cities = Array.isArray(state.provinces[province])
+      ? state.provinces[province]
+      : [];
+
+    return cities
+      .filter(function (city, index, list) {
+        return city && String(city).toLowerCase() !== "default" && list.indexOf(city) === index;
+      })
+      .sort(function (a, b) { return a.localeCompare(b, "fa"); })
+      .map(function (city) {
+        return '<option value="' + esc(city) + '"' +
+          (city === selectedCity ? " selected" : "") + ">" +
+          esc(city) + "</option>";
+      })
+      .join("");
+  }
+
   // ============================================
   // GET FREE THRESHOLDS
   // ============================================
@@ -236,6 +278,7 @@
       }
 
       state.costs = [];
+      state.loadedCosts = false;
       return [];
     }
 
@@ -545,7 +588,17 @@
       return;
     }
 
-    await loadMethods();
+    await Promise.all([
+      loadMethods(),
+      loadProvinceCatalog()
+    ]);
+
+    if (!Object.prototype.hasOwnProperty.call(state.provinces, state.selectedProvince)) {
+      state.selectedProvince = "";
+      state.selectedCity = "";
+      state.costs = [];
+      state.loadedCosts = false;
+    }
 
     container.innerHTML =
       '<div class="products-toolbar">' +
@@ -563,24 +616,27 @@
 
         '<div class="form-field">' +
           "<label>استان</label>" +
-          '<input ' +
+          '<select ' +
             'id="shipping-cost-province" ' +
-            'type="text" ' +
-            'value="' +
-            esc(state.selectedProvince) +
-            '" ' +
-            'placeholder="مثلاً تهران" />' +
+            'aria-label="استان"' +
+            '>' +
+            '<option value="">انتخاب استان</option>' +
+            provinceOptions(state.selectedProvince) +
+          "</select>" +
         "</div>" +
 
         '<div class="form-field">' +
           "<label>شهر</label>" +
-          '<input ' +
+          '<select ' +
             'id="shipping-cost-city" ' +
-            'type="text" ' +
-            'value="' +
-            esc(state.selectedCity) +
-            '" ' +
-            'placeholder="مثلاً تهران" />' +
+            'aria-label="شهر" ' +
+            (!state.selectedProvince ? "disabled " : "") +
+            '>' +
+            '<option value="">' +
+              (state.selectedProvince ? "انتخاب شهر" : "ابتدا استان را انتخاب کنید") +
+            "</option>" +
+            cityOptions(state.selectedProvince, state.selectedCity) +
+          "</select>" +
         "</div>" +
 
         '<div class="form-field" style="justify-content:flex-end;">' +
@@ -603,7 +659,7 @@
         (
           state.loadedCosts
             ? costsTable()
-            : '<div class="wallet-empty">استان و شهر را وارد کن و روی «بارگذاری هزینه‌ها» بزن.</div>'
+            : '<div class="wallet-empty">استان را انتخاب کن، سپس شهر را برگزین تا هزینه‌ها نمایش داده شود.</div>'
         ) +
       "</div>";
   }
@@ -2436,6 +2492,47 @@
         }
       }
     );
+
+    document.addEventListener("change", async function (event) {
+      var target = event.target;
+      if (!target || target.id !== "shipping-cost-province") return;
+
+      state.selectedProvince = target.value || "";
+      state.selectedCity = "";
+      state.costs = [];
+      state.loadedCosts = false;
+
+      var citySelect = getContainer("shipping-cost-city");
+      if (citySelect) {
+        citySelect.innerHTML = '<option value="">' +
+          (state.selectedProvince ? "انتخاب شهر" : "ابتدا استان را انتخاب کنید") +
+          "</option>" + cityOptions(state.selectedProvince, "");
+        citySelect.disabled = !state.selectedProvince;
+      }
+
+      var results = getContainer("shipping-cost-results");
+      if (results) {
+        results.innerHTML = '<div class="wallet-empty">' +
+          (state.selectedProvince ? "حالا شهر را انتخاب کن." : "استان را انتخاب کن تا شهرها نمایش داده شوند.") +
+          "</div>";
+      }
+    });
+
+    document.addEventListener("change", async function (event) {
+      var target = event.target;
+      if (!target || target.id !== "shipping-cost-city") return;
+
+      state.selectedCity = target.value || "";
+      state.costs = [];
+      state.loadedCosts = false;
+      if (!state.selectedProvince || !state.selectedCity) return;
+
+      var results = getContainer("shipping-cost-results");
+      if (results) results.innerHTML = '<div class="admin-loading">در حال بارگذاری هزینه‌ها...</div>';
+
+      await loadCosts(state.selectedProvince, state.selectedCity);
+      if (results) results.innerHTML = costsTable();
+    });
   }
 
   // ============================================

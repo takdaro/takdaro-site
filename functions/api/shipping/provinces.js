@@ -13,6 +13,8 @@ export async function onRequestGet(context) {
       SELECT DISTINCT province, city 
       FROM shipping_costs 
       WHERE is_active = 1
+        AND province IS NOT NULL AND province != ''
+        AND city IS NOT NULL AND city != '' AND LOWER(city) != 'default'
       ORDER BY province, city ASC
     `).all();
 
