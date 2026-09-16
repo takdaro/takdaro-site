@@ -511,6 +511,7 @@
                   <input type="hidden" id="shipping-method" value="" />
                   <p class="checkout-note" id="shipping-method-info">هزینه ارسال بر اساس شهر انتخابی محاسبه می‌شود.</p>
                 </div>
+                <div id="delivery-schedule-notice" class="checkout-note" hidden></div>
                 <div class="form-grid-2"><div class="form-field"><label for="delivery-date">تاریخ ارسال</label><input id="delivery-date" type="text" inputmode="numeric" placeholder="۱۴۰۵/۰۱/۰۵" pattern="[۰-۹0-9]{4}/[۰-۹0-9]{2}/[۰-۹0-9]{2}" required /></div><div class="form-field"><label for="delivery-slot">بازه زمانی ارسال (اختیاری)</label><select id="delivery-slot"><option value="">بدون انتخاب بازه</option></select></div></div>
 
                 <div class="form-grid-2">
@@ -1437,7 +1438,29 @@
     // ============================================
     // مقداردهی اولیه
     // ============================================
+    async function loadDeliveryDisplaySettings() {
+      const notice = document.getElementById("delivery-schedule-notice");
+      if (!notice) return;
+      try {
+        const response = await fetch("/api/delivery/settings", { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok || !result?.success) return;
+        const settings = result.settings || {};
+        const message = String(settings.checkout_message || "محصول انتخابی شما در تاریخ‌های زیر قابل ارسال می‌باشد؛ لطفاً یک روز را انتخاب کنید.").trim();
+        notice.textContent = message;
+        notice.hidden = !message;
+        const placement = settings.checkout_placement || "after_shipping";
+        const shipping = document.getElementById("shipping-method-container");
+        const dateFields = document.getElementById("delivery-date")?.closest(".form-grid-2");
+        const actions = document.querySelector("#checkout-form .checkout-actions");
+        if (placement === "before_shipping" && shipping) shipping.parentNode.insertBefore(notice, shipping);
+        else if (placement === "before_payment" && actions) actions.parentNode.insertBefore(notice, actions);
+        else if (dateFields) dateFields.parentNode.insertBefore(notice, dateFields);
+      } catch (_) { }
+    }
+
     document.addEventListener("DOMContentLoaded", async function () {
+      await loadDeliveryDisplaySettings();
       if (window.Auth && typeof window.Auth.requireAuth === "function") {
         const user = await window.Auth.requireAuth({ redirectTo: "/login.html" });
         if (!user) return;
