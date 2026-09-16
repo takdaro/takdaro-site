@@ -61,12 +61,14 @@
   }
 
   async function api(url, options) {
+    options = Object.assign({}, options || {}, { cache: "no-store" });
     if (typeof window.api === "function") {
-      return await window.api(url, options || {});
+      return await window.api(url, options);
     }
 
     var response = await fetch(url, {
       credentials: "include",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json"
       },
@@ -938,19 +940,20 @@
           '<div class="form-field">' +
             "<label>نوع هزینه</label>" +
             '<select data-cost-field="cost_type">' +
-              '<option value="fixed"' + (!initialCost || initialCost.cost_type === "fixed" ? " selected" : "") + '>ثابت (مبلغ نهایی)</option>' +
+          '<option value="fixed"' + (!initialCost || initialCost.cost_type === "fixed" ? " selected" : "") + '>ثابت (پایهٔ روش)</option>' +
               '<option value="extra"' + (initialCost && initialCost.cost_type === "extra" ? " selected" : "") + '>متغیر (مازاد بر پایه)</option>' +
             "</select>" +
           "</div>" +
 
-          '<div class="form-field">' +
+          '<div class="form-field shipping-cost-amount-field" data-cost-amount-wrap' + (initialCost && initialCost.cost_type === "extra" ? "" : " hidden") + '>' +
             '<label data-cost-amount-label>' +
-              (initialCost && initialCost.cost_type === "extra" ? "مبلغ مازاد بر پایه (تومان)" : "مبلغ ثابت نهایی (تومان)") +
+              "مبلغ مازاد بر پایه (تومان)" +
             "</label>" +
             '<input ' +
               'data-cost-field="extra_cost" ' +
               'type="text" inputmode="numeric" min="0" ' +
-              'value="' + esc(initialCost ? (initialCost.cost_type === "extra" ? initialCost.extra_cost || 0 : initialCost.cost_amount || 0) : 0) + '" />' +
+              (initialCost && initialCost.cost_type === "extra" ? "" : "disabled ") +
+              'value="' + esc(initialCost && initialCost.cost_type === "extra" ? initialCost.extra_cost || 0 : "") + '" />' +
           "</div>" +
 
         "</div>" +
@@ -966,7 +969,7 @@
         "</div>" +
 
         '<div class="admin-help">' +
-          "در حالت ثابت، مبلغ واردشده هزینه نهایی است؛ اگر خالی باشد هزینه پایهٔ روش اعمال می‌شود. در حالت متغیر، مبلغ مازاد به پایه افزوده می‌شود." +
+          "در حالت ثابت، هزینه پایهٔ فعلی روش حمل‌ونقل مستقیم خوانده می‌شود و تغییر پایه خودکار اعمال خواهد شد. در حالت متغیر، مبلغ مازاد به پایهٔ فعلی افزوده می‌شود." +
         "</div>" +
 
         '<div class="panel-actions">' +
@@ -1502,6 +1505,11 @@
     await renderMethods(
       container
     );
+
+    if (state.selectedProvince && (state.showProvinceCities || state.selectedCity)) {
+      var costsContainer = getContainer("shipping-tab-costs");
+      if (costsContainer) await renderCosts(costsContainer);
+    }
   }
 
   // ============================================
@@ -1662,17 +1670,14 @@
       ) || "fixed";
 
     var rawEnteredAmount = getValue(form, '[data-cost-field="extra_cost"]');
-    var enteredAmountIsBlank = String(rawEnteredAmount || "").trim() === "";
-    var enteredAmount = parseAdminNumber(rawEnteredAmount);
+    var enteredAmount = costType === "extra" ? parseAdminNumber(rawEnteredAmount) : 0;
 
-    if (enteredAmount === null && !enteredAmountIsBlank) {
-      showMessage("مبلغ هزینه را با عدد صفر یا بزرگ‌تر وارد کنید.", "error");
+    if (enteredAmount === null) {
+      showMessage("مبلغ مازاد را با عدد صفر یا بزرگ‌تر وارد کنید.", "error");
       return;
     }
 
-    var normalizedEnteredAmount = enteredAmount === null ? 0 : enteredAmount;
-    var costAmount = costType === "fixed" ? (enteredAmountIsBlank ? null : normalizedEnteredAmount) : 0;
-    var extraCost = costType === "extra" ? normalizedEnteredAmount : 0;
+    var extraCost = costType === "extra" ? enteredAmount : 0;
 
     var isActive =
       getChecked(
@@ -1716,9 +1721,6 @@
 
             cost_type:
               costType,
-
-            cost_amount:
-              costAmount,
 
             extra_cost:
               extraCost,
@@ -2811,15 +2813,18 @@
           var typeField = form.querySelector('[data-cost-field="cost_type"]');
           var extraField = form.querySelector('[data-cost-field="extra_cost"]');
           var amountLabel = form.querySelector("[data-cost-amount-label]");
+          var amountWrap = form.querySelector("[data-cost-amount-wrap]");
           var activeField = form.querySelector('[data-cost-field="is_active"]');
           var selectedType = selectedOption.dataset.costType || "fixed";
           if (typeField) typeField.value = selectedType;
-          if (extraField) extraField.value = selectedType === "fixed"
-            ? selectedOption.dataset.costAmount || "0"
-            : selectedOption.dataset.extraCost || "0";
-          if (amountLabel) amountLabel.textContent = selectedType === "fixed"
-            ? "مبلغ ثابت نهایی (تومان)"
-            : "مبلغ مازاد بر پایه (تومان)";
+          if (amountWrap) amountWrap.hidden = selectedType !== "extra";
+          if (extraField) {
+            extraField.disabled = selectedType !== "extra";
+            extraField.value = selectedType === "extra"
+              ? selectedOption.dataset.extraCost || "0"
+              : "";
+          }
+          if (amountLabel) amountLabel.textContent = "مبلغ مازاد بر پایه (تومان)";
           if (activeField) activeField.checked = selectedOption.dataset.active !== "0";
         }
         return;
@@ -2827,9 +2832,15 @@
       if (target && target.matches && target.matches('[data-cost-field="cost_type"]')) {
         var costFormElement = target.closest("[data-shipping-cost-form]");
         var costAmountLabel = costFormElement && costFormElement.querySelector("[data-cost-amount-label]");
-        if (costAmountLabel) costAmountLabel.textContent = target.value === "fixed"
-          ? "مبلغ ثابت نهایی (تومان)"
-          : "مبلغ مازاد بر پایه (تومان)";
+        var costAmountWrap = costFormElement && costFormElement.querySelector("[data-cost-amount-wrap]");
+        var costAmountInput = costFormElement && costFormElement.querySelector('[data-cost-field="extra_cost"]');
+        var isExtraCost = target.value === "extra";
+        if (costAmountWrap) costAmountWrap.hidden = !isExtraCost;
+        if (costAmountInput) {
+          costAmountInput.disabled = !isExtraCost;
+          if (!isExtraCost) costAmountInput.value = "";
+        }
+        if (costAmountLabel) costAmountLabel.textContent = "مبلغ مازاد بر پایه (تومان)";
         return;
       }
       if (!target || target.id !== "shipping-cost-city") return;

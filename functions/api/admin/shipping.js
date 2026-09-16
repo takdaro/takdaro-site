@@ -4,7 +4,10 @@ import { requireAdmin } from "../../lib/admin";
 // ============================================
 
 function json(data, status = 200) {
-  return Response.json(data, { status });
+  return Response.json(data, {
+    status,
+    headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" }
+  });
 }
 
 function normalizeText(value) {
@@ -85,7 +88,10 @@ export async function onRequestGet(context) {
           sc.city,
           sc.shipping_method_id,
           sc.cost_type,
-          sc.cost_amount,
+          CASE WHEN sc.cost_type = 'extra'
+            THEN COALESCE(sm.default_cost, 0) + COALESCE(sc.extra_cost, 0)
+            ELSE COALESCE(sm.default_cost, 0)
+          END AS cost_amount,
           sc.extra_cost,
           sc.is_active,
           sm.name as method_name,
@@ -116,7 +122,10 @@ export async function onRequestGet(context) {
           sc.city,
           sc.shipping_method_id,
           sc.cost_type,
-          sc.cost_amount,
+          CASE WHEN sc.cost_type = 'extra'
+            THEN COALESCE(sm.default_cost, 0) + COALESCE(sc.extra_cost, 0)
+            ELSE COALESCE(sm.default_cost, 0)
+          END AS cost_amount,
           sc.extra_cost,
           sc.is_active,
           sm.name as method_name,
@@ -346,8 +355,6 @@ export async function onRequestPost(context) {
       const city = normalizeText(body.city);
       const shipping_method_id = normalizeNumber(body.shipping_method_id);
       const cost_type = body.cost_type || "fixed";
-      const costAmountProvided = body.cost_amount !== null && body.cost_amount !== undefined && String(body.cost_amount).trim() !== "";
-      const cost_amount = normalizeNumber(body.cost_amount);
       const extra_cost = normalizeNumber(body.extra_cost);
       const delivery_time = "";
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
@@ -368,7 +375,7 @@ export async function onRequestPost(context) {
       }
 
       const defaultCost = method.default_cost || 0;
-      const finalCost = cost_type === "fixed" ? (costAmountProvided ? cost_amount : defaultCost) : defaultCost + extra_cost;
+      const finalCost = cost_type === "fixed" ? defaultCost : defaultCost + extra_cost;
       const savedExtraCost = cost_type === "extra" ? extra_cost : 0;
 
       await context.env.DB.batch([

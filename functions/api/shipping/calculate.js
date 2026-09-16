@@ -3,7 +3,10 @@
 // ============================================
 
 function json(data, status = 200) {
-  return Response.json(data, { status });
+  return Response.json(data, {
+    status,
+    headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" }
+  });
 }
 
 function normalizeText(value) {
@@ -77,7 +80,7 @@ async function getShippingCost(db, province, city, subtotal = 0) {
   const extraCost = cost.extra_cost || 0;
   let finalCost = cost.cost_type === "extra"
     ? baseCost + extraCost
-    : normalizeNumber(cost.cost_amount ?? baseCost);
+    : normalizeNumber(baseCost);
 
   // بررسی ارسال رایگان
   let isFree = false;
