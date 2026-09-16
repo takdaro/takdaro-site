@@ -19,18 +19,32 @@
     var grid = document.getElementById('jalali-grid');
     var monthTitle = document.getElementById('jalali-month');
     var output = document.getElementById('holiday-date');
-    if (!grid || grid.dataset.ready) return;
+    if (!grid) return;
+    if (grid.dataset.ready) {
+      if (typeof grid.refreshToToday === 'function') grid.refreshToToday();
+      return;
+    }
     grid.dataset.ready = '1';
-    var month = 1, year = 1405;
+    function getToday() {
+      var parts = new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn', {
+        timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric'
+      }).formatToParts(new Date());
+      var value = {};
+      parts.forEach(function (part) { if (part.type !== 'literal') value[part.type] = Number(part.value); });
+      return { year: value.year, month: value.month, day: value.day };
+    }
+    var today = getToday();
+    var month = today.month, year = today.year;
     var months = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
     function draw() {
+      today = getToday();
       monthTitle.textContent = months[month - 1] + ' ' + year;
       grid.innerHTML = '';
       var head = document.createElement('div'); head.className = 'jalali-weekdays';
       ['ش','ی','د','س','چ','پ','ج'].forEach(function (label) { var cell = document.createElement('span'); cell.textContent = label; head.appendChild(cell); });
       grid.appendChild(head);
       var dates = [];
-      for (var date = new Date(2025, 0, 1); date < new Date(2028, 0, 1); date.setDate(date.getDate() + 1)) {
+      for (var date = new Date(2025, 0, 1); date < new Date(2041, 0, 1); date.setDate(date.getDate() + 1)) {
         var parts = new Intl.DateTimeFormat('en-US-u-ca-persian', { year:'numeric', month:'numeric', day:'numeric' }).formatToParts(date);
         var y = +parts.find(function (p) { return p.type === 'year'; }).value;
         var m = +parts.find(function (p) { return p.type === 'month'; }).value;
@@ -42,13 +56,25 @@
       dates.forEach(function (item) {
         var button = document.createElement('button'); button.type = 'button'; button.textContent = item.day;
         button.dataset.friday = item.weekday === 5 ? '1' : '0';
+        var isToday = year === today.year && month === today.month && item.day === today.day;
+        var isPast = year < today.year || (year === today.year && (month < today.month || (month === today.month && item.day < today.day)));
+        button.disabled = isPast;
+        if (isToday) { button.classList.add('is-today'); button.title = 'امروز'; }
         button.addEventListener('click', function () {
           output.value = year + '/' + String(month).padStart(2, '0') + '/' + String(item.day).padStart(2, '0');
           grid.querySelectorAll('button').forEach(function (b) { b.classList.remove('selected'); }); button.classList.add('selected');
         });
         grid.appendChild(button);
       });
+      var previous = document.getElementById('jalali-prev');
+      if (previous) previous.disabled = year < today.year || (year === today.year && month <= today.month);
     }
+    grid.refreshToToday = function () {
+      today = getToday();
+      month = today.month;
+      year = today.year;
+      draw();
+    };
     document.getElementById('jalali-prev').addEventListener('click', function () { month--; if (month < 1) { month = 12; year--; } draw(); });
     document.getElementById('jalali-next').addEventListener('click', function () { month++; if (month > 12) { month = 1; year++; } draw(); });
     draw();
@@ -100,6 +126,9 @@
   }
   document.addEventListener('click', function (event) {
     var target = event.target;
+    if (target.closest && target.closest('[data-admin-panel="delivery-schedules"]')) {
+      load();
+    }
     if (target.id === 'save-blocked-weekdays') {
       var blocked = Array.from(document.querySelectorAll('#blocked-weekdays input:checked')).map(function (input) { return Number(input.value); });
       post({ action:'save_weekdays', weekdays:blocked }).then(load);

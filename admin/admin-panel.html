@@ -1928,7 +1928,7 @@
   <script src="assets/js/wallet.js"></script>
   <script src="assets/js/products.js"></script>
   <script src="assets/js/shipping.js?v=20260917-live-shipping-base"></script>
-  <script src="assets/js/delivery-schedules.js?v=20260917-holiday-save-feedback"></script>
+  <script src="assets/js/delivery-schedules.js?v=20260917-current-admin-calendar-v2"></script>
   <script src="assets/js/rates.js"></script>
   <script src="assets/js/invoice.js"></script>
   <script src="assets/js/sms.js"></script>
@@ -1980,6 +1980,10 @@
 
         for (var i = 0; i < modules.length; i++) {
           await loadModuleContent(modules[i].name, modules[i].container);
+        }
+
+        if (typeof window.loadDeliverySchedules === 'function') {
+          await window.loadDeliverySchedules();
         }
 
         // بارگذاری مجدد داده‌ها بعد از بارگذاری HTML
