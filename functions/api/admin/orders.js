@@ -638,6 +638,9 @@ export async function onRequestGet(context) {
         COALESCE(o.total_amount, 0) AS total_amount,
         COALESCE(o.wallet_used_amount, 0) AS wallet_used_amount,
         COALESCE(o.cashback_amount, 0) AS cashback_amount,
+        o.delivery_date,
+        o.delivery_time_from,
+        o.delivery_time_to,
         COALESCE(
           MAX(
             0,

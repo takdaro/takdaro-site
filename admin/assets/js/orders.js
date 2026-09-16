@@ -22,6 +22,10 @@
     { value: 'returned', label: 'مرجوع شد' }
   ];
 
+  function persianDigits(value) {
+    return String(value ?? '').replace(/\d/g, function(digit) { return '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]; });
+  }
+
   // ============================================
   // بارگذاری لیست سفارش‌ها
   // ============================================
@@ -40,7 +44,7 @@
     var tbody = document.getElementById("orders-body");
 
     if (!result.ok || !result.data?.success) {
-      tbody.innerHTML = '<tr><td colspan="9">دریافت سفارش‌ها انجام نشد.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10">دریافت سفارش‌ها انجام نشد.</td></tr>';
       return;
     }
 
@@ -50,6 +54,13 @@
       var totalAmount = Number(order.total_amount || 0);
       var walletUsedAmount = Number(order.wallet_used_amount || 0);
       var payableAmount = order.payable_amount != null ? Number(order.payable_amount || 0) : Math.max(0, totalAmount - walletUsedAmount);
+      var deliveryDate = String(order.delivery_date || '').trim();
+      var deliveryTime = order.delivery_time_from && order.delivery_time_to
+        ? persianDigits(order.delivery_time_from) + ' تا ' + persianDigits(order.delivery_time_to)
+        : '';
+      var deliveryCell = deliveryDate
+        ? '<div style="min-width:110px;line-height:1.8;"><strong>' + window.esc(persianDigits(deliveryDate.replace(/-/g, '/'))) + '</strong>' + (deliveryTime ? '<small style="display:block;color:var(--muted);">' + window.esc(deliveryTime) + '</small>' : '') + '</div>'
+        : '<span style="color:var(--muted);">-</span>';
 
       return '<tr>' +
         '<td class="table-number">' + window.esc(order.order_number) + '</td>' +
@@ -60,6 +71,7 @@
         '<td class="table-number">' + window.money(walletUsedAmount) + '</td>' +
         '<td class="table-number">' + window.money(payableAmount) + '</td>' +
         '<td class="table-number">' + window.formatDate(order.created_at) + '</td>' +
+        '<td>' + deliveryCell + '</td>' +
         '<td>' +
           '<div class="panel-actions" style="margin-top:0;">' +
             '<button class="btn btn-secondary" type="button" data-view-order="' + window.esc(order.order_number) + '">جزئیات</button>' +
@@ -67,7 +79,7 @@
           '</div>' +
         '</td>' +
       '</tr>';
-    }).join("") || '<tr><td colspan="9">سفارشی پیدا نشد.</td></tr>';
+    }).join("") || '<tr><td colspan="10">سفارشی پیدا نشد.</td></tr>';
   }
 
   // ============================================
