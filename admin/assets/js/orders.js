@@ -238,7 +238,7 @@
             detailFact('مانده قابل پرداخت', window.money(payableAmount) + ' تومان', 'order-detail-fact--highlight') +
             detailFact('کش‌بک', window.money(cashbackAmount) + ' تومان') +
             detailFact('وضعیت کش‌بک', order.cashback_status) +
-            detailFact('نرخ دلار هنگام ثبت سفارش', order.rate_at_purchase ? window.money(order.rate_at_purchase) + ' تومان' : 'ثبت نشده', 'order-detail-fact--rate') +
+            detailFact('نرخ فعلی دلار از مدیریت نرخ ارز', order.current_usd_rate ? window.money(order.current_usd_rate) + ' تومان' : 'در مدیریت نرخ ارز ثبت نشده', 'order-detail-fact--rate') +
           '</div>' +
         '</section>' +
 

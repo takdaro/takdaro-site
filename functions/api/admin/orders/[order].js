@@ -5,6 +5,7 @@ import {
   sendUserOrderCancelledNotification,
   sendCashbackAppliedNotification
 } from '../../../lib/notification.js';
+import { getCurrentRate } from '../../../lib/rate.js';
 
 function getCookie(cookieString, key) {
   if (!cookieString) return null;
@@ -999,6 +1000,14 @@ export async function onRequestGet(context) {
         order.id
       );
 
+    // نرخ فعلی را از همان منبع مدیریت نرخ ارز دریافت کن.
+    let currentUsdRate = null;
+    try {
+      currentUsdRate = await getCurrentRate(context.env, 'USD');
+    } catch (rateError) {
+      console.error('دریافت نرخ فعلی دلار برای جزئیات سفارش ناموفق بود:', rateError);
+    }
+
     const deliverySelection = await context.env.DB.prepare(`
       SELECT delivery_date, delivery_slot_id, delivery_time_from, delivery_time_to
       FROM orders WHERE id = ? LIMIT 1
@@ -1044,6 +1053,8 @@ export async function onRequestGet(context) {
           Number(order.shipping_amount || 0),
         total_amount:
           Number(order.total_amount || 0),
+        current_usd_rate:
+          Number(currentUsdRate?.rate || 0) || null,
         wallet_used_amount:
           Number(order.wallet_used_amount || 0),
         payable_amount: Math.max(
