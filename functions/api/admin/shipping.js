@@ -36,7 +36,6 @@ export async function onRequestGet(context) {
           name, 
           slug, 
           description, 
-          delivery_time, 
           default_cost,
           is_active, 
           sort_order,
@@ -68,7 +67,6 @@ export async function onRequestGet(context) {
           sc.cost_type,
           sc.cost_amount,
           sc.extra_cost,
-          sc.delivery_time,
           sc.is_active,
           sm.name as method_name,
           sm.slug as method_slug,
@@ -144,7 +142,7 @@ export async function onRequestPost(context) {
       const name = normalizeText(body.name);
       const slug = normalizeText(body.slug).toLowerCase().replace(/\s+/g, "-");
       const description = normalizeText(body.description);
-      const delivery_time = normalizeText(body.delivery_time);
+      const delivery_time = "";
       const default_cost = normalizeNumber(body.default_cost);
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       const sort_order = normalizeNumber(body.sort_order);
@@ -172,7 +170,7 @@ export async function onRequestPost(context) {
       return json({
         success: true,
         message: "روش حمل‌ونقل با موفقیت ایجاد شد.",
-        method: { id: newId, name, slug, description, delivery_time, default_cost, is_active, sort_order }
+        method: { id: newId, name, slug, description, default_cost, is_active, sort_order }
       });
     }
 
@@ -184,7 +182,7 @@ export async function onRequestPost(context) {
       const name = normalizeText(body.name);
       const slug = normalizeText(body.slug).toLowerCase().replace(/\s+/g, "-");
       const description = normalizeText(body.description);
-      const delivery_time = normalizeText(body.delivery_time);
+      const delivery_time = "";
       const default_cost = normalizeNumber(body.default_cost);
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
       const sort_order = normalizeNumber(body.sort_order);
@@ -289,7 +287,7 @@ export async function onRequestPost(context) {
       const cost_type = body.cost_type || "fixed";
       const cost_amount = normalizeNumber(body.cost_amount);
       const extra_cost = normalizeNumber(body.extra_cost);
-      const delivery_time = normalizeText(body.delivery_time);
+      const delivery_time = "";
       const is_active = body.is_active === true || body.is_active === "true" ? 1 : 0;
 
       if (!province || !city || !shipping_method_id) {

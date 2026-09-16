@@ -29,13 +29,11 @@ async function getShippingCost(db, province, city, subtotal = 0) {
       sc.cost_type,
       sc.cost_amount,
       sc.extra_cost,
-      sc.delivery_time,
       sc.is_active,
       sm.id as method_id,
       sm.name as method_name,
       sm.slug as method_slug,
-      sm.default_cost,
-      sm.delivery_time as method_delivery_time
+      sm.default_cost
     FROM shipping_costs sc
     INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
     WHERE sc.province = ? AND sc.city = ? AND sc.is_active = 1 AND sm.is_active = 1
@@ -53,13 +51,11 @@ async function getShippingCost(db, province, city, subtotal = 0) {
         sc.cost_type,
         sc.cost_amount,
         sc.extra_cost,
-        sc.delivery_time,
         sc.is_active,
         sm.id as method_id,
         sm.name as method_name,
         sm.slug as method_slug,
-        sm.default_cost,
-        sm.delivery_time as method_delivery_time
+        sm.default_cost
       FROM shipping_costs sc
       INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
       WHERE sc.province = ? AND sc.city = 'default' AND sc.is_active = 1 AND sm.is_active = 1
@@ -79,7 +75,6 @@ async function getShippingCost(db, province, city, subtotal = 0) {
   const baseCost = cost.default_cost || 0;
   const extraCost = cost.extra_cost || 0;
   let finalCost = baseCost + extraCost;
-  let deliveryTime = cost.delivery_time || cost.method_delivery_time || "نامشخص";
 
   // بررسی ارسال رایگان
   let isFree = false;
@@ -108,7 +103,6 @@ async function getShippingCost(db, province, city, subtotal = 0) {
       extra_cost: extraCost,
       shipping_cost: finalCost,
       is_free: isFree,
-      delivery_time: deliveryTime,
       free_threshold: freeThreshold ? normalizeNumber(freeThreshold.min_order_amount) : null
     }
   };

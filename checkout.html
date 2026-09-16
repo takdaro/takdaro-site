@@ -976,22 +976,19 @@
         const amount = cost.shipping_cost || 0;
         const isFree = cost.is_free || false;
         const methodName = cost.method_name || "روش ارسال";
-        const deliveryTime = cost.delivery_time || "نامشخص";
-
         shippingState.shippingMethod = {
           id: cost.method_id,
           name: methodName,
           amount: amount,
-          is_free: isFree,
-          delivery_time: deliveryTime
+          is_free: isFree
         };
 
         const displayText = isFree 
-          ? `${methodName} (🎁 رایگان) - ${deliveryTime}`
-          : `${methodName} - ${formatNumber(amount)} تومان - ${deliveryTime}`;
+          ? `${methodName} (🎁 رایگان)`
+          : `${methodName} - ${formatNumber(amount)} تومان`;
         shippingMethodDisplay.textContent = displayText;
         shippingMethodHidden.value = JSON.stringify(shippingState.shippingMethod);
-        shippingMethodInfo.textContent = `✅ روش ارسال: ${methodName} | هزینه: ${isFree ? 'رایگان' : formatNumber(amount) + ' تومان'} | تحویل: ${deliveryTime}`;
+        shippingMethodInfo.textContent = `✅ روش ارسال: ${methodName} | هزینه: ${isFree ? 'رایگان' : formatNumber(amount) + ' تومان'}`;
       } else {
         shippingMethodDisplay.textContent = "هزینه ارسال برای این شهر تعیین نشده است";
         shippingMethodInfo.textContent = "لطفاً با پشتیبانی تماس بگیرید.";
@@ -1249,8 +1246,6 @@
       const shippingMethod = shippingState.shippingMethod || {};
       const shippingCost = shippingMethod.amount || 0;
       const shippingMethodName = shippingMethod.name || "پیش‌فرض";
-      const deliveryTime = shippingMethod.delivery_time || "";
-
       let subtotal = 0;
       const normalizedItems = items.map(({ product, qty }) => {
         const unitPrice = getProductNumericPrice(product) || 0;
@@ -1289,7 +1284,6 @@
           subtotal_amount: subtotal,
           shipping_amount: shippingCost,
           shipping_method: shippingMethodName,
-          shipping_delivery_time: deliveryTime,
           shipping_method_id: shippingMethod.id || null,
           total_amount: totalAmount,
           payable_amount: payableAmount,

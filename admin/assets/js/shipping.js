@@ -271,7 +271,6 @@
               "<th>شناسه</th>" +
               "<th>نام</th>" +
               "<th>Slug</th>" +
-              "<th>زمان تحویل</th>" +
               "<th>هزینه پایه</th>" +
               "<th>وضعیت</th>" +
               "<th>ترتیب</th>" +
@@ -296,10 +295,6 @@
 
                     "<td>" +
                       esc(method.slug) +
-                    "</td>" +
-
-                    "<td>" +
-                      esc(method.delivery_time || "-") +
                     "</td>" +
 
                     '<td class="table-number">' +
@@ -401,17 +396,6 @@
               esc(method.slug || "") +
               '" ' +
               'placeholder="مثلاً post" />' +
-          "</div>" +
-
-          '<div class="form-field">' +
-            "<label>زمان تحویل</label>" +
-            '<input ' +
-              'data-method-field="delivery_time" ' +
-              'type="text" ' +
-              'value="' +
-              esc(method.delivery_time || "") +
-              '" ' +
-              'placeholder="مثلاً 2 تا 4 روز کاری" />' +
           "</div>" +
 
         "</div>" +
@@ -651,7 +635,6 @@
               "<th>هزینه پایه</th>" +
               "<th>هزینه مازاد</th>" +
               "<th>هزینه نهایی</th>" +
-              "<th>زمان تحویل</th>" +
               "<th>وضعیت</th>" +
               "<th>اقدام</th>" +
             "</tr>" +
@@ -685,10 +668,6 @@
                   '<td class="table-number">' +
                     money(cost.cost_amount || 0) +
                     " تومان" +
-                  "</td>" +
-
-                  "<td>" +
-                    esc(cost.delivery_time || "-") +
                   "</td>" +
 
                   "<td>" +
@@ -802,14 +781,6 @@
               'type="number" ' +
               'min="0" ' +
               'value="0" />' +
-          "</div>" +
-
-          '<div class="form-field">' +
-            "<label>زمان تحویل</label>" +
-            '<input ' +
-              'data-cost-field="delivery_time" ' +
-              'type="text" ' +
-              'placeholder="مثلاً 2 تا 4 روز" />' +
           "</div>" +
 
         "</div>" +
@@ -1249,12 +1220,6 @@
           '[data-method-field="description"]'
         ).trim(),
 
-      delivery_time:
-        getValue(
-          form,
-          '[data-method-field="delivery_time"]'
-        ).trim(),
-
       default_cost:
         Number(
           getValue(
@@ -1502,12 +1467,6 @@
         ) || 0
       );
 
-    var deliveryTime =
-      getValue(
-        form,
-        '[data-cost-field="delivery_time"]'
-      ).trim();
-
     var isActive =
       getChecked(
         form,
@@ -1556,9 +1515,6 @@
 
             extra_cost:
               extraCost,
-
-            delivery_time:
-              deliveryTime,
 
             is_active:
               isActive

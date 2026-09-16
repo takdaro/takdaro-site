@@ -14,7 +14,6 @@ export async function onRequestGet(context) {
         name, 
         slug, 
         description, 
-        delivery_time, 
         is_active, 
         sort_order
       FROM shipping_methods
