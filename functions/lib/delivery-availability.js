@@ -78,13 +78,14 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   // The same-day cutoff only disables delivery today; it must not shift the
   // configured preparation window by an extra day.
   const preparationDaysToSkip = Math.max(0, minimumDays - 1);
-  const selectableDates = eligibleDateOffsets
+  const firstSelectableOffset = eligibleDateOffsets
     .slice(preparationDaysToSkip)
-    .filter((offset) => !(cutoffReached && offset === 0))
-    .slice(0, 7);
-  const lastSelectableOffset = selectableDates.length ? selectableDates[selectableDates.length - 1] : horizonDays;
+    .find((offset) => !(cutoffReached && offset === 0));
+  const lastDisplayedOffset = firstSelectableOffset == null
+    ? horizonDays
+    : Math.min(horizonDays, firstSelectableOffset + 6);
   const fromTs = today - 40 * 86400000;
-  const toTs = today + lastSelectableOffset * 86400000 + 40 * 86400000;
+  const toTs = today + lastDisplayedOffset * 86400000 + 40 * 86400000;
   const schedules = (scheduleResult.results || []).filter((schedule) => locationMatches(schedule, options.province || "", options.city || "", options.shippingMethodId));
   const fromDate = jalaliDateFromUtc(new Date(fromTs));
   const toDate = jalaliDateFromUtc(new Date(toTs));
@@ -99,13 +100,14 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   const bookings = new Map((bookingResult.results || []).map((row) => [`${normalizeDate(row.delivery_date)}|${Number(row.delivery_slot_id)}`, Number(row.booked || 0)]));
 
   const days = [];
-  const selectableDateSet = new Set(selectableDates);
-  for (const offset of selectableDates) {
+  for (let offset = firstSelectableOffset ?? horizonDays + 1; offset <= lastDisplayedOffset; offset++) {
     const timestamp = today + offset * 86400000;
     const date = new Date(timestamp);
     const jalaliDate = jalaliDateFromUtc(date);
     const weekday = date.getUTCDay();
-    const eligible = selectableDateSet.has(offset) && !blockedWeekdays.has(weekday) && !holidays.has(jalaliDate);
+    const isHoliday = holidays.has(jalaliDate);
+    const isBlockedWeekday = blockedWeekdays.has(weekday);
+    const eligible = !isBlockedWeekday && !isHoliday;
     let candidates = [];
     if (eligible) {
       const specific = schedules.filter((schedule) => normalizeDate(schedule.specific_date) === jalaliDate);
@@ -121,7 +123,8 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
       start_time: String(schedule.start_time || ""),
       end_time: String(schedule.end_time || "")
     }));
-    days.push({ date: jalaliDate, weekday, available: slots.length > 0, slots });
+    const unavailableReason = isHoliday ? "holiday" : isBlockedWeekday ? "no_courier" : slots.length ? null : "no_available_slot";
+    days.push({ date: jalaliDate, weekday, available: slots.length > 0, holiday: isHoliday, unavailable_reason: unavailableReason, slots });
   }
   return { days, settings: { minimum_days: minimumDays, horizon_days: horizonDays } };
 }

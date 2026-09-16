@@ -243,6 +243,7 @@
     }
 
     .delivery-fields .form-field select { min-height: 58px; }
+    .delivery-fields .form-field select option.is-holiday { color: var(--danger); }
     .delivery-picker-help { min-height: 1.7em; }
 
     .checkout-message {
@@ -701,20 +702,28 @@
         if (!response.ok || !result?.success) throw new Error(result?.error || "availability_unavailable");
         deliveryState.days = Array.isArray(result.days) ? result.days : [];
         const weekdayNames = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
-        const availableDays = deliveryState.days.filter((day) => day.available);
         deliveryDateInput.innerHTML = '<option value="">انتخاب روز ارسال</option>';
-        availableDays.forEach((day) => {
+        deliveryState.days.forEach((day) => {
           const option = document.createElement("option");
           option.value = day.date;
-          option.textContent = `${weekdayNames[Number(day.weekday)] || ""} ${persianDigits(day.date)}`;
+          const holiday = day.holiday || day.unavailable_reason === "holiday";
+          const dayLabel = `${weekdayNames[Number(day.weekday)] || ""} ${persianDigits(day.date)}`;
+          option.textContent = holiday ? `${dayLabel} — تعطیلی رسمی` : day.available ? dayLabel : `${dayLabel} — بدون پیک`;
+          option.disabled = !day.available;
+          if (holiday) {
+            option.className = "is-holiday";
+            option.style.color = "#dc2626";
+          }
           deliveryDateInput.appendChild(option);
         });
-        deliveryDateInput.disabled = availableDays.length === 0;
-        if (availableDays.length) {
-          if (deliveryPickerHelp) deliveryPickerHelp.textContent = "از بین روزهای قابل ارسال در هفت روز آینده انتخاب کنید؛ ساعت‌های همان روز نمایش داده می‌شود.";
+        deliveryDateInput.disabled = deliveryState.days.length === 0;
+        if (deliveryState.days.length && deliveryState.days.some((day) => day.available)) {
+          if (deliveryPickerHelp) deliveryPickerHelp.textContent = "روزهای تعطیل رسمی با رنگ قرمز مشخص شده‌اند؛ روز قابل ارسال را انتخاب کنید تا ساعت‌های همان روز نمایش داده شود.";
+        } else if (deliveryState.days.length) {
+          if (deliveryPickerHelp) deliveryPickerHelp.textContent = "در این بازه روز فعالی برای ارسال نیست؛ تعطیلات رسمی با رنگ قرمز مشخص شده‌اند.";
         } else if (deliveryPickerHelp) {
-          deliveryDateInput.innerHTML = '<option value="">در هفت روز آینده روز فعالی نیست</option>';
-          deliveryPickerHelp.textContent = "برای این شهر و روش ارسال، در هفت روز آینده بازه فعالی وجود ندارد.";
+          deliveryDateInput.innerHTML = '<option value="">روزهای قابل انتخاب در دسترس نیست</option>';
+          deliveryPickerHelp.textContent = "برای این شهر و روش ارسال، در بازه مجاز تاریخی برای نمایش وجود ندارد.";
         }
       } catch (error) {
         if (requestId !== deliveryState.requestId) return;
