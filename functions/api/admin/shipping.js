@@ -12,7 +12,11 @@ function normalizeText(value) {
 }
 
 function normalizeNumber(value) {
-  const parsed = Number(value);
+  const normalized = String(value ?? "")
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[٬,،\s]/g, "");
+  const parsed = Number(normalized);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0;
 }
 
@@ -262,9 +266,19 @@ export async function onRequestPost(context) {
         WHERE id = ?
       `).bind(name, slug, description, delivery_time, default_cost, is_active, sort_order, id).run();
 
+      const savedMethod = await context.env.DB.prepare(`
+        SELECT id, name, slug, description, default_cost, is_active, sort_order
+        FROM shipping_methods WHERE id = ?
+      `).bind(id).first();
+
+      if (!savedMethod || Number(savedMethod.default_cost) !== default_cost) {
+        return json({ success: false, error: "method_update_not_persisted" }, 500);
+      }
+
       return json({
         success: true,
-        message: "روش حمل‌ونقل با موفقیت به‌روزرسانی شد."
+        message: "روش حمل‌ونقل با موفقیت به‌روزرسانی شد.",
+        method: savedMethod
       });
     }
 

@@ -146,6 +146,22 @@
     return state.methods;
   }
 
+  function parseAdminNumber(value) {
+    var normalized = String(value == null ? "" : value)
+      .replace(/[۰-۹]/g, function (digit) {
+        return String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit));
+      })
+      .replace(/[٠-٩]/g, function (digit) {
+        return String("٠١٢٣٤٥٦٧٨٩".indexOf(digit));
+      })
+      .replace(/[٬,،\s]/g, "")
+      .trim();
+
+    if (!normalized) return 0;
+    var parsed = Number(normalized);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+
   async function loadProvinceCatalog() {
     var result = await api(API_URL + "?action=locations");
     if (!result.ok || !result.data || !result.data.success) {
@@ -472,7 +488,9 @@
             "<label>هزینه پایه</label>" +
             '<input ' +
               'data-method-field="default_cost" ' +
-              'type="number" ' +
+              'type="text" ' +
+              'inputmode="numeric" ' +
+              'autocomplete="off" ' +
               'min="0" ' +
               'value="' +
               Number(method.default_cost || 0) +
@@ -1318,6 +1336,21 @@
         "data-method-id"
       );
 
+    var defaultCost = parseAdminNumber(
+      getValue(
+        form,
+        '[data-method-field="default_cost"]'
+      )
+    );
+
+    if (defaultCost === null) {
+      showMessage(
+        "هزینه پایه را فقط با عدد صفر یا بزرگ‌تر وارد کنید.",
+        "error"
+      );
+      return;
+    }
+
     var payload = {
       action:
         id
@@ -1347,13 +1380,7 @@
           '[data-method-field="description"]'
         ).trim(),
 
-      default_cost:
-        Number(
-          getValue(
-            form,
-            '[data-method-field="default_cost"]'
-          ) || 0
-        ),
+      default_cost: defaultCost,
 
       sort_order:
         Number(
