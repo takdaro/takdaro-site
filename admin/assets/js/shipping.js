@@ -818,8 +818,24 @@
       return '<div class="wallet-empty">برای این استان شهری در فهرست ارسال ثبت نشده است.</div>';
     }
 
-    return '<div class="table-wrap shipping-city-table-wrap"><table class="admin-table shipping-city-table">' +
-      '<thead><tr><th>شهر</th><th>روش‌ها و هزینه‌ها</th><th>وضعیت</th><th>اقدام</th></tr></thead>' +
+    var bulkMethodOptions = state.methods.filter(function (method) {
+      return Number(method.is_active) !== 0;
+    }).map(function (method) {
+      return '<option value="' + esc(method.id) + '">' + esc(method.name) +
+        ' — پایه: ' + money(method.default_cost || 0) + ' تومان</option>';
+    }).join("");
+
+    return '<div class="shipping-city-bulk-toolbar">' +
+      '<label class="shipping-city-bulk-field"><span>روش حمل‌ونقل</span><select data-shipping-bulk-method><option value="">انتخاب روش</option>' +
+      bulkMethodOptions + '</select></label>' +
+      '<label class="shipping-city-bulk-field"><span>نوع هزینه</span><select data-shipping-bulk-type>' +
+      '<option value="fixed">هزینه ثابت (مبلغ نهایی)</option><option value="extra">متغیر (مازاد بر پایه)</option></select></label>' +
+      '<label class="shipping-city-bulk-field"><span data-shipping-bulk-amount-label>مبلغ ثابت نهایی برای هر شهر (تومان)</span><input type="text" inputmode="numeric" data-shipping-bulk-amount placeholder="مثلاً ۱۲۰۰۰۰" /></label>' +
+      '<button type="button" class="btn btn-primary" data-shipping-apply-bulk>اعمال روی شهرهای انتخاب‌شده</button>' +
+      '<p class="shipping-city-bulk-note">روش انتخاب‌شده برای شهرهای انتخابی فعال می‌شود؛ سایر روش‌های هر شهر دست‌نخورده می‌مانند.</p>' +
+      '</div>' +
+      '<div class="table-wrap shipping-city-table-wrap"><table class="admin-table shipping-city-table">' +
+      '<thead><tr><th><label class="shipping-city-select-all"><input type="checkbox" data-shipping-select-all-cities /> انتخاب همه</label></th><th>روش‌ها و هزینه‌ها</th><th>وضعیت</th><th>اقدام</th></tr></thead>' +
       '<tbody>' + cities.map(function (city) {
         var cityCosts = state.provinceCosts.filter(function (cost) {
           return cost.city === city;
@@ -832,7 +848,7 @@
           : '<span class="admin-help">هزینه‌ای ثبت نشده</span>';
         var active = cityCosts.some(function (cost) { return Number(cost.is_active) === 1; });
 
-        return "<tr><td>" + esc(city) + "</td><td>" + summaries + "</td><td>" +
+        return '<tr><td><label class="shipping-city-row-select"><input type="checkbox" data-shipping-city-checkbox value="' + esc(city) + '" /> <span>' + esc(city) + '</span></label></td><td>' + summaries + "</td><td>" +
           (active
             ? '<span class="status-badge status-badge--success">فعال</span>'
             : '<span class="status-badge status-badge--danger">غیرفعال / ثبت‌نشده</span>') +
@@ -870,6 +886,7 @@
             esc(method.id) +
             '" data-cost-type="' + esc(savedCost ? savedCost.cost_type || "fixed" : "fixed") +
             '" data-extra-cost="' + esc(savedCost ? savedCost.extra_cost || 0 : 0) +
+            '" data-cost-amount="' + esc(savedCost ? savedCost.cost_amount || 0 : 0) +
             '" data-active="' + esc(savedCost ? Number(savedCost.is_active) : 1) +
             '"' + (initialCost && Number(initialCost.shipping_method_id) === Number(method.id) ? " selected" : "") + ">" +
             esc(method.name) +
@@ -921,18 +938,19 @@
           '<div class="form-field">' +
             "<label>نوع هزینه</label>" +
             '<select data-cost-field="cost_type">' +
-              '<option value="fixed"' + (!initialCost || initialCost.cost_type === "fixed" ? " selected" : "") + '>ثابت</option>' +
-              '<option value="extra"' + (initialCost && initialCost.cost_type === "extra" ? " selected" : "") + '>مازاد</option>' +
+              '<option value="fixed"' + (!initialCost || initialCost.cost_type === "fixed" ? " selected" : "") + '>ثابت (مبلغ نهایی)</option>' +
+              '<option value="extra"' + (initialCost && initialCost.cost_type === "extra" ? " selected" : "") + '>متغیر (مازاد بر پایه)</option>' +
             "</select>" +
           "</div>" +
 
           '<div class="form-field">' +
-            "<label>هزینه مازاد</label>" +
+            '<label data-cost-amount-label>' +
+              (initialCost && initialCost.cost_type === "extra" ? "مبلغ مازاد بر پایه (تومان)" : "مبلغ ثابت نهایی (تومان)") +
+            "</label>" +
             '<input ' +
               'data-cost-field="extra_cost" ' +
-              'type="number" ' +
-              'min="0" ' +
-              'value="' + esc(initialCost ? initialCost.extra_cost || 0 : 0) + '" />' +
+              'type="text" inputmode="numeric" min="0" ' +
+              'value="' + esc(initialCost ? (initialCost.cost_type === "extra" ? initialCost.extra_cost || 0 : initialCost.cost_amount || 0) : 0) + '" />' +
           "</div>" +
 
         "</div>" +
@@ -948,7 +966,7 @@
         "</div>" +
 
         '<div class="admin-help">' +
-          "هزینه نهایی از هزینه پایه روش + هزینه مازاد محاسبه می‌شود." +
+          "در حالت ثابت، مبلغ واردشده هزینه نهایی است؛ در حالت متغیر، مبلغ مازاد به هزینه پایهٔ روش افزوده می‌شود." +
         "</div>" +
 
         '<div class="panel-actions">' +
@@ -1643,13 +1661,20 @@
         '[data-cost-field="cost_type"]'
       ) || "fixed";
 
-    var extraCost =
-      Number(
-        getValue(
-          form,
-          '[data-cost-field="extra_cost"]'
-        ) || 0
-      );
+    var enteredAmount = parseAdminNumber(
+      getValue(
+        form,
+        '[data-cost-field="extra_cost"]'
+      )
+    );
+
+    if (enteredAmount === null) {
+      showMessage("مبلغ هزینه را با عدد صفر یا بزرگ‌تر وارد کنید.", "error");
+      return;
+    }
+
+    var costAmount = costType === "fixed" ? enteredAmount : 0;
+    var extraCost = costType === "extra" ? enteredAmount : 0;
 
     var isActive =
       getChecked(
@@ -1695,7 +1720,7 @@
               costType,
 
             cost_amount:
-              0,
+              costAmount,
 
             extra_cost:
               extraCost,
@@ -2004,6 +2029,64 @@
     await renderCosts(
       container
     );
+  }
+
+  // ============================================
+  // BULK SAVE CITY COSTS
+  // ============================================
+
+  async function applyBulkCityCosts(button) {
+    var province = state.selectedProvince;
+    var selected = Array.from(document.querySelectorAll("[data-shipping-city-checkbox]:checked"))
+      .map(function (checkbox) { return checkbox.value; });
+    var methodId = Number(getValue(document, "[data-shipping-bulk-method]") || 0);
+    var costType = getValue(document, "[data-shipping-bulk-type]") || "fixed";
+    var amount = parseAdminNumber(getValue(document, "[data-shipping-bulk-amount]"));
+
+    if (!province || !selected.length) {
+      showMessage("ابتدا یک یا چند شهر را انتخاب کنید.", "error");
+      return;
+    }
+    if (!methodId) {
+      showMessage("روش حمل‌ونقل را انتخاب کنید.", "error");
+      return;
+    }
+    if (amount === null) {
+      showMessage("مبلغ را با عدد صفر یا بزرگ‌تر وارد کنید.", "error");
+      return;
+    }
+
+    var originalText = button ? button.textContent : "";
+    if (button) {
+      button.disabled = true;
+      button.textContent = "در حال ذخیره...";
+    }
+
+    var result = await api(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "bulk_save_city_costs",
+        province: province,
+        cities: selected,
+        shipping_method_id: methodId,
+        cost_type: costType,
+        amount: amount
+      })
+    });
+
+    if (!result.ok || !result.data || !result.data.success) {
+      showMessage(result.data && result.data.error ? result.data.error : "ذخیره هزینه شهرها انجام نشد.", "error");
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+      return;
+    }
+
+    state.selectedCity = "";
+    state.showProvinceCities = true;
+    await renderCosts(getContainer("shipping-tab-costs"));
+    showMessage(result.data.message || "هزینه شهرهای انتخاب‌شده ذخیره شد.", "success");
   }
 
   // ============================================
@@ -2539,6 +2622,13 @@
         // DELETE CITY
         // ======================================
 
+        var bulkSaveButton = target.closest("[data-shipping-apply-bulk]");
+        if (bulkSaveButton) {
+          event.preventDefault();
+          await applyBulkCityCosts(bulkSaveButton);
+          return;
+        }
+
         if (
           target.closest(
             "[data-shipping-delete-city]"
@@ -2668,17 +2758,61 @@
 
     document.addEventListener("change", async function (event) {
       var target = event.target;
+      if (target && target.matches && target.matches("[data-shipping-select-all-cities]")) {
+        document.querySelectorAll("[data-shipping-city-checkbox]").forEach(function (checkbox) {
+          checkbox.checked = target.checked;
+        });
+        target.indeterminate = false;
+        return;
+      }
+      if (target && target.matches && target.matches("[data-shipping-city-checkbox]")) {
+        var rowChecks = Array.from(document.querySelectorAll("[data-shipping-city-checkbox]"));
+        var selectAll = getContainer("shipping-tab-costs")
+          ? getContainer("shipping-tab-costs").querySelector("[data-shipping-select-all-cities]")
+          : null;
+        if (selectAll) {
+          selectAll.checked = rowChecks.length > 0 && rowChecks.every(function (checkbox) { return checkbox.checked; });
+          selectAll.indeterminate = rowChecks.some(function (checkbox) { return checkbox.checked; }) && !selectAll.checked;
+        }
+        return;
+      }
+      if (target && target.matches && target.matches("[data-shipping-bulk-type]")) {
+        var amountLabel = getContainer("shipping-tab-costs")
+          ? getContainer("shipping-tab-costs").querySelector("[data-shipping-bulk-amount-label]")
+          : null;
+        if (amountLabel) {
+          amountLabel.textContent = target.value === "fixed"
+            ? "مبلغ ثابت نهایی برای هر شهر (تومان)"
+            : "مبلغ مازاد بر پایهٔ روش (تومان)";
+        }
+        return;
+      }
       if (target && target.matches && target.matches('[data-cost-field="shipping_method_id"]')) {
         var form = target.closest("[data-shipping-cost-form]");
         var selectedOption = target.options[target.selectedIndex];
         if (form && selectedOption) {
           var typeField = form.querySelector('[data-cost-field="cost_type"]');
           var extraField = form.querySelector('[data-cost-field="extra_cost"]');
+          var amountLabel = form.querySelector("[data-cost-amount-label]");
           var activeField = form.querySelector('[data-cost-field="is_active"]');
-          if (typeField) typeField.value = selectedOption.dataset.costType || "fixed";
-          if (extraField) extraField.value = selectedOption.dataset.extraCost || "0";
+          var selectedType = selectedOption.dataset.costType || "fixed";
+          if (typeField) typeField.value = selectedType;
+          if (extraField) extraField.value = selectedType === "fixed"
+            ? selectedOption.dataset.costAmount || "0"
+            : selectedOption.dataset.extraCost || "0";
+          if (amountLabel) amountLabel.textContent = selectedType === "fixed"
+            ? "مبلغ ثابت نهایی (تومان)"
+            : "مبلغ مازاد بر پایه (تومان)";
           if (activeField) activeField.checked = selectedOption.dataset.active !== "0";
         }
+        return;
+      }
+      if (target && target.matches && target.matches('[data-cost-field="cost_type"]')) {
+        var costFormElement = target.closest("[data-shipping-cost-form]");
+        var costAmountLabel = costFormElement && costFormElement.querySelector("[data-cost-amount-label]");
+        if (costAmountLabel) costAmountLabel.textContent = target.value === "fixed"
+          ? "مبلغ ثابت نهایی (تومان)"
+          : "مبلغ مازاد بر پایه (تومان)";
         return;
       }
       if (!target || target.id !== "shipping-cost-city") return;

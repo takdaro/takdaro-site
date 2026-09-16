@@ -339,7 +339,7 @@ export async function onRequestPost(context) {
     }
 
     // ============================================
-    // ذخیره هزینه ارسال (با پشتیبانی از extra_cost)
+    // ذخیره هزینه ارسال ثابت یا متغیر
     // ============================================
     if (action === "save_cost") {
       const province = normalizeText(body.province);
@@ -354,6 +354,9 @@ export async function onRequestPost(context) {
       if (!province || !city || !shipping_method_id) {
         return json({ success: false, error: "province_city_method_required" }, 400);
       }
+      if (cost_type !== "fixed" && cost_type !== "extra") {
+        return json({ success: false, error: "invalid_cost_type" }, 400);
+      }
 
       const method = await context.env.DB.prepare(`
         SELECT id, default_cost FROM shipping_methods WHERE id = ?
@@ -363,9 +366,9 @@ export async function onRequestPost(context) {
         return json({ success: false, error: "method_not_found" }, 404);
       }
 
-      // محاسبه cost_amount نهایی = هزینه ثابت روش + extra_cost
       const defaultCost = method.default_cost || 0;
-      const finalCost = defaultCost + extra_cost;
+      const finalCost = cost_type === "fixed" ? cost_amount : defaultCost + extra_cost;
+      const savedExtraCost = cost_type === "extra" ? extra_cost : 0;
 
       const existing = await context.env.DB.prepare(`
         SELECT id FROM shipping_costs 
@@ -378,20 +381,70 @@ export async function onRequestPost(context) {
           UPDATE shipping_costs
           SET cost_type = ?, cost_amount = ?, extra_cost = ?, delivery_time = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
           WHERE province = ? AND city = ? AND shipping_method_id = ?
-        `).bind(cost_type, finalCost, extra_cost, delivery_time, is_active, province, city, shipping_method_id).run();
+        `).bind(cost_type, finalCost, savedExtraCost, delivery_time, is_active, province, city, shipping_method_id).run();
       } else {
         result = await context.env.DB.prepare(`
           INSERT INTO shipping_costs (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(province, city, shipping_method_id, cost_type, finalCost, extra_cost, delivery_time, is_active).run();
+        `).bind(province, city, shipping_method_id, cost_type, finalCost, savedExtraCost, delivery_time, is_active).run();
       }
 
       return json({
         success: true,
         message: "هزینه ارسال با موفقیت ذخیره شد.",
-        extra_cost: extra_cost,
+        extra_cost: savedExtraCost,
         final_cost: finalCost,
         default_cost: defaultCost
+      });
+    }
+
+    // اعمال روش و هزینهٔ ثابت/متغیر روی یک یا چند شهر به‌صورت یک عملیات دسته‌ای
+    if (action === "bulk_save_city_costs") {
+      const province = normalizeText(body.province);
+      const shipping_method_id = normalizeNumber(body.shipping_method_id);
+      const cost_type = body.cost_type;
+      const amount = normalizeNumber(body.amount);
+      const cities = Array.isArray(body.cities)
+        ? [...new Set(body.cities.map(normalizeText).filter((city) => city && city.toLowerCase() !== "default"))]
+        : [];
+
+      if (!province || !shipping_method_id || !cities.length) {
+        return json({ success: false, error: "province_method_cities_required" }, 400);
+      }
+      if (cities.length > 100) {
+        return json({ success: false, error: "too_many_cities" }, 400);
+      }
+      if (cost_type !== "fixed" && cost_type !== "extra") {
+        return json({ success: false, error: "invalid_cost_type" }, 400);
+      }
+
+      const method = await context.env.DB.prepare(`
+        SELECT id, name, default_cost FROM shipping_methods WHERE id = ?
+      `).bind(shipping_method_id).first();
+      if (!method) return json({ success: false, error: "method_not_found" }, 404);
+
+      const extra_cost = cost_type === "extra" ? amount : 0;
+      const cost_amount = cost_type === "fixed" ? amount : Number(method.default_cost || 0) + amount;
+      const statements = cities.map((city) => context.env.DB.prepare(`
+        INSERT INTO shipping_costs
+          (province, city, shipping_method_id, cost_type, cost_amount, extra_cost, delivery_time, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, '', 1)
+          ON CONFLICT(province, city, shipping_method_id) DO UPDATE SET
+            cost_type = excluded.cost_type,
+            cost_amount = excluded.cost_amount,
+            extra_cost = excluded.extra_cost,
+            is_active = 1,
+            updated_at = CURRENT_TIMESTAMP
+      `).bind(province, city, shipping_method_id, cost_type, cost_amount, extra_cost));
+
+      await context.env.DB.batch(statements);
+
+      return json({
+        success: true,
+        message: `روش «${method.name}» و هزینهٔ ${cost_type === "fixed" ? "ثابت" : "متغیر"} برای ${cities.length} شهر ذخیره شد.`,
+        updated_count: cities.length,
+        cost_amount,
+        extra_cost
       });
     }
 

@@ -1136,6 +1136,64 @@
     .shipping-city-table-wrap .shipping-city-table th:nth-child(4),
     .shipping-city-table-wrap .shipping-city-table td:nth-child(4) { width: 20%; }
 
+    .shipping-city-bulk-toolbar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(130px, 1fr)) auto;
+      align-items: end;
+      gap: 12px;
+      margin: 16px 0 10px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #f8fbfd;
+    }
+
+    .shipping-city-bulk-field {
+      display: grid;
+      gap: 6px;
+      color: var(--text-soft);
+      font-size: .88rem;
+      font-weight: 700;
+    }
+
+    .shipping-city-bulk-field select,
+    .shipping-city-bulk-field input {
+      width: 100%;
+      min-width: 0;
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    .shipping-city-bulk-note {
+      grid-column: 1 / -1;
+      margin: 0;
+      color: var(--muted);
+      font-size: .85rem;
+      line-height: 1.6;
+    }
+
+    .shipping-city-select-all,
+    .shipping-city-row-select {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .shipping-city-select-all input,
+    .shipping-city-row-select input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--secondary);
+      flex: 0 0 auto;
+    }
+
     .shipping-city-actions {
       display: flex;
       flex-wrap: wrap;
@@ -1159,6 +1217,21 @@
       color: #fff;
       border-color: #b42318;
       background: #b42318;
+    }
+
+    @media (max-width: 900px) {
+      .shipping-city-bulk-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shipping-city-bulk-toolbar {
+        grid-template-columns: 1fr;
+      }
+      .shipping-city-actions .btn {
+        flex: 1 1 auto;
+      }
     }
 
     /* ===== Rates ===== */

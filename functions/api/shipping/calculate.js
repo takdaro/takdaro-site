@@ -74,7 +74,9 @@ async function getShippingCost(db, province, city, subtotal = 0) {
   // محاسبه هزینه نهایی
   const baseCost = cost.default_cost || 0;
   const extraCost = cost.extra_cost || 0;
-  let finalCost = baseCost + extraCost;
+  let finalCost = cost.cost_type === "extra"
+    ? baseCost + extraCost
+    : normalizeNumber(cost.cost_amount ?? baseCost);
 
   // بررسی ارسال رایگان
   let isFree = false;
