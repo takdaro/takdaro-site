@@ -66,7 +66,7 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   const today = Date.UTC(tehran.year, tehran.month - 1, tehran.day);
   const cutoffReached = !!cutoff && tehran.hour * 60 + tehran.minute >= Number(cutoff[1]) * 60 + Number(cutoff[2]);
   const firstSelectableOffset = Math.max(minimumDays, cutoffReached ? 1 : 0);
-  const lastSelectableOffset = horizonDays;
+  const lastSelectableOffset = Math.min(horizonDays, 6);
   const fromTs = today - 40 * 86400000;
   const toTs = today + lastSelectableOffset * 86400000 + 40 * 86400000;
   const schedules = (scheduleResult.results || []).filter((schedule) => locationMatches(schedule, options.province || "", options.city || "", options.shippingMethodId));
@@ -83,30 +83,12 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   `).bind(fromDate, toDate).all();
   const bookings = new Map((bookingResult.results || []).map((row) => [`${normalizeDate(row.delivery_date)}|${Number(row.delivery_slot_id)}`, Number(row.booked || 0)]));
 
-  const firstPersianMonth = new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", { timeZone: "UTC", year: "numeric", month: "numeric" }).formatToParts(new Date(today));
-  const firstParts = Object.fromEntries(firstPersianMonth.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]));
-  let calendarStart = today;
-  while (calendarStart > today - 35 * 86400000) {
-    const previous = new Date(calendarStart - 86400000);
-    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", { timeZone: "UTC", year: "numeric", month: "numeric" }).formatToParts(previous).filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]));
-    if (parts.year !== firstParts.year || parts.month !== firstParts.month) break;
-    calendarStart -= 86400000;
-  }
-  let calendarEnd = today + lastSelectableOffset * 86400000;
-  const endParts = Object.fromEntries(new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", { timeZone: "UTC", year: "numeric", month: "numeric" }).formatToParts(new Date(calendarEnd)).filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]));
-  while (calendarEnd < today + (lastSelectableOffset + 35) * 86400000) {
-    const next = new Date(calendarEnd + 86400000);
-    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", { timeZone: "UTC", year: "numeric", month: "numeric" }).formatToParts(next).filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]));
-    if (parts.year !== endParts.year || parts.month !== endParts.month) break;
-    calendarEnd += 86400000;
-  }
-
   const days = [];
-  for (let timestamp = calendarStart; timestamp <= calendarEnd; timestamp += 86400000) {
+  for (let offset = 0; offset <= 6; offset++) {
+    const timestamp = today + offset * 86400000;
     const date = new Date(timestamp);
     const jalaliDate = jalaliDateFromUtc(date);
     const weekday = date.getUTCDay();
-    const offset = Math.round((timestamp - today) / 86400000);
     const eligible = offset >= firstSelectableOffset && offset <= lastSelectableOffset && !blockedWeekdays.has(weekday) && !holidays.has(jalaliDate);
     let candidates = [];
     if (eligible) {
