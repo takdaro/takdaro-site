@@ -102,6 +102,11 @@
 
     input.value = match ? persianDigits(normalized) : '';
     input.addEventListener('click', function() { picker.hidden = !picker.hidden; });
+    document.getElementById('edit-delivery-calendar-toggle')?.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      picker.hidden = !picker.hidden;
+    });
     document.getElementById('edit-delivery-month-prev')?.addEventListener('click', function() {
       viewMonth--;
       if (viewMonth < 1) { viewMonth = 12; viewYear--; }
@@ -225,13 +230,12 @@
         '<h4>ویرایش زمان ارسال</h4>' +
         '<p>تاریخ شمسی و ساعت دلخواه را وارد کنید؛ این تغییر به ظرفیت و برنامهٔ عمومی ارسال محدود نیست.</p>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0;">' +
-          '<label style="position:relative;">تاریخ ارسال (شمسی)<input id="edit-delivery-date" type="text" inputmode="numeric" dir="ltr" readonly placeholder="برای انتخاب تاریخ کلیک کنید" style="cursor:pointer;"><div id="edit-delivery-calendar" hidden style="position:absolute;z-index:1000;top:100%;right:0;width:min(340px,calc(100vw - 48px));padding:12px;margin-top:6px;border:1px solid #d6e2ec;border-radius:14px;background:#fff;box-shadow:0 14px 36px rgba(22,43,62,.18);"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:7px;border-radius:9px;background:#f3f7fa;"><button type="button" id="edit-delivery-month-prev" aria-label="ماه قبل">‹</button><strong id="edit-delivery-calendar-title"></strong><button type="button" id="edit-delivery-month-next" aria-label="ماه بعد">›</button></div><div id="edit-delivery-calendar-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;direction:rtl;"></div></div></label>' +
+          '<label style="position:relative;">تاریخ ارسال (شمسی)<input id="edit-delivery-date" type="text" inputmode="numeric" dir="ltr" readonly placeholder="برای انتخاب تاریخ کلیک کنید" style="cursor:pointer;padding-left:42px;"><button type="button" id="edit-delivery-calendar-toggle" aria-label="باز کردن تقویم" style="position:absolute;left:7px;top:31px;width:34px;height:34px;border:0;border-radius:8px;background:#edf4f7;cursor:pointer;">📅</button><div id="edit-delivery-calendar" hidden style="position:absolute;z-index:1000;top:100%;right:0;width:min(340px,calc(100vw - 48px));padding:12px;margin-top:6px;border:1px solid #d6e2ec;border-radius:14px;background:#fff;box-shadow:0 14px 36px rgba(22,43,62,.18);"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:7px;border-radius:9px;background:#f3f7fa;"><button type="button" id="edit-delivery-month-prev" aria-label="ماه قبل">‹</button><strong id="edit-delivery-calendar-title"></strong><button type="button" id="edit-delivery-month-next" aria-label="ماه بعد">›</button></div><div id="edit-delivery-calendar-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;direction:rtl;"></div></div></label>' +
           '<label>ساعت شروع<input id="edit-delivery-time-from" type="time" value="' + window.esc(order.delivery_time_from || "") + '"></label>' +
           '<label>ساعت پایان<input id="edit-delivery-time-to" type="time" value="' + window.esc(order.delivery_time_to || "") + '"></label>' +
         '</div>' +
         '<button class="btn btn-primary" type="button" id="save-delivery-schedule-btn">ذخیره زمان ارسال</button>' +
       '</div>';
-    initDeliveryDatePicker(order.delivery_date);
 
     if (address) {
       box.innerHTML += 
@@ -279,8 +283,12 @@
             }).join("") +
             '</tbody>' +
           '</table>' +
-        '</div>';
+      '</div>';
     }
+
+    // Bind after all detail markup is appended: later innerHTML writes recreate
+    // earlier nodes and would otherwise discard the calendar click handlers.
+    initDeliveryDatePicker(order.delivery_date);
 
     // رویداد ذخیره وضعیت
     var saveBtn = document.getElementById("save-order-status-btn");
