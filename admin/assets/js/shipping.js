@@ -830,7 +830,7 @@
       bulkMethodOptions + '</select></label>' +
       '<label class="shipping-city-bulk-field"><span>نوع هزینه</span><select data-shipping-bulk-type>' +
       '<option value="fixed">هزینه ثابت (مبلغ نهایی)</option><option value="extra">متغیر (مازاد بر پایه)</option></select></label>' +
-      '<label class="shipping-city-bulk-field"><span data-shipping-bulk-amount-label>مبلغ ثابت نهایی برای هر شهر (تومان)</span><input type="text" inputmode="numeric" data-shipping-bulk-amount placeholder="مثلاً ۱۲۰۰۰۰" /></label>' +
+      '<label class="shipping-city-bulk-field"><span data-shipping-bulk-amount-label>مبلغ ثابت نهایی برای هر شهر (خالی = هزینه پایه)</span><input type="text" inputmode="numeric" data-shipping-bulk-amount placeholder="خالی = هزینه پایه روش" /></label>' +
       '<button type="button" class="btn btn-primary" data-shipping-apply-bulk>اعمال روی شهرهای انتخاب‌شده</button>' +
       '<p class="shipping-city-bulk-note">روش انتخاب‌شده برای هر شهر فعال می‌شود و روش قبلی همان شهر غیرفعال خواهد شد.</p>' +
       '</div>' +
@@ -965,7 +965,7 @@
         "</div>" +
 
         '<div class="admin-help">' +
-          "در حالت ثابت، مبلغ واردشده هزینه نهایی است؛ در حالت متغیر، مبلغ مازاد به هزینه پایهٔ روش افزوده می‌شود." +
+          "در حالت ثابت، مبلغ واردشده هزینه نهایی است؛ اگر خالی باشد هزینه پایهٔ روش اعمال می‌شود. در حالت متغیر، مبلغ مازاد به پایه افزوده می‌شود." +
         "</div>" +
 
         '<div class="panel-actions">' +
@@ -1660,20 +1660,18 @@
         '[data-cost-field="cost_type"]'
       ) || "fixed";
 
-    var enteredAmount = parseAdminNumber(
-      getValue(
-        form,
-        '[data-cost-field="extra_cost"]'
-      )
-    );
+    var rawEnteredAmount = getValue(form, '[data-cost-field="extra_cost"]');
+    var enteredAmountIsBlank = String(rawEnteredAmount || "").trim() === "";
+    var enteredAmount = parseAdminNumber(rawEnteredAmount);
 
-    if (enteredAmount === null) {
+    if (enteredAmount === null && !enteredAmountIsBlank) {
       showMessage("مبلغ هزینه را با عدد صفر یا بزرگ‌تر وارد کنید.", "error");
       return;
     }
 
-    var costAmount = costType === "fixed" ? enteredAmount : 0;
-    var extraCost = costType === "extra" ? enteredAmount : 0;
+    var normalizedEnteredAmount = enteredAmount === null ? 0 : enteredAmount;
+    var costAmount = costType === "fixed" ? (enteredAmountIsBlank ? null : normalizedEnteredAmount) : 0;
+    var extraCost = costType === "extra" ? normalizedEnteredAmount : 0;
 
     var isActive =
       getChecked(
@@ -2040,7 +2038,9 @@
       .map(function (checkbox) { return checkbox.value; });
     var methodId = Number(getValue(document, "[data-shipping-bulk-method]") || 0);
     var costType = getValue(document, "[data-shipping-bulk-type]") || "fixed";
-    var amount = parseAdminNumber(getValue(document, "[data-shipping-bulk-amount]"));
+    var rawAmount = getValue(document, "[data-shipping-bulk-amount]");
+    var amountIsBlank = String(rawAmount || "").trim() === "";
+    var amount = parseAdminNumber(rawAmount);
 
     if (!province || !selected.length) {
       showMessage("ابتدا یک یا چند شهر را انتخاب کنید.", "error");
@@ -2050,9 +2050,12 @@
       showMessage("روش حمل‌ونقل را انتخاب کنید.", "error");
       return;
     }
-    if (amount === null) {
+    if (amount === null && !amountIsBlank) {
       showMessage("مبلغ را با عدد صفر یا بزرگ‌تر وارد کنید.", "error");
       return;
+    }
+    if (amount === null && costType === "extra") {
+      amount = 0;
     }
 
     var originalText = button ? button.textContent : "";
@@ -2781,7 +2784,7 @@
           : null;
         if (amountLabel) {
           amountLabel.textContent = target.value === "fixed"
-            ? "مبلغ ثابت نهایی برای هر شهر (تومان)"
+            ? "مبلغ ثابت نهایی برای هر شهر (خالی = هزینه پایه)"
             : "مبلغ مازاد بر پایهٔ روش (تومان)";
         }
         return;

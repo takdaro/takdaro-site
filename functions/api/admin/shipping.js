@@ -346,6 +346,7 @@ export async function onRequestPost(context) {
       const city = normalizeText(body.city);
       const shipping_method_id = normalizeNumber(body.shipping_method_id);
       const cost_type = body.cost_type || "fixed";
+      const costAmountProvided = body.cost_amount !== null && body.cost_amount !== undefined && String(body.cost_amount).trim() !== "";
       const cost_amount = normalizeNumber(body.cost_amount);
       const extra_cost = normalizeNumber(body.extra_cost);
       const delivery_time = "";
@@ -367,7 +368,7 @@ export async function onRequestPost(context) {
       }
 
       const defaultCost = method.default_cost || 0;
-      const finalCost = cost_type === "fixed" ? cost_amount : defaultCost + extra_cost;
+      const finalCost = cost_type === "fixed" ? (costAmountProvided ? cost_amount : defaultCost) : defaultCost + extra_cost;
       const savedExtraCost = cost_type === "extra" ? extra_cost : 0;
 
       await context.env.DB.batch([
@@ -403,6 +404,7 @@ export async function onRequestPost(context) {
       const province = normalizeText(body.province);
       const shipping_method_id = normalizeNumber(body.shipping_method_id);
       const cost_type = body.cost_type;
+      const amountProvided = body.amount !== null && body.amount !== undefined && String(body.amount).trim() !== "";
       const amount = normalizeNumber(body.amount);
       const cities = Array.isArray(body.cities)
         ? [...new Set(body.cities.map(normalizeText).filter((city) => city && city.toLowerCase() !== "default"))]
@@ -424,7 +426,9 @@ export async function onRequestPost(context) {
       if (!method) return json({ success: false, error: "method_not_found" }, 404);
 
       const extra_cost = cost_type === "extra" ? amount : 0;
-      const cost_amount = cost_type === "fixed" ? amount : Number(method.default_cost || 0) + amount;
+      const cost_amount = cost_type === "fixed"
+        ? (amountProvided ? amount : Number(method.default_cost || 0))
+        : Number(method.default_cost || 0) + amount;
       const statements = cities.flatMap((city) => [
         context.env.DB.prepare(`
           UPDATE shipping_costs
