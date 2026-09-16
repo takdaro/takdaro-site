@@ -4,6 +4,7 @@ import {
   sendOrderCreatedNotification,
   sendUserOrderCreatedNotification
 } from "../../lib/notification";
+import { validateDeliveryChoice } from "../../lib/delivery-availability";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -674,7 +675,18 @@ export async function onRequestPost(context) {
 
     const address = body.address || {};
     const order = body.order || {};
-    if (!String(order.delivery_date || '').trim()) return json({ success: false, error: 'delivery_date_required' }, 400);
+    const deliveryChoice = await validateDeliveryChoice(context.env.DB, {
+      deliveryDate: order.delivery_date,
+      slotId: order.delivery_slot_id,
+      province: address.state,
+      city: address.city,
+      shippingMethodId: order.shipping_method_id
+    });
+    if (!deliveryChoice.ok) return json({ success: false, error: deliveryChoice.error }, 400);
+    order.delivery_date = deliveryChoice.date;
+    order.delivery_slot_id = deliveryChoice.slot.id;
+    order.delivery_time_from = deliveryChoice.slot.start_time;
+    order.delivery_time_to = deliveryChoice.slot.end_time;
 
     const items = Array.isArray(order.items)
       ? order.items

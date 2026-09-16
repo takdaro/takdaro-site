@@ -242,6 +242,22 @@
       font-size: 0.92rem;
     }
 
+    .delivery-calendar { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 16px; background: #fff; }
+    .delivery-calendar[hidden] { display: none; }
+    .delivery-calendar__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); }
+    .delivery-calendar__head button { width: 36px; height: 36px; border: 0; border-radius: 9px; background: #fff; color: var(--secondary); font: inherit; font-size: 20px; cursor: pointer; }
+    .delivery-calendar__head button:disabled { opacity: .35; cursor: default; }
+    .delivery-calendar__weekdays, .delivery-calendar__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; direction: rtl; }
+    .delivery-calendar__weekdays { margin-bottom: 5px; }
+    .delivery-calendar__weekdays span { padding: 5px 0; border-radius: 7px; background: var(--surface-2); color: var(--muted); text-align: center; font-size: .82rem; }
+    .delivery-calendar__grid button, .delivery-calendar__grid span { min-width: 0; min-height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 9px; }
+    .delivery-calendar__grid button { border: 1px solid var(--border); background: #fff; color: var(--text); font: inherit; cursor: pointer; }
+    .delivery-calendar__grid button:hover:not(:disabled) { border-color: var(--secondary); background: var(--secondary-soft); }
+    .delivery-calendar__grid button:disabled { border-color: transparent; background: #f5f7f8; color: #a6b1ba; cursor: default; }
+    .delivery-calendar__grid button.is-friday:not(:disabled) { color: var(--danger); }
+    .delivery-calendar__grid button.is-selected { border-color: var(--secondary); background: var(--secondary); color: #fff !important; }
+    .delivery-picker-help { min-height: 1.7em; }
+
     .checkout-message {
       display: none;
       padding: 14px 16px;
@@ -512,7 +528,7 @@
                   <p class="checkout-note" id="shipping-method-info">هزینه ارسال بر اساس شهر انتخابی محاسبه می‌شود.</p>
                 </div>
                 <div id="delivery-schedule-notice" class="checkout-note" hidden></div>
-                <div class="form-grid-2"><div class="form-field"><label for="delivery-date">تاریخ ارسال</label><input id="delivery-date" type="text" inputmode="numeric" placeholder="۱۴۰۵/۰۱/۰۵" pattern="[۰-۹0-9]{4}/[۰-۹0-9]{2}/[۰-۹0-9]{2}" required /></div><div class="form-field"><label for="delivery-slot">بازه زمانی ارسال (اختیاری)</label><select id="delivery-slot"><option value="">بدون انتخاب بازه</option></select></div></div>
+                <div class="form-grid-2 delivery-fields"><div class="form-field"><label for="delivery-date">تاریخ ارسال</label><input id="delivery-date" type="text" placeholder="ابتدا روش ارسال را انتخاب کنید" readonly required disabled /><div class="delivery-calendar" id="delivery-calendar" hidden><div class="delivery-calendar__head"><button type="button" id="delivery-month-prev" aria-label="ماه قبل">‹</button><strong id="delivery-month-title">—</strong><button type="button" id="delivery-month-next" aria-label="ماه بعد">›</button></div><div class="delivery-calendar__weekdays"><span>شنبه</span><span>یکشنبه</span><span>دوشنبه</span><span>سه‌شنبه</span><span>چهارشنبه</span><span>پنجشنبه</span><span>جمعه</span></div><div class="delivery-calendar__grid" id="delivery-calendar-grid"></div></div><p class="checkout-note delivery-picker-help" id="delivery-picker-help">پس از انتخاب استان، شهر و روش ارسال، روزهای قابل ارسال نمایش داده می‌شوند.</p></div><div class="form-field"><label for="delivery-slot">ساعت ارسال</label><select id="delivery-slot" required disabled><option value="">ابتدا تاریخ ارسال را انتخاب کنید</option></select><p class="checkout-note" id="delivery-slot-help">ابتدا یک روز قابل ارسال از تقویم انتخاب کنید.</p></div></div>
 
                 <div class="form-grid-2">
                   <div class="form-field">
@@ -581,6 +597,13 @@
     const shippingMethodHidden = document.getElementById("shipping-method");
     const shippingMethodContainer = document.getElementById("shipping-method-container");
     const shippingMethodInfo = document.getElementById("shipping-method-info");
+    const deliveryDateInput = document.getElementById("delivery-date");
+    const deliverySlotSelect = document.getElementById("delivery-slot");
+    const deliveryCalendar = document.getElementById("delivery-calendar");
+    const deliveryCalendarGrid = document.getElementById("delivery-calendar-grid");
+    const deliveryMonthTitle = document.getElementById("delivery-month-title");
+    const deliveryPickerHelp = document.getElementById("delivery-picker-help");
+    const deliverySlotHelp = document.getElementById("delivery-slot-help");
 
     const walletBox = document.getElementById("wallet-box");
     const walletBalanceEl = document.getElementById("wallet-balance");
@@ -613,6 +636,7 @@
       shippingCost: null,
       isLoading: false
     };
+    const deliveryState = { days: [], months: [], monthKey: "", selectedDate: "", requestId: 0 };
 
     // ============================================
     // توابع کمکی
@@ -642,6 +666,115 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    function persianDigits(value) {
+      return String(value ?? "").replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
+    }
+
+    function deliveryMonthKey(date) { return String(date || "").slice(0, 7); }
+
+    function clearDeliverySelection() {
+      deliveryState.selectedDate = "";
+      deliveryDateInput.value = "";
+      deliveryDateInput.disabled = !shippingState.shippingMethod;
+      deliverySlotSelect.innerHTML = '<option value="">ابتدا تاریخ ارسال را انتخاب کنید</option>';
+      deliverySlotSelect.disabled = true;
+      if (deliverySlotHelp) deliverySlotHelp.textContent = "ابتدا یک روز قابل ارسال از تقویم انتخاب کنید.";
+    }
+
+    function renderDeliveryCalendar() {
+      if (!deliveryCalendarGrid || !deliveryMonthTitle) return;
+      const monthIndex = deliveryState.months.indexOf(deliveryState.monthKey);
+      const [year, month] = (deliveryState.monthKey || "").split("/").map(Number);
+      const monthNames = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+      deliveryMonthTitle.textContent = monthNames[month - 1] ? `${monthNames[month - 1]} ${formatNumber(year)}` : "تقویم ارسال";
+      const previousButton = document.getElementById("delivery-month-prev");
+      const nextButton = document.getElementById("delivery-month-next");
+      if (previousButton) previousButton.disabled = monthIndex <= 0;
+      if (nextButton) nextButton.disabled = monthIndex < 0 || monthIndex >= deliveryState.months.length - 1;
+      deliveryCalendarGrid.innerHTML = "";
+      const days = deliveryState.days.filter((day) => deliveryMonthKey(day.date) === deliveryState.monthKey);
+      if (!days.length) return;
+      const offset = (Number(days[0].weekday) + 1) % 7;
+      for (let i = 0; i < offset; i++) {
+        const blank = document.createElement("span");
+        blank.setAttribute("aria-hidden", "true");
+        deliveryCalendarGrid.appendChild(blank);
+      }
+      days.forEach((day) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = persianDigits(Number(day.date.slice(8, 10)));
+        button.dataset.deliveryDate = day.date;
+        button.disabled = !day.available;
+        button.classList.toggle("is-friday", Number(day.weekday) === 5);
+        button.classList.toggle("is-selected", day.date === deliveryState.selectedDate);
+        button.setAttribute("aria-pressed", day.date === deliveryState.selectedDate ? "true" : "false");
+        button.title = day.available ? "انتخاب این روز" : "در این روز بازه ارسال فعال یا ظرفیت خالی وجود ندارد";
+        deliveryCalendarGrid.appendChild(button);
+      });
+    }
+
+    function selectDeliveryDate(date) {
+      const day = deliveryState.days.find((item) => item.date === date && item.available);
+      if (!day) return;
+      deliveryState.selectedDate = date;
+      deliveryDateInput.value = persianDigits(date);
+      deliverySlotSelect.innerHTML = '<option value="">انتخاب ساعت ارسال</option>';
+      day.slots.forEach((slot) => {
+        const option = document.createElement("option");
+        option.value = String(slot.id);
+        option.textContent = `${slot.title} (${persianDigits(slot.start_time)} تا ${persianDigits(slot.end_time)})`;
+        option.dataset.startTime = slot.start_time;
+        option.dataset.endTime = slot.end_time;
+        deliverySlotSelect.appendChild(option);
+      });
+      deliverySlotSelect.disabled = false;
+      if (deliverySlotHelp) deliverySlotHelp.textContent = "یکی از بازه‌های خالی همین روز را انتخاب کنید.";
+      if (deliveryPickerHelp) deliveryPickerHelp.textContent = `روز انتخاب‌شده: ${persianDigits(date)}`;
+      renderDeliveryCalendar();
+    }
+
+    async function loadDeliveryAvailability() {
+      const requestId = ++deliveryState.requestId;
+      const method = shippingState.shippingMethod;
+      clearDeliverySelection();
+      if (!method || !shippingState.currentProvince || !shippingState.currentCity) {
+        deliveryState.days = [];
+        deliveryState.months = [];
+        deliveryCalendar.hidden = true;
+        if (deliveryPickerHelp) deliveryPickerHelp.textContent = "پس از انتخاب استان، شهر و روش ارسال، روزهای قابل ارسال نمایش داده می‌شوند.";
+        return;
+      }
+      if (deliveryPickerHelp) deliveryPickerHelp.textContent = "در حال دریافت روزها و ظرفیت ارسال...";
+      try {
+        const query = new URLSearchParams({ province: shippingState.currentProvince, city: shippingState.currentCity, shipping_method_id: String(method.id || "") });
+        const response = await fetch(`/api/delivery/availability?${query.toString()}`, { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
+        const result = await response.json();
+        if (requestId !== deliveryState.requestId) return;
+        if (!response.ok || !result?.success) throw new Error(result?.error || "availability_unavailable");
+        deliveryState.days = Array.isArray(result.days) ? result.days : [];
+        deliveryState.months = Array.from(new Set(deliveryState.days.map((day) => deliveryMonthKey(day.date))));
+        const today = new Intl.DateTimeFormat("en-US-u-ca-persian-nu-latn", { timeZone: "Asia/Tehran", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+        const parts = Object.fromEntries(today.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+        const currentMonth = `${parts.year}/${String(parts.month).padStart(2, "0")}`;
+        deliveryState.monthKey = deliveryState.months.includes(currentMonth) ? currentMonth : (deliveryState.months[0] || "");
+        deliveryDateInput.disabled = false;
+        deliveryCalendar.hidden = false;
+        renderDeliveryCalendar();
+        if (deliveryState.days.some((day) => day.available)) {
+          if (deliveryPickerHelp) deliveryPickerHelp.textContent = "یک روز فعال را از تقویم انتخاب کنید؛ ساعت‌های همان روز نمایش داده می‌شود.";
+        } else if (deliveryPickerHelp) {
+          deliveryPickerHelp.textContent = "برای این شهر و روش ارسال، در روزهای آینده بازه فعالی وجود ندارد.";
+        }
+      } catch (error) {
+        if (requestId !== deliveryState.requestId) return;
+        deliveryState.days = [];
+        deliveryState.months = [];
+        deliveryCalendar.hidden = true;
+        if (deliveryPickerHelp) deliveryPickerHelp.textContent = "روزهای ارسال بارگذاری نشدند؛ لطفاً دوباره شهر را انتخاب کنید.";
+      }
     }
 
     function formatNumber(value) {
@@ -860,10 +993,15 @@
     // محاسبه هزینه ارسال برای شهر انتخاب شده (فقط یک روش)
     // ============================================
     async function calculateShipping(province, city) {
+      shippingState.currentProvince = province || "";
+      shippingState.currentCity = city || "";
+      shippingState.shippingMethod = null;
+      shippingState.shippingCost = null;
       if (!province || !city) {
         shippingMethodContainer.style.display = "none";
         shippingState.shippingMethod = null;
         shippingState.shippingCost = null;
+        await loadDeliveryAvailability();
         renderCheckout();
         return;
       }
@@ -904,6 +1042,7 @@
         shippingState.shippingCost = null;
       }
 
+      await loadDeliveryAvailability();
       renderCheckout();
     }
 
@@ -1194,6 +1333,7 @@
           shipping_amount: shippingCost,
           shipping_method: shippingMethodName,
           shipping_delivery_time: deliveryTime,
+          shipping_method_id: shippingMethod.id || null,
           total_amount: totalAmount,
           payable_amount: payableAmount,
           use_wallet: walletUsedAmount > 0,
@@ -1215,6 +1355,11 @@
 
       if (!shippingState.shippingMethod) {
         setCheckoutMessage("لطفاً ابتدا استان و شهر را انتخاب کنید.", "error");
+        return false;
+      }
+
+      if (!deliveryState.selectedDate || !deliverySlotSelect.value) {
+        setCheckoutMessage("لطفاً ابتدا یک روز و سپس ساعت ارسال همان روز را انتخاب کنید.", "error");
         return false;
       }
 
@@ -1319,9 +1464,9 @@
           city: document.getElementById("city").value.trim(),
           postalCode: document.getElementById("postal-code").value.trim(),
           phone: document.getElementById("phone").value.trim(),
-          address: document.getElementById("address").value.trim()
-          ,delivery_date: document.getElementById("delivery-date").value
-          ,delivery_slot_id: document.getElementById("delivery-slot").value
+          address: document.getElementById("address").value.trim(),
+          delivery_date: deliveryState.selectedDate,
+          delivery_slot_id: deliverySlotSelect.value
         };
 
         if (!validateForm(formData)) return;
@@ -1333,6 +1478,10 @@
           const payload = buildOrderPayload(items, formData);
           payload.order.delivery_date = formData.delivery_date;
           payload.order.delivery_slot_id = formData.delivery_slot_id || null;
+          const selectedDeliverySlot = deliverySlotSelect.selectedOptions[0];
+          payload.order.delivery_time_from = selectedDeliverySlot?.dataset.startTime || "";
+          payload.order.delivery_time_to = selectedDeliverySlot?.dataset.endTime || "";
+          payload.order.shipping_method_id = shippingState.shippingMethod?.id || null;
 
           const response = await fetch("/api/account/create-order", {
             method: "POST",
@@ -1347,7 +1496,12 @@
           const data = await response.json().catch(() => null);
 
           if (!response.ok || !data?.success) {
-            setCheckoutMessage(data?.error || "ثبت سفارش با مشکل مواجه شد.", "error");
+            const deliveryErrors = {
+              delivery_date_and_time_required: "لطفاً یک روز و ساعت ارسال انتخاب کنید.",
+              delivery_date_unavailable: "این روز دیگر برای ارسال در دسترس نیست؛ لطفاً روز دیگری انتخاب کنید.",
+              delivery_time_unavailable: "این ساعت دیگر ظرفیت خالی ندارد؛ لطفاً ساعت دیگری انتخاب کنید."
+            };
+            setCheckoutMessage(deliveryErrors[data?.error] || data?.error || "ثبت سفارش با مشکل مواجه شد.", "error");
             submitOrderBtn.disabled = false;
             return;
           }
@@ -1381,9 +1535,27 @@
     // رویدادها
     // ============================================
 
+    document.getElementById("delivery-month-prev")?.addEventListener("click", function () {
+      const index = deliveryState.months.indexOf(deliveryState.monthKey);
+      if (index > 0) { deliveryState.monthKey = deliveryState.months[index - 1]; renderDeliveryCalendar(); }
+    });
+    document.getElementById("delivery-month-next")?.addEventListener("click", function () {
+      const index = deliveryState.months.indexOf(deliveryState.monthKey);
+      if (index >= 0 && index < deliveryState.months.length - 1) { deliveryState.monthKey = deliveryState.months[index + 1]; renderDeliveryCalendar(); }
+    });
+    deliveryCalendarGrid?.addEventListener("click", function (event) {
+      const button = event.target.closest("button[data-delivery-date]");
+      if (button && !button.disabled) selectDeliveryDate(button.dataset.deliveryDate);
+    });
+
     provinceSelect?.addEventListener("change", async function () {
       const province = this.value;
       shippingState.currentProvince = province;
+      shippingState.currentCity = "";
+      shippingState.shippingMethod = null;
+      shippingState.shippingCost = null;
+      shippingMethodContainer.style.display = "none";
+      await loadDeliveryAvailability();
 
       if (!province) {
         citySelect.innerHTML = '<option value="">ابتدا استان را انتخاب کنید</option>';
@@ -1407,6 +1579,8 @@
         shippingMethodContainer.style.display = "none";
         shippingState.shippingMethod = null;
         shippingState.shippingCost = null;
+        shippingState.currentCity = "";
+        await loadDeliveryAvailability();
         renderCheckout();
         return;
       }
