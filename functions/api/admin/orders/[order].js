@@ -1175,6 +1175,30 @@ export async function onRequestPost(context) {
       );
     }
 
+    if (body?.action === "update_delivery_schedule") {
+      const englishDigits = (value) => String(value ?? "").replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)));
+      const deliveryDate = englishDigits(body.delivery_date).trim().replace(/-/g, "/");
+      const timeFrom = englishDigits(body.delivery_time_from).trim();
+      const timeTo = englishDigits(body.delivery_time_to).trim();
+      if (!/^\d{4}\/\d{2}\/\d{2}$/.test(deliveryDate)) {
+        return json({ success: false, error: "تاریخ شمسی را با قالب سال/ماه/روز وارد کنید." }, 400);
+      }
+      if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeFrom) || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeTo)) {
+        return json({ success: false, error: "ساعت شروع و پایان را درست وارد کنید." }, 400);
+      }
+
+      await context.env.DB.prepare(`
+        UPDATE orders
+        SET delivery_date = ?, delivery_time_from = ?, delivery_time_to = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(deliveryDate, timeFrom, timeTo, currentOrder.id).run();
+
+      return json({
+        success: true,
+        delivery: { delivery_date: deliveryDate, delivery_time_from: timeFrom, delivery_time_to: timeTo }
+      });
+    }
+
     const oldStatus = String(
       currentOrder.status ||
       "payment_pending"

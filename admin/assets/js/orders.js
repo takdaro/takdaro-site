@@ -109,7 +109,7 @@
     var walletUsedAmount = Number(order.wallet_used_amount || 0);
     var payableAmount = order.payable_amount != null ? Number(order.payable_amount || 0) : Math.max(0, totalAmount - walletUsedAmount);
     var cashbackAmount = Number(order.cashback_amount || 0);
-    var deliveryParts = [order.delivery_date, (order.delivery_time_from && order.delivery_time_to) ? order.delivery_time_from + " تا " + order.delivery_time_to : ""].filter(Boolean);
+    var deliveryParts = [order.delivery_date ? persianDigits(String(order.delivery_date).replace(/-/g, "/")) : "", (order.delivery_time_from && order.delivery_time_to) ? persianDigits(order.delivery_time_from) + " تا " + persianDigits(order.delivery_time_to) : ""].filter(Boolean);
 
     box.classList.remove("admin-hidden");
     box.innerHTML = 
@@ -130,6 +130,18 @@
         'نرخ دلار در زمان ثبت: ' + (order.rate_at_purchase ? window.money(order.rate_at_purchase) + ' تومان' : '-') + '<br>' +
         'تاریخ: ' + window.formatDate(order.created_at) +
       '</p>';
+
+    box.innerHTML +=
+      '<div class="detail-card" style="margin-top:16px;padding:18px;">' +
+        '<h4>ویرایش زمان ارسال</h4>' +
+        '<p>تاریخ شمسی و ساعت دلخواه را وارد کنید؛ این تغییر به ظرفیت و برنامهٔ عمومی ارسال محدود نیست.</p>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0;">' +
+          '<label>تاریخ ارسال (شمسی)<input id="edit-delivery-date" type="text" inputmode="numeric" dir="ltr" placeholder="۱۴۰۵/۰۶/۳۱" value="' + window.esc(String(order.delivery_date || "").replace(/-/g, "/")) + '"></label>' +
+          '<label>ساعت شروع<input id="edit-delivery-time-from" type="time" value="' + window.esc(order.delivery_time_from || "") + '"></label>' +
+          '<label>ساعت پایان<input id="edit-delivery-time-to" type="time" value="' + window.esc(order.delivery_time_to || "") + '"></label>' +
+        '</div>' +
+        '<button class="btn btn-primary" type="button" id="save-delivery-schedule-btn">ذخیره زمان ارسال</button>' +
+      '</div>';
 
     if (address) {
       box.innerHTML += 
@@ -203,6 +215,30 @@
         await loadOrderDetail(order.order_number);
         await loadDashboard();
         await loadUsers();
+      });
+    }
+
+    var deliverySaveBtn = document.getElementById("save-delivery-schedule-btn");
+    if (deliverySaveBtn) {
+      deliverySaveBtn.addEventListener("click", async function() {
+        deliverySaveBtn.disabled = true;
+        var saveResult = await window.api("/api/admin/orders/" + encodeURIComponent(order.order_number), {
+          method: "POST",
+          body: JSON.stringify({
+            action: "update_delivery_schedule",
+            delivery_date: document.getElementById("edit-delivery-date").value,
+            delivery_time_from: document.getElementById("edit-delivery-time-from").value,
+            delivery_time_to: document.getElementById("edit-delivery-time-to").value
+          })
+        });
+        deliverySaveBtn.disabled = false;
+        if (!saveResult.ok || !saveResult.data?.success) {
+          window.setAdminMessage(saveResult.data?.error || "ذخیره زمان ارسال انجام نشد.");
+          return;
+        }
+        window.setAdminMessage("زمان ارسال سفارش به‌روزرسانی شد.", "success");
+        await loadOrders();
+        await loadOrderDetail(order.order_number);
       });
     }
 
