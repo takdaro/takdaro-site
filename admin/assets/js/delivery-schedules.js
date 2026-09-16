@@ -1,5 +1,107 @@
-(function(){'use strict';async function post(body){return window.api('/api/v1/admin/delivery-schedules',{method:'POST',body:JSON.stringify(body)});}function initPicker(){var g=document.getElementById('jalali-grid'),t=document.getElementById('jalali-month'),o=document.getElementById('holiday-date');if(!g||g.dataset.ready)return;g.dataset.ready='1';var m=1,y=1405,ms=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];function draw(){t.textContent=ms[m-1]+' '+y;g.innerHTML='';var head=document.createElement('div');head.className='jalali-weekdays';['ش','ی','د','س','چ','پ','ج'].forEach(function(n){var z=document.createElement('span');z.textContent=n;head.appendChild(z)});g.appendChild(head);var days=[];for(var dt=new Date(2025,0,1);dt<new Date(2028,0,1);dt.setDate(dt.getDate()+1)){var p=new Intl.DateTimeFormat('en-US-u-ca-persian',{year:'numeric',month:'numeric',day:'numeric'}).formatToParts(dt),py=+p.find(x=>x.type==='year').value,pm=+p.find(x=>x.type==='month').value,pd=+p.find(x=>x.type==='day').value;if(py===y&&pm===m)days.push({d:pd,w:dt.getDay()})}var first=days[0]?((days[0].w+1)%7):0;for(var i=0;i<first;i++){var blank=document.createElement('span');blank.className='jalali-blank';g.appendChild(blank)}days.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x.d;b.dataset.friday=x.w===5?'1':'0';b.onclick=function(){o.value=y+'/'+String(m).padStart(2,'0')+'/'+String(x.d).padStart(2,'0');Array.from(g.querySelectorAll('button')).forEach(z=>z.classList.remove('selected'));b.classList.add('selected')};g.appendChild(b)})}document.getElementById('jalali-prev').onclick=function(){m--;if(m<1){m=12;y--}draw()};document.getElementById('jalali-next').onclick=function(){m++;if(m>12){m=1;y++}draw()};draw();}async function load(){initPicker();var b=document.getElementById('delivery-schedule-list'),h=document.getElementById('holiday-chips');try{var r=await window.api('/api/v1/admin/delivery-schedules');var d=r.data||{};if(h)h.innerHTML=(d.holidays||[]).map(x=>'<span>'+x.holiday_date+' <button type="button" data-holiday-delete="'+x.id+'">×</button></span>').join('');var blocked=[];try{blocked=JSON.parse(d.settings?.blocked_weekdays||'[]')}catch(e){}document.querySelectorAll('#blocked-weekdays input').forEach(x=>x.checked=blocked.includes(Number(x.value)));var rows=d.schedules||[];if(b)b.innerHTML=rows.length?'<table><tbody>'+rows.map(x=>'<tr><td>'+x.title+'</td><td>'+ (x.specific_date||x.weekday||'همه روزها')+'</td><td>'+x.start_time+' تا '+x.end_time+'</td><td>'+x.capacity+'</td></tr>').join('')+'</tbody></table>':'<p>هنوز زمان‌بندی‌ای ثبت نشده است.</p>';}catch(e){}}document.addEventListener('click',e=>{if(e.target.id==='save-blocked-weekdays'){var days=Array.from(document.querySelectorAll('#blocked-weekdays input:checked')).map(x=>Number(x.value));post({action:'save_weekdays',weekdays:days}).then(load)}if(e.target.dataset.holidayDelete)post({action:'holiday_delete',id:e.target.dataset.holidayDelete}).then(load);});document.addEventListener('submit',e=>{if(e.target.id==='holiday-form'){e.preventDefault();var f=new FormData(e.target),b={action:'holiday'};f.forEach((v,k)=>b[k]=v);post(b).then(()=>{e.target.reset();load();});}});window.loadDeliverySchedules=load;load();})();
-
-
-
-
+(function () {
+  'use strict';
+  var api = '/api/v1/admin/delivery-schedules';
+  var weekdayRows = [];
+  var days = [
+    { label: 'شنبه', value: 6 }, { label: 'یکشنبه', value: 0 },
+    { label: 'دوشنبه', value: 1 }, { label: 'سه‌شنبه', value: 2 },
+    { label: 'چهارشنبه', value: 3 }, { label: 'پنجشنبه', value: 4 },
+    { label: 'جمعه', value: 5 }
+  ];
+  function post(body) {
+    return window.api(api, { method: 'POST', body: JSON.stringify(body) });
+  }
+  function initPicker() {
+    var grid = document.getElementById('jalali-grid');
+    var monthTitle = document.getElementById('jalali-month');
+    var output = document.getElementById('holiday-date');
+    if (!grid || grid.dataset.ready) return;
+    grid.dataset.ready = '1';
+    var month = 1, year = 1405;
+    var months = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+    function draw() {
+      monthTitle.textContent = months[month - 1] + ' ' + year;
+      grid.innerHTML = '';
+      var head = document.createElement('div'); head.className = 'jalali-weekdays';
+      ['ش','ی','د','س','چ','پ','ج'].forEach(function (label) { var cell = document.createElement('span'); cell.textContent = label; head.appendChild(cell); });
+      grid.appendChild(head);
+      var dates = [];
+      for (var date = new Date(2025, 0, 1); date < new Date(2028, 0, 1); date.setDate(date.getDate() + 1)) {
+        var parts = new Intl.DateTimeFormat('en-US-u-ca-persian', { year:'numeric', month:'numeric', day:'numeric' }).formatToParts(date);
+        var y = +parts.find(function (p) { return p.type === 'year'; }).value;
+        var m = +parts.find(function (p) { return p.type === 'month'; }).value;
+        var d = +parts.find(function (p) { return p.type === 'day'; }).value;
+        if (y === year && m === month) dates.push({ day:d, weekday:date.getDay() });
+      }
+      var offset = dates.length ? (dates[0].weekday + 1) % 7 : 0;
+      for (var i = 0; i < offset; i++) { var blank = document.createElement('span'); blank.className = 'jalali-blank'; grid.appendChild(blank); }
+      dates.forEach(function (item) {
+        var button = document.createElement('button'); button.type = 'button'; button.textContent = item.day;
+        button.dataset.friday = item.weekday === 5 ? '1' : '0';
+        button.addEventListener('click', function () {
+          output.value = year + '/' + String(month).padStart(2, '0') + '/' + String(item.day).padStart(2, '0');
+          grid.querySelectorAll('button').forEach(function (b) { b.classList.remove('selected'); }); button.classList.add('selected');
+        });
+        grid.appendChild(button);
+      });
+    }
+    document.getElementById('jalali-prev').addEventListener('click', function () { month--; if (month < 1) { month = 12; year--; } draw(); });
+    document.getElementById('jalali-next').addEventListener('click', function () { month++; if (month > 12) { month = 1; year++; } draw(); });
+    draw();
+  }
+  function renderWeeklyRows(rows) {
+    var host = document.getElementById('weekly-slot-rows'); if (!host) return;
+    host.innerHTML = '';
+    days.forEach(function (day) {
+      var existing = rows.find(function (row) { return Number(row.weekday) === day.value && !row.specific_date; });
+      var row = document.createElement('div'); row.className = 'weekly-slot-row'; row.dataset.weekday = day.value;
+      row.innerHTML = '<label><input type="checkbox" data-active></label><strong></strong><label>ساعت <input type="time" data-start></label><label>ساعت <input type="time" data-end></label><label>بیک <input type="number" min="0" data-capacity></label><label>ساعت پیش از <input type="number" min="0" data-cutoff></label>';
+      row.querySelector('strong').textContent = day.label;
+      row.querySelector('[data-active]').checked = !!(existing && Number(existing.is_active));
+      row.querySelector('[data-start]').value = existing && existing.start_time || '09:00';
+      row.querySelector('[data-end]').value = existing && existing.end_time || '15:00';
+      row.querySelector('[data-capacity]').value = existing && existing.capacity || 0;
+      row.querySelector('[data-cutoff]').value = existing ? Math.floor(Number(existing.cutoff_minutes || 0) / 60) : 2;
+      host.appendChild(row);
+    });
+  }
+  async function load() {
+    initPicker();
+    try {
+      var response = await window.api(api); var data = response.data || {};
+      var chips = document.getElementById('holiday-chips');
+      if (chips) {
+        chips.innerHTML = '';
+        (data.holidays || []).forEach(function (holiday) {
+          var chip = document.createElement('span'); chip.appendChild(document.createTextNode(holiday.holiday_date + ' '));
+          var remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '×'; remove.dataset.holidayDelete = holiday.id; chip.appendChild(remove); chips.appendChild(chip);
+        });
+      }
+      var blocked = []; try { blocked = JSON.parse(data.settings && data.settings.blocked_weekdays || '[]'); } catch (_) {}
+      document.querySelectorAll('#blocked-weekdays input').forEach(function (input) { input.checked = blocked.includes(Number(input.value)); });
+      weekdayRows = data.schedules || []; renderWeeklyRows(weekdayRows);
+    } catch (_) { }
+  }
+  document.addEventListener('click', function (event) {
+    var target = event.target;
+    if (target.id === 'save-blocked-weekdays') {
+      var blocked = Array.from(document.querySelectorAll('#blocked-weekdays input:checked')).map(function (input) { return Number(input.value); });
+      post({ action:'save_weekdays', weekdays:blocked }).then(load);
+    }
+    if (target.id === 'save-weekly-slots') {
+      var rows = Array.from(document.querySelectorAll('.weekly-slot-row')).map(function (row) {
+        return { weekday:Number(row.dataset.weekday), title:'زمان ارسال', active:row.querySelector('[data-active]').checked, start_time:row.querySelector('[data-start]').value, end_time:row.querySelector('[data-end]').value, capacity:row.querySelector('[data-capacity]').value, cutoff_hours:row.querySelector('[data-cutoff]').value };
+      });
+      post({ action:'save_weekly_slots', rows:rows }).then(load);
+    }
+    if (target.dataset.holidayDelete) post({ action:'holiday_delete', id:target.dataset.holidayDelete }).then(load);
+  });
+  document.addEventListener('submit', function (event) {
+    if (event.target.id !== 'holiday-form') return;
+    event.preventDefault();
+    var form = new FormData(event.target), body = { action:'holiday' }; form.forEach(function (value, key) { body[key] = value; });
+    post(body).then(function () { event.target.reset(); load(); });
+  });
+  window.loadDeliverySchedules = load;
+  load();
+})();
