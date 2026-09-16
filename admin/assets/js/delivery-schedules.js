@@ -2,6 +2,10 @@
   'use strict';
   var api = '/api/v1/admin/delivery-schedules';
   var weekdayRows = [];
+  function showMessage(message, type) {
+    if (typeof window.setAdminMessage === 'function') window.setAdminMessage(message, type || 'info');
+    else if (message) window.alert(message);
+  }
   var days = [
     { label: 'شنبه', value: 6 }, { label: 'یکشنبه', value: 0 },
     { label: 'دوشنبه', value: 1 }, { label: 'سه‌شنبه', value: 2 },
@@ -68,7 +72,8 @@
   async function load() {
     initPicker();
     try {
-      var response = await window.api(api); var data = response.data || {};
+      var response = await window.api(api, { cache: 'no-store' }); var data = response.data || {};
+      if (!response.ok || !data.success) throw new Error(data.error || 'بارگذاری تنظیمات ارسال انجام نشد.');
       var chips = document.getElementById('holiday-chips');
       if (chips) {
         chips.innerHTML = '';
@@ -91,7 +96,7 @@
       var disabledMethods = document.getElementById('delivery-disabled-methods'); if (disabledMethods) disabledMethods.value = paymentRule.methods || '';
       var paymentEnabled = document.getElementById('delivery-payment-location-enabled'); if (paymentEnabled) paymentEnabled.checked = !!paymentRule.enabled;
       weekdayRows = data.schedules || []; renderWeeklyRows(weekdayRows);
-    } catch (_) { }
+    } catch (error) { showMessage(error.message || 'بارگذاری تنظیمات ارسال انجام نشد.', 'error'); }
   }
   document.addEventListener('click', function (event) {
     var target = event.target;
@@ -119,8 +124,31 @@
   document.addEventListener('submit', function (event) {
     if (event.target.id !== 'holiday-form') return;
     event.preventDefault();
+    var dateInput = document.getElementById('holiday-date');
+    var holidayDate = dateInput ? String(dateInput.value || '').trim() : '';
+    if (!/^\d{4}\/\d{2}\/\d{2}$/.test(holidayDate)) {
+      showMessage('ابتدا یک تاریخ را از تقویم انتخاب کنید.', 'error');
+      return;
+    }
     var form = new FormData(event.target), body = { action:'holiday' }; form.forEach(function (value, key) { body[key] = value; });
-    post(body).then(function () { event.target.reset(); load(); });
+    var formElement = event.target;
+    var submitButton = formElement.querySelector('button[type="submit"], button:not([type])');
+    if (submitButton) { submitButton.disabled = true; submitButton.textContent = 'در حال ذخیره...'; }
+    post(body).then(function (response) {
+      if (!response.ok || !response.data || !response.data.success) {
+        throw new Error(response.data && response.data.error || 'ذخیره تاریخ انجام نشد.');
+      }
+      formElement.reset();
+      if (dateInput) dateInput.value = '';
+      var grid = document.getElementById('jalali-grid');
+      if (grid) grid.querySelectorAll('.selected').forEach(function (node) { node.classList.remove('selected'); });
+      showMessage('تاریخ بدون پیک ذخیره شد.', 'success');
+      return load();
+    }).catch(function (error) {
+      showMessage(error.message || 'ذخیره تاریخ انجام نشد.', 'error');
+    }).finally(function () {
+      if (submitButton) { submitButton.disabled = false; submitButton.textContent = '+ اضافه کردن تاریخ'; }
+    });
   });
   window.loadDeliverySchedules = load;
   load();

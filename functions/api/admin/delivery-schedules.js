@@ -1,6 +1,6 @@
 import { requireAdmin } from "../../lib/admin";
 
-const json = (data, status = 200) => Response.json(data, { status });
+const json = (data, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0" } });
 const text = (v) => String(v ?? "").trim();
 const num = (v, fallback = 0) => Number.isFinite(Number(v)) ? Math.max(0, Math.round(Number(v))) : fallback;
 
@@ -18,7 +18,7 @@ export async function onRequestPost(context) {
   const action = body.action || "create";
   if (action === "toggle") { await context.env.DB.prepare("UPDATE delivery_schedules SET is_active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(body.is_active ? 1 : 0, num(body.id)).run(); return json({success:true}); }
   if (action === "delete") { await context.env.DB.prepare("DELETE FROM delivery_schedules WHERE id=?").bind(num(body.id)).run(); return json({success:true}); }
-  if (action === "holiday") { const d=text(body.holiday_date); if(!d)return json({success:false,error:"date_required"},400); await context.env.DB.prepare("INSERT OR REPLACE INTO delivery_holidays (holiday_date,title) VALUES (?,?)").bind(d,text(body.title)).run(); return json({success:true}); }
+  if (action === "holiday") { const d=text(body.holiday_date); if(!/^\d{4}\/\d{2}\/\d{2}$/.test(d))return json({success:false,error:"invalid_holiday_date"},400); await context.env.DB.prepare("INSERT OR REPLACE INTO delivery_holidays (holiday_date,title) VALUES (?,?)").bind(d,text(body.title)).run(); return json({success:true,holiday_date:d}); }
   if (action === "holiday_delete") { await context.env.DB.prepare("DELETE FROM delivery_holidays WHERE id=?").bind(num(body.id)).run(); return json({success:true}); }
   if (action === "save_weekdays") { const days = Array.isArray(body.weekdays) ? body.weekdays.map(x => num(x)).filter(x => x >= 0 && x <= 6) : []; await context.env.DB.prepare("INSERT OR REPLACE INTO delivery_settings (setting_key,setting_value,updated_at) VALUES ('blocked_weekdays',?,CURRENT_TIMESTAMP)").bind(JSON.stringify(days)).run(); return json({success:true}); }
   if (action === "save_defaults") { const values={ minimum_days: String(num(body.minimum_days)), horizon_days: String(Math.max(1,num(body.horizon_days,14))), same_day_cutoff: /^([01]\d|2[0-3]):[0-5]\d$/.test(text(body.same_day_cutoff))?text(body.same_day_cutoff):"14:00" }; for (const [key,value] of Object.entries(values)) await context.env.DB.prepare("INSERT OR REPLACE INTO delivery_settings (setting_key,setting_value,updated_at) VALUES (?,?,CURRENT_TIMESTAMP)").bind(key,value).run(); return json({success:true}); }
