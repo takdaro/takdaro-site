@@ -830,9 +830,9 @@
       bulkMethodOptions + '</select></label>' +
       '<label class="shipping-city-bulk-field"><span>نوع هزینه</span><select data-shipping-bulk-type>' +
       '<option value="fixed">هزینه ثابت (مبلغ نهایی)</option><option value="extra">متغیر (مازاد بر پایه)</option></select></label>' +
-      '<label class="shipping-city-bulk-field"><span data-shipping-bulk-amount-label>مبلغ ثابت نهایی برای هر شهر (خالی = هزینه پایه)</span><input type="text" inputmode="numeric" data-shipping-bulk-amount placeholder="خالی = هزینه پایه روش" /></label>' +
+      '<label class="shipping-city-bulk-field" data-shipping-bulk-amount-wrap hidden><span data-shipping-bulk-amount-label>مبلغ مازاد برای هر شهر (تومان)</span><input type="text" inputmode="numeric" data-shipping-bulk-amount placeholder="مثلاً ۲۰۰۰۰ مازاد بر پایه" disabled /></label>' +
       '<button type="button" class="btn btn-primary" data-shipping-apply-bulk>اعمال روی شهرهای انتخاب‌شده</button>' +
-      '<p class="shipping-city-bulk-note" data-shipping-bulk-cost-hint>در حالت ثابت، مبلغ خالی یعنی هزینه پایهٔ روش؛ با واردکردن مبلغ، همان مبلغ نهایی شهر است. اگر پایه صفر باشد، ابتدا آن را در تنظیمات روش حمل‌ونقل ثبت کنید.</p>' +
+      '<p class="shipping-city-bulk-note" data-shipping-bulk-cost-hint>در حالت ثابت، فیلد مبلغ مخفی است و هزینهٔ پایهٔ روش انتخابی برای شهرها اعمال می‌شود. اگر پایه صفر باشد، ابتدا آن را در تنظیمات روش حمل‌ونقل ثبت کنید.</p>' +
       '<p class="shipping-city-bulk-note">روش انتخاب‌شده برای هر شهر فعال می‌شود و روش قبلی همان شهر غیرفعال خواهد شد.</p>' +
       '</div>' +
       '<div class="table-wrap shipping-city-table-wrap"><table class="admin-table shipping-city-table">' +
@@ -2039,7 +2039,7 @@
       .map(function (checkbox) { return checkbox.value; });
     var methodId = Number(getValue(document, "[data-shipping-bulk-method]") || 0);
     var costType = getValue(document, "[data-shipping-bulk-type]") || "fixed";
-    var rawAmount = getValue(document, "[data-shipping-bulk-amount]");
+    var rawAmount = costType === "fixed" ? "" : getValue(document, "[data-shipping-bulk-amount]");
     var amountIsBlank = String(rawAmount || "").trim() === "";
     var amount = parseAdminNumber(rawAmount);
 
@@ -2788,18 +2788,18 @@
         var amountInput = bulkToolbar ? bulkToolbar.querySelector("[data-shipping-bulk-amount]") : null;
         var costHint = bulkToolbar ? bulkToolbar.querySelector("[data-shipping-bulk-cost-hint]") : null;
         if (amountLabel) {
-          amountLabel.textContent = target.value === "fixed"
-            ? "مبلغ ثابت نهایی برای هر شهر (خالی = هزینه پایه)"
-            : "مبلغ مازاد بر پایه؛ نهایی = پایه + مازاد (تومان)";
+          amountLabel.textContent = "مبلغ مازاد برای هر شهر (تومان)";
         }
+        var amountWrap = bulkToolbar ? bulkToolbar.querySelector("[data-shipping-bulk-amount-wrap]") : null;
+        if (amountWrap) amountWrap.hidden = target.value !== "extra";
         if (amountInput) {
-          amountInput.placeholder = target.value === "fixed"
-            ? "خالی = هزینه پایه روش"
-            : "مبلغ مازاد، مثلاً ۲۰۰۰۰";
+          amountInput.disabled = target.value !== "extra";
+          if (target.value !== "extra") amountInput.value = "";
+          amountInput.placeholder = "مثلاً ۲۰۰۰۰ مازاد بر پایه";
         }
         if (costHint) {
           costHint.textContent = target.value === "fixed"
-            ? "در حالت ثابت، مبلغ خالی یعنی هزینه پایهٔ روش؛ با واردکردن مبلغ، همان مبلغ نهایی شهر است. اگر پایه صفر باشد، ابتدا آن را در تنظیمات روش حمل‌ونقل ثبت کنید."
+            ? "در حالت ثابت، فیلد مبلغ مخفی است و هزینهٔ پایهٔ روش انتخابی برای شهرها اعمال می‌شود. اگر پایه صفر باشد، ابتدا آن را در تنظیمات روش حمل‌ونقل ثبت کنید."
             : "در حالت مازاد، مبلغ نهایی هر شهر برابر هزینه پایهٔ روش حمل‌ونقل + مبلغ مازاد واردشده است. هزینه پایه باید بیشتر از صفر باشد.";
         }
         return;

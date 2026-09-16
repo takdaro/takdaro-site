@@ -404,7 +404,6 @@ export async function onRequestPost(context) {
       const province = normalizeText(body.province);
       const shipping_method_id = normalizeNumber(body.shipping_method_id);
       const cost_type = body.cost_type;
-      const amountProvided = body.amount !== null && body.amount !== undefined && String(body.amount).trim() !== "";
       const amount = normalizeNumber(body.amount);
       const cities = Array.isArray(body.cities)
         ? [...new Set(body.cities.map(normalizeText).filter((city) => city && city.toLowerCase() !== "default"))]
@@ -426,13 +425,13 @@ export async function onRequestPost(context) {
       if (!method) return json({ success: false, error: "method_not_found" }, 404);
 
       const methodBaseCost = Number(method.default_cost || 0);
-      if ((cost_type === "extra" || !amountProvided) && methodBaseCost <= 0) {
+      if (methodBaseCost <= 0) {
         return json({ success: false, error: "method_base_cost_required" }, 400);
       }
 
       const extra_cost = cost_type === "extra" ? amount : 0;
       const cost_amount = cost_type === "fixed"
-        ? (amountProvided ? amount : methodBaseCost)
+        ? methodBaseCost
         : methodBaseCost + amount;
       const statements = cities.flatMap((city) => [
         context.env.DB.prepare(`
