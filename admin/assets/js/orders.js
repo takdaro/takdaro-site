@@ -26,6 +26,95 @@
     return String(value ?? '').replace(/\d/g, function(digit) { return '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]; });
   }
 
+  function jalaliParts(timestamp) {
+    var parts = new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn', {
+      timeZone: 'UTC', year: 'numeric', month: 'numeric', day: 'numeric'
+    }).formatToParts(new Date(timestamp));
+    return Object.fromEntries(parts.filter(function(part) { return part.type !== 'literal'; }).map(function(part) {
+      return [part.type, Number(part.value)];
+    }));
+  }
+
+  function initDeliveryDatePicker(initialValue) {
+    var input = document.getElementById('edit-delivery-date');
+    var picker = document.getElementById('edit-delivery-calendar');
+    var grid = document.getElementById('edit-delivery-calendar-grid');
+    var title = document.getElementById('edit-delivery-calendar-title');
+    if (!input || !picker || !grid || !title) return;
+
+    var monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    var weekdays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+    var normalized = String(initialValue || '').replace(/[۰-۹]/g, function(digit) { return String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)); }).replace(/-/g, '/');
+    var match = normalized.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+    var todayParts = jalaliParts(Date.now());
+    var viewYear = match ? Number(match[1]) : todayParts.year;
+    var viewMonth = match ? Number(match[2]) : todayParts.month;
+
+    function findMonthStart(year, month) {
+      var start = Date.UTC(year + (month >= 11 ? 622 : 621), 0, 1);
+      for (var dayOffset = 0; dayOffset <= 370; dayOffset++) {
+        var timestamp = start + dayOffset * 86400000;
+        var parts = jalaliParts(timestamp);
+        if (parts.year === year && parts.month === month && parts.day === 1) return timestamp;
+      }
+      return null;
+    }
+
+    function draw() {
+      title.textContent = (monthNames[viewMonth - 1] || '') + ' ' + persianDigits(viewYear);
+      grid.innerHTML = '';
+      weekdays.forEach(function(label, index) {
+        var heading = document.createElement('span');
+        heading.textContent = label;
+        heading.style.cssText = 'padding:7px 0;text-align:center;color:' + (index === 6 ? '#dc2626' : '#718096') + ';font-size:13px;font-weight:700;';
+        grid.appendChild(heading);
+      });
+
+      var firstDay = findMonthStart(viewYear, viewMonth);
+      if (firstDay == null) return;
+      var offset = (new Date(firstDay).getUTCDay() + 1) % 7;
+      for (var blankIndex = 0; blankIndex < offset; blankIndex++) {
+        var blank = document.createElement('span');
+        blank.setAttribute('aria-hidden', 'true');
+        grid.appendChild(blank);
+      }
+
+      for (var dayOffset = 0; dayOffset < 32; dayOffset++) {
+        var timestamp = firstDay + dayOffset * 86400000;
+        var parts = jalaliParts(timestamp);
+        if (parts.year !== viewYear || parts.month !== viewMonth) break;
+        var date = viewYear + '/' + String(viewMonth).padStart(2, '0') + '/' + String(parts.day).padStart(2, '0');
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.deliveryDate = date;
+        button.textContent = persianDigits(parts.day);
+        button.style.cssText = 'min-height:40px;border:1px solid #d9e3ec;border-radius:9px;background:#fff;color:' + (new Date(timestamp).getUTCDay() === 5 ? '#dc2626' : '#263746') + ';font:inherit;cursor:pointer;';
+        if (normalized === date) button.style.cssText += 'background:#087f8c;color:#fff;border-color:#087f8c;font-weight:700;';
+        button.addEventListener('click', function(event) {
+          normalized = event.currentTarget.dataset.deliveryDate;
+          input.value = persianDigits(normalized);
+          picker.hidden = true;
+          draw();
+        });
+        grid.appendChild(button);
+      }
+    }
+
+    input.value = match ? persianDigits(normalized) : '';
+    input.addEventListener('click', function() { picker.hidden = !picker.hidden; });
+    document.getElementById('edit-delivery-month-prev')?.addEventListener('click', function() {
+      viewMonth--;
+      if (viewMonth < 1) { viewMonth = 12; viewYear--; }
+      draw();
+    });
+    document.getElementById('edit-delivery-month-next')?.addEventListener('click', function() {
+      viewMonth++;
+      if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+      draw();
+    });
+    draw();
+  }
+
   // ============================================
   // بارگذاری لیست سفارش‌ها
   // ============================================
@@ -136,12 +225,13 @@
         '<h4>ویرایش زمان ارسال</h4>' +
         '<p>تاریخ شمسی و ساعت دلخواه را وارد کنید؛ این تغییر به ظرفیت و برنامهٔ عمومی ارسال محدود نیست.</p>' +
         '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0;">' +
-          '<label>تاریخ ارسال (شمسی)<input id="edit-delivery-date" type="text" inputmode="numeric" dir="ltr" placeholder="۱۴۰۵/۰۶/۳۱" value="' + window.esc(String(order.delivery_date || "").replace(/-/g, "/")) + '"></label>' +
+          '<label style="position:relative;">تاریخ ارسال (شمسی)<input id="edit-delivery-date" type="text" inputmode="numeric" dir="ltr" readonly placeholder="برای انتخاب تاریخ کلیک کنید" style="cursor:pointer;"><div id="edit-delivery-calendar" hidden style="position:absolute;z-index:1000;top:100%;right:0;width:min(340px,calc(100vw - 48px));padding:12px;margin-top:6px;border:1px solid #d6e2ec;border-radius:14px;background:#fff;box-shadow:0 14px 36px rgba(22,43,62,.18);"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:7px;border-radius:9px;background:#f3f7fa;"><button type="button" id="edit-delivery-month-prev" aria-label="ماه قبل">‹</button><strong id="edit-delivery-calendar-title"></strong><button type="button" id="edit-delivery-month-next" aria-label="ماه بعد">›</button></div><div id="edit-delivery-calendar-grid" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;direction:rtl;"></div></div></label>' +
           '<label>ساعت شروع<input id="edit-delivery-time-from" type="time" value="' + window.esc(order.delivery_time_from || "") + '"></label>' +
           '<label>ساعت پایان<input id="edit-delivery-time-to" type="time" value="' + window.esc(order.delivery_time_to || "") + '"></label>' +
         '</div>' +
         '<button class="btn btn-primary" type="button" id="save-delivery-schedule-btn">ذخیره زمان ارسال</button>' +
       '</div>';
+    initDeliveryDatePicker(order.delivery_date);
 
     if (address) {
       box.innerHTML += 
