@@ -21,4 +21,9 @@ CREATE TABLE IF NOT EXISTS delivery_holidays (
   title TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS delivery_settings (
+  setting_key TEXT PRIMARY KEY,
+  setting_value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 CREATE INDEX IF NOT EXISTS idx_delivery_schedules_lookup ON delivery_schedules(is_active, specific_date, weekday);
