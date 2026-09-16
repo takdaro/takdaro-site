@@ -446,6 +446,9 @@
       '<div ' +
         'class="detail-card" ' +
         'data-shipping-method-form' +
+        (isEdit
+          ? ' data-method-id="' + esc(method.id) + '"'
+          : "") +
         'style="margin-top:16px;">' +
 
         "<h4>" +
@@ -1243,6 +1246,8 @@
   // ============================================
 
   function openMethodCreate() {
+    showMessage("", "info");
+
     var container =
       getContainer(
         "shipping-tab-methods"
@@ -1277,6 +1282,8 @@
   function openMethodEdit(
     methodId
   ) {
+    showMessage("", "info");
+
     var method =
       state.methods.find(
         function(item) {
@@ -1413,6 +1420,18 @@
       return;
     }
 
+    var saveButton = form.querySelector(
+      "[data-save-shipping-method]"
+    );
+    var originalButtonText = saveButton
+      ? saveButton.textContent
+      : "";
+    if (saveButton) {
+      saveButton.disabled = true;
+      saveButton.textContent = "در حال ذخیره...";
+    }
+    showMessage("در حال ذخیره تغییرات روش ارسال...", "info");
+
     var result =
       await api(
         API_URL,
@@ -1437,12 +1456,19 @@
         "error"
       );
 
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.textContent = originalButtonText;
+      }
+
       return;
     }
 
     showMessage(
-      result.data.message ||
-      "روش حمل‌ونقل ذخیره شد.",
+      "قیمت پایهٔ روش «" + payload.name + "» ذخیره شد: " +
+        money(result.data.method && result.data.method.default_cost != null
+          ? result.data.method.default_cost
+          : payload.default_cost) + " تومان.",
       "success"
     );
 
