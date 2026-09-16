@@ -22,6 +22,9 @@
     { value: 'returned', label: 'مرجوع شد' }
   ];
 
+  var currentOrdersPage = 1;
+  var ordersRequestSequence = 0;
+
   function persianDigits(value) {
     return String(value ?? '').replace(/\d/g, function(digit) { return '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]; });
   }
@@ -123,7 +126,11 @@
   // ============================================
   // بارگذاری لیست سفارش‌ها
   // ============================================
-  async function loadOrders() {
+  async function loadOrders(page) {
+    if (Number.isFinite(Number(page))) {
+      currentOrdersPage = Math.max(1, Number(page));
+    }
+
     var search = document.getElementById("orders-search")?.value?.trim() || "";
     var status = document.getElementById("orders-status")?.value?.trim() || "";
     var payment_status = document.getElementById("orders-payment-status")?.value?.trim() || "";
@@ -132,15 +139,26 @@
     if (search) params.set("search", search);
     if (status) params.set("status", status);
     if (payment_status) params.set("payment_status", payment_status);
+    params.set("page", String(currentOrdersPage));
 
+    var requestSequence = ++ordersRequestSequence;
     var query = params.toString();
     var result = await window.api("/api/admin/orders" + (query ? "?" + query : ""));
     var tbody = document.getElementById("orders-body");
 
+    if (requestSequence !== ordersRequestSequence) return;
+
     if (!result.ok || !result.data?.success) {
       tbody.innerHTML = '<tr><td colspan="10">دریافت سفارش‌ها انجام نشد.</td></tr>';
+      updateOrdersPagination({ page: 1, total_pages: 1, total: 0 });
       return;
     }
+
+    var pagination = result.data.pagination || { page: currentOrdersPage, total_pages: 1, total: (result.data.orders || []).length };
+    if (currentOrdersPage > Number(pagination.total_pages || 1) && currentOrdersPage > 1) {
+      return loadOrders(Number(pagination.total_pages || 1));
+    }
+    updateOrdersPagination(pagination);
 
     var orders = Array.isArray(result.data.orders) ? result.data.orders : [];
 
@@ -174,6 +192,20 @@
         '</td>' +
       '</tr>';
     }).join("") || '<tr><td colspan="10">سفارشی پیدا نشد.</td></tr>';
+  }
+
+  function updateOrdersPagination(pagination) {
+    var info = document.getElementById("orders-pagination-info");
+    var previous = document.getElementById("orders-prev-page");
+    var next = document.getElementById("orders-next-page");
+    var page = Math.max(1, Number(pagination?.page || currentOrdersPage));
+    var totalPages = Math.max(1, Number(pagination?.total_pages || 1));
+    var total = Math.max(0, Number(pagination?.total || 0));
+    currentOrdersPage = page;
+
+    if (info) info.textContent = 'صفحه ' + window.money(page) + ' از ' + window.money(totalPages) + ' · ' + window.money(total) + ' سفارش';
+    if (previous) previous.disabled = page <= 1;
+    if (next) next.disabled = page >= totalPages;
   }
 
   // ============================================
@@ -377,6 +409,28 @@
 
   function handleOrderClick(event) {
     var target = event.target;
+
+    var filterBtn = target.closest("#orders-filter-btn");
+    if (filterBtn) {
+      event.preventDefault();
+      currentOrdersPage = 1;
+      loadOrders(1);
+      return;
+    }
+
+    var previousPageBtn = target.closest("#orders-prev-page");
+    if (previousPageBtn && !previousPageBtn.disabled) {
+      event.preventDefault();
+      loadOrders(currentOrdersPage - 1);
+      return;
+    }
+
+    var nextPageBtn = target.closest("#orders-next-page");
+    if (nextPageBtn && !nextPageBtn.disabled) {
+      event.preventDefault();
+      loadOrders(currentOrdersPage + 1);
+      return;
+    }
 
     var viewBtn = target.closest("[data-view-order]");
     if (viewBtn) {

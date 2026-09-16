@@ -584,6 +584,11 @@ export async function onRequestGet(context) {
       url.searchParams.get("paymentStatus") ||
       url.searchParams.get("payment_status")
     ).toLowerCase();
+    const requestedPage = Number.parseInt(url.searchParams.get("page") || "1", 10);
+    const page = Number.isFinite(requestedPage)
+      ? Math.min(1000000, Math.max(1, requestedPage))
+      : 1;
+    const pageSize = 10;
 
     const conditions = [];
     const bindings = [];
@@ -627,6 +632,15 @@ export async function onRequestGet(context) {
         ? `WHERE ${conditions.join(" AND ")}`
         : "";
 
+    const countResult = await context.env.DB.prepare(`
+      SELECT COUNT(*) AS total
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.user_id
+      ${whereClause}
+    `).bind(...bindings).first();
+    const total = Number(countResult?.total || 0);
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
     const result = await context.env.DB.prepare(`
       SELECT
         o.id,
@@ -664,8 +678,8 @@ export async function onRequestGet(context) {
       LEFT JOIN addresses a ON a.id = o.address_id
       ${whereClause}
       ORDER BY o.id DESC
-      LIMIT 300
-    `).bind(...bindings).all();
+      LIMIT ? OFFSET ?
+    `).bind(...bindings, pageSize, (page - 1) * pageSize).all();
 
     const orders = (
       Array.isArray(result?.results)
@@ -724,7 +738,13 @@ export async function onRequestGet(context) {
 
     return json({
       success: true,
-      orders
+      orders,
+      pagination: {
+        page,
+        page_size: pageSize,
+        total,
+        total_pages: totalPages
+      }
     });
 
   } catch (error) {
