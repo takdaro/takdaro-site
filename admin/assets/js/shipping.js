@@ -15,9 +15,11 @@
     costs: [],
     thresholds: [],
     provinces: {},
+    provinceCosts: [],
     selectedProvince: "",
     selectedCity: "",
-    loadedCosts: false
+    loadedCosts: false,
+    showProvinceCities: false
   };
 
   // ============================================
@@ -145,7 +147,7 @@
   }
 
   async function loadProvinceCatalog() {
-    var result = await api("/api/shipping/provinces");
+    var result = await api(API_URL + "?action=locations");
     if (!result.ok || !result.data || !result.data.success) {
       state.provinces = {};
       showMessage("دریافت فهرست استان‌ها و شهرها انجام نشد.", "error");
@@ -154,6 +156,27 @@
 
     state.provinces = result.data.provinces || {};
     return state.provinces;
+  }
+
+  async function loadProvinceCosts(province, silent) {
+    province = String(province || "").trim();
+    if (!province) return [];
+
+    var result = await api(
+      API_URL + "?action=province-costs&province=" + encodeURIComponent(province)
+    );
+
+    if (!result.ok || !result.data || !result.data.success) {
+      state.provinceCosts = [];
+      if (!silent) {
+        showMessage(result.data && result.data.error ? result.data.error : "بارگذاری شهرهای استان انجام نشد.", "error");
+      }
+      return [];
+    }
+
+    state.provinceCosts = Array.isArray(result.data.costs) ? result.data.costs : [];
+    state.showProvinceCities = true;
+    return state.provinceCosts;
   }
 
   function provinceOptions(selectedProvince) {
@@ -600,6 +623,12 @@
       state.loadedCosts = false;
     }
 
+    if (state.showProvinceCities && state.selectedProvince) {
+      await loadProvinceCosts(state.selectedProvince);
+    } else if (state.selectedProvince && state.selectedCity) {
+      await loadCosts(state.selectedProvince, state.selectedCity);
+    }
+
     container.innerHTML =
       '<div class="products-toolbar">' +
         "<div>" +
@@ -657,9 +686,11 @@
 
       '<div id="shipping-cost-results">' +
         (
-          state.loadedCosts
+          state.showProvinceCities
+            ? provinceCostsTable()
+            : state.loadedCosts
             ? costsTable()
-            : '<div class="wallet-empty">استان را انتخاب کن، سپس شهر را برگزین تا هزینه‌ها نمایش داده شود.</div>'
+            : '<div class="wallet-empty">استان را انتخاب کن؛ برای دیدن همه شهرها، شهر را خالی بگذار و «بارگذاری هزینه‌ها» را بزن.</div>'
         ) +
       "</div>";
   }
@@ -757,11 +788,45 @@
     );
   }
 
+  function provinceCostsTable() {
+    var cities = Array.isArray(state.provinces[state.selectedProvince])
+      ? state.provinces[state.selectedProvince]
+      : [];
+
+    if (!cities.length) {
+      return '<div class="wallet-empty">برای این استان شهری در فهرست ارسال ثبت نشده است.</div>';
+    }
+
+    return '<div class="table-wrap"><table class="admin-table">' +
+      '<thead><tr><th>شهر</th><th>روش‌ها و هزینه‌ها</th><th>وضعیت</th><th>اقدام</th></tr></thead>' +
+      '<tbody>' + cities.map(function (city) {
+        var cityCosts = state.provinceCosts.filter(function (cost) {
+          return cost.city === city;
+        });
+        var summaries = cityCosts.length
+          ? cityCosts.map(function (cost) {
+              return esc(cost.method_name || "روش ارسال") + " — " +
+                money(cost.cost_amount || 0) + " تومان";
+            }).join("<br>")
+          : '<span class="admin-help">هزینه‌ای ثبت نشده</span>';
+        var active = cityCosts.some(function (cost) { return Number(cost.is_active) === 1; });
+
+        return "<tr><td>" + esc(city) + "</td><td>" + summaries + "</td><td>" +
+          (active
+            ? '<span class="status-badge status-badge--success">فعال</span>'
+            : '<span class="status-badge status-badge--danger">غیرفعال / ثبت‌نشده</span>') +
+          '</td><td><button type="button" class="btn btn-secondary" data-shipping-edit-city="' +
+          esc(city) + '">ویرایش</button></td></tr>';
+      }).join("") + '</tbody></table></div>';
+  }
+
   // ============================================
   // COST FORM
   // ============================================
 
-  function costForm() {
+  function costForm(existingCosts) {
+    existingCosts = Array.isArray(existingCosts) ? existingCosts : [];
+    var initialCost = existingCosts[0] || null;
     var province =
       state.selectedProvince;
 
@@ -771,11 +836,17 @@
     var options =
       state.methods
         .map(function (method) {
+          var savedCost = existingCosts.find(function (cost) {
+            return Number(cost.shipping_method_id) === Number(method.id);
+          });
 
           return (
             '<option value="' +
             esc(method.id) +
-            '">' +
+            '" data-cost-type="' + esc(savedCost ? savedCost.cost_type || "fixed" : "fixed") +
+            '" data-extra-cost="' + esc(savedCost ? savedCost.extra_cost || 0 : 0) +
+            '" data-active="' + esc(savedCost ? Number(savedCost.is_active) : 1) +
+            '"' + (initialCost && Number(initialCost.shipping_method_id) === Number(method.id) ? " selected" : "") + ">" +
             esc(method.name) +
             " — پایه: " +
             money(
@@ -792,7 +863,7 @@
         'class="detail-card" ' +
         'data-shipping-cost-form>' +
 
-        "<h4>ثبت / ویرایش هزینه ارسال</h4>" +
+        "<h4>" + (initialCost ? "ویرایش هزینه ارسال" : "ثبت هزینه ارسال") + "</h4>" +
 
         '<div class="filters-grid filters-grid-3">' +
 
@@ -825,8 +896,8 @@
           '<div class="form-field">' +
             "<label>نوع هزینه</label>" +
             '<select data-cost-field="cost_type">' +
-              '<option value="fixed">ثابت</option>' +
-              '<option value="extra">مازاد</option>' +
+              '<option value="fixed"' + (!initialCost || initialCost.cost_type === "fixed" ? " selected" : "") + '>ثابت</option>' +
+              '<option value="extra"' + (initialCost && initialCost.cost_type === "extra" ? " selected" : "") + '>مازاد</option>' +
             "</select>" +
           "</div>" +
 
@@ -836,7 +907,7 @@
               'data-cost-field="extra_cost" ' +
               'type="number" ' +
               'min="0" ' +
-              'value="0" />' +
+              'value="' + esc(initialCost ? initialCost.extra_cost || 0 : 0) + '" />' +
           "</div>" +
 
         "</div>" +
@@ -846,7 +917,7 @@
             '<input ' +
               'data-cost-field="is_active" ' +
               'type="checkbox" ' +
-              'checked /> ' +
+              (initialCost && Number(initialCost.is_active) === 0 ? "" : "checked") + ' /> ' +
             "فعال باشد" +
           "</label>" +
         "</div>" +
@@ -1450,7 +1521,7 @@
   // OPEN COST FORM
   // ============================================
 
-  function openCostForm() {
+  function openCostForm(existingCosts) {
     var container =
       getContainer(
         "shipping-tab-costs"
@@ -1470,7 +1541,7 @@
     }
 
     holder.innerHTML =
-      costForm();
+      costForm(existingCosts);
 
     holder.scrollIntoView({
       behavior: "smooth",
@@ -2252,10 +2323,14 @@
               ? cityInput.value.trim()
               : "";
 
-          await loadCosts(
-            province,
-            city
-          );
+          if (!province) {
+            showMessage("ابتدا استان را انتخاب کن.", "error");
+            return;
+          }
+
+          state.selectedProvince = province;
+          state.selectedCity = city;
+          state.showProvinceCities = !city;
 
           var costsContainer =
             getContainer(
@@ -2352,6 +2427,20 @@
             )
           );
 
+          return;
+        }
+
+        var editCityButton = target.closest("[data-shipping-edit-city]");
+        if (editCityButton) {
+          event.preventDefault();
+          var city = editCityButton.getAttribute("data-shipping-edit-city") || "";
+          state.selectedCity = city;
+          state.costs = state.provinceCosts.filter(function (cost) { return cost.city === city; });
+
+          var citySelect = getContainer("shipping-cost-city");
+          if (citySelect) citySelect.value = city;
+
+          openCostForm(state.costs);
           return;
         }
 
@@ -2501,6 +2590,8 @@
       state.selectedCity = "";
       state.costs = [];
       state.loadedCosts = false;
+      state.provinceCosts = [];
+      state.showProvinceCities = false;
 
       var citySelect = getContainer("shipping-cost-city");
       if (citySelect) {
@@ -2520,12 +2611,36 @@
 
     document.addEventListener("change", async function (event) {
       var target = event.target;
+      if (target && target.matches && target.matches('[data-cost-field="shipping_method_id"]')) {
+        var form = target.closest("[data-shipping-cost-form]");
+        var selectedOption = target.options[target.selectedIndex];
+        if (form && selectedOption) {
+          var typeField = form.querySelector('[data-cost-field="cost_type"]');
+          var extraField = form.querySelector('[data-cost-field="extra_cost"]');
+          var activeField = form.querySelector('[data-cost-field="is_active"]');
+          if (typeField) typeField.value = selectedOption.dataset.costType || "fixed";
+          if (extraField) extraField.value = selectedOption.dataset.extraCost || "0";
+          if (activeField) activeField.checked = selectedOption.dataset.active !== "0";
+        }
+        return;
+      }
       if (!target || target.id !== "shipping-cost-city") return;
 
       state.selectedCity = target.value || "";
       state.costs = [];
       state.loadedCosts = false;
-      if (!state.selectedProvince || !state.selectedCity) return;
+      state.showProvinceCities = false;
+      if (!state.selectedProvince || !state.selectedCity) {
+        var emptyResults = getContainer("shipping-cost-results");
+        if (emptyResults) {
+          emptyResults.innerHTML = '<div class="wallet-empty">' +
+            (state.selectedProvince
+              ? 'شهر را انتخاب کن یا شهر را خالی بگذار و «بارگذاری هزینه‌ها» را بزن تا فهرست کامل بیاید.'
+              : "ابتدا استان را انتخاب کن.") +
+            "</div>";
+        }
+        return;
+      }
 
       var results = getContainer("shipping-cost-results");
       if (results) results.innerHTML = '<div class="admin-loading">در حال بارگذاری هزینه‌ها...</div>';

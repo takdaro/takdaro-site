@@ -49,6 +49,53 @@ export async function onRequestGet(context) {
       return json({ success: true, methods });
     }
 
+    if (action === "locations") {
+      const result = await context.env.DB.prepare(`
+        SELECT DISTINCT province, city
+        FROM shipping_costs
+        WHERE province IS NOT NULL AND province != ''
+          AND city IS NOT NULL AND city != '' AND LOWER(city) != 'default'
+        ORDER BY province ASC, city ASC
+      `).all();
+
+      const provinces = {};
+      for (const row of (Array.isArray(result?.results) ? result.results : [])) {
+        const province = normalizeText(row.province);
+        const city = normalizeText(row.city);
+        if (!province || !city || city.toLowerCase() === "default") continue;
+        if (!provinces[province]) provinces[province] = [];
+        if (!provinces[province].includes(city)) provinces[province].push(city);
+      }
+
+      return json({ success: true, provinces });
+    }
+
+    if (action === "province-costs") {
+      const province = normalizeText(url.searchParams.get("province"));
+      if (!province) return json({ success: false, error: "province_required" }, 400);
+
+      const result = await context.env.DB.prepare(`
+        SELECT
+          sc.id,
+          sc.province,
+          sc.city,
+          sc.shipping_method_id,
+          sc.cost_type,
+          sc.cost_amount,
+          sc.extra_cost,
+          sc.is_active,
+          sm.name as method_name,
+          sm.slug as method_slug,
+          sm.default_cost
+        FROM shipping_costs sc
+        INNER JOIN shipping_methods sm ON sm.id = sc.shipping_method_id
+        WHERE sc.province = ? AND LOWER(sc.city) != 'default'
+        ORDER BY sc.city ASC, sm.sort_order ASC, sm.id ASC
+      `).bind(province).all();
+
+      return json({ success: true, costs: Array.isArray(result?.results) ? result.results : [] });
+    }
+
     // دریافت هزینه‌های ارسال برای یک استان/شهر
     if (action === "costs") {
       const province = normalizeText(url.searchParams.get("province"));
