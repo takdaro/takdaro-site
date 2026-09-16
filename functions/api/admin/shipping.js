@@ -425,10 +425,15 @@ export async function onRequestPost(context) {
       `).bind(shipping_method_id).first();
       if (!method) return json({ success: false, error: "method_not_found" }, 404);
 
+      const methodBaseCost = Number(method.default_cost || 0);
+      if ((cost_type === "extra" || !amountProvided) && methodBaseCost <= 0) {
+        return json({ success: false, error: "method_base_cost_required" }, 400);
+      }
+
       const extra_cost = cost_type === "extra" ? amount : 0;
       const cost_amount = cost_type === "fixed"
-        ? (amountProvided ? amount : Number(method.default_cost || 0))
-        : Number(method.default_cost || 0) + amount;
+        ? (amountProvided ? amount : methodBaseCost)
+        : methodBaseCost + amount;
       const statements = cities.flatMap((city) => [
         context.env.DB.prepare(`
           UPDATE shipping_costs

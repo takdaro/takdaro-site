@@ -832,7 +832,7 @@
       '<option value="fixed">هزینه ثابت (مبلغ نهایی)</option><option value="extra">متغیر (مازاد بر پایه)</option></select></label>' +
       '<label class="shipping-city-bulk-field"><span data-shipping-bulk-amount-label>مبلغ ثابت نهایی برای هر شهر (خالی = هزینه پایه)</span><input type="text" inputmode="numeric" data-shipping-bulk-amount placeholder="خالی = هزینه پایه روش" /></label>' +
       '<button type="button" class="btn btn-primary" data-shipping-apply-bulk>اعمال روی شهرهای انتخاب‌شده</button>' +
-      '<p class="shipping-city-bulk-note" data-shipping-bulk-cost-hint>در حالت ثابت، مبلغ خالی یعنی هزینه پایهٔ روش؛ با واردکردن مبلغ، همان مبلغ نهایی شهر است.</p>' +
+      '<p class="shipping-city-bulk-note" data-shipping-bulk-cost-hint>در حالت ثابت، مبلغ خالی یعنی هزینه پایهٔ روش؛ با واردکردن مبلغ، همان مبلغ نهایی شهر است. اگر پایه صفر باشد، ابتدا آن را در تنظیمات روش حمل‌ونقل ثبت کنید.</p>' +
       '<p class="shipping-city-bulk-note">روش انتخاب‌شده برای هر شهر فعال می‌شود و روش قبلی همان شهر غیرفعال خواهد شد.</p>' +
       '</div>' +
       '<div class="table-wrap shipping-city-table-wrap"><table class="admin-table shipping-city-table">' +
@@ -2078,7 +2078,10 @@
     });
 
     if (!result.ok || !result.data || !result.data.success) {
-      showMessage(result.data && result.data.error ? result.data.error : "ذخیره هزینه شهرها انجام نشد.", "error");
+      var bulkError = result.data && result.data.error;
+      showMessage(bulkError === "method_base_cost_required"
+        ? "هزینه پایهٔ این روش صفر است. ابتدا در بخش «روش‌های حمل‌ونقل» هزینه پایه را ثبت و ذخیره کنید."
+        : (bulkError || "ذخیره هزینه شهرها انجام نشد."), "error");
       if (button) {
         button.disabled = false;
         button.textContent = originalText;
@@ -2796,8 +2799,8 @@
         }
         if (costHint) {
           costHint.textContent = target.value === "fixed"
-            ? "در حالت ثابت، مبلغ خالی یعنی هزینه پایهٔ روش؛ با واردکردن مبلغ، همان مبلغ نهایی شهر است."
-            : "در حالت مازاد، مبلغ نهایی هر شهر برابر هزینه پایهٔ روش حمل‌ونقل + مبلغ مازاد واردشده است.";
+            ? "در حالت ثابت، مبلغ خالی یعنی هزینه پایهٔ روش؛ با واردکردن مبلغ، همان مبلغ نهایی شهر است. اگر پایه صفر باشد، ابتدا آن را در تنظیمات روش حمل‌ونقل ثبت کنید."
+            : "در حالت مازاد، مبلغ نهایی هر شهر برابر هزینه پایهٔ روش حمل‌ونقل + مبلغ مازاد واردشده است. هزینه پایه باید بیشتر از صفر باشد.";
         }
         return;
       }
