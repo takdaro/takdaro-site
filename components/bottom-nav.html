@@ -1,69 +1,412 @@
-<nav class="bottom-nav" role="navigation" aria-label="ناوبری پایین صفحه">
+<!-- =========================
+     FLOATING BOTTOM NAVIGATION
+     ========================= -->
 
-  <!-- 1. واتساپ / پشتیبانی -->
+<nav class="modern-bottom-nav" aria-label="ناوبری پایین صفحه">
+
+  <!-- واتساپ -->
   <a href="https://wa.me/989214147070"
      target="_blank"
      rel="noopener noreferrer"
-     class="bottom-nav__item"
-     data-nav="support"
-     aria-label="پشتیبانی واتساپ">
+     class="modern-nav-item"
+     data-nav="whatsapp">
 
-    <span class="bottom-nav__icon">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="currentColor"
-           aria-hidden="true">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.875 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.693.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.99c-.003 5.45-4.437 9.889-9.885 9.889m8.413-18.297A11.815 11.815 0 0 0 12.055 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.056 24l6.305-1.654a11.882 11.882 0 0 0 5.689 1.448h.005c6.557 0 11.892-5.335 11.895-11.893a11.821 11.821 0 0 0-3.486-8.413Z"/>
+    <span class="modern-nav-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.875 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.693.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 21.785h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.99c-.003 5.45-4.437 9.889-9.885 9.889"/>
       </svg>
     </span>
 
-    <span class="bottom-nav__label">پشتیبانی</span>
+    <span class="modern-nav-label">واتساپ</span>
   </a>
 
 
-  <!-- 2. حساب کاربری -->
+  <!-- حساب کاربری -->
   <a href="/account.html"
-     class="bottom-nav__item"
+     class="modern-nav-item"
      data-nav="account">
 
-    <span class="bottom-nav__icon">👤</span>
-    <span class="bottom-nav__label">حساب کاربری</span>
+    <span class="modern-nav-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v2h16v-2c0-2.761-3.582-5-8-5z"/>
+      </svg>
+    </span>
+
+    <span class="modern-nav-label">حساب کاربری</span>
   </a>
 
 
-  <!-- 3. فروشگاه -->
+  <!-- فروشگاه -->
   <a href="/products.html"
-     class="bottom-nav__item"
+     class="modern-nav-item"
      data-nav="shop">
 
-    <span class="bottom-nav__icon">🏪</span>
-    <span class="bottom-nav__label">فروشگاه</span>
+    <span class="modern-nav-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 9l1.5-5h15L21 9v2a3 3 0 0 1-3 3 3 3 0 0 1-2-.76A3 3 0 0 1 14 14a3 3 0 0 1-2-.76A3 3 0 0 1 10 14a3 3 0 0 1-2-.76A3 3 0 0 1 6 14a3 3 0 0 1-3-3V9zm2 6.5A5 5 0 0 0 6 15.4V21h12v-5.6a5 5 0 0 0 1-.1V22H5v-6.5z"/>
+      </svg>
+    </span>
+
+    <span class="modern-nav-label">فروشگاه</span>
   </a>
 
 
-  <!-- 4. سبد کالا -->
+  <!-- سبد کالا -->
   <a href="/checkout.html"
-     class="bottom-nav__item"
+     class="modern-nav-item"
      data-nav="cart"
      id="bottom-nav-cart">
 
-    <span class="bottom-nav__icon" style="position:relative;">
+    <span class="modern-nav-icon cart-icon-wrap">
 
-      <span class="bottom-nav__icon-wrapper">
-        🛒
-      </span>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45A1.99 1.99 0 0 0 7 17h12v-2H7.42a.25.25 0 0 1-.22-.37L8.1 13h7.45a2 2 0 0 0 1.75-1.03L20.88 5H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+      </svg>
 
-      <span
-        class="bottom-nav__badge bottom-nav__badge--hidden"
-        data-cart-count-badge>
+      <span class="modern-cart-badge modern-cart-badge--hidden"
+            data-cart-count-badge>
         0
       </span>
 
     </span>
 
-    <span class="bottom-nav__label">سبد کالا</span>
+    <span class="modern-nav-label">سبد کالا</span>
   </a>
 
 </nav>
+
+
+<style>
+
+/* =========================
+   Bottom Navigation
+   ========================= */
+
+.modern-bottom-nav {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: calc(100% - 28px);
+  max-width: 620px;
+
+  height: 78px;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+
+  padding: 7px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 30px;
+
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.10),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  z-index: 99999;
+
+  direction: rtl;
+}
+
+
+/* =========================
+   Items
+   ========================= */
+
+.modern-nav-item {
+  height: 64px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+
+  position: relative;
+
+  color: #444;
+
+  text-decoration: none;
+
+  border-radius: 25px;
+
+  transition:
+    background-color .22s ease,
+    color .22s ease,
+    transform .18s ease;
+}
+
+
+/* Hover */
+
+.modern-nav-item:hover {
+  background: #f5f5f5;
+}
+
+
+/* Click */
+
+.modern-nav-item:active {
+  transform: scale(.96);
+}
+
+
+/* =========================
+   Active Item
+   ========================= */
+
+.modern-nav-item.active {
+  background: #eeeeee;
+  color: #000;
+}
+
+
+/* =========================
+   Icons
+   ========================= */
+
+.modern-nav-icon {
+  width: 27px;
+  height: 27px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  position: relative;
+}
+
+
+.modern-nav-icon svg {
+  width: 26px;
+  height: 26px;
+
+  fill: currentColor;
+
+  display: block;
+}
+
+
+/* =========================
+   Labels
+   ========================= */
+
+.modern-nav-label {
+  font-family:
+    Tahoma,
+    Arial,
+    sans-serif;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  line-height: 1.2;
+
+  white-space: nowrap;
+}
+
+
+/* =========================
+   Cart Badge
+   ========================= */
+
+.cart-icon-wrap {
+  position: relative;
+}
+
+
+.modern-cart-badge {
+  position: absolute;
+
+  top: -7px;
+  right: -10px;
+
+  min-width: 18px;
+  height: 18px;
+
+  padding: 0 5px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 20px;
+
+  background: #000;
+  color: #fff;
+
+  border: 2px solid #fff;
+
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+
+  box-sizing: border-box;
+}
+
+
+.modern-cart-badge--hidden {
+  display: none;
+}
+
+
+/* =========================
+   Mobile
+   ========================= */
+
+@media (max-width: 480px) {
+
+  .modern-bottom-nav {
+    bottom: 12px;
+
+    width: calc(100% - 20px);
+
+    height: 72px;
+
+    padding: 6px;
+
+    border-radius: 27px;
+  }
+
+
+  .modern-nav-item {
+    height: 60px;
+
+    border-radius: 23px;
+  }
+
+
+  .modern-nav-icon {
+    width: 25px;
+    height: 25px;
+  }
+
+
+  .modern-nav-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+
+  .modern-nav-label {
+    font-size: 11px;
+  }
+
+}
+
+
+/* فاصله انتهای صفحه برای جلوگیری از پوشیده شدن محتوا */
+
+body {
+  padding-bottom: 110px;
+}
+
+</style>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const items = document.querySelectorAll(".modern-nav-item");
+
+  const path = window.location.pathname.toLowerCase();
+
+
+  /* تشخیص صفحه فعال */
+
+  items.forEach(function (item) {
+
+    const nav = item.dataset.nav;
+
+    let active = false;
+
+
+    if (
+      nav === "account" &&
+      path.includes("account")
+    ) {
+      active = true;
+    }
+
+
+    if (
+      nav === "shop" &&
+      (
+        path.includes("products") ||
+        path.includes("product")
+      )
+    ) {
+      active = true;
+    }
+
+
+    if (
+      nav === "cart" &&
+      (
+        path.includes("checkout") ||
+        path.includes("cart")
+      )
+    ) {
+      active = true;
+    }
+
+
+    if (active) {
+      item.classList.add("active");
+    }
+
+  });
+
+
+  /* بروزرسانی Badge سبد خرید */
+
+  function updateBottomCartBadge(count) {
+
+    const badges =
+      document.querySelectorAll("[data-cart-count-badge]");
+
+    const number = parseInt(count || 0, 10);
+
+
+    badges.forEach(function (badge) {
+
+      if (number > 0) {
+
+        badge.textContent =
+          number > 99 ? "99+" : number;
+
+        badge.classList.remove(
+          "modern-cart-badge--hidden"
+        );
+
+      } else {
+
+        badge.textContent = "0";
+
+        badge.classList.add(
+          "modern-cart-badge--hidden"
+        );
+
+      }
+
+    });
+
+  }
+
+
+  /* قابل استفاده از JS اصلی سایت */
+
+  window.updateBottomCartBadge =
+    updateBottomCartBadge;
+
+});
+</script>
