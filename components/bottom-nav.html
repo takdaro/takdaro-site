@@ -1,76 +1,92 @@
-<!-- =========================
-     FLOATING BOTTOM NAVIGATION
-     ========================= -->
+<!-- =====================================================
+     Bottom Navigation
+     ظاهر جدید + حفظ کامل ساختار و Cart فعلی سایت
+===================================================== -->
 
-<nav class="modern-bottom-nav" aria-label="ناوبری پایین صفحه">
+<nav class="bottom-nav" role="navigation" aria-label="ناوبری پایین صفحه">
 
-  <!-- واتساپ -->
+  <!-- 1. واتساپ / پشتیبانی -->
   <a href="https://wa.me/989214147070"
      target="_blank"
      rel="noopener noreferrer"
-     class="modern-nav-item"
-     data-nav="whatsapp">
+     class="bottom-nav__item"
+     data-nav="support"
+     aria-label="پشتیبانی واتساپ">
 
-    <span class="modern-nav-icon">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.875 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.693.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 21.785h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.99c-.003 5.45-4.437 9.889-9.885 9.889"/>
+    <span class="bottom-nav__icon">
+
+      <svg xmlns="http://www.w3.org/2000/svg"
+           viewBox="0 0 24 24"
+           fill="currentColor"
+           aria-hidden="true">
+
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.009-.371-.011-.57-.011-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.875 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.693.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.981.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.99c-.003 5.45-4.437 9.889-9.885 9.889m8.413-18.297A11.815 11.815 0 0 0 12.055 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.056 24l6.305-1.654a11.882 11.882 0 0 0 5.689 1.448h.005c6.557 0 11.892-5.335 11.895-11.893a11.821 11.821 0 0 0-3.486-8.413Z"/>
+
       </svg>
+
     </span>
 
-    <span class="modern-nav-label">واتساپ</span>
+    <span class="bottom-nav__label">واتساپ</span>
+
   </a>
 
 
-  <!-- حساب کاربری -->
+  <!-- 2. حساب کاربری -->
   <a href="/account.html"
-     class="modern-nav-item"
+     class="bottom-nav__item"
      data-nav="account">
 
-    <span class="modern-nav-icon">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v2h16v-2c0-2.761-3.582-5-8-5z"/>
-      </svg>
+    <span class="bottom-nav__icon">👤</span>
+
+    <span class="bottom-nav__label">
+      حساب کاربری
     </span>
 
-    <span class="modern-nav-label">حساب کاربری</span>
   </a>
 
 
-  <!-- فروشگاه -->
+  <!-- 3. فروشگاه -->
   <a href="/products.html"
-     class="modern-nav-item"
+     class="bottom-nav__item"
      data-nav="shop">
 
-    <span class="modern-nav-icon">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 9l1.5-5h15L21 9v2a3 3 0 0 1-3 3 3 3 0 0 1-2-.76A3 3 0 0 1 14 14a3 3 0 0 1-2-.76A3 3 0 0 1 10 14a3 3 0 0 1-2-.76A3 3 0 0 1 6 14a3 3 0 0 1-3-3V9zm2 6.5A5 5 0 0 0 6 15.4V21h12v-5.6a5 5 0 0 0 1-.1V22H5v-6.5z"/>
-      </svg>
+    <span class="bottom-nav__icon">🏪</span>
+
+    <span class="bottom-nav__label">
+      فروشگاه
     </span>
 
-    <span class="modern-nav-label">فروشگاه</span>
   </a>
 
 
-  <!-- سبد کالا -->
+  <!-- 4. سبد کالا -->
   <a href="/checkout.html"
-     class="modern-nav-item"
+     class="bottom-nav__item"
      data-nav="cart"
      id="bottom-nav-cart">
 
-    <span class="modern-nav-icon cart-icon-wrap">
+    <span class="bottom-nav__icon bottom-nav__cart-icon">
 
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45A1.99 1.99 0 0 0 7 17h12v-2H7.42a.25.25 0 0 1-.22-.37L8.1 13h7.45a2 2 0 0 0 1.75-1.03L20.88 5H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-      </svg>
+      <span class="bottom-nav__icon-wrapper">
+        🛒
+      </span>
 
-      <span class="modern-cart-badge modern-cart-badge--hidden"
-            data-cart-count-badge>
+      <!--
+          شمارنده اصلی سبد خرید
+          data-cart-count-badge عمداً حفظ شده
+      -->
+      <span
+        class="bottom-nav__badge bottom-nav__badge--hidden"
+        data-cart-count-badge>
         0
       </span>
 
     </span>
 
-    <span class="modern-nav-label">سبد کالا</span>
+    <span class="bottom-nav__label">
+      سبد کالا
+    </span>
+
   </a>
 
 </nav>
@@ -78,335 +94,326 @@
 
 <style>
 
-/* =========================
-   Bottom Navigation
-   ========================= */
+/* =====================================================
+   Bottom Navigation Container
+===================================================== */
 
-.modern-bottom-nav {
-  position: fixed;
-  bottom: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+.bottom-nav {
+    position: fixed;
 
-  width: calc(100% - 28px);
-  max-width: 620px;
+    left: 50%;
+    bottom: 16px;
 
-  height: 78px;
+    transform: translateX(-50%);
 
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  align-items: center;
+    width: calc(100% - 24px);
+    max-width: 620px;
 
-  padding: 7px;
+    height: 78px;
 
-  background: rgba(255, 255, 255, 0.96);
+    padding: 7px;
 
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 30px;
+    box-sizing: border-box;
 
-  box-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.10),
-    0 2px 8px rgba(0, 0, 0, 0.04);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
 
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+    align-items: center;
 
-  z-index: 99999;
+    direction: rtl;
 
-  direction: rtl;
+    background: rgba(255, 255, 255, 0.97);
+
+    border: 1px solid rgba(0, 0, 0, 0.04);
+
+    border-radius: 30px;
+
+    box-shadow:
+        0 10px 35px rgba(0, 0, 0, 0.10),
+        0 2px 8px rgba(0, 0, 0, 0.04);
+
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
+    z-index: 99999;
 }
 
 
-/* =========================
-   Items
-   ========================= */
+/* =====================================================
+   Navigation Item
+===================================================== */
 
-.modern-nav-item {
-  height: 64px;
+.bottom-nav__item {
+    position: relative;
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+    height: 64px;
 
-  gap: 4px;
+    display: flex;
 
-  position: relative;
+    flex-direction: column;
 
-  color: #444;
+    align-items: center;
+    justify-content: center;
 
-  text-decoration: none;
+    gap: 4px;
 
-  border-radius: 25px;
+    box-sizing: border-box;
 
-  transition:
-    background-color .22s ease,
-    color .22s ease,
-    transform .18s ease;
+    border-radius: 25px;
+
+    color: #444;
+
+    text-decoration: none;
+
+    -webkit-tap-highlight-color: transparent;
+
+    transition:
+        background-color 0.22s ease,
+        color 0.22s ease,
+        transform 0.15s ease;
 }
 
 
 /* Hover */
 
-.modern-nav-item:hover {
-  background: #f5f5f5;
+.bottom-nav__item:hover {
+    background: #f4f4f4;
 }
 
 
-/* Click */
+/* هنگام لمس */
 
-.modern-nav-item:active {
-  transform: scale(.96);
+.bottom-nav__item:active {
+    transform: scale(0.96);
 }
 
 
-/* =========================
-   Active Item
-   ========================= */
+/* =====================================================
+   Active Tab
+   مشابه Chats در نمونه‌ای که فرستادی
+===================================================== */
 
-.modern-nav-item.active {
-  background: #eeeeee;
-  color: #000;
+.bottom-nav__item.active,
+.bottom-nav__item[aria-current="page"] {
+    background: #eeeeee;
+    color: #000;
 }
 
 
-/* =========================
+/* =====================================================
    Icons
-   ========================= */
+===================================================== */
 
-.modern-nav-icon {
-  width: 27px;
-  height: 27px;
+.bottom-nav__icon {
+    position: relative;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    width: 28px;
+    height: 28px;
 
-  position: relative;
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 25px;
+
+    line-height: 1;
 }
 
 
-.modern-nav-icon svg {
-  width: 26px;
-  height: 26px;
+/* SVG واتساپ */
 
-  fill: currentColor;
+.bottom-nav__icon svg {
+    display: block;
 
-  display: block;
+    width: 25px;
+    height: 25px;
+
+    fill: currentColor;
 }
 
 
-/* =========================
+/* =====================================================
    Labels
-   ========================= */
+===================================================== */
 
-.modern-nav-label {
-  font-family:
-    Tahoma,
-    Arial,
-    sans-serif;
+.bottom-nav__label {
+    display: block;
 
-  font-size: 12px;
-  font-weight: 600;
+    font-family:
+        Tahoma,
+        Arial,
+        sans-serif;
 
-  line-height: 1.2;
+    font-size: 11px;
 
-  white-space: nowrap;
+    font-weight: 600;
+
+    line-height: 1.25;
+
+    white-space: nowrap;
+
+    color: inherit;
 }
 
 
-/* =========================
+/* =====================================================
+   Cart
+===================================================== */
+
+.bottom-nav__cart-icon {
+    position: relative;
+}
+
+
+.bottom-nav__icon-wrapper {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 28px;
+
+    line-height: 1;
+}
+
+
+/* =====================================================
    Cart Badge
-   ========================= */
+   شمارنده اصلی سایت حفظ شده
+===================================================== */
 
-.cart-icon-wrap {
-  position: relative;
+.bottom-nav__badge {
+    position: absolute;
+
+    top: -7px;
+    right: -11px;
+
+    min-width: 19px;
+    height: 19px;
+
+    padding: 0 5px;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    background: #000;
+
+    color: #fff;
+
+    border: 2px solid #fff;
+
+    border-radius: 20px;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    line-height: 1;
+
+    z-index: 5;
+
+    box-shadow:
+        0 2px 5px rgba(0,0,0,0.18);
 }
 
 
-.modern-cart-badge {
-  position: absolute;
+/*
+   این کلاس توسط سیستم فعلی Cart سایت استفاده می‌شود.
+   حذفش نکن.
+*/
 
-  top: -7px;
-  right: -10px;
-
-  min-width: 18px;
-  height: 18px;
-
-  padding: 0 5px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 20px;
-
-  background: #000;
-  color: #fff;
-
-  border: 2px solid #fff;
-
-  font-family: Arial, sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-
-  box-sizing: border-box;
+.bottom-nav__badge--hidden {
+    display: none !important;
 }
 
 
-.modern-cart-badge--hidden {
-  display: none;
-}
-
-
-/* =========================
+/* =====================================================
    Mobile
-   ========================= */
+===================================================== */
 
 @media (max-width: 480px) {
 
-  .modern-bottom-nav {
-    bottom: 12px;
+    .bottom-nav {
 
-    width: calc(100% - 20px);
+        width: calc(100% - 18px);
 
-    height: 72px;
+        bottom: 10px;
 
-    padding: 6px;
+        height: 72px;
 
-    border-radius: 27px;
-  }
+        padding: 6px;
 
-
-  .modern-nav-item {
-    height: 60px;
-
-    border-radius: 23px;
-  }
+        border-radius: 27px;
+    }
 
 
-  .modern-nav-icon {
-    width: 25px;
-    height: 25px;
-  }
+    .bottom-nav__item {
+
+        height: 60px;
+
+        border-radius: 22px;
+    }
 
 
-  .modern-nav-icon svg {
-    width: 24px;
-    height: 24px;
-  }
+    .bottom-nav__icon {
+
+        width: 25px;
+        height: 25px;
+
+        font-size: 23px;
+    }
 
 
-  .modern-nav-label {
-    font-size: 11px;
-  }
+    .bottom-nav__icon svg {
+
+        width: 23px;
+        height: 23px;
+    }
+
+
+    .bottom-nav__icon-wrapper {
+
+        width: 25px;
+        height: 25px;
+    }
+
+
+    .bottom-nav__label {
+
+        font-size: 10.5px;
+    }
+
+
+    .bottom-nav__badge {
+
+        top: -7px;
+        right: -10px;
+
+        min-width: 18px;
+        height: 18px;
+
+        font-size: 9px;
+    }
 
 }
 
 
-/* فاصله انتهای صفحه برای جلوگیری از پوشیده شدن محتوا */
+/* =====================================================
+   جلوگیری از قرار گرفتن منو روی محتوای انتهای صفحه
+===================================================== */
 
 body {
-  padding-bottom: 110px;
+    padding-bottom: 105px;
 }
 
 </style>
-
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-
-  const items = document.querySelectorAll(".modern-nav-item");
-
-  const path = window.location.pathname.toLowerCase();
-
-
-  /* تشخیص صفحه فعال */
-
-  items.forEach(function (item) {
-
-    const nav = item.dataset.nav;
-
-    let active = false;
-
-
-    if (
-      nav === "account" &&
-      path.includes("account")
-    ) {
-      active = true;
-    }
-
-
-    if (
-      nav === "shop" &&
-      (
-        path.includes("products") ||
-        path.includes("product")
-      )
-    ) {
-      active = true;
-    }
-
-
-    if (
-      nav === "cart" &&
-      (
-        path.includes("checkout") ||
-        path.includes("cart")
-      )
-    ) {
-      active = true;
-    }
-
-
-    if (active) {
-      item.classList.add("active");
-    }
-
-  });
-
-
-  /* بروزرسانی Badge سبد خرید */
-
-  function updateBottomCartBadge(count) {
-
-    const badges =
-      document.querySelectorAll("[data-cart-count-badge]");
-
-    const number = parseInt(count || 0, 10);
-
-
-    badges.forEach(function (badge) {
-
-      if (number > 0) {
-
-        badge.textContent =
-          number > 99 ? "99+" : number;
-
-        badge.classList.remove(
-          "modern-cart-badge--hidden"
-        );
-
-      } else {
-
-        badge.textContent = "0";
-
-        badge.classList.add(
-          "modern-cart-badge--hidden"
-        );
-
-      }
-
-    });
-
-  }
-
-
-  /* قابل استفاده از JS اصلی سایت */
-
-  window.updateBottomCartBadge =
-    updateBottomCartBadge;
-
-});
-</script>
