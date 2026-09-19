@@ -1,11 +1,6 @@
-<!-- =====================================================
-     TAKDARO MOBILE / TABLET BOTTOM NAVIGATION
-     Mobile + Tablet Only
-===================================================== -->
-
 <nav class="bottom-nav" role="navigation" aria-label="ناوبری پایین صفحه">
 
-  <!-- واتساپ -->
+  <!-- 1. واتساپ / پشتیبانی -->
   <a href="https://wa.me/989214147070"
      target="_blank"
      rel="noopener noreferrer"
@@ -15,6 +10,8 @@
 
     <span class="bottom-nav__icon">
       <svg xmlns="http://www.w3.org/2000/svg"
+           width="24"
+           height="24"
            viewBox="0 0 24 24"
            fill="currentColor"
            aria-hidden="true">
@@ -22,11 +19,11 @@
       </svg>
     </span>
 
-    <span class="bottom-nav__label">واتساپ</span>
+    <span class="bottom-nav__label">پشتیبانی</span>
   </a>
 
 
-  <!-- حساب کاربری -->
+  <!-- 2. حساب کاربری -->
   <a href="/account.html"
      class="bottom-nav__item"
      data-nav="account">
@@ -36,7 +33,7 @@
   </a>
 
 
-  <!-- فروشگاه -->
+  <!-- 3. فروشگاه -->
   <a href="/products.html"
      class="bottom-nav__item"
      data-nav="shop">
@@ -46,7 +43,7 @@
   </a>
 
 
-  <!-- سبد کالا -->
+  <!-- 4. سبد کالا -->
   <a href="/checkout.html"
      class="bottom-nav__item"
      data-nav="cart"
@@ -58,7 +55,6 @@
         🛒
       </span>
 
-      <!-- شمارنده اصلی سبد خرید -->
       <span
         class="bottom-nav__badge bottom-nav__badge--hidden"
         data-cart-count-badge>
@@ -71,452 +67,3 @@
   </a>
 
 </nav>
-
-
-<style>
-
-/* =====================================================
-   پیش‌فرض: دسکتاپ = مخفی
-===================================================== */
-
-html body nav.bottom-nav {
-    display: none !important;
-}
-
-
-/* =====================================================
-   فقط موبایل و تبلت
-   1024px و پایین‌تر
-===================================================== */
-
-@media (max-width: 1024px) {
-
-    html body nav.bottom-nav {
-
-        position: fixed !important;
-
-        display: grid !important;
-        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-
-        align-items: center !important;
-
-        left: 50% !important;
-        right: auto !important;
-
-        bottom: 14px !important;
-        top: auto !important;
-
-        transform: translateX(-50%) !important;
-
-        width: calc(100vw - 28px) !important;
-        max-width: 680px !important;
-
-        height: 82px !important;
-
-        margin: 0 !important;
-        padding: 7px !important;
-
-        box-sizing: border-box !important;
-
-        direction: rtl !important;
-
-        background: rgba(255,255,255,.97) !important;
-
-        border: 1px solid rgba(0,0,0,.04) !important;
-        border-radius: 32px !important;
-
-        box-shadow:
-            0 10px 35px rgba(0,0,0,.13),
-            0 2px 8px rgba(0,0,0,.04) !important;
-
-        backdrop-filter: blur(18px) !important;
-        -webkit-backdrop-filter: blur(18px) !important;
-
-        overflow: visible !important;
-
-        z-index: 999999 !important;
-    }
-
-
-    /* =========================
-       آیتم‌ها
-    ========================= */
-
-    html body nav.bottom-nav > a.bottom-nav__item {
-
-        position: relative !important;
-
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        align-items: center !important;
-        justify-content: center !important;
-
-        width: 100% !important;
-        min-width: 0 !important;
-
-        height: 68px !important;
-
-        margin: 0 !important;
-        padding: 4px 2px !important;
-
-        gap: 5px !important;
-
-        box-sizing: border-box !important;
-
-        float: none !important;
-
-        text-decoration: none !important;
-
-        color: #4a4a4a !important;
-
-        background: transparent !important;
-
-        border: 0 !important;
-        border-radius: 26px !important;
-
-        -webkit-tap-highlight-color: transparent !important;
-
-        transition:
-            background .2s ease,
-            color .2s ease,
-            transform .15s ease !important;
-    }
-
-
-    /* Hover */
-
-    html body nav.bottom-nav > a.bottom-nav__item:hover {
-        background: #f3f3f3 !important;
-    }
-
-
-    /* لمس */
-
-    html body nav.bottom-nav > a.bottom-nav__item:active {
-        transform: scale(.97) !important;
-    }
-
-
-    /* =========================
-       تب فعال
-    ========================= */
-
-    html body nav.bottom-nav > a.bottom-nav__item.active,
-    html body nav.bottom-nav > a.bottom-nav__item[aria-current="page"] {
-
-        background: #eeeeee !important;
-        color: #111 !important;
-    }
-
-
-    /* =========================
-       آیکن‌ها
-    ========================= */
-
-    html body .bottom-nav .bottom-nav__icon {
-
-        position: relative !important;
-
-        display: flex !important;
-
-        align-items: center !important;
-        justify-content: center !important;
-
-        width: 29px !important;
-        height: 29px !important;
-
-        min-width: 29px !important;
-
-        margin: 0 !important;
-        padding: 0 !important;
-
-        font-size: 25px !important;
-
-        line-height: 1 !important;
-
-        color: inherit !important;
-    }
-
-
-    /* آیکن واتساپ */
-
-    html body .bottom-nav .bottom-nav__icon svg {
-
-        display: block !important;
-
-        width: 26px !important;
-        height: 26px !important;
-
-        fill: currentColor !important;
-    }
-
-
-    /* آیکن سبد */
-
-    html body .bottom-nav .bottom-nav__icon-wrapper {
-
-        display: flex !important;
-
-        align-items: center !important;
-        justify-content: center !important;
-
-        width: 29px !important;
-        height: 29px !important;
-
-        margin: 0 !important;
-        padding: 0 !important;
-
-        font-size: 25px !important;
-
-        line-height: 1 !important;
-    }
-
-
-    /* =========================
-       نوشته‌ها
-    ========================= */
-
-    html body .bottom-nav .bottom-nav__label {
-
-        display: block !important;
-
-        margin: 0 !important;
-        padding: 0 !important;
-
-        font-family: Tahoma, Arial, sans-serif !important;
-
-        font-size: 11px !important;
-        font-weight: 600 !important;
-
-        line-height: 1.25 !important;
-
-        text-align: center !important;
-
-        white-space: nowrap !important;
-
-        color: inherit !important;
-    }
-
-
-    /* =========================
-       تعداد محصولات سبد
-    ========================= */
-
-    html body .bottom-nav .bottom-nav__badge {
-
-        position: absolute !important;
-
-        top: -7px !important;
-        right: -11px !important;
-
-        min-width: 20px !important;
-        height: 20px !important;
-
-        padding: 0 5px !important;
-
-        box-sizing: border-box !important;
-
-        display: flex !important;
-
-        align-items: center !important;
-        justify-content: center !important;
-
-        background: #111 !important;
-
-        color: #fff !important;
-
-        border: 2px solid #fff !important;
-
-        border-radius: 999px !important;
-
-        font-family: Arial, sans-serif !important;
-
-        font-size: 10px !important;
-        font-weight: 700 !important;
-
-        line-height: 1 !important;
-
-        z-index: 20 !important;
-
-        box-shadow:
-            0 2px 5px rgba(0,0,0,.18) !important;
-    }
-
-
-    /* سبد خالی */
-
-    html body .bottom-nav
-    .bottom-nav__badge.bottom-nav__badge--hidden {
-
-        display: none !important;
-    }
-
-
-    /* فضای پایین صفحه */
-
-    html body {
-        padding-bottom: 110px !important;
-    }
-
-}
-
-
-/* =====================================================
-   تنظیم اختصاصی موبایل
-===================================================== */
-
-@media (max-width: 600px) {
-
-    html body nav.bottom-nav {
-
-        width: calc(100vw - 18px) !important;
-
-        max-width: none !important;
-
-        height: 76px !important;
-
-        bottom: 10px !important;
-
-        padding: 6px !important;
-
-        border-radius: 28px !important;
-    }
-
-
-    html body nav.bottom-nav > a.bottom-nav__item {
-
-        height: 64px !important;
-
-        border-radius: 23px !important;
-
-        gap: 4px !important;
-    }
-
-
-    html body .bottom-nav .bottom-nav__label {
-
-        font-size: 10px !important;
-    }
-
-
-    html body .bottom-nav .bottom-nav__icon {
-
-        width: 26px !important;
-        height: 26px !important;
-
-        min-width: 26px !important;
-
-        font-size: 23px !important;
-    }
-
-
-    html body .bottom-nav .bottom-nav__icon svg {
-
-        width: 24px !important;
-        height: 24px !important;
-    }
-
-
-    html body .bottom-nav .bottom-nav__icon-wrapper {
-
-        width: 26px !important;
-        height: 26px !important;
-
-        font-size: 23px !important;
-    }
-
-}
-
-
-/* =====================================================
-   دسکتاپ
-   1025px به بالا
-===================================================== */
-
-@media (min-width: 1025px) {
-
-    html body nav.bottom-nav {
-        display: none !important;
-    }
-
-}
-
-</style>
-
-
-<script>
-
-/* =====================================================
-   تشخیص خودکار تب فعال
-   بدون دستکاری سیستم سبد خرید
-===================================================== */
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    const path = window.location.pathname.toLowerCase();
-
-    const items = document.querySelectorAll(
-        ".bottom-nav > .bottom-nav__item"
-    );
-
-
-    items.forEach(function (item) {
-
-        const type = item.getAttribute("data-nav");
-
-        let active = false;
-
-
-        /* حساب کاربری */
-
-        if (
-            type === "account" &&
-            path.includes("account")
-        ) {
-            active = true;
-        }
-
-
-        /* فروشگاه */
-
-        if (
-            type === "shop" &&
-            (
-                path.includes("products") ||
-                path.includes("product/")
-            )
-        ) {
-            active = true;
-        }
-
-
-        /* سبد خرید */
-
-        if (
-            type === "cart" &&
-            (
-                path.includes("checkout") ||
-                path.includes("cart")
-            )
-        ) {
-            active = true;
-        }
-
-
-        if (active) {
-
-            item.classList.add("active");
-
-            item.setAttribute(
-                "aria-current",
-                "page"
-            );
-        }
-
-    });
-
-});
-
-</script>
