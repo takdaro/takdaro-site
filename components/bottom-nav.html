@@ -399,7 +399,36 @@ html body .bottom-nav .bottom-nav__badge.bottom-nav__badge--hidden {
     }
 }
 
+/* =====================================================
+   نمایش Bottom Navigation فقط در موبایل و تبلت
+===================================================== */
 
+/* دسکتاپ - مخفی */
+@media (min-width: 1025px) {
+
+    html body nav.bottom-nav {
+        display: none !important;
+    }
+
+    /* در دسکتاپ نیازی به فضای اضافه پایین صفحه نیست */
+    html body {
+        padding-bottom: 0 !important;
+    }
+}
+
+
+/* موبایل و تبلت - نمایش */
+@media (max-width: 1024px) {
+
+    html body nav.bottom-nav {
+        display: grid !important;
+    }
+
+    /* جلوگیری از قرار گرفتن منو روی محتوای صفحه */
+    html body {
+        padding-bottom: 110px !important;
+    }
+}
 /* فضای پایین صفحه */
 
 html body {
