@@ -360,8 +360,10 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <div class="order-row"><span class="order-label">📋 شماره سفارش</span><span class="order-value">#{order_number}</span></div>
 <div class="order-row"><span class="order-label">📅 تاریخ ثبت</span><span class="order-value">{order_date}</span></div>
 <div class="order-row"><span class="order-label">💰 مبلغ کل</span><span class="order-value amount">{amount} تومان</span></div>
+<div class="order-row"><span class="order-label">🚚 هزینه ارسال</span><span class="order-value">{shipping_amount} تومان</span></div>
 <div class="order-row"><span class="order-label">📌 وضعیت</span><span class="order-value"><span class="status-badge-custom">{order_status}</span></span></div>
 </div>
+{delivery_summary}
 <h3 style="margin:16px 0 8px;">📦 اقلام سفارش</h3>
 <table class="items-table">
 <thead><tr><th>محصول</th><th style="text-align:center;">تعداد</th><th style="text-align:left;">قیمت</th></tr></thead>
@@ -836,6 +838,10 @@ export function renderEmailTemplate(template, data) {
     '{transaction_date}': formatPersianDate(data.transaction_date || new Date().toISOString()),
     '{items_list}': data.items_list || '',
     '{cashback_amount}': formatPersianAmount(data.cashback_amount || 0),
+    '{shipping_amount}': formatPersianAmount(data.shipping_amount || 0),
+    '{delivery_date}': data.delivery_date || '',
+    '{delivery_time}': data.delivery_time || '',
+    '{delivery_summary}': data.delivery_summary || '',
     '{year}': new Date().getFullYear()
   };
 
@@ -1084,6 +1090,15 @@ export async function logEmailNotification(env, data) {
 // توابع ارسال Email به کاربر و ادمین
 // ============================================
 
+function buildDeliverySummary(orderData = {}) {
+  const date = orderData.deliveryDate || orderData.delivery_date || '';
+  const from = orderData.deliveryTimeFrom || orderData.delivery_time_from || '';
+  const to = orderData.deliveryTimeTo || orderData.delivery_time_to || '';
+  if (!date && !from && !to) return '';
+  const time = [from, to].filter(Boolean).join(' تا ');
+  return `<div class="delivery-summary" role="group" aria-label="اطلاعات ارسال"><strong>🚚 زمان ارسال</strong><br><span>${date || 'در حال تعیین'}</span>${time ? ` <span>(${time})</span>` : ''}</div>`;
+}
+
 export async function sendUserEmailNotification(env, userId, eventType, orderData, userData, items = [], baseUrl = '') {
   try {
     const userEmail = userData.email;
@@ -1104,6 +1119,10 @@ export async function sendUserEmailNotification(env, userId, eventType, orderDat
       order_date: orderData.createdAt || new Date().toISOString(),
       items_list: itemsHtml,
       cashback_amount: orderData.cashbackAmount || 0,
+      shipping_amount: orderData.shippingAmount ?? orderData.shipping_amount ?? 0,
+      delivery_date: orderData.deliveryDate || orderData.delivery_date || '',
+      delivery_time: [orderData.deliveryTimeFrom || orderData.delivery_time_from, orderData.deliveryTimeTo || orderData.delivery_time_to].filter(Boolean).join(' تا '),
+      delivery_summary: buildDeliverySummary(orderData),
       site_url: baseUrl || ''
     };
 
@@ -1141,6 +1160,10 @@ export async function sendAdminEmailNotification(env, eventType, orderData, user
       order_date: orderData.createdAt || new Date().toISOString(),
       items_list: itemsHtml,
       cashback_amount: orderData.cashbackAmount || 0,
+      shipping_amount: orderData.shippingAmount ?? orderData.shipping_amount ?? 0,
+      delivery_date: orderData.deliveryDate || orderData.delivery_date || '',
+      delivery_time: [orderData.deliveryTimeFrom || orderData.delivery_time_from, orderData.deliveryTimeTo || orderData.delivery_time_to].filter(Boolean).join(' تا '),
+      delivery_summary: buildDeliverySummary(orderData),
       site_url: baseUrl || ''
     };
 
