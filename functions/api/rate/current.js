@@ -5,7 +5,8 @@ function json(data, status = 200) {
   return Response.json(data, {
     status,
     headers: {
-      "Cache-Control": "public, max-age=60, s-maxage=60"
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      "CDN-Cache-Control": "no-store"
     }
   });
 }

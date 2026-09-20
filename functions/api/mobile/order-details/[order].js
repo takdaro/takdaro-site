@@ -7,6 +7,7 @@ import {
   getMobileUser,
   mobileUnauthorized
 } from "../../../lib/mobile-auth";
+import { getCurrentRate } from "../../../lib/rate.js";
 
 import {
   sendOrderStatusChangedNotification,
@@ -77,6 +78,11 @@ async function getOrderByNumber(
           o.cashback_status,
           'none'
         ) AS cashback_status,
+
+        o.delivery_date,
+        o.delivery_slot_id,
+        o.delivery_time_from,
+        o.delivery_time_to,
 
         o.notes,
         o.created_at,
@@ -963,6 +969,24 @@ function buildOrderResponse(
       order.cashback_status ||
       "none",
 
+    current_usd_rate:
+      Number(order.current_usd_rate || 0) || null,
+
+    delivery_date:
+      order.delivery_date || "",
+
+    delivery_slot_id:
+      order.delivery_slot_id || null,
+
+    delivery_time_from:
+      order.delivery_time_from || "",
+
+    delivery_time_to:
+      order.delivery_time_to || "",
+
+    delivery_label:
+      order.delivery_label || "زمان ارسال",
+
     notes:
       order.notes ||
       "",
@@ -1059,11 +1083,36 @@ export async function onRequestGet(
         order.id
       );
 
+    let currentUsdRate = null;
+    try {
+      const rate = await getCurrentRate(context.env, "USD");
+      currentUsdRate = Number(rate?.rate || 0) || null;
+    } catch (rateError) {
+      console.error("دریافت نرخ دلار برای جزئیات سفارش ناموفق بود:", rateError);
+    }
+
+    let deliveryLabel = "زمان ارسال";
+    try {
+      const labelSetting = await context.env.DB.prepare(`
+        SELECT setting_value
+        FROM delivery_settings
+        WHERE setting_key = 'delivery_notification_label'
+        LIMIT 1
+      `).first();
+      if (labelSetting?.setting_value) deliveryLabel = String(labelSetting.setting_value);
+    } catch (_) {}
+
+    const orderWithDetails = {
+      ...order,
+      current_usd_rate: currentUsdRate,
+      delivery_label: deliveryLabel,
+    };
+
     return json({
       success: true,
       order:
         buildOrderResponse(
-          order,
+          orderWithDetails,
           items
         )
     });
@@ -1137,10 +1186,8 @@ export async function onRequestPost(
     }
 
     if (
-      !nextStatus ||
-      !ALLOWED_STATUSES.includes(
-        nextStatus
-      )
+      body?.action !== "update_delivery_schedule" &&
+      (!nextStatus || !ALLOWED_STATUSES.includes(nextStatus))
     ) {
       return json(
         {
@@ -1169,6 +1216,37 @@ export async function onRequestPost(
         },
         404
       );
+    }
+
+    if (body?.action === "update_delivery_schedule") {
+      const englishDigits = (value) => String(value ?? "")
+        .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+        .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+      const deliveryDate = englishDigits(body.delivery_date).trim().replace(/-/g, "/");
+      const timeFrom = englishDigits(body.delivery_time_from).trim();
+      const timeTo = englishDigits(body.delivery_time_to).trim();
+
+      if (!/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(deliveryDate)) {
+        return json({ success: false, error: "تاریخ شمسی را با قالب سال/ماه/روز وارد کنید." }, 400);
+      }
+      if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeFrom) || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeTo)) {
+        return json({ success: false, error: "ساعت شروع و پایان را درست وارد کنید." }, 400);
+      }
+
+      await context.env.DB.prepare(`
+        UPDATE orders
+        SET delivery_date = ?, delivery_time_from = ?, delivery_time_to = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(deliveryDate, timeFrom, timeTo, currentOrder.id).run();
+
+      return json({
+        success: true,
+        delivery: {
+          delivery_date: deliveryDate,
+          delivery_time_from: timeFrom,
+          delivery_time_to: timeTo,
+        },
+      });
     }
 
     const oldStatus =

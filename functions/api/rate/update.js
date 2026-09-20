@@ -14,8 +14,11 @@ function normalizeNumber(value) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return Math.max(0, Math.round(value));
   }
-  
-  const str = String(value ?? "").replace(/[^\d]/g, "");
+
+  const str = String(value ?? "")
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[^\d]/g, "");
   if (!str) return 0;
   
   const parsed = Number(str);
