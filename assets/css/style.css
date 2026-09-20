@@ -1576,7 +1576,9 @@ select:focus-visible {
   inset: 0 74px 0 0;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 38px;
-  background: linear-gradient(145deg, rgba(58, 58, 60, 0.97), rgba(25, 25, 27, 0.98));
+  background: linear-gradient(145deg, rgba(18, 20, 23, 0.78), rgba(3, 5, 8, 0.88));
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255,255,255,.12);
   z-index: 0;
 }
