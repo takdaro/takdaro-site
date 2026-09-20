@@ -282,11 +282,16 @@ async function handleStartCommand(env, chatId, botToken, text, from) {
   // استخراج توکن از متن
   const parts = text.trim().split(/\s+/);
   if (parts.length < 2) {
-    await sendErrorMessage(
-      env, chatId, botToken,
-      'لینک اتصال معتبر نیست. لطفاً از طریق سایت اقدام به اتصال کنید.'
+    await sendTelegramMessage(
+      botToken,
+      chatId,
+      '🤖 <b>به ربات رسمی تک تجارت خوش آمدید!</b>\n\nبرای اتصال حساب کاربری و مشاهدهٔ سفارش‌ها از وب‌سایت اقدام کنید. برای دریافت راهنمایی نیز می‌توانید با پشتیبانی گفتگو کنید.',
+      { replyMarkup: [
+        [{ text: '🌐 ورود به وب‌سایت', url: env.SITE_BASE_URL || 'https://www.takdaro.com' }],
+        [{ text: '💬 پشتیبانی', callback_data: 'support:start' }]
+      ] }
     );
-    return { success: false, error: 'توکن ارائه نشده است.' };
+    return { success: true, guest: true };
   }
 
   const rawToken = parts[1];
