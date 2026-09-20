@@ -813,8 +813,8 @@ export function createUserOrderTrackingButton(orderNumber, baseUrl = '') {
     ],
     [
       {
-        text: '📞 تماس با پشتیبانی',
-        url: `${siteUrl}/contact.html`
+        text: '💬 پشتیبانی',
+        url: 'https://wa.me/989214147070'
       }
     ]
   ];

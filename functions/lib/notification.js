@@ -2029,6 +2029,23 @@ async function sendUserTelegramNotification(env, userId, eventType, message, rep
     isUserNotification: true
   });
 
+  // همهٔ پیام‌های کاربر حداقل دکمهٔ پشتیبانی دارند؛ پیام‌های دارای سفارش
+  // علاوه بر آن، دکمهٔ مشاهدهٔ جزئیات فاکتور را نیز دریافت می‌کنند.
+  if (!replyMarkup) {
+    if (orderId) {
+      const orderRow = await env.DB
+        .prepare('SELECT order_number FROM orders WHERE id = ? LIMIT 1')
+        .bind(orderId)
+        .first();
+      if (orderRow?.order_number) {
+        replyMarkup = createUserOrderTrackingButton(orderRow.order_number, env.SITE_BASE_URL || 'https://www.takdaro.com');
+      }
+    }
+    if (!replyMarkup) {
+      replyMarkup = [[{ text: '💬 پشتیبانی', url: 'https://wa.me/989214147070' }]];
+    }
+  }
+
   const sendResult = await sendTelegramMessage(botToken, connection.chat_id, message, { replyMarkup });
 
   if (sendResult.success) {
