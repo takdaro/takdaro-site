@@ -2,7 +2,8 @@ import { getCurrentUser } from "../../lib/admin";
 import { getCurrentRate } from "../../lib/rate";
 import {
   sendOrderCreatedNotification,
-  sendUserOrderCreatedNotification
+  sendUserOrderCreatedNotification,
+  sendLowStockNotification
 } from "../../lib/notification";
 import { validateDeliveryChoice } from "../../lib/delivery-availability";
 
@@ -554,7 +555,8 @@ async function validateProductStock(db, normalizedItems) {
 // ============================================
 // کم کردن موجودی محصولات
 // ============================================
-async function decreaseProductStock(db, requestedQuantities) {
+async function decreaseProductStock(env, requestedQuantities) {
+  const db = env.DB;
   const updatedProducts = [];
 
   for (const [productId, quantity] of requestedQuantities) {
@@ -607,6 +609,11 @@ async function decreaseProductStock(db, requestedQuantities) {
       .bind(productId)
       .first();
 
+    try {
+      await sendLowStockNotification(env, updatedProduct, (Math.max(0, Number(updatedProduct?.stock_quantity) || 0) + quantity), Number(updatedProduct?.stock_quantity) || 0, 5);
+    } catch (notificationError) {
+      console.error("Low stock notification after order failed:", notificationError);
+    }
     updatedProducts.push({
       product_id: productId,
       product_name: updatedProduct?.name || "",
@@ -954,7 +961,7 @@ export async function onRequestPost(context) {
     // ============================================
     const stockUpdateResult =
       await decreaseProductStock(
-        context.env.DB,
+        context.env,
         stockValidation.requestedQuantities
       );
 
@@ -1208,3 +1215,7 @@ export async function onRequestPost(context) {
     );
   }
 }
+
+
+
+
