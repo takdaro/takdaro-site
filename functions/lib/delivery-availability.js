@@ -52,20 +52,18 @@ function slotStartIsOpen(dayTimestamp, startTime, cutoffMinutes, now) {
 export async function getDeliveryAvailability(db, options = {}, now = new Date()) {
   const [scheduleResult, settingResult, holidayResult] = await Promise.all([
     db.prepare("SELECT id,title,shipping_method_id,province,city,weekday,specific_date,start_time,end_time,capacity,cutoff_minutes FROM delivery_schedules WHERE is_active=1 ORDER BY start_time,id").all(),
-    db.prepare("SELECT setting_key,setting_value FROM delivery_settings WHERE setting_key IN ('minimum_days','horizon_days','same_day_cutoff','blocked_weekdays')").all(),
+    db.prepare("SELECT setting_key,setting_value FROM delivery_settings WHERE setting_key IN ('minimum_days','horizon_days','blocked_weekdays')").all(),
     db.prepare("SELECT holiday_date FROM delivery_holidays").all()
   ]);
 
   const settings = settingMap(settingResult.results);
   const minimumDays = Math.max(0, Math.min(60, settings.minimum_days == null ? 2 : (Number(settings.minimum_days) || 0)));
   const horizonDays = Math.max(1, Math.min(60, Number(settings.horizon_days) || 14));
-  const cutoff = String(settings.same_day_cutoff || "14:00").match(/^(\d{1,2}):(\d{2})$/);
   const blockedSetting = (() => { try { return JSON.parse(settings.blocked_weekdays || "[]"); } catch (_) { return []; } })();
   const blockedWeekdays = new Set((Array.isArray(blockedSetting) ? blockedSetting : []).map(Number));
   const holidays = new Set((holidayResult.results || []).map((row) => normalizeDate(row.holiday_date)));
   const tehran = localDateParts(now);
   const today = Date.UTC(tehran.year, tehran.month - 1, tehran.day);
-  const cutoffReached = !!cutoff && tehran.hour * 60 + tehran.minute >= Number(cutoff[1]) * 60 + Number(cutoff[2]);
   const eligibleDateOffsets = [];
   for (let offset = 0; offset <= horizonDays; offset++) {
     const timestamp = today + offset * 86400000;
@@ -79,7 +77,7 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   // به حداقل زمان آماده‌سازی اضافه می‌گردد (۲ روز → ۳ روز).
   // minimum_days تعداد روزهای کامل بعد از روز ثبت سفارش است؛ بنابراین
   // سفارش یکشنبه با مقدار ۲، سه‌شنبه و بعد از ساعت برش، چهارشنبه می‌شود.
-  const preparationDaysToSkip = Math.max(0, minimumDays + (cutoffReached ? 1 : 0));
+  const preparationDaysToSkip = Math.max(0, minimumDays);
   const firstSelectableOffset = eligibleDateOffsets
     .slice(preparationDaysToSkip)
     .find(() => true);
