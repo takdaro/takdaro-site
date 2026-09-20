@@ -344,6 +344,17 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
   .btn-custom { padding:12px 24px; font-size:14px; display:block; text-align:center; }
   .btn-custom-secondary { display:block; text-align:center; margin:6px 0; }
 }
+@media (prefers-color-scheme: dark) {
+  body { background:#0f172a; }
+  .email-wrapper { background:#111827; }
+  .email-body { color:#e5e7eb; }
+  .email-body .intro, .order-card .order-label { color:#cbd5e1; }
+  .order-card { background:linear-gradient(135deg,#1e293b,#243447); }
+  .order-card .order-value { color:#f8fafc; }
+  .items-table thead th { background:#1e293b; color:#cbd5e1; }
+  .items-table tbody td { border-color:#334155; }
+  .email-footer { background:#0f172a; border-color:#334155; }
+}
 </style>
 </head>
 <body>
