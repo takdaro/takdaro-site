@@ -1041,7 +1041,7 @@ async function sendAdminFcmNotification(env, eventType, title, body, orderId = n
 export async function sendLowStockNotification(env, product, previousQuantity, currentQuantity, threshold = 5) {
   const previous = Number(previousQuantity ?? 0);
   const current = Number(currentQuantity ?? 0);
-  if (!(previous > threshold && current <= threshold)) return { skipped: true, reason: "threshold_not_crossed" };
+  if (!(current <= threshold && current !== previous)) return { skipped: true, reason: "threshold_not_reached_or_unchanged" };
   const eventType = "product_low_stock";
   const referenceId = `product-${product.id}`;
   const message = `⚠️ <b>هشدار کاهش موجودی</b>\n\n📦 محصول: ${product.name}\n🔢 موجودی فعلی: <b>${current} عدد</b>\n\nموجودی محصول به حد هشدار (۵ عدد) رسیده یا کمتر شده است. لطفاً برای تأمین مجدد بررسی کنید.`;
@@ -2842,6 +2842,7 @@ export async function getSiteBaseUrl(env) {
   }
   return 'https://takdaro-site.pages.dev';
 }
+
 
 
 
