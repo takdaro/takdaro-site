@@ -203,7 +203,13 @@ export async function toggleEmailChannel(env, enabled, userId) {
 export async function getEmailTemplate(env, eventType) {
   const settings = await getEmailSettings(env);
   const templates = settings.config.templates || {};
-  return templates[eventType] || null;
+  const template = templates[eventType] || null;
+  const unifiedEvents = new Set(['order_created','payment_pending','payment_success','payment_failed','order_status_changed','order_cancelled','cashback_applied','refund_applied']);
+  if (!template || !unifiedEvents.has(eventType)) return template;
+  return {
+    ...template,
+    body: '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;color:#183348;padding:24px;border:1px solid #d9e1e8;border-radius:12px"><h2 style="margin:0 0 8px;color:#123b5d">تاکدارو</h2><p>سلام {customer_name}،</p><p>وضعیت سفارش شما به‌روزرسانی شد.</p><div style="background:#f7fafc;border:1px solid #d9e1e8;border-radius:8px;padding:16px;line-height:2"><b>شماره سفارش:</b> #{order_number}<br><b>وضعیت سفارش:</b> {order_status}<br><b>وضعیت پرداخت:</b> {payment_status}<br><b>مبلغ کل:</b> {amount} تومان<br><b>هزینه ارسال:</b> {shipping_amount} تومان</div><div style="background:#eef8f5;border:1px solid #b9e2d2;border-radius:8px;padding:14px;margin-top:14px"><b>زمان ارسال:</b><br>{delivery_date} {delivery_time}</div><h3>اقلام سفارش</h3><table style="width:100%;border-collapse:collapse">{items_list}</table><p style="background:#fff8e6;border:1px solid #f0d58a;padding:12px;border-radius:8px">🎁 کش‌بک: {cashback_amount} تومان</p><p style="text-align:center"><a href="{site_url}/invoice.html?order={order_number}" style="display:inline-block;background:#f0a126;color:#183348;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">مشاهده جزئیات سفارش</a> <a href="https://wa.me/989214147070" style="display:inline-block;background:#25d366;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">پشتیبانی واتساپ</a></p></div>'
+  };
 }
 
 export async function getAllEmailTemplates(env) {
