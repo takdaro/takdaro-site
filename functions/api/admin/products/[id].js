@@ -374,18 +374,17 @@ export async function onRequestPut(context) {
       ? Math.max(0, toInteger(body.stock_quantity ?? body.stockQuantity, 0))
       : currentProduct.stock_quantity;
 
-    const inStock = Object.prototype.hasOwnProperty.call(body, "in_stock") ||
+    const requestedInStock = Object.prototype.hasOwnProperty.call(body, "in_stock") ||
       Object.prototype.hasOwnProperty.call(body, "inStock")
       ? toBooleanInteger(body.in_stock ?? body.inStock, stockQuantity > 0)
       : currentProduct.in_stock
         ? 1
         : 0;
+    const inStock = stockQuantity > 0 && requestedInStock === 1 ? 1 : 0;
 
-    const stockLabel =
-      cleanText(
-        body.stock_label ?? body.stockLabel ?? currentProduct.stock_label,
-        100
-      ) || (inStock ? "موجود" : "ناموجود");
+    const stockLabel = inStock
+      ? cleanText(body.stock_label ?? body.stockLabel ?? currentProduct.stock_label, 100) || "موجود"
+      : "موجود نیست؛ در حال تأمین";
 
     const shortDescription = cleanText(
       body.short_description ??

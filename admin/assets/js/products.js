@@ -1485,10 +1485,8 @@
                   : "🔸 ثابت";
 
               var hasStock =
-                getBoolean(product.in_stock) ||
-                Number(
-                  product.stock_quantity || 0
-                ) > 0;
+                getBoolean(product.in_stock) &&
+                Number(product.stock_quantity || 0) > 0;
 
               var stockLabel =
                 product.stock_label ||
