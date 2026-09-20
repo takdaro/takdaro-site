@@ -1330,14 +1330,15 @@
         result.data?.data || {};
 
       // اعمال سریع قالب فاکتور ساده و مرتب برای ثبت سفارش
-      if (eventType === 'order_created') {
+      if (String(eventType || '').trim().toLowerCase() === 'order_created') {
         template.title = 'ثبت سفارش جدید';
         template.subject = '✅ سفارش #{order_number} با موفقیت ثبت شد | تاکدارو';
         template.body = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;color:#183348;padding:24px;border:1px solid #d9e1e8;border-radius:12px"><h2 style="margin:0 0 8px;color:#123b5d">تاکدارو | تأیید سفارش</h2><p>سلام {customer_name}، سفارش شما با موفقیت ثبت شد.</p><div style="background:#f7fafc;border:1px solid #d9e1e8;border-radius:8px;padding:16px;line-height:2"><b>شماره سفارش:</b> #{order_number}<br><b>وضعیت:</b> {order_status}<br><b>مبلغ کل:</b> {amount} تومان<br><b>هزینه ارسال:</b> {shipping_amount} تومان</div><div style="background:#eef8f5;border:1px solid #b9e2d2;border-radius:8px;padding:14px;margin-top:14px"><b>زمان ارسال:</b><br>{delivery_date} {delivery_time}</div><h3>اقلام سفارش</h3><table style="width:100%;border-collapse:collapse">{items_list}</table><p style="background:#fff8e6;border:1px solid #f0d58a;padding:12px;border-radius:8px">🎁 کش‌بک: {cashback_amount} تومان</p><p style="text-align:center"><a href="{site_url}/invoice.html?order={order_number}" style="display:inline-block;background:#f0a126;color:#183348;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">مشاهده جزئیات سفارش</a> <a href="https://wa.me/989214147070" style="display:inline-block;background:#25d366;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">پشتیبانی واتساپ</a></p></div>';
         template.is_enabled = true;
       }
 
-      var title = eventType === 'order_created' ? template.title :
+      var isOrderCreated = String(eventType || '').trim().toLowerCase() === 'order_created';
+      var title = isOrderCreated ? template.title :
         prompt(
           'عنوان Template:',
           template.title || ''
@@ -1347,7 +1348,7 @@
         return false;
       }
 
-      var subject = eventType === 'order_created' ? template.subject :
+      var subject = isOrderCreated ? template.subject :
         prompt(
           'موضوع (Subject):',
           template.subject || ''
@@ -1357,7 +1358,7 @@
         return false;
       }
 
-      var body = eventType === 'order_created' ? template.body :
+      var body = isOrderCreated ? template.body :
         prompt(
           'متن (Body) - می‌توانید از HTML استفاده کنید:',
           template.body || ''
@@ -1367,7 +1368,7 @@
         return false;
       }
 
-      var isEnabled = eventType === 'order_created' ? true : confirm('آیا این Template فعال باشد؟');
+      var isEnabled = isOrderCreated ? true : confirm('آیا این Template فعال باشد؟');
 
       var saveResult =
         await window.api(
