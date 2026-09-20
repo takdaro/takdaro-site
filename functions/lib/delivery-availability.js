@@ -74,13 +74,13 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
     const isDeliveryDay = !blockedWeekdays.has(weekday) && !holidays.has(jalaliDate);
     if (isDeliveryDay) eligibleDateOffsets.push(offset);
   }
-  // Count the order date as the first preparation day when it is an open day.
-  // The same-day cutoff only disables delivery today; it must not shift the
-  // configured preparation window by an extra day.
-  const preparationDaysToSkip = Math.max(0, minimumDays - 1);
+  // قبل از ساعت برش، امروز می‌تواند بخشی از بازهٔ آماده‌سازی باشد.
+  // بعد از ساعت برش، سفارش از چرخهٔ امروز خارج می‌شود و یک روز کامل
+  // به حداقل زمان آماده‌سازی اضافه می‌گردد (۲ روز → ۳ روز).
+  const preparationDaysToSkip = Math.max(0, minimumDays - 1 + (cutoffReached ? 1 : 0));
   const firstSelectableOffset = eligibleDateOffsets
     .slice(preparationDaysToSkip)
-    .find((offset) => !(cutoffReached && offset === 0));
+    .find(() => true);
   const lastDisplayedOffset = firstSelectableOffset == null
     ? horizonDays
     : Math.min(horizonDays, firstSelectableOffset + 6);
