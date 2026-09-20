@@ -674,11 +674,6 @@ export async function onRequestPost(context) {
 
     const product = await getProductPayload(context.env.DB, productId);
 
-    try {
-      await sendLowStockNotification(context.env, product, currentProduct.stock_quantity, input.stockQuantity, 5);
-    } catch (notificationError) {
-      console.error("Low stock notification failed:", notificationError);
-    }
 
     await logAdminAction(context, {
       admin_user_id: adminCheck.user.id,
@@ -992,4 +987,5 @@ export async function onRequestDelete(context) {
     );
   }
 }
+
 
