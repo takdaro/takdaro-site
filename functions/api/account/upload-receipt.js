@@ -39,6 +39,20 @@ export async function onRequestPost(context) {
     const photo = result.result?.photo || [];
     const fileId = photo[photo.length - 1]?.file_id || null;
     await context.env.DB.prepare(`UPDATE orders SET receipt_file_id = ?, receipt_uploaded_at = CURRENT_TIMESTAMP, receipt_status = 'pending', payment_status = 'review', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?`).bind(fileId, order.id, userId).run();
+
+    // اگر مشتری تلگرام خود را متصل کرده باشد، رسید و پیام دریافت برای او هم ارسال شود.
+    const customerTelegram = await context.env.DB.prepare(
+      'SELECT chat_id FROM user_telegram_connections WHERE user_id = ? AND is_active = 1 LIMIT 1'
+    ).bind(userId).first();
+    if (customerTelegram?.chat_id && fileId) {
+      const customerBody = new FormData();
+      customerBody.append('chat_id', String(customerTelegram.chat_id));
+      customerBody.append('photo', file, file.name || 'receipt.jpg');
+      customerBody.append('caption', `✅ <b>رسید واریزی دریافت شد</b>\n\nفاکتور <b>${order.order_number}</b> را دریافت کرده‌ایم.\nرسید شما برای بررسی مدیریت ارسال شد و نتیجهٔ تأیید پرداخت پس از بررسی اطلاع‌رسانی می‌شود.`);
+      customerBody.append('parse_mode', 'HTML');
+      await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, { method: 'POST', body: customerBody }).catch(() => null);
+    }
+
     await context.env.DB.prepare(`UPDATE orders SET receipt_file_id = NULL, receipt_uploaded_at = NULL, receipt_status = 'none' WHERE receipt_uploaded_at IS NOT NULL AND receipt_uploaded_at < datetime('now', '-60 days')`).run();
     return json({ success: true, status: 'pending' });
   } catch (error) { return json({ success: false, error: String(error?.message || error) }, 500); }
