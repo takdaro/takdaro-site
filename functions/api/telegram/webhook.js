@@ -405,6 +405,17 @@ async function getAdminChatId(env) {
   try { return row?.config ? JSON.parse(row.config)?.chat_id : null; } catch (_) { return null; }
 }
 
+async function setSupportSession(env, chatId, isOpen) {
+  await env.DB.prepare(`INSERT INTO telegram_support_sessions (customer_chat_id, is_open, opened_at, closed_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP, CASE WHEN ? = 1 THEN NULL ELSE CURRENT_TIMESTAMP END)
+    ON CONFLICT(customer_chat_id) DO UPDATE SET is_open = excluded.is_open, closed_at = excluded.closed_at`).bind(String(chatId), isOpen ? 1 : 0, isOpen ? 1 : 0).run();
+}
+
+async function isSupportOpen(env, chatId) {
+  const row = await env.DB.prepare('SELECT is_open FROM telegram_support_sessions WHERE customer_chat_id = ? LIMIT 1').bind(String(chatId)).first();
+  return !row || Number(row.is_open) === 1;
+}
+
 async function handleSupportMessage(env, botToken, message) {
   const chatId = message.chat?.id;
   const adminChatId = await getAdminChatId(env);
@@ -420,11 +431,17 @@ async function handleSupportMessage(env, botToken, message) {
     return true;
   }
   if (!connection) return false;
+  if (!(await isSupportOpen(env, chatId))) {
+    await sendTelegramMessage(botToken, chatId, '🔒 این گفت‌وگو بسته شده است. برای درخواست جدید، دوباره روی دکمهٔ پشتیبانی بزنید.');
+    return true;
+  }
   const user = await env.DB.prepare('SELECT full_name, phone FROM users WHERE id = ? LIMIT 1').bind(connection.user_id).first();
   const header = `📩 <b>پیام پشتیبانی مشتری</b>\n👤 ${user?.full_name || '-'}\n📱 ${user?.phone || '-'}\n🆔 <code>CUSTOMER_CHAT_ID:${chatId}</code>`;
-  if (message.text) await telegramApi(botToken, 'sendMessage', { chat_id: adminChatId, text: `${header}\n\n📝 ${message.text}`, parse_mode: 'HTML' });
-  else if (message.voice?.file_id) await telegramApi(botToken, 'sendVoice', { chat_id: adminChatId, voice: message.voice.file_id, caption: header, parse_mode: 'HTML' });
-  else if (message.photo?.length) await telegramApi(botToken, 'sendPhoto', { chat_id: adminChatId, photo: message.photo.at(-1).file_id, caption: header, parse_mode: 'HTML' });
+  await setSupportSession(env, chatId, true);
+  const closeMarkup = { inline_keyboard: [[{ text: '🔒 بستن مکالمه', callback_data: `support:close:${chatId}` }]] };
+  if (message.text) await telegramApi(botToken, 'sendMessage', { chat_id: adminChatId, text: `${header}\n\n📝 ${message.text}`, parse_mode: 'HTML', reply_markup: closeMarkup });
+  else if (message.voice?.file_id) await telegramApi(botToken, 'sendVoice', { chat_id: adminChatId, voice: message.voice.file_id, caption: header, parse_mode: 'HTML', reply_markup: closeMarkup });
+  else if (message.photo?.length) await telegramApi(botToken, 'sendPhoto', { chat_id: adminChatId, photo: message.photo.at(-1).file_id, caption: header, parse_mode: 'HTML', reply_markup: closeMarkup });
   return true;
 }
 
@@ -452,7 +469,14 @@ export async function onRequestPost(context) {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       if (callback.data === 'support:start') {
         await telegramApi(botToken, 'answerCallbackQuery', { callback_query_id: callback.id });
+        await setSupportSession(env, callback.message.chat.id, true);
         await sendTelegramMessage(botToken, callback.message.chat.id, '💬 پیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای پشتیبانی فرستاده شود.');
+      } else if (callback.data?.startsWith('support:close:')) {
+        const customerChatId = callback.data.slice('support:close:'.length);
+        await setSupportSession(env, customerChatId, false);
+        await telegramApi(botToken, 'answerCallbackQuery', { callback_query_id: callback.id, text: 'مکالمه بسته شد.' });
+        await sendTelegramMessage(botToken, customerChatId, '✅ مکالمهٔ پشتیبانی بسته شد. در صورت نیاز می‌توانید درخواست جدیدی ارسال کنید.');
+        await telegramApi(botToken, 'editMessageReplyMarkup', { chat_id: callback.message.chat.id, message_id: callback.message.message_id, reply_markup: { inline_keyboard: [] } });
       }
       return new Response('OK', { status: 200 });
     }
