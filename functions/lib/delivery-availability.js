@@ -83,9 +83,9 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   const firstSelectableOffset = eligibleDateOffsets
     .slice(preparationDaysToSkip)
     .find(() => true);
-  const lastDisplayedOffset = firstSelectableOffset == null
-    ? horizonDays
-    : Math.min(horizonDays, firstSelectableOffset + 6);
+  // کل بازهٔ تعیین‌شده در تنظیمات باید در checkout قابل مشاهده باشد؛
+  // محدودیت ثابت چندروزه باعث می‌شد مقدارهایی مثل ۲۰ روز نمایش داده نشوند.
+  const lastDisplayedOffset = horizonDays;
   const fromTs = today - 40 * 86400000;
   const toTs = today + lastDisplayedOffset * 86400000 + 40 * 86400000;
   const schedules = (scheduleResult.results || []).filter((schedule) => locationMatches(schedule, options.province || "", options.city || "", options.shippingMethodId));
