@@ -38,6 +38,7 @@ import {
 import {
   getEmailSettings,
   sendEmail,
+  sendEmail,
   sendEmailWithTemplate,
   sendUserEmailNotification,
   sendAdminEmailNotification,
@@ -1037,6 +1038,27 @@ async function sendAdminFcmNotification(env, eventType, title, body, orderId = n
 }
 
 // ============================================
+// هشدار کاهش موجودی محصول برای ادمین
+export async function sendLowStockNotification(env, product, previousQuantity, currentQuantity, threshold = 5) {
+  const previous = Number(previousQuantity ?? 0);
+  const current = Number(currentQuantity ?? 0);
+  if (!(previous > threshold && current <= threshold)) return { skipped: true, reason: "threshold_not_crossed" };
+  const eventType = "product_low_stock";
+  const referenceId = `product-${product.id}`;
+  const message = `⚠️ <b>هشدار کاهش موجودی</b>\n\n📦 محصول: ${product.name}\n🔢 موجودی فعلی: <b>${current} عدد</b>\n\nموجودی محصول به حد هشدار (۵ عدد) رسیده یا کمتر شده است. لطفاً برای تأمین مجدد بررسی کنید.`;
+  const telegramResult = await sendTelegramNotification(env, eventType, message, null, referenceId, true);
+  let emailResult = { success: false, skipped: true };
+  try {
+    const settings = await getEmailSettings(env);
+    if (settings?.is_enabled) {
+      const adminEmail = settings.config?.admin_email || "admin@takdaro.com";
+      const html = `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;color:#243447;line-height:2"><h2>⚠️ هشدار کاهش موجودی</h2><p>موجودی محصول <b>${product.name}</b> به <b>${current} عدد</b> رسیده است.</p><p>حد هشدار: ۵ عدد</p><p>لطفاً برای تأمین مجدد محصول اقدام کنید.</p></div>`;
+      const sent = await sendEmail(env, { to: adminEmail, subject: `⚠️ هشدار موجودی کم: ${product.name}`, html, from: settings.config?.sender_email || "noreply@takdaro.com", fromName: settings.config?.sender_name || "تاکدرو" });
+      emailResult = { success: sent.success !== false, messageId: sent.messageId || null };
+    }
+  } catch (error) { emailResult = { success: false, error: String(error?.message || error) }; }
+  return { success: telegramResult.success || emailResult.success, telegram: telegramResult, email: emailResult };
+}
 // 1. اعلان سفارش جدید (ادمین)
 // ============================================
 export async function sendOrderCreatedNotification(env, orderData, userData, items, baseUrl = '') {
@@ -2821,5 +2843,7 @@ export async function getSiteBaseUrl(env) {
   }
   return 'https://takdaro-site.pages.dev';
 }
+
+
 
 
