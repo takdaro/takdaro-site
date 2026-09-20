@@ -386,6 +386,10 @@ async function handleStartCommand(env, chatId, botToken, text, from) {
   // ارسال پیام موفقیت
   await sendWelcomeMessage(env, chatId, botToken, userInfo);
 
+  // پس از اتصال، آخرین فاکتور کاربر را خودکار نمایش بده؛
+  // کاربر دیگر لازم نیست جداگانه دستور /status را ارسال کند.
+  await handleStatusCommand(env, chatId, botToken);
+
   return { success: true, userId };
 }
 
