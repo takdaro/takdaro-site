@@ -203,8 +203,13 @@ export async function toggleEmailChannel(env, enabled, userId) {
 export async function getEmailTemplate(env, eventType) {
   const settings = await getEmailSettings(env);
   const templates = settings.config.templates || {};
-  const template = templates[eventType] || null;
   const unifiedEvents = new Set(['order_created','payment_pending','payment_success','payment_failed','order_status_changed','order_cancelled','cashback_applied','refund_applied']);
+  const template = templates[eventType] || (unifiedEvents.has(eventType) ? {
+    title: eventType,
+    subject: '🔔 به‌روزرسانی سفارش #{order_number} | تاکدارو',
+    body: '<p dir="rtl">سلام {customer_name}، وضعیت سفارش شما: <b>{order_status}</b><br>مبلغ: {amount} تومان<br>هزینه ارسال: {shipping_amount} تومان<br>زمان ارسال: {delivery_date} {delivery_time}<br><a href="{site_url}/invoice.html?order={order_number}">مشاهده جزئیات سفارش</a> | <a href="https://wa.me/989214147070">پشتیبانی واتساپ</a></p>',
+    is_enabled: true
+  } : null);
   if (!template) return null;
   if (eventType === 'wallet_credit' || eventType === 'wallet_debit') {
     return {
@@ -238,7 +243,7 @@ export async function getAllEmailTemplates(env) {
 
   const result = [];
   for (const eventType of eventTypes) {
-    const template = templates[eventType] || null;
+    const template = await getEmailTemplate(env, eventType);
     result.push({
       event_type: eventType,
       title: template?.title || '',
