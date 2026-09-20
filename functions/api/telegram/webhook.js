@@ -393,6 +393,41 @@ async function handleStartCommand(env, chatId, botToken, text, from) {
   return { success: true, userId };
 }
 
+async function telegramApi(botToken, method, payload) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  return response.json().catch(() => null);
+}
+
+async function getAdminChatId(env) {
+  const row = await env.DB.prepare('SELECT config FROM notification_settings WHERE channel = ? LIMIT 1').bind('telegram').first();
+  try { return row?.config ? JSON.parse(row.config)?.chat_id : null; } catch (_) { return null; }
+}
+
+async function handleSupportMessage(env, botToken, message) {
+  const chatId = message.chat?.id;
+  const adminChatId = await getAdminChatId(env);
+  if (!adminChatId) return false;
+  const connection = await env.DB.prepare('SELECT user_id FROM user_telegram_connections WHERE chat_id = ? AND is_active = 1 LIMIT 1').bind(chatId).first();
+  const replyTo = message.reply_to_message?.caption || message.reply_to_message?.text || '';
+  const customerIdMatch = replyTo.match(/CUSTOMER_CHAT_ID:(-?\d+)/);
+  if (String(chatId) === String(adminChatId) && customerIdMatch) {
+    const target = customerIdMatch[1];
+    if (message.text) await telegramApi(botToken, 'sendMessage', { chat_id: target, text: `💬 <b>پشتیبانی</b>\n\n${message.text}`, parse_mode: 'HTML' });
+    else if (message.voice?.file_id) await telegramApi(botToken, 'sendVoice', { chat_id: target, voice: message.voice.file_id, caption: '💬 پاسخ پشتیبانی' });
+    else if (message.photo?.length) await telegramApi(botToken, 'sendPhoto', { chat_id: target, photo: message.photo.at(-1).file_id, caption: '💬 پاسخ پشتیبانی' });
+    return true;
+  }
+  if (!connection) return false;
+  const user = await env.DB.prepare('SELECT full_name, phone FROM users WHERE id = ? LIMIT 1').bind(connection.user_id).first();
+  const header = `📩 <b>پیام پشتیبانی مشتری</b>\n👤 ${user?.full_name || '-'}\n📱 ${user?.phone || '-'}\n🆔 <code>CUSTOMER_CHAT_ID:${chatId}</code>`;
+  if (message.text) await telegramApi(botToken, 'sendMessage', { chat_id: adminChatId, text: `${header}\n\n📝 ${message.text}`, parse_mode: 'HTML' });
+  else if (message.voice?.file_id) await telegramApi(botToken, 'sendVoice', { chat_id: adminChatId, voice: message.voice.file_id, caption: header, parse_mode: 'HTML' });
+  else if (message.photo?.length) await telegramApi(botToken, 'sendPhoto', { chat_id: adminChatId, photo: message.photo.at(-1).file_id, caption: header, parse_mode: 'HTML' });
+  return true;
+}
+
 /**
  * Webhook اصلی
  */
@@ -411,6 +446,16 @@ export async function onRequestPost(context) {
 
     // دریافت بدنه درخواست
     const body = await request.json();
+
+    const callback = body.callback_query;
+    if (callback) {
+      const botToken = env.TELEGRAM_BOT_TOKEN;
+      if (callback.data === 'support:start') {
+        await telegramApi(botToken, 'answerCallbackQuery', { callback_query_id: callback.id });
+        await sendTelegramMessage(botToken, callback.message.chat.id, '💬 پیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای پشتیبانی فرستاده شود.');
+      }
+      return new Response('OK', { status: 200 });
+    }
 
     // دریافت اطلاعات پیام
     const message = body.message;
@@ -443,6 +488,10 @@ export async function onRequestPost(context) {
 
     if (text.startsWith('/help')) {
       await handleHelpCommand(env, chatId, botToken);
+      return new Response('OK', { status: 200 });
+    }
+
+    if (await handleSupportMessage(env, botToken, message)) {
       return new Response('OK', { status: 200 });
     }
 

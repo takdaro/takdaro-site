@@ -814,7 +814,7 @@ export function createUserOrderTrackingButton(orderNumber, baseUrl = '') {
     [
       {
         text: '💬 پشتیبانی',
-        url: 'https://wa.me/989214147070'
+        callback_data: 'support:start'
       }
     ]
   ];
