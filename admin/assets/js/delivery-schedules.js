@@ -113,7 +113,6 @@
       var settings = data.settings || {};
       var minDays = document.getElementById('delivery-min-days'); if (minDays) minDays.value = settings.minimum_days || '2';
       var horizon = document.getElementById('delivery-horizon-days'); if (horizon) horizon.value = settings.horizon_days || '14';
-      var cutoff = document.getElementById('delivery-same-day-cutoff'); if (cutoff) cutoff.value = settings.same_day_cutoff || '14:00';
       var placement = document.getElementById('delivery-checkout-placement'); if (placement) placement.value = settings.checkout_placement || 'after_shipping';
       var checkoutMessage = document.getElementById('delivery-checkout-message'); if (checkoutMessage) checkoutMessage.value = settings.checkout_message || '';
       var notificationLabel = document.getElementById('delivery-notification-label'); if (notificationLabel) notificationLabel.value = settings.delivery_notification_label || 'زمان ارسال';
@@ -141,7 +140,7 @@
       post({ action:'save_weekly_slots', rows:rows }).then(load);
     }
     if (target.id === 'save-delivery-defaults') {
-      post({ action:'save_defaults', minimum_days:document.getElementById('delivery-min-days').value, horizon_days:document.getElementById('delivery-horizon-days').value, same_day_cutoff:document.getElementById('delivery-same-day-cutoff').value }).then(load);
+      post({ action:'save_defaults', minimum_days:document.getElementById('delivery-min-days').value, horizon_days:document.getElementById('delivery-horizon-days').value }).then(load);
     }
     if (target.id === 'save-delivery-display') {
       post({ action:'save_display', checkout_placement:document.getElementById('delivery-checkout-placement').value, checkout_message:document.getElementById('delivery-checkout-message').value, delivery_notification_label:document.getElementById('delivery-notification-label').value, delivery_always_visible:document.getElementById('delivery-always-show').checked ? '1' : '0' }).then(load);
