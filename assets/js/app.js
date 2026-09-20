@@ -34,22 +34,30 @@
     const shortDescription = escapeHtml(product?.shortDescription || "");
     const priceLabel = escapeHtml(product?.priceLabel || product?.displayPrice || "تماس بگیرید");
     const stockLabel = escapeHtml(product?.stockLabel || (product?.inStock ? "موجود" : "ناموجود"));
-    const stockClass = product?.inStock ? "in-stock" : "out-of-stock";
+    const available = Boolean(product?.inStock) && Number(product?.stockQty ?? product?.stock_quantity ?? 0) > 0;
+    const stockClass = available ? "in-stock" : "out-of-stock";
+    const unavailableLabel = "موجود نیست؛ در حال تأمین";
+    const pageUrl = normalizePageUrl(product);
+    const productLink = available
+      ? `<a href="${pageUrl}" class="product-card__image-link" aria-label="مشاهده محصول ${title}">`
+      : `<span class="product-card__image-link is-disabled" aria-label="${unavailableLabel}">`;
+    const productLinkEnd = available ? "</a>" : "</span>";
+    const price = available ? priceLabel : unavailableLabel;
 
     return `
       <article class="product-card">
-        <a href="${normalizePageUrl(product)}" class="product-card__image-link" aria-label="مشاهده محصول ${title}">
+        ${productLink}
           <img src="${normalizeImageSrc(product)}" alt="${title}" class="product-card__image" loading="lazy" />
-        </a>
+        ${productLinkEnd}
         <div class="product-card__body">
           <span class="product-card__category">${category}</span>
-          <h3 class="product-card__title"><a href="${normalizePageUrl(product)}">${title}</a></h3>
+          <h3 class="product-card__title">${available ? `<a href="${pageUrl}">${title}</a>` : `<span>${title}</span>`}</h3>
           <p class="product-card__text">${shortDescription}</p>
           <div class="product-card__meta">
-            <strong class="product-card__price">${priceLabel}</strong>
-            <span class="product-card__stock ${stockClass}">${stockLabel}</span>
+            <strong class="product-card__price">${escapeHtml(price)}</strong>
+            <span class="product-card__stock ${stockClass}">${available ? stockLabel : unavailableLabel}</span>
           </div>
-          <div class="product-card__actions"><a href="${normalizePageUrl(product)}" class="btn btn-primary">مشاهده محصول</a></div>
+          <div class="product-card__actions">${available ? `<a href="${pageUrl}" class="btn btn-primary">مشاهده محصول</a>` : `<span class="btn btn-secondary is-disabled">موجود نیست</span>`}</div>
         </div>
       </article>`;
   }

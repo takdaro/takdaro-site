@@ -780,6 +780,12 @@ h4 {
   color: var(--danger);
 }
 
+.product-card__image-link.is-disabled,
+.product-card__actions .btn.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .product-card__actions {
   margin-top: 4px;
 }

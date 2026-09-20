@@ -26,6 +26,7 @@
 
   function formatPrice(product) {
     if (!product) return "تماس بگیرید";
+    if (!isAvailable(product)) return "موجود نیست؛ در حال تأمین";
 
     if (product.displayPriceLabel) {
       return product.displayPriceLabel;
