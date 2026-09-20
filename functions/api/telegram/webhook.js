@@ -430,12 +430,14 @@ async function handleSupportMessage(env, botToken, message) {
     else if (message.photo?.length) await telegramApi(botToken, 'sendPhoto', { chat_id: target, photo: message.photo.at(-1).file_id, caption: '💬 پاسخ پشتیبانی' });
     return true;
   }
-  if (!connection) return false;
   if (!(await isSupportOpen(env, chatId))) {
     await sendTelegramMessage(botToken, chatId, '🔒 این گفت‌وگو بسته شده است. برای درخواست جدید، دوباره روی دکمهٔ پشتیبانی بزنید.');
     return true;
   }
-  const user = await env.DB.prepare('SELECT full_name, phone FROM users WHERE id = ? LIMIT 1').bind(connection.user_id).first();
+  if (!connection && !message.text && !message.photo && !message.voice) return false;
+  const user = connection
+    ? await env.DB.prepare('SELECT full_name, phone FROM users WHERE id = ? LIMIT 1').bind(connection.user_id).first()
+    : { full_name: [message.from?.first_name, message.from?.last_name].filter(Boolean).join(' ') || 'کاربر تلگرام', phone: '' };
   const header = `📩 <b>پیام پشتیبانی مشتری</b>\n👤 ${user?.full_name || '-'}\n📱 ${user?.phone || '-'}\n🆔 <code>CUSTOMER_CHAT_ID:${chatId}</code>`;
   await setSupportSession(env, chatId, true);
   const closeMarkup = { inline_keyboard: [[{ text: '🔒 بستن مکالمه', callback_data: `support:close:${chatId}` }]] };
@@ -512,6 +514,17 @@ export async function onRequestPost(context) {
 
     if (text.startsWith('/help')) {
       await handleHelpCommand(env, chatId, botToken);
+      return new Response('OK', { status: 200 });
+    }
+
+    if (text.startsWith('/support')) {
+      await setSupportSession(env, chatId, true);
+      await sendTelegramMessage(
+        botToken,
+        chatId,
+        '💬 <b>پشتیبانی تک تجارت</b>\n\nپیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای کارشناسان پشتیبانی فرستاده شود.',
+        { replyMarkup: [[{ text: '💬 شروع پشتیبانی', callback_data: 'support:start' }]] }
+      );
       return new Response('OK', { status: 200 });
     }
 
