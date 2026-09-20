@@ -302,7 +302,7 @@ async function handleStartCommand(env, chatId, botToken, text, from) {
     await sendTelegramMessage(
       botToken,
       chatId,
-      '💬 <b>پشتیبانی تک تجارت</b>\n\nپیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای کارشناسان پشتیبانی فرستاده شود.',
+      '💬 <b>پشتیبانی تک تجارت</b>\n\nپیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای کارشناسان پشتیبانی فرستاده شود. کارشناسان در اولین فرصت پاسخ می‌دهند. ساعات پاسخ‌گویی: هر روز از ۹ صبح تا ۱۲ شب.',
       { replyMarkup: [[{ text: '💬 شروع پشتیبانی', callback_data: 'support:start' }]] }
     );
     return { success: true, support: true };
@@ -490,7 +490,7 @@ export async function onRequestPost(context) {
       if (callback.data === 'support:start') {
         await telegramApi(botToken, 'answerCallbackQuery', { callback_query_id: callback.id });
         await setSupportSession(env, callback.message.chat.id, true);
-        await sendTelegramMessage(botToken, callback.message.chat.id, '💬 پیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای پشتیبانی فرستاده شود.');
+        await sendTelegramMessage(botToken, callback.message.chat.id, '💬 پیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای پشتیبانی فرستاده شود. کارشناسان در اولین فرصت پاسخ می‌دهند. ساعات پاسخ‌گویی: هر روز از ۹ صبح تا ۱۲ شب.');
       } else if (callback.data?.startsWith('support:close:')) {
         const customerChatId = callback.data.slice('support:close:'.length);
         await setSupportSession(env, customerChatId, false);
@@ -540,7 +540,7 @@ export async function onRequestPost(context) {
       await sendTelegramMessage(
         botToken,
         chatId,
-        '💬 <b>پشتیبانی تک تجارت</b>\n\nپیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای کارشناسان پشتیبانی فرستاده شود.',
+        '💬 <b>پشتیبانی تک تجارت</b>\n\nپیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای کارشناسان پشتیبانی فرستاده شود. کارشناسان در اولین فرصت پاسخ می‌دهند. ساعات پاسخ‌گویی: هر روز از ۹ صبح تا ۱۲ شب.',
         { replyMarkup: [[{ text: '💬 شروع پشتیبانی', callback_data: 'support:start' }]] }
       );
       return new Response('OK', { status: 200 });
@@ -569,3 +569,4 @@ export async function onRequestPost(context) {
     return new Response('Internal Server Error', { status: 500 });
   }
 }
+
