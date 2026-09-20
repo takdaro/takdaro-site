@@ -720,7 +720,7 @@
           option.value = day.date;
           const holiday = day.holiday || day.unavailable_reason === "holiday";
           const dayLabel = `${weekdayNames[Number(day.weekday)] || ""} ${persianDigits(day.date)}`;
-          option.textContent = holiday ? `${dayLabel} — تعطیلی رسمی` : day.available ? dayLabel : `${dayLabel} — بدون پیک`;
+          option.textContent = holiday ? `${dayLabel} — تعطیلی رسمی` : day.available ? dayLabel : `${dayLabel} — ارسال در این روز انجام نمی‌شود`;
           option.disabled = !day.available;
           if (holiday) {
             option.className = "is-holiday";
