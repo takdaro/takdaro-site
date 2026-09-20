@@ -295,6 +295,19 @@ async function handleStartCommand(env, chatId, botToken, text, from) {
   }
 
   const rawToken = parts[1];
+
+  // لینک عمومی پشتیبانی: https://t.me/TakdaroSupport_bot?start=support
+  if (rawToken.toLowerCase() === 'support') {
+    await setSupportSession(env, chatId, true);
+    await sendTelegramMessage(
+      botToken,
+      chatId,
+      '💬 <b>پشتیبانی تک تجارت</b>\n\nپیام خود را به‌صورت متن، تصویر یا ویس ارسال کنید تا برای کارشناسان پشتیبانی فرستاده شود.',
+      { replyMarkup: [[{ text: '💬 شروع پشتیبانی', callback_data: 'support:start' }]] }
+    );
+    return { success: true, support: true };
+  }
+
   const tokenHash = await hashToken(rawToken);
 
   // جستجوی توکن در دیتابیس
