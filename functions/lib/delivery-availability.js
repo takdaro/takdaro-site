@@ -77,7 +77,9 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
   // قبل از ساعت برش، امروز می‌تواند بخشی از بازهٔ آماده‌سازی باشد.
   // بعد از ساعت برش، سفارش از چرخهٔ امروز خارج می‌شود و یک روز کامل
   // به حداقل زمان آماده‌سازی اضافه می‌گردد (۲ روز → ۳ روز).
-  const preparationDaysToSkip = Math.max(0, minimumDays - 1 + (cutoffReached ? 1 : 0));
+  // minimum_days تعداد روزهای کامل بعد از روز ثبت سفارش است؛ بنابراین
+  // سفارش یکشنبه با مقدار ۲، سه‌شنبه و بعد از ساعت برش، چهارشنبه می‌شود.
+  const preparationDaysToSkip = Math.max(0, minimumDays + (cutoffReached ? 1 : 0));
   const firstSelectableOffset = eligibleDateOffsets
     .slice(preparationDaysToSkip)
     .find(() => true);
