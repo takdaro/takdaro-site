@@ -15,6 +15,13 @@ function cleanText(value, maxLength = 10000) {
   return String(value ?? "").trim().slice(0, maxLength);
 }
 
+function normalizeDigits(value) {
+  return String(value ?? "").replace(/[۰-۹٠-٩]/g, (digit) => {
+    const code = digit.charCodeAt(0);
+    return String(code >= 0x06f0 && code <= 0x06f9 ? code - 0x06f0 : code - 0x0660);
+  });
+}
+
 function cleanSlug(value) {
   return cleanText(value, 160)
     .toLowerCase()
@@ -24,7 +31,7 @@ function cleanSlug(value) {
 }
 
 function toInteger(value, fallback = 0) {
-  const parsed = Number.parseInt(value, 10);
+  const parsed = Number.parseInt(normalizeDigits(value), 10);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
@@ -38,7 +45,7 @@ function toOptionalPrice(value) {
     return null;
   }
 
-  const normalized = String(value).replace(/[,\s]/g, "");
+  const normalized = normalizeDigits(value).replace(/[,\s]/g, "");
   const parsed = Number.parseInt(normalized, 10);
 
   if (!Number.isFinite(parsed) || parsed < 0) {
