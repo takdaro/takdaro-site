@@ -871,6 +871,7 @@ export function renderEmailTemplate(template, data) {
     '{delivery_date}': data.delivery_date || '',
     '{delivery_time}': data.delivery_time || '',
     '{delivery_summary}': data.delivery_summary || '',
+    '{site_url}': data.site_url || 'https://www.takdaro.com',
     '{year}': new Date().getFullYear()
   };
 
