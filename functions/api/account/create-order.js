@@ -1099,6 +1099,9 @@ export async function onRequestPost(context) {
             walletUsedAmount,
             payableAmount,
             cashbackAmount,
+            deliveryDate: order.delivery_date || '',
+            deliveryTimeFrom: order.delivery_time_from || '',
+            deliveryTimeTo: order.delivery_time_to || '',
             status: "payment_pending",
             paymentStatus: "pending",
             createdAt: new Date().toISOString()
