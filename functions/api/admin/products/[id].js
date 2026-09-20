@@ -1,4 +1,5 @@
 import { requireAdmin, logAdminAction } from "../../../lib/admin";
+import { sendLowStockNotification } from "../../../lib/notification";
 
 function json(data, status = 200) {
   return Response.json(data, {
@@ -566,6 +567,13 @@ export async function onRequestPut(context) {
 
     const updatedProduct = await getProduct(context, productId);
 
+    // ارسال هشدار فقط هنگام عبور موجودی از بالای ۵ به ۵ یا کمتر
+    try {
+      await sendLowStockNotification(context.env, updatedProduct, currentProduct.stock_quantity, stockQuantity, 5);
+    } catch (notificationError) {
+      console.error("Low stock notification failed:", notificationError);
+    }
+
     await logAdminAction(context, {
       admin_user_id: adminCheck.user.id,
       action: "product_updated",
@@ -647,3 +655,5 @@ export async function onRequestDelete(context) {
     );
   }
 }
+
+

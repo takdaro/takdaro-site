@@ -37,6 +37,7 @@ import {
 
 import {
   getEmailSettings,
+  sendEmail,
   sendEmailWithTemplate,
   sendUserEmailNotification,
   sendAdminEmailNotification,
@@ -2820,3 +2821,5 @@ export async function getSiteBaseUrl(env) {
   }
   return 'https://takdaro-site.pages.dev';
 }
+
+
