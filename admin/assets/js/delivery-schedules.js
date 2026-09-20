@@ -85,13 +85,12 @@
     days.forEach(function (day) {
       var existing = rows.find(function (row) { return Number(row.weekday) === day.value && !row.specific_date; });
       var row = document.createElement('div'); row.className = 'weekly-slot-row'; row.dataset.weekday = day.value;
-      row.innerHTML = '<label><input type="checkbox" data-active></label><strong></strong><label>ساعت <input type="time" data-start></label><label>ساعت <input type="time" data-end></label><label>بیک <input type="number" min="0" data-capacity></label><label>ساعت پیش از <input type="number" min="0" data-cutoff></label>';
+      row.innerHTML = '<label><input type="checkbox" data-active></label><strong></strong><label>ساعت <input type="time" data-start></label><label>ساعت <input type="time" data-end></label><label>ظرفیت <input type="number" min="0" data-capacity></label>';
       row.querySelector('strong').textContent = day.label;
       row.querySelector('[data-active]').checked = !!(existing && Number(existing.is_active));
       row.querySelector('[data-start]').value = existing && existing.start_time || '09:00';
       row.querySelector('[data-end]').value = existing && existing.end_time || '15:00';
       row.querySelector('[data-capacity]').value = existing && existing.capacity || 0;
-      row.querySelector('[data-cutoff]').value = existing ? Math.floor(Number(existing.cutoff_minutes || 0) / 60) : 2;
       host.appendChild(row);
     });
   }
@@ -136,7 +135,7 @@
     }
     if (target.id === 'save-weekly-slots') {
       var rows = Array.from(document.querySelectorAll('.weekly-slot-row')).map(function (row) {
-        return { weekday:Number(row.dataset.weekday), title:'زمان ارسال', active:row.querySelector('[data-active]').checked, start_time:row.querySelector('[data-start]').value, end_time:row.querySelector('[data-end]').value, capacity:row.querySelector('[data-capacity]').value, cutoff_hours:row.querySelector('[data-cutoff]').value };
+        return { weekday:Number(row.dataset.weekday), title:'زمان ارسال', active:row.querySelector('[data-active]').checked, start_time:row.querySelector('[data-start]').value, end_time:row.querySelector('[data-end]').value, capacity:row.querySelector('[data-capacity]').value };
       });
       post({ action:'save_weekly_slots', rows:rows }).then(load);
     }

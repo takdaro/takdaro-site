@@ -118,7 +118,7 @@ export async function getDeliveryAvailability(db, options = {}, now = new Date()
     const slots = candidates.filter((schedule) => {
       const booked = bookings.get(`${jalaliDate}|${Number(schedule.id)}`) || 0;
       const capacity = Number(schedule.capacity || 0);
-      return (capacity <= 0 || booked < capacity) && slotStartIsOpen(timestamp, schedule.start_time, schedule.cutoff_minutes, now.getTime());
+      return (capacity <= 0 || booked < capacity) && slotStartIsOpen(timestamp, schedule.start_time, 0, now.getTime());
     }).map((schedule) => ({
       id: Number(schedule.id),
       title: String(schedule.title || "زمان ارسال"),
