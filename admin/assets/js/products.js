@@ -44,6 +44,13 @@
     return number.toLocaleString("fa-IR");
   }
 
+  function normalizeDigits(value) {
+    return String(value ?? "").replace(/[۰-۹٠-٩]/g, function(digit) {
+      var code = digit.charCodeAt(0);
+      return String(code >= 0x06f0 && code <= 0x06f9 ? code - 0x06f0 : code - 0x0660);
+    });
+  }
+
   function formatProductDate(value) {
     if (typeof window.formatDate === "function") {
       try {
@@ -1063,7 +1070,7 @@
               "",
 
             price:
-              get("price")?.value?.trim() ||
+              normalizeDigits(get("price")?.value?.trim()) ||
               null,
 
             price_label:
@@ -1075,7 +1082,7 @@
               false,
 
             stock_quantity:
-              get("stock_quantity")?.value ||
+              normalizeDigits(get("stock_quantity")?.value) ||
               0,
 
             in_stock:
@@ -1109,7 +1116,7 @@
               priceType,
 
             base_price:
-              get("base_price")?.value?.trim() ||
+              normalizeDigits(get("base_price")?.value?.trim()) ||
               null,
 
             profit_type:
@@ -1117,11 +1124,11 @@
               "none",
 
             profit_value:
-              get("profit_value")?.value?.trim() ||
+              normalizeDigits(get("profit_value")?.value?.trim()) ||
               null,
 
             fixed_fee:
-              get("fixed_fee")?.value?.trim() ||
+              normalizeDigits(get("fixed_fee")?.value?.trim()) ||
               null,
 
             rounding_type:
