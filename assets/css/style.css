@@ -1559,7 +1559,7 @@ select:focus-visible {
   display: none;
   justify-content: flex-start;
   align-items: stretch;
-  padding: 6px;
+  padding: 6px 80px 6px 6px;
   background: transparent;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -1624,8 +1624,8 @@ select:focus-visible {
 
 /* سه گزینهٔ دیگر داخل کپسول سمت چپ */
 .bottom-nav > .bottom-nav__item:not([data-nav="support"]) {
-  flex: 0 0 30%;
-  max-width: 30%;
+  flex: 1 1 0;
+  max-width: none;
 }
 
 .bottom-nav__item {
@@ -1767,7 +1767,7 @@ select:focus-visible {
     bottom: 10px;
     left: 8px;
     right: 8px;
-    padding: 5px;
+    padding: 5px 70px 5px 5px;
     height: 68px;
     border-radius: 34px;
   }
@@ -1823,7 +1823,7 @@ select:focus-visible {
     bottom: 8px;
     left: 6px;
     right: 6px;
-    padding: 4px;
+    padding: 4px 64px 4px 4px;
     height: 62px;
     border-radius: 31px;
   }
