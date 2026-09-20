@@ -117,7 +117,6 @@ export async function getPublishedProducts(env, filters = {}) {
 
   const requestedSlug = cleanText(filters.slug);
   const requestedCategory = cleanText(filters.category);
-  const includeOutOfStock = filters.includeOutOfStock === true;
 
   let currentRate = null;
   try {
@@ -138,9 +137,8 @@ export async function getPublishedProducts(env, filters = {}) {
     conditions.push("p.category = ?");
     bindings.push(requestedCategory);
   }
-  if (!includeOutOfStock) {
-    conditions.push("p.in_stock = 1");
-  }
+  // محصولات ناموجود هم باید در فهرست عمومی بمانند تا با برچسب «در حال تأمین» دیده شوند؛
+  // امکان خرید و قیمت آن‌ها در رابط کاربری و اعتبارسنجی سفارش غیرفعال می‌شود.
 
   const productsQuery =
     "SELECT " +
