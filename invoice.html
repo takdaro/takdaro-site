@@ -751,6 +751,13 @@
               <div class="payment-description" id="payment-description">
                 لطفاً مبلغ فاکتور را به شماره کارت درج شده واریز و تصویر رسید را به شماره واتساپ پشتیبانی ارسال کنید.
               </div>
+
+              <div class="receipt-upload-box" style="margin-top:18px;padding:16px;border:1px dashed var(--border);border-radius:14px;">
+                <label for="receipt-file"><strong>📤 بارگذاری رسید واریز</strong></label>
+                <input id="receipt-file" type="file" accept="image/*" style="display:block;margin-top:10px;max-width:100%;">
+                <button type="button" class="btn btn-primary" id="upload-receipt-btn" style="margin-top:10px;">ارسال رسید برای بررسی</button>
+                <small id="receipt-upload-status" style="display:block;margin-top:8px;"></small>
+              </div>
             </div>
 
             <div class="invoice-section">
@@ -1273,6 +1280,28 @@
         window.print();
       }
 
+      async function uploadPaymentReceipt(orderNumber) {
+        const fileInput = document.getElementById('receipt-file');
+        const button = document.getElementById('upload-receipt-btn');
+        const status = document.getElementById('receipt-upload-status');
+        const file = fileInput?.files?.[0];
+        if (!file) { if (status) status.textContent = 'لطفاً تصویر رسید را انتخاب کنید.'; return; }
+        button.disabled = true;
+        if (status) status.textContent = 'در حال ارسال رسید...';
+        const form = new FormData();
+        form.append('order_number', orderNumber);
+        form.append('receipt', file);
+        try {
+          const response = await fetch('/api/account/upload-receipt', { method: 'POST', body: form, credentials: 'same-origin' });
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data?.success) throw new Error(data?.error || 'ارسال رسید ناموفق بود.');
+          if (status) status.textContent = '✅ رسید ارسال شد و در انتظار بررسی مدیریت است.';
+          fileInput.value = '';
+        } catch (error) {
+          if (status) status.textContent = `❌ ${error.message}`;
+        } finally { button.disabled = false; }
+      }
+
       async function init() {
         if (typeof window.Auth !== 'undefined' && typeof window.Auth.requireAuth === 'function') {
           const user = await window.Auth.requireAuth({ redirectTo: '/login.html' });
@@ -1294,6 +1323,7 @@
 
         if (order) {
           renderInvoice(order, settings);
+          document.getElementById('upload-receipt-btn')?.addEventListener('click', () => uploadPaymentReceipt(orderNumber));
         }
       }
 
