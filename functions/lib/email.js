@@ -387,7 +387,7 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <div class="text-center">
 <a href="{site_url}/invoice.html?order={order_number}" class="btn-custom">🔍 مشاهده جزئیات سفارش</a><br>
 <a href="{site_url}/account.html" class="btn-custom-secondary">👤 ورود به حساب کاربری</a>
-<a href="{site_url}/contact.html" class="btn-custom-secondary">📞 تماس با پشتیبانی</a>
+<a href="https://wa.me/989214147070" class="btn-custom-secondary">💬 پشتیبانی واتساپ</a>
 </div>
 <p style="color:#94a3b8;font-size:14px;margin-top:20px;text-align:center;">💡 در صورت نیاز به راهنمایی، با پشتیبانی تماس بگیرید.</p>
 </div>
