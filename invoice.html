@@ -335,6 +335,57 @@
       line-height: 1.9;
     }
 
+    .receipt-upload-box {
+      margin-top: 20px;
+      padding: 20px;
+      border: 1px solid rgba(33, 158, 188, .22);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255,255,255,.72), rgba(232,247,250,.55));
+      box-shadow: 0 8px 22px rgba(2, 48, 71, .07);
+    }
+    .receipt-upload-box__title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--text);
+      font-size: 1.05rem;
+    }
+    .receipt-upload-box__hint {
+      display: block;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+    .receipt-upload-box input[type="file"] {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      border: 1px dashed rgba(33, 158, 188, .42);
+      border-radius: 12px;
+      background: rgba(255,255,255,.72);
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .receipt-upload-box input[type="file"]::file-selector-button {
+      margin-left: 8px;
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--secondary);
+      color: #fff;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .receipt-upload-box .btn { margin-top: 12px !important; }
+    .receipt-upload-box__status {
+      display: block;
+      min-height: 1.4em;
+      margin-top: 10px;
+      color: var(--muted);
+    }
+
     .address-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -752,11 +803,12 @@
                 لطفاً مبلغ فاکتور را به شماره کارت درج شده واریز و تصویر رسید را به شماره واتساپ پشتیبانی ارسال کنید.
               </div>
 
-              <div class="receipt-upload-box" style="margin-top:18px;padding:16px;border:1px dashed var(--border);border-radius:14px;">
-                <label for="receipt-file"><strong>📤 بارگذاری رسید واریز</strong></label>
-                <input id="receipt-file" type="file" accept="image/*" style="display:block;margin-top:10px;max-width:100%;">
-                <button type="button" class="btn btn-primary" id="upload-receipt-btn" style="margin-top:10px;">ارسال رسید برای بررسی</button>
-                <small id="receipt-upload-status" style="display:block;margin-top:8px;"></small>
+              <div class="receipt-upload-box">
+                <label class="receipt-upload-box__title" for="receipt-file"><strong>📤 بارگذاری رسید واریز</strong></label>
+                <span class="receipt-upload-box__hint">تصویر رسید پرداخت را انتخاب کنید (حداکثر ۸ مگابایت).</span>
+                <input id="receipt-file" type="file" accept="image/*">
+                <button type="button" class="btn btn-primary" id="upload-receipt-btn">ارسال رسید برای بررسی</button>
+                <small id="receipt-upload-status" class="receipt-upload-box__status"></small>
               </div>
             </div>
 
