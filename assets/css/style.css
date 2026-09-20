@@ -784,6 +784,7 @@ h4 {
 .product-card__actions .btn.is-disabled {
   cursor: not-allowed;
   opacity: 0.72;
+  pointer-events: none;
 }
 
 .product-card__actions {
