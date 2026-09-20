@@ -339,14 +339,8 @@ function getProductInput(body) {
     toInteger(body?.stock_quantity ?? body?.stockQuantity, 0)
   );
 
-  const inStock = toBooleanInteger(
-    body?.in_stock ?? body?.inStock,
-    stockQuantity > 0
-  );
-
-  const stockLabel =
-    cleanText(body?.stock_label ?? body?.stockLabel, 100) ||
-    (inStock ? "موجود" : "ناموجود");
+  const inStock = stockQuantity > 0 ? 1 : 0;
+  const stockLabel = inStock ? "موجود" : "موجود نیست؛ در حال تأمین";
 
   const shortDescription = cleanText(
     body?.short_description ?? body?.shortDescription,

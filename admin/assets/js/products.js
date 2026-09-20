@@ -658,13 +658,6 @@
         '</div>' +
 
         '<div class="form-field">' +
-          '<label>برچسب موجودی</label>' +
-          '<input data-product-field="stock_label" type="text" value="' +
-          escapeHtml(product.stock_label || "") +
-          '" placeholder="موجود / ناموجود" />' +
-        '</div>' +
-
-        '<div class="form-field">' +
           '<label>وضعیت انتشار</label>' +
           '<select data-product-field="status">' +
             '<option value="published">منتشرشده</option>' +
@@ -678,14 +671,6 @@
           '<input data-product-field="page_url" type="text" value="' +
           escapeHtml(product.page_url || "") +
           '" placeholder="products/example.html" />' +
-        '</div>' +
-
-        '<div class="form-field">' +
-          '<label>' +
-            '<input data-product-field="in_stock" type="checkbox" ' +
-            (getBoolean(product.in_stock) ? "checked" : "") +
-            ' /> محصول موجود است' +
-          '</label>' +
         '</div>' +
 
       '</div>' +
@@ -1086,12 +1071,7 @@
               0,
 
             in_stock:
-              get("in_stock")?.checked ||
-              false,
-
-            stock_label:
-              get("stock_label")?.value?.trim() ||
-              "",
+              Number(normalizeDigits(get("stock_quantity")?.value || 0)) > 0,
 
             short_description:
               get("short_description")?.value?.trim() ||

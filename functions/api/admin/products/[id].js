@@ -382,9 +382,7 @@ export async function onRequestPut(context) {
         : 0;
     const inStock = stockQuantity > 0 && requestedInStock === 1 ? 1 : 0;
 
-    const stockLabel = inStock
-      ? cleanText(body.stock_label ?? body.stockLabel ?? currentProduct.stock_label, 100) || "موجود"
-      : "موجود نیست؛ در حال تأمین";
+    const stockLabel = inStock ? "موجود" : "موجود نیست؛ در حال تأمین";
 
     const shortDescription = cleanText(
       body.short_description ??
