@@ -813,6 +813,10 @@ export function createUserOrderTrackingButton(orderNumber, baseUrl = '') {
     ],
     [
       {
+        text: '🌐 ورود به وب‌سایت',
+        url: siteUrl
+      },
+      {
         text: '💬 پشتیبانی',
         callback_data: 'support:start'
       }
@@ -844,3 +848,4 @@ export {
   formatDate,
   getStatusText
 };
+
