@@ -36,18 +36,39 @@
     }
   }
 
+  function loadTakdaroChatBridge(callback) {
+    if (window.TakdaroChat?.__identityBridge) {
+      if (typeof callback === "function") callback();
+      return;
+    }
+
+    let bridge = document.querySelector('script[data-takdaro-chat-identity-bridge]');
+    if (!bridge) {
+      bridge = document.createElement("script");
+      bridge.src = "/assets/js/chat-identity-bridge.js?v=site-session-7";
+      bridge.async = true;
+      bridge.dataset.takdaroChatIdentityBridge = "true";
+      document.head.appendChild(bridge);
+    }
+
+    if (typeof callback === "function") {
+      bridge.addEventListener("load", callback, { once: true });
+      bridge.addEventListener("error", callback, { once: true });
+    }
+  }
+
   function loadTakdaroChatSdk(callback) {
     hideTakdaroChatLauncher();
 
     if (window.TakdaroChat) {
-      if (typeof callback === "function") callback();
+      loadTakdaroChatBridge(callback);
       return;
     }
 
     const existingScript = document.querySelector('script[data-takdaro-chat-sdk]');
     if (existingScript) {
       if (typeof callback === "function") {
-        existingScript.addEventListener("load", callback, { once: true });
+        existingScript.addEventListener("load", () => loadTakdaroChatBridge(callback), { once: true });
       }
       return;
     }
@@ -58,13 +79,7 @@
     script.dataset.takdaroChatSdk = "true";
     script.onload = function () {
       hideTakdaroChatLauncher();
-      const bridge = document.createElement("script");
-      bridge.src = "/assets/js/chat-identity-bridge.js?v=site-session-6";
-      bridge.async = true;
-      bridge.onload = bridge.onerror = function () {
-        if (typeof callback === "function") callback();
-      };
-      document.head.appendChild(bridge);
+      loadTakdaroChatBridge(callback);
     };
     document.head.appendChild(script);
   }
