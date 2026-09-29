@@ -59,7 +59,7 @@
     script.onload = function () {
       hideTakdaroChatLauncher();
       const bridge = document.createElement("script");
-      bridge.src = "/assets/js/chat-identity-bridge.js?v=identity-logout-4";
+      bridge.src = "/assets/js/chat-identity-bridge.js?v=site-session-5";
       bridge.async = true;
       bridge.onload = bridge.onerror = function () {
         if (typeof callback === "function") callback();
