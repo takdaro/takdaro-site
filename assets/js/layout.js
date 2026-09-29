@@ -24,8 +24,13 @@
   }
 
   function hideTakdaroChatLauncher() {
-    // Keep the provider launcher visible as a reliable fallback when the
-    // dynamically loaded bottom navigation is not ready yet.
+    let style = document.getElementById("takdaro-chat-launcher-hide");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "takdaro-chat-launcher-hide";
+      style.textContent = ".takdaro-chat-button{display:none!important;}";
+      document.head.appendChild(style);
+    }
   }
 
   function loadTakdaroChatSdk(callback) {
@@ -551,7 +556,7 @@ try { localStorage.setItem('takdaro:logout-at', String(Date.now())); } catch {}
   // ==========================================
   function isContextualChatTrigger(target) {
     return target?.closest?.(
-      "[data-chat-context-trigger], [data-purchase-consultation-chat], .product-page .product-single__actions a[href*='wa.me']"
+      "[data-chat-context-trigger], [data-purchase-consultation-chat]"
     ) || null;
   }
 
