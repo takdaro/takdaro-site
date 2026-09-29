@@ -39,6 +39,15 @@
     });
   }
 
+  window.addEventListener("layout:loaded", bind);
+
+  if (document.body) {
+    new MutationObserver(bind).observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bind, { once: true });
   } else {
