@@ -14,7 +14,10 @@
     if (!target) return;
 
     try {
-      const response = await fetch(filePath);
+      const separator = filePath.includes("?") ? "&" : "?";
+      const response = await fetch(`${filePath}${separator}v=chat-only-20260929-4`, {
+        cache: "no-store"
+      });
       const html = await response.text();
       const base = getBasePath();
       target.innerHTML = html.replaceAll("{{BASE}}", base);

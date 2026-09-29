@@ -1557,6 +1557,11 @@ select:focus-visible {
 /* ==========================================
    🔹 BOTTOM NAVIGATION - نوار پایین موبایل
    ========================================== */
+/* The provider SDK creates its own floating launcher; the site uses the bottom-nav chat entry instead. */
+.takdaro-chat-button {
+  display: none !important;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 14px;
