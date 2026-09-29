@@ -24,16 +24,8 @@
   }
 
   function hideTakdaroChatLauncher() {
-    let style = document.getElementById("takdaro-chat-launcher-hide");
-    if (!style) {
-      style = document.createElement("style");
-      style.id = "takdaro-chat-launcher-hide";
-      style.textContent = ".takdaro-chat-button{display:none!important;}";
-      document.head.appendChild(style);
-    }
-
-    const launcher = document.querySelector(".takdaro-chat-button");
-    if (launcher) launcher.style.display = "none";
+    // Keep the provider launcher visible as a reliable fallback when the
+    // dynamically loaded bottom navigation is not ready yet.
   }
 
   function loadTakdaroChatSdk(callback) {
