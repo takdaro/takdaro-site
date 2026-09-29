@@ -72,38 +72,12 @@
     const generation=authGeneration;
 
     try {
-      const authResponse = await fetch('/api/auth/me', {
-        method: 'GET',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { Accept: 'application/json' }
-      });
-      const authData = await authResponse.json().catch(() => null);
+      const response = await fetch('/api/chat/identity-token', { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
+      const data = await response.json();
       if(generation!==authGeneration)return;
-
-      if (authResponse.status === 401) {
-        frame.contentWindow.postMessage({ type: 'takdaro:guest', logoutAt: logoutAt() }, origin);
-        sendContext();
-        return;
-      }
-
-      if (!authResponse.ok || !authData?.success || !authData.user) {
-        frame.contentWindow.postMessage({ type: 'takdaro:identity-error' }, origin);
-        return;
-      }
-
-      const response = await fetch('/api/chat/identity-token', {
-        method: 'POST',
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { Accept: 'application/json' }
-      });
-      const data = await response.json().catch(() => null);
-      if(generation!==authGeneration)return;
-
-      if (response.ok && data?.success && data.token)
+      if (response.ok && data.success && data.token)
         frame.contentWindow.postMessage({ type: 'takdaro:identity', token: data.token }, origin);
-      else frame.contentWindow.postMessage({ type: 'takdaro:identity-error' }, origin);
+      else frame.contentWindow.postMessage({ type: response.status === 401 ? 'takdaro:guest' : 'takdaro:identity-error', logoutAt: logoutAt() }, origin);
       sendContext();
     } catch (_) { frame.contentWindow.postMessage({ type: 'takdaro:identity-error' }, origin); }
     finally { inFlight = false; if (pending) identify(); }
