@@ -1,34 +1,11 @@
 (function () {
   "use strict";
 
-  const sdkUrl = "https://chat.takdaro.com/embed.js?v=identity-ready-2";
-
-  function loadSdk(done) {
-    if (window.TakdaroChat && typeof window.TakdaroChat.open === "function") {
-      done();
-      return;
-    }
-
-    let script = document.querySelector("script[data-takdaro-chat-sdk]");
-    if (!script) {
-      script = document.createElement("script");
-      script.src = sdkUrl;
-      script.async = true;
-      script.dataset.takdaroChatSdk = "true";
-      document.head.appendChild(script);
-    }
-
-    script.addEventListener("load", done, { once: true });
-  }
-
   function openChat(event) {
+    if (typeof window.openTakdaroChat !== "function") return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    loadSdk(function () {
-      if (typeof window.TakdaroChat?.open === "function") {
-        window.TakdaroChat.open();
-      }
-    });
+    window.openTakdaroChat();
   }
 
   function bind() {
