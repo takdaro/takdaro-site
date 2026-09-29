@@ -143,10 +143,19 @@
           </select>
         </div>
 
-        <div class="form-field" id="cashback-selected-users-field" style="display:none">
-          <label for="cashback-phase1-selected">شناسه کاربران انتخاب‌شده</label>
-          <input id="cashback-phase1-selected" type="text" placeholder="مثلاً 12, 28, 41" />
-          <small>شناسه کاربران را با ویرگول جدا کنید.</small>
+        <div class="form-field" id="cashback-selected-users-field" style="display:none;grid-column:1/-1;position:relative">
+          <label for="cashback-user-picker-toggle">کاربران انتخاب‌شده</label>
+          <button id="cashback-user-picker-toggle" class="btn btn-secondary" type="button" aria-expanded="false" aria-controls="cashback-user-picker-panel" style="width:100%;text-align:right">
+            انتخاب کاربران از فهرست
+          </button>
+          <div id="cashback-user-picker-panel" hidden style="padding:12px;background:#fff;border:1px solid #dbe5eb;border-radius:12px;min-width:0">
+            <input id="cashback-user-search" type="search" placeholder="جستجو بر اساس نام، ایمیل یا شماره تماس" autocomplete="off" aria-label="جستجوی کاربران" />
+            <div id="cashback-user-results" aria-label="فهرست کاربران" style="max-height:280px;overflow-y:auto;min-width:0;margin-top:10px;display:grid;gap:8px"></div>
+            <small id="cashback-user-search-status" role="status" aria-live="polite"></small>
+          </div>
+          <div id="cashback-selected-user-chips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+          <input id="cashback-phase1-selected" type="hidden" value="" />
+          <small>برای انتخاب چند کاربر، نام یا شماره‌شان را جستجو کنید و روی «افزودن» بزنید.</small>
         </div>
 
         <div class="form-field">

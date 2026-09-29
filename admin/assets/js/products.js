@@ -658,6 +658,26 @@
         '</div>' +
 
         '<div class="form-field">' +
+          '<label>حداقل تعداد خرید</label>' +
+          '<input data-product-field="purchase_min_quantity" type="number" min="1" value="' +
+          Number(product.purchase_min_quantity || product.purchaseMinQuantity || 1) +
+          '" />' +
+          '<small class="admin-help">کاربر نمی‌تواند کمتر از این تعداد سفارش دهد.</small>' +
+        '</div>' +
+
+        '<div class="form-field">' +
+          '<label>حداکثر تعداد خرید</label>' +
+          '<input data-product-field="purchase_max_quantity" type="number" min="1" value="' +
+          (
+            product.purchase_max_quantity ??
+            product.purchaseMaxQuantity ??
+            ""
+          ) +
+          '" placeholder="بدون محدودیت" />' +
+          '<small class="admin-help">اگر خالی بماند فقط موجودی انبار محدودکننده است.</small>' +
+        '</div>' +
+
+        '<div class="form-field">' +
           '<label>وضعیت انتشار</label>' +
           '<select data-product-field="status">' +
             '<option value="published">منتشرشده</option>' +
@@ -1072,6 +1092,14 @@
 
             in_stock:
               Number(normalizeDigits(get("stock_quantity")?.value || 0)) > 0,
+
+            purchase_min_quantity:
+              normalizeDigits(get("purchase_min_quantity")?.value) ||
+              1,
+
+            purchase_max_quantity:
+              normalizeDigits(get("purchase_max_quantity")?.value) ||
+              null,
 
             short_description:
               get("short_description")?.value?.trim() ||

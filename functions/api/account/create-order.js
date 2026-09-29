@@ -495,6 +495,8 @@ async function validateProductStock(db, normalizedItems) {
           name,
           COALESCE(stock_quantity, 0) AS stock_quantity,
           COALESCE(in_stock, 0) AS in_stock,
+          COALESCE(purchase_min_quantity, 1) AS purchase_min_quantity,
+          purchase_max_quantity,
           status
         FROM products
         WHERE id = ?
@@ -541,6 +543,38 @@ async function validateProductStock(db, normalizedItems) {
         product_id: productId,
         product_name: product.name || "",
         available_quantity: availableQuantity,
+        requested_quantity: requestedQuantity
+      };
+    }
+
+    const purchaseMinQuantity = Math.max(
+      1,
+      Number.parseInt(product.purchase_min_quantity, 10) || 1
+    );
+    const purchaseMaxQuantity =
+      product.purchase_max_quantity === null ||
+      product.purchase_max_quantity === undefined
+        ? null
+        : Math.max(1, Number.parseInt(product.purchase_max_quantity, 10) || 1);
+
+    if (requestedQuantity < purchaseMinQuantity) {
+      return {
+        success: false,
+        error: "purchase_min_quantity",
+        product_id: productId,
+        product_name: product.name || "",
+        min_quantity: purchaseMinQuantity,
+        requested_quantity: requestedQuantity
+      };
+    }
+
+    if (purchaseMaxQuantity !== null && requestedQuantity > purchaseMaxQuantity) {
+      return {
+        success: false,
+        error: "purchase_max_quantity",
+        product_id: productId,
+        product_name: product.name || "",
+        max_quantity: purchaseMaxQuantity,
         requested_quantity: requestedQuantity
       };
     }
@@ -778,7 +812,11 @@ export async function onRequestPost(context) {
           available_quantity:
             stockValidation.available_quantity ?? null,
           requested_quantity:
-            stockValidation.requested_quantity ?? null
+            stockValidation.requested_quantity ?? null,
+          min_quantity:
+            stockValidation.min_quantity ?? null,
+          max_quantity:
+            stockValidation.max_quantity ?? null
         },
         400
       );

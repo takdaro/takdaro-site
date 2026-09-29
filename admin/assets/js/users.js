@@ -978,8 +978,8 @@
       '<label for="site-access-code-value">کد عبور سایت</label>' +
 
       '<input id="site-access-code-value" type="password" ' +
-      'autocomplete="new-password" ' +
-      'placeholder="کد عبور مورد نظر را وارد کن" />' +
+      'autocomplete="new-password" inputmode="numeric" minlength="4" maxlength="8" pattern="[0-9]{4,8}" ' +
+      'placeholder="کد اشتراک ۴ تا ۸ رقمی" />' +
 
       '<p class="admin-help" style="margin:8px 0 0;">' +
       "برای تغییر کد، کد جدید را وارد و ذخیره کن. برای غیرفعال کردن الزام کد، Toggle را خاموش کن." +
@@ -1184,11 +1184,11 @@
         : "";
 
     if (
-      enabled &&
-      accessCode.length < 4
+      accessCode &&
+      !/^[0-9]{4,8}$/.test(accessCode)
     ) {
       showMessage(
-        "برای فعال کردن کد عبور، یک کد حداقل 4 کاراکتری وارد کن."
+        "کد اشتراک باید فقط عدد و بین ۴ تا ۸ رقم باشد."
       );
 
       return false;

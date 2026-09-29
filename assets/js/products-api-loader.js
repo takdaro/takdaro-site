@@ -105,6 +105,11 @@
     const priceType = product?.price_type || product?.priceType || 'fixed';
     const basePrice = product?.base_price || product?.basePrice || null;
     const calculatedPrice = product?.calculated_price || product?.calculatedPrice || null;
+    const purchaseMinQty = Math.max(1, Math.floor(toNumber(product?.purchaseMinQty ?? product?.purchase_min_quantity, 1)));
+    const rawPurchaseMaxQty = product?.purchaseMaxQty ?? product?.purchase_max_quantity;
+    const purchaseMaxQty = rawPurchaseMaxQty === null || rawPurchaseMaxQty === undefined || rawPurchaseMaxQty === ""
+      ? null
+      : Math.max(1, Math.floor(toNumber(rawPurchaseMaxQty, 1)));
 
     const imageList = Array.isArray(product?.images)
       ? product.images.map(normalizeImagePath).filter(Boolean)
@@ -125,6 +130,8 @@
       showPrice: toBoolean(product?.showPrice || product?.show_price),
       inStock,
       stockQty,
+      purchaseMinQty,
+      purchaseMaxQty,
       stockLabel: inStock
         ? cleanText(product?.stockLabel || product?.stock_label) || "موجود"
         : "ناموجود",

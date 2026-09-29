@@ -1,5 +1,5 @@
 import { getCurrentUser, requireAdmin } from "../../lib/admin";
-import { hashPassword } from "../../lib/password";
+import { hashAccessCode } from "../../lib/password";
 
 function json(data, status = 200) {
   return Response.json(data, { status });
@@ -231,19 +231,19 @@ export async function onRequestPost(context) {
         ).trim();
 
       if (accessCode) {
-        if (accessCode.length < 4) {
+        if (!/^[0-9]{4,8}$/.test(accessCode)) {
           return json(
             {
               success: false,
               error:
-                "کد عبور سایت باید حداقل 4 کاراکتر باشد."
+                "کد اشتراک باید فقط عدد و بین ۴ تا ۸ رقم باشد."
             },
             400
           );
         }
 
         const accessCodeHash =
-          await hashPassword(accessCode);
+          await hashAccessCode(accessCode);
 
         operations.push(
           context.env.DB.prepare(`

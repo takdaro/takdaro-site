@@ -61,6 +61,15 @@ function buildItemsHtml(items) {
   return html;
 }
 
+function calculateItemsSubtotal(items) {
+  if (!Array.isArray(items)) return 0;
+  return items.reduce((sum, item) => {
+    const qty = Number(item.quantity || 0);
+    const price = Number(item.unit_price || 0);
+    return sum + (Number(item.total_price || 0) || (qty * price));
+  }, 0);
+}
+
 // ============================================
 // توابع مدیریت تنظیمات Email
 // ============================================
@@ -129,7 +138,8 @@ export async function saveEmailSettings(env, settings, userId) {
   const db = getDb(env);
 
   if (!settings.templates) {
-    settings.templates = {};
+    const current = await getEmailSettings(env);
+    settings = { ...current.config, ...settings, templates: current.config.templates || {} };
   }
 
   const configJson = JSON.stringify(settings);
@@ -200,60 +210,228 @@ export async function toggleEmailChannel(env, enabled, userId) {
 // توابع مدیریت Template‌های Email
 // ============================================
 
-export async function getEmailTemplate(env, eventType) {
-  const settings = await getEmailSettings(env);
-  const templates = settings.config.templates || {};
-  const unifiedEvents = new Set(['order_created','payment_pending','payment_success','payment_failed','order_status_changed','order_cancelled','cashback_applied','refund_applied']);
-  const template = templates[eventType] || (unifiedEvents.has(eventType) ? {
-    title: eventType,
-    subject: '🔔 به‌روزرسانی سفارش #{order_number} | تاکدارو',
-    body: '<p dir="rtl">سلام {customer_name}، وضعیت سفارش شما: <b>{order_status}</b><br>مبلغ: {amount} تومان<br>هزینه ارسال: {shipping_amount} تومان<br>زمان ارسال: {delivery_date} {delivery_time}<br><a href="{site_url}/invoice.html?order={order_number}">مشاهده جزئیات سفارش</a> | <a href="https://wa.me/989214147070">پشتیبانی واتساپ</a></p>',
-    is_enabled: true
-  } : null);
-  if (!template) return null;
-  if (eventType === 'wallet_credit' || eventType === 'wallet_debit') {
+const EMAIL_EVENTS = {
+  order_created: ['ثبت سفارش', 'فاکتور شما با موفقیت ثبت شد.', 'سفارش جدیدی ثبت شده است؛ لطفاً آن را بررسی کنید.'],
+  payment_pending: ['در انتظار پرداخت', 'سفارش شما در انتظار پرداخت است.', 'سفارش مشتری در انتظار پرداخت است.'],
+  payment_success: ['پرداخت موفق', 'پرداخت سفارش شما با موفقیت انجام شد.', 'پرداخت سفارش مشتری با موفقیت انجام شد.'],
+  payment_failed: ['پرداخت ناموفق', 'پرداخت سفارش شما ناموفق بود.', 'پرداخت سفارش مشتری ناموفق بود.'],
+  order_status_changed: ['تغییر وضعیت سفارش', 'وضعیت سفارش شما تغییر کرد.', 'وضعیت سفارش مشتری تغییر کرد.'],
+  order_cancelled: ['لغو سفارش', 'سفارش شما لغو شد.', 'سفارش مشتری لغو شد.'],
+  wallet_credit: ['افزایش موجودی کیف پول', 'موجودی کیف پول شما افزایش یافت.', 'موجودی کیف پول مشتری افزایش یافت.'],
+  wallet_debit: ['کاهش موجودی کیف پول', 'موجودی کیف پول شما کاهش یافت.', 'موجودی کیف پول مشتری کاهش یافت.'],
+  cashback_applied: ['اعمال کش‌بک', 'کش‌بک به کیف پول شما اضافه شد.', 'کش‌بک به کیف پول مشتری اضافه شد.'],
+  refund_applied: ['بازپرداخت', 'مبلغ بازپرداخت به کیف پول شما اضافه شد.', 'بازپرداخت به کیف پول مشتری ثبت شد.']
+};
+
+function emailTemplateIdentity(key) {
+  const [event, audience = 'user', extra] = String(key).split(':');
+  if (!EMAIL_EVENTS[event] || !['user', 'admin'].includes(audience) || extra !== undefined) {
+    throw new Error('رویداد یا مخاطب ایمیل نامعتبر است.');
+  }
+  return { event, audience, key: event + ':' + audience };
+}
+
+function isWalletEmailEvent(event) {
+  return ['wallet_credit', 'wallet_debit', 'cashback_applied', 'refund_applied'].includes(event);
+}
+
+function isOrderEmailEvent(event) {
+  return !isWalletEmailEvent(event);
+}
+
+function isGeneratedCompactTemplate(template) {
+  const body = String(template?.body || '');
+  return body.includes('<h2>تاکدارو |') && body.includes('font-family:Tahoma,Arial,sans-serif;max-width:600px');
+}
+
+function orderTemplateBody(event, audience) {
+  const [, userMessage, adminMessage] = EMAIL_EVENTS[event];
+  const admin = audience === 'admin';
+  const intro = admin
+    ? `${adminMessage} مشخصات مشتری و ریز فاکتور در ادامه آمده است.`
+    : `${userMessage} مشخصات و ریز فاکتور شما در ادامه آمده است.`;
+  const primaryHref = admin ? '{site_url}/admin/admin-panel.html' : '{site_url}/invoice.html?order={order_number}';
+  const primaryText = admin ? 'مشاهده در پنل مدیریت' : 'پیگیری سفارش';
+
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فاکتور سفارش</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rtl; padding:20px; color:#1a1a2e; }
+.email-wrapper { max-width:680px; margin:0 auto; background:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 10px 40px rgba(15,52,96,0.10); }
+.email-header { background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460); padding:34px 28px 24px; text-align:center; }
+.email-header .logo { font-size:28px; font-weight:800; color:#ffffff; letter-spacing:1px; }
+.email-header .logo span { color:#4fc3f7; }
+.email-header .subtitle { color:rgba(255,255,255,0.75); font-size:14px; margin-top:6px; }
+.email-header .badge-top { display:inline-block; background:rgba(79,195,247,0.18); color:#e0f2fe; padding:5px 18px; border-radius:20px; font-size:12px; font-weight:700; margin-top:12px; border:1px solid rgba(79,195,247,0.28); }
+.email-body { padding:30px 28px; line-height:1.9; }
+.greeting { font-size:22px; font-weight:800; margin-bottom:6px; color:#111827; }
+.greeting span { color:#0f3460; }
+.intro { color:#4b5563; font-size:15px; margin-bottom:20px; }
+.summary-card { background:linear-gradient(135deg,#f8f9ff,#eef6ff); border-radius:14px; padding:18px 20px; margin:16px 0 20px; border-right:4px solid #4fc3f7; }
+.summary-row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px dashed rgba(15,52,96,0.12); }
+.summary-row:last-child { border-bottom:none; }
+.summary-label { color:#4b5563; font-size:14px; }
+.summary-value { font-weight:700; color:#111827; font-size:14px; text-align:left; }
+.summary-value.amount { color:#0f3460; font-size:18px; }
+.status-badge { display:inline-block; padding:4px 14px; border-radius:999px; font-size:13px; font-weight:700; background:#fef3c7; color:#b45309; }
+.section-title { font-size:17px; font-weight:800; color:#111827; margin:20px 0 8px; }
+.items-table { width:100%; border-collapse:collapse; font-size:13px; margin:10px 0 16px; overflow:hidden; border-radius:12px; }
+.items-table thead th { text-align:right; padding:10px 8px; background:#edf2f7; color:#374151; font-weight:800; border-bottom:2px solid #dbe4ee; }
+.items-table tbody td { padding:10px 8px; border-bottom:1px solid #edf2f7; color:#1f2937; }
+.items-table .total-row td { font-weight:800; border-top:2px solid #dbe4ee; background:#f8fafc; }
+.cashback-box { background:linear-gradient(135deg,#fff7d6,#fdecc8); border-radius:12px; padding:14px 16px; margin:14px 0; border:1px solid #f6d365; color:#78350f; }
+.cashback-box strong { color:#b45309; font-size:17px; }
+.actions { text-align:center; margin-top:20px; }
+.btn-primary { display:inline-block; padding:13px 30px; background:linear-gradient(135deg,#0f3460,#6d28d9); color:#ffffff !important; text-decoration:none; border-radius:10px; font-weight:800; font-size:15px; margin:6px 4px; }
+.btn-secondary { display:inline-block; padding:11px 24px; background:#ffffff; color:#0f3460 !important; text-decoration:none; border-radius:10px; font-weight:700; font-size:14px; border:2px solid #dbe4ee; margin:6px 4px; }
+.email-footer { background:#f8f9ff; padding:22px 28px; text-align:center; border-top:1px solid #eef1ff; color:#94a3b8; font-size:13px; line-height:1.8; }
+.email-footer a { color:#0f3460; text-decoration:none; font-weight:700; }
+@media (max-width:520px) {
+  body { padding:10px; }
+  .email-body { padding:22px 16px; }
+  .email-header { padding:26px 16px 20px; }
+  .email-header .logo { font-size:22px; }
+  .summary-row { display:block; }
+  .summary-value { display:block; text-align:right; margin-top:2px; }
+  .items-table { font-size:12px; }
+  .items-table thead th, .items-table tbody td { padding:8px 5px; }
+  .btn-primary, .btn-secondary { display:block; margin:8px 0; text-align:center; }
+}
+@media (prefers-color-scheme: dark) {
+  body { background:#0f172a; color:#e5e7eb; }
+  .email-wrapper { background:#111827; box-shadow:none; }
+  .greeting, .section-title, .summary-value, .items-table tbody td { color:#f8fafc; }
+  .intro, .summary-label { color:#cbd5e1; }
+  .summary-card { background:linear-gradient(135deg,#1e293b,#243447); border-right-color:#38bdf8; }
+  .items-table thead th { background:#1e293b; color:#cbd5e1; border-color:#334155; }
+  .items-table tbody td { border-color:#334155; }
+  .items-table .total-row td { background:#0f172a; border-color:#334155; }
+  .btn-secondary { background:#111827; color:#e0f2fe !important; border-color:#334155; }
+  .email-footer { background:#0f172a; border-color:#334155; color:#94a3b8; }
+}
+</style>
+</head>
+<body>
+<div class="email-wrapper">
+<div class="email-header">
+<div class="logo">شرکت تک تجارت</div>
+<div class="subtitle">مرکز تخصصی واردات پپتایدها و موارد شیمی‌درمانی</div>
+<div class="badge-top">فاکتور سفارش</div>
+</div>
+<div class="email-body">
+<div class="greeting">سلام <span>${admin ? 'مدیر عزیز' : '{customer_name} عزیز'}</span></div>
+<p class="intro">${intro}</p>
+<div class="summary-card">
+<div class="summary-row"><span class="summary-label">شماره سفارش</span><span class="summary-value">#{order_number}</span></div>
+<div class="summary-row"><span class="summary-label">نام و نام خانوادگی</span><span class="summary-value">{customer_name}</span></div>
+<div class="summary-row"><span class="summary-label">تلفن کاربر</span><span class="summary-value">{customer_phone}</span></div>
+<div class="summary-row"><span class="summary-label">تاریخ ثبت سفارش</span><span class="summary-value">{order_date}</span></div>
+<div class="summary-row"><span class="summary-label">وضعیت سفارش</span><span class="summary-value"><span class="status-badge">{order_status}</span></span></div>
+<div class="summary-row"><span class="summary-label">وضعیت پرداخت</span><span class="summary-value">{payment_status}</span></div>
+</div>
+{delivery_summary}
+<div class="section-title">جزئیات سفارش</div>
+<table class="items-table" role="presentation">
+<thead><tr><th>محصول</th><th style="text-align:center;">تعداد</th><th style="text-align:left;">قیمت تک محصول</th><th style="text-align:left;">قیمت جمع محصول</th></tr></thead>
+<tbody>{items_list}</tbody>
+<tfoot>
+<tr class="total-row"><td colspan="3">جمع محصولات</td><td style="text-align:left;">{items_subtotal} تومان</td></tr>
+<tr class="total-row"><td colspan="3">مبلغ ارسال</td><td style="text-align:left;">{shipping_amount} تومان</td></tr>
+<tr class="total-row"><td colspan="3">جمع کل</td><td style="text-align:left;">{amount} تومان</td></tr>
+</tfoot>
+</table>
+<div class="cashback-box">کش‌بک این سفارش: <strong>{cashback_amount} تومان</strong></div>
+<div class="summary-card">
+<div class="summary-row"><span class="summary-label">تاریخ و ساعت ارسال ایمیل</span><span class="summary-value">{sent_at}</span></div>
+<div class="summary-row"><span class="summary-label">زمان ارسال سفارش</span><span class="summary-value">{delivery_date} {delivery_time}</span></div>
+<div class="summary-row"><span class="summary-label">کد رهگیری</span><span class="summary-value">{tracking_code}</span></div>
+</div>
+<div class="actions">
+<a href="${primaryHref}" class="btn-primary">${primaryText}</a>
+<a href="https://chat.takdaro.com" class="btn-secondary">پشتیبانی آنلاین</a>
+</div>
+</div>
+<div class="email-footer">
+© {year} تاکدارو - تمامی حقوق محفوظ است.<br><a href="{site_url}">{site_url}</a>
+</div>
+</div>
+</body>
+</html>`;
+}
+
+function audienceDefault(event, audience) {
+  const [title, userMessage, adminMessage] = EMAIL_EVENTS[event];
+  const admin = audience === 'admin';
+  const wallet = isWalletEmailEvent(event);
+  if (isOrderEmailEvent(event)) {
     return {
-      ...template,
-      body: '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;color:#183348;padding:24px;border:1px solid #d9e1e8;border-radius:12px"><h2 style="margin:0 0 8px;color:#123b5d">تاکدارو | کیف پول</h2><p>سلام {customer_name}،</p><p>تراکنش کیف پول شما با موفقیت ثبت شد.</p><div style="background:#f7fafc;border:1px solid #d9e1e8;border-radius:8px;padding:16px;line-height:2"><b>نوع تراکنش:</b> {wallet_transaction_type}<br><b>مبلغ تراکنش:</b> {amount} تومان<br><b>موجودی قبل:</b> {wallet_balance_before} تومان<br><b>موجودی بعد:</b> {wallet_balance_after} تومان<br><b>موجودی فعلی:</b> {wallet_balance} تومان<br><b>تاریخ:</b> {transaction_date}<br><b>توضیحات:</b> {wallet_note}</div><p style="text-align:center"><a href="{site_url}/account.html?tab=wallet" style="display:inline-block;background:#123b5d;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">مشاهده کیف پول</a> <a href="https://wa.me/989214147070" style="display:inline-block;background:#25d366;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">پشتیبانی واتساپ</a></p></div>'
+      title,
+      subject: (admin ? 'مدیریت | ' : '') + title + ' #{order_number} | تاکدارو',
+      body: orderTemplateBody(event, audience),
+      is_enabled: true
     };
   }
-  if (!unifiedEvents.has(eventType)) return template;
+  const greeting = admin ? 'سلام مدیر عزیز،' : 'سلام {customer_name} عزیز،';
+  const details = wallet
+    ? '<b>مبلغ تراکنش:</b> {amount} تومان<br><b>موجودی قبل:</b> {wallet_balance_before} تومان<br><b>موجودی بعد:</b> {wallet_balance_after} تومان<br><b>توضیحات:</b> {wallet_note}<br><b>تاریخ:</b> {transaction_date}'
+    : '<b>شماره سفارش:</b> #{order_number}<br><b>وضعیت سفارش:</b> {order_status}<br><b>وضعیت پرداخت:</b> {payment_status}<br><b>مبلغ:</b> {amount} تومان<br><b>هزینه ارسال:</b> {shipping_amount} تومان<br><b>زمان ارسال:</b> {delivery_date} {delivery_time}<br><b>کد رهگیری:</b> {tracking_code}<table style="width:100%;border-collapse:collapse">{items_list}</table>';
+  const link = admin ? '/admin/admin-panel.html' : wallet ? '/account.html?tab=wallet' : '/invoice.html?order={order_number}';
   return {
-    ...template,
-    body: '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;max-width:600px;margin:auto;background:#fff;color:#183348;padding:24px;border:1px solid #d9e1e8;border-radius:12px"><h2 style="margin:0 0 8px;color:#123b5d">تاکدارو</h2><p>سلام {customer_name}،</p><p>وضعیت سفارش شما به‌روزرسانی شد.</p><div style="background:#f7fafc;border:1px solid #d9e1e8;border-radius:8px;padding:16px;line-height:2"><b>شماره سفارش:</b> #{order_number}<br><b>وضعیت سفارش:</b> {order_status}<br><b>وضعیت پرداخت:</b> {payment_status}<br><b>مبلغ کل:</b> {amount} تومان<br><b>هزینه ارسال:</b> {shipping_amount} تومان</div><div style="background:#eef8f5;border:1px solid #b9e2d2;border-radius:8px;padding:14px;margin-top:14px"><b>زمان ارسال:</b><br>{delivery_date} {delivery_time}</div><h3>اقلام سفارش</h3><table style="width:100%;border-collapse:collapse">{items_list}</table><p style="background:#fff8e6;border:1px solid #f0d58a;padding:12px;border-radius:8px">🎁 کش‌بک: {cashback_amount} تومان</p><p style="text-align:center"><a href="{site_url}/invoice.html?order={order_number}" style="display:inline-block;background:#f0a126;color:#183348;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">مشاهده جزئیات سفارش</a> <a href="https://wa.me/989214147070" style="display:inline-block;background:#25d366;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">پشتیبانی واتساپ</a></p></div>'
+    title,
+    subject: (admin ? 'مدیریت | ' : '') + title + (wallet ? '' : ' #{order_number}') + ' | تاکدارو',
+    body: '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;max-width:600px;margin:auto;padding:24px;color:#183348"><h2>تاکدارو | ' + title + '</h2><p>' + greeting + '</p><p>' + (admin ? adminMessage : userMessage) + '</p>' + (admin ? '<p>مشتری: {customer_name}<br>تلفن: {customer_phone}</p>' : '') + '<div style="background:#f7fafc;padding:16px;line-height:2">' + details + '</div><p><a href="{site_url}' + link + '">' + (admin ? 'ورود به مدیریت' : wallet ? 'مشاهده کیف پول' : 'مشاهده فاکتور') + '</a></p></div>',
+    is_enabled: true
+  };
+}
+
+export async function getEmailTemplate(env, eventType) {
+  const { event, audience, key } = emailTemplateIdentity(eventType);
+  const settings = await getEmailSettings(env);
+  const templates = settings.config.templates || {};
+  // Keep legacy customer customizations and disabled states until independently edited.
+  const legacy = templates[event];
+  const current = templates[key];
+    // Order emails use one shared rich invoice layout for both audiences. Older
+    // saved user templates may still contain the compact layout, so always
+    // refresh the rendered body from the shared default while preserving the
+    // saved title, subject, enabled state, and timestamp.
+    if (current && isOrderEmailEvent(event) && (audience === 'user' || isGeneratedCompactTemplate(current))) {
+    return {
+      ...audienceDefault(event, audience),
+      title: current.title || audienceDefault(event, audience).title,
+      subject: current.subject || audienceDefault(event, audience).subject,
+      is_enabled: current.is_enabled !== false,
+      updated_at: current.updated_at
+    };
+  }
+    if (!current && audience === 'user' && isOrderEmailEvent(event)) {
+      return {
+        ...audienceDefault(event, audience),
+        is_enabled: legacy?.is_enabled !== false,
+        updated_at: legacy?.updated_at
+      };
+    }
+    return current || {
+    ...audienceDefault(event, audience),
+    ...(audience === 'user' && legacy ? legacy : {}),
+    is_enabled: legacy?.is_enabled !== false
   };
 }
 
 export async function getAllEmailTemplates(env) {
-  const settings = await getEmailSettings(env);
-  const templates = settings.config.templates || {};
-
-  const eventTypes = [
-    'order_created',
-    'payment_pending',
-    'payment_success',
-    'payment_failed',
-    'order_status_changed',
-    'order_cancelled',
-    'wallet_credit',
-    'wallet_debit',
-    'cashback_applied',
-    'refund_applied'
-  ];
-
   const result = [];
-  for (const eventType of eventTypes) {
-    const template = await getEmailTemplate(env, eventType);
-    result.push({
-      event_type: eventType,
-      title: template?.title || '',
-      subject: template?.subject || '',
-      body: template?.body || '',
-      is_enabled: template?.is_enabled !== false,
-      exists: !!template
-    });
+  for (const event of Object.keys(EMAIL_EVENTS)) {
+    for (const audience of ['admin', 'user']) {
+      const key = event + ':' + audience;
+      const template = await getEmailTemplate(env, key);
+      result.push({ ...template, event_type: key, base_event: event, audience, exists: true });
+    }
   }
-
   return result;
 }
 
@@ -273,7 +451,7 @@ export async function saveEmailTemplate(env, data, userId) {
     settings.config.templates = {};
   }
 
-  settings.config.templates[eventType] = {
+  settings.config.templates[emailTemplateIdentity(eventType).key] = {
     title: title,
     subject: subject,
     body: body,
@@ -290,12 +468,8 @@ export async function toggleEmailTemplate(env, eventType, isEnabled, userId) {
   const settings = await getEmailSettings(env);
   const templates = settings.config.templates || {};
 
-  if (!templates[eventType]) {
-    throw new Error(`Template برای رویداد ${eventType} یافت نشد.`);
-  }
-
-  templates[eventType].is_enabled = isEnabled;
-  templates[eventType].updated_at = new Date().toISOString();
+  const { key } = emailTemplateIdentity(eventType);
+  templates[key] = { ...await getEmailTemplate(env, eventType), is_enabled: isEnabled === true, updated_at: new Date().toISOString() };
 
   settings.config.templates = templates;
 
@@ -378,8 +552,8 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <body>
 <div class="email-wrapper">
 <div class="email-header">
-<div class="logo">🛍️ تاک<span>دارو</span></div>
-<div class="subtitle">مرکز تخصصی مکمل‌های ورزشی</div>
+<div class="logo">شرکت تک تجارت</div>
+<div class="subtitle">مرکز تخصصی واردات پپتایدها و موارد شیمی‌درمانی</div>
 <div class="badge-top">✅ تأیید سفارش</div>
 </div>
 <div class="email-body">
@@ -470,8 +644,8 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <body>
 <div class="email-wrapper">
 <div class="email-header">
-<div class="logo">🛍️ تاک<span>دارو</span></div>
-<div class="subtitle">مرکز تخصصی مکمل‌های ورزشی</div>
+<div class="logo">شرکت تک تجارت</div>
+<div class="subtitle">مرکز تخصصی واردات پپتایدها و موارد شیمی‌درمانی</div>
 <div class="badge-top">✅ پرداخت موفق</div>
 </div>
 <div class="email-body">
@@ -545,8 +719,8 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <body>
 <div class="email-wrapper">
 <div class="email-header">
-<div class="logo">🛍️ تاک<span>دارو</span></div>
-<div class="subtitle">مرکز تخصصی مکمل‌های ورزشی</div>
+<div class="logo">شرکت تک تجارت</div>
+<div class="subtitle">مرکز تخصصی واردات پپتایدها و موارد شیمی‌درمانی</div>
 <div class="badge-top">🔄 به‌روزرسانی وضعیت</div>
 </div>
 <div class="email-body">
@@ -614,8 +788,8 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <body>
 <div class="email-wrapper">
 <div class="email-header">
-<div class="logo">🛍️ تاک<span>دارو</span></div>
-<div class="subtitle">مرکز تخصصی مکمل‌های ورزشی</div>
+<div class="logo">شرکت تک تجارت</div>
+<div class="subtitle">مرکز تخصصی واردات پپتایدها و موارد شیمی‌درمانی</div>
 <div class="badge-top">❌ لغو سفارش</div>
 </div>
 <div class="email-body">
@@ -686,8 +860,8 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <body>
 <div class="email-wrapper">
 <div class="email-header">
-<div class="logo">🛍️ تاک<span>دارو</span></div>
-<div class="subtitle">مرکز تخصصی مکمل‌های ورزشی</div>
+<div class="logo">شرکت تک تجارت</div>
+<div class="subtitle">مرکز تخصصی واردات پپتایدها و موارد شیمی‌درمانی</div>
 <div class="badge-top">💰 افزایش موجودی</div>
 </div>
 <div class="email-body">
@@ -757,8 +931,8 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <body>
 <div class="email-wrapper">
 <div class="email-header">
-<div class="logo">🛍️ تاک<span>دارو</span></div>
-<div class="subtitle">مرکز تخصصی مکمل‌های ورزشی</div>
+<div class="logo">شرکت تک تجارت</div>
+<div class="subtitle">مرکز تخصصی واردات پپتایدها و موارد شیمی‌درمانی</div>
 <div class="badge-top">💸 کاهش موجودی</div>
 </div>
 <div class="email-body">
@@ -798,7 +972,8 @@ async function seedDefaultEmailTemplates(env, userId = null) {
     let addedCount = 0;
     let updatedCount = 0;
 
-    for (const [eventType, template] of Object.entries(DEFAULT_EMAIL_TEMPLATES)) {
+    for (const eventType of Object.keys(EMAIL_EVENTS).flatMap(event => ['admin', 'user'].map(audience => event + ':' + audience))) {
+      const template = await getEmailTemplate(env, eventType);
       const existing = settings.config.templates[eventType];
       
       if (!existing) {
@@ -866,11 +1041,13 @@ export function renderEmailTemplate(template, data) {
     '{wallet_note}': data.wallet_note || '',
     '{transaction_date}': formatPersianDate(data.transaction_date || new Date().toISOString()),
     '{items_list}': data.items_list || '',
+    '{items_subtotal}': formatPersianAmount(data.items_subtotal || 0),
     '{cashback_amount}': formatPersianAmount(data.cashback_amount || 0),
     '{shipping_amount}': formatPersianAmount(data.shipping_amount || 0),
     '{delivery_date}': data.delivery_date || '',
     '{delivery_time}': data.delivery_time || '',
     '{delivery_summary}': data.delivery_summary || '',
+    '{sent_at}': formatPersianDate(data.sent_at || new Date().toISOString()),
     '{site_url}': data.site_url || 'https://www.takdaro.com',
     '{year}': new Date().getFullYear()
   };
@@ -977,7 +1154,7 @@ export async function sendEmailWithTemplate(env, data) {
     return { success: false, error: 'کانال Email غیرفعال است.' };
   }
 
-  const result = await getAndRenderEmailTemplate(env, eventType, templateData);
+  const result = await getAndRenderEmailTemplate(env, eventType + ':' + (isUserNotification ? 'user' : 'admin'), templateData);
   if (!result.template) {
     return { success: false, error: result.error || 'Template یافت نشد' };
   }
@@ -1027,6 +1204,9 @@ export async function sendEmailWithTemplate(env, data) {
 function buildEmailHtml(bodyContent, data = {}) {
   const siteName = 'تاکدارو';
   const siteUrl = data.site_url || 'https://takdaro-site.pages.dev';
+  if (/^\s*(<!DOCTYPE html>|<html[\s>])/i.test(String(bodyContent || ''))) {
+    return bodyContent;
+  }
 
   return `
 <!DOCTYPE html>
@@ -1137,6 +1317,7 @@ export async function sendUserEmailNotification(env, userId, eventType, orderDat
     }
 
     const itemsHtml = buildItemsHtml(items);
+    const itemsSubtotal = calculateItemsSubtotal(items);
 
     const templateData = {
       customer_name: userData.fullName || '',
@@ -1148,11 +1329,13 @@ export async function sendUserEmailNotification(env, userId, eventType, orderDat
       tracking_code: orderData.trackingCode || '',
       order_date: orderData.createdAt || new Date().toISOString(),
       items_list: itemsHtml,
+      items_subtotal: itemsSubtotal,
       cashback_amount: orderData.cashbackAmount || 0,
       shipping_amount: orderData.shippingAmount ?? orderData.shipping_amount ?? 0,
       delivery_date: orderData.deliveryDate || orderData.delivery_date || '',
       delivery_time: [orderData.deliveryTimeFrom || orderData.delivery_time_from, orderData.deliveryTimeTo || orderData.delivery_time_to].filter(Boolean).join(' تا '),
       delivery_summary: buildDeliverySummary(orderData),
+      sent_at: new Date().toISOString(),
       site_url: baseUrl || ''
     };
 
@@ -1178,6 +1361,7 @@ export async function sendAdminEmailNotification(env, eventType, orderData, user
     const adminRecipient = adminEmail || 'admin@takdaro.com';
 
     const itemsHtml = buildItemsHtml(items);
+    const itemsSubtotal = calculateItemsSubtotal(items);
 
     const templateData = {
       customer_name: userData.fullName || '',
@@ -1189,11 +1373,13 @@ export async function sendAdminEmailNotification(env, eventType, orderData, user
       tracking_code: orderData.trackingCode || '',
       order_date: orderData.createdAt || new Date().toISOString(),
       items_list: itemsHtml,
+      items_subtotal: itemsSubtotal,
       cashback_amount: orderData.cashbackAmount || 0,
       shipping_amount: orderData.shippingAmount ?? orderData.shipping_amount ?? 0,
       delivery_date: orderData.deliveryDate || orderData.delivery_date || '',
       delivery_time: [orderData.deliveryTimeFrom || orderData.delivery_time_from, orderData.deliveryTimeTo || orderData.delivery_time_to].filter(Boolean).join(' تا '),
       delivery_summary: buildDeliverySummary(orderData),
+      sent_at: new Date().toISOString(),
       site_url: baseUrl || ''
     };
 
@@ -1214,9 +1400,7 @@ export async function sendAdminEmailNotification(env, eventType, orderData, user
 export async function sendWalletEmailNotification(env, userId, eventType, userData, transactionData) {
   try {
     const userEmail = userData.email;
-    if (!userEmail) {
-      return { success: false, error: 'کاربر ایمیل ندارد.' };
-    }
+
 
     const templateData = {
       customer_name: userData.fullName || '',
@@ -1231,15 +1415,13 @@ export async function sendWalletEmailNotification(env, userId, eventType, userDa
       site_url: 'https://www.takdaro.com'
     };
 
-    return await sendEmailWithTemplate(env, {
-      eventType: eventType,
-      recipient: userEmail,
-      data: templateData,
-      referenceId: transactionData.id || null,
-      referenceType: 'wallet',
-      userId: userId,
-      isUserNotification: true
-    });
+    const settings = await getEmailSettings(env);
+    const common = { eventType, data: templateData, referenceId: transactionData.id || null, referenceType: 'wallet' };
+    const [user, admin] = await Promise.all([
+      userEmail ? sendEmailWithTemplate(env, { ...common, recipient: userEmail, userId, isUserNotification: true }) : Promise.resolve({ success: false, error: 'کاربر ایمیل ندارد.' }),
+      sendEmailWithTemplate(env, { ...common, recipient: settings.config.admin_email || 'admin@takdaro.com', userId: null, isUserNotification: false })
+    ]);
+    return { success: user.success || admin.success, results: { user, admin } };
   } catch (error) {
     return { success: false, error: String(error?.message || error) };
   }

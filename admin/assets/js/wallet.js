@@ -10,6 +10,98 @@
   // ============================================
   var currentWalletPayload = null;
   var userSearchSequence = 0;
+  var cashbackUserSearchSequence = 0;
+  var cashbackSelectedUsers = new Map();
+
+  function selectedCashbackUserIds() {
+    var input = document.getElementById("cashback-phase1-selected");
+    return (input?.value || "").split(",").map(function(value) {
+      return Number(value.trim());
+    }).filter(function(id) { return Number.isInteger(id) && id > 0; });
+  }
+
+  function renderCashbackSelectedUsers() {
+    var host = document.getElementById("cashback-selected-user-chips");
+    var input = document.getElementById("cashback-phase1-selected");
+    if (!host || !input) return;
+
+    var ids = selectedCashbackUserIds();
+    input.value = ids.join(",");
+    host.replaceChildren();
+
+    ids.forEach(function(id) {
+      var user = cashbackSelectedUsers.get(id) || { id: id, full_name: "کاربر #" + id };
+      var chip = document.createElement("span");
+      chip.style.cssText = "display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #dbe5eb;border-radius:999px;background:#f5f9fb";
+      var label = document.createElement("span");
+      label.textContent = user.full_name || user.email || ("کاربر #" + id);
+      chip.appendChild(label);
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.dataset.removeCashbackUser = String(id);
+      remove.setAttribute("aria-label", "حذف " + label.textContent);
+      remove.textContent = "×";
+      remove.style.cssText = "border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1";
+      chip.appendChild(remove);
+      host.appendChild(chip);
+    });
+  }
+
+  async function searchCashbackUsers(query) {
+    var sequence = ++cashbackUserSearchSequence;
+    var body = document.getElementById("cashback-user-results");
+    var status = document.getElementById("cashback-user-search-status");
+    if (!body || !status) return;
+
+    status.textContent = "در حال دریافت کاربران…";
+    try {
+      var result = await window.api("/api/v1/admin/wallet?view=users&limit=200&search=" + encodeURIComponent(query || ""));
+      if (sequence !== cashbackUserSearchSequence) return;
+      if (!result.ok || !result.data?.success) throw new Error(result.data?.error || "دریافت کاربران انجام نشد.");
+
+      var users = result.data.users || [];
+      body.replaceChildren();
+      users.forEach(function(user) {
+        var id = Number(user.id);
+        cashbackSelectedUsers.set(id, user);
+        var row = document.createElement("button");
+        row.type = "button";
+        row.dataset.addCashbackUser = String(id);
+        row.style.cssText = "width:100%;min-width:0;display:grid;gap:6px;text-align:right;white-space:normal;overflow-wrap:anywhere;padding:12px;border:1px solid #dbe5eb;border-radius:10px;background:#fff;color:inherit;font:inherit;cursor:pointer";
+        var name = document.createElement("strong");
+        name.textContent = user.full_name || "بدون نام";
+        var contact = document.createElement("span");
+        contact.style.cssText = "font-size:12px;direction:ltr;text-align:right;overflow-wrap:anywhere";
+        contact.textContent = [user.email, user.phone].filter(Boolean).join(" — ") || "—";
+        var action = document.createElement("span");
+        action.dataset.cashbackSelectionLabel = "";
+        action.textContent = selectedCashbackUserIds().includes(id) ? "✓ انتخاب‌شده" : "+ افزودن";
+        row.setAttribute("aria-pressed", String(selectedCashbackUserIds().includes(id)));
+        row.append(name, contact, action);
+        body.appendChild(row);
+      });
+      status.textContent = users.length ? users.length + " کاربر نمایش داده شد." : "کاربری پیدا نشد.";
+      renderCashbackSelectedUsers();
+    } catch (error) {
+      if (sequence !== cashbackUserSearchSequence) return;
+      body.replaceChildren();
+      body.textContent = error.message || "دریافت کاربران انجام نشد.";
+      status.textContent = "";
+    }
+  }
+
+  async function initCashbackUserPicker() {
+    var ids = selectedCashbackUserIds();
+    await Promise.all(ids.filter(function(id) { return !cashbackSelectedUsers.has(id); }).map(async function(id) {
+      try {
+        var result = await window.api("/api/v1/admin/wallet?user_id=" + encodeURIComponent(id));
+        if (result.ok && result.data?.success && result.data.user) {
+          cashbackSelectedUsers.set(id, result.data.user);
+        }
+      } catch (_) {}
+    }));
+    renderCashbackSelectedUsers();
+  }
 
   async function searchWalletUsers() {
     var sequence = ++userSearchSequence;
@@ -889,6 +981,55 @@
     var target =
       event.target;
 
+    var cashbackPickerToggle = target.closest("#cashback-user-picker-toggle");
+    if (cashbackPickerToggle) {
+      var pickerPanel = document.getElementById("cashback-user-picker-panel");
+      var isOpening = Boolean(pickerPanel?.hidden);
+      if (pickerPanel) pickerPanel.hidden = !isOpening;
+      cashbackPickerToggle.setAttribute("aria-expanded", String(isOpening));
+      if (isOpening) {
+        var pickerSearch = document.getElementById("cashback-user-search");
+        void searchCashbackUsers(pickerSearch?.value || "").then(initCashbackUserPicker);
+        pickerSearch?.focus();
+      }
+      return;
+    }
+
+    var addCashbackUser = target.closest("[data-add-cashback-user]");
+    if (addCashbackUser) {
+      var addId = Number(addCashbackUser.dataset.addCashbackUser);
+      var addIds = selectedCashbackUserIds();
+      if (addId > 0 && !addIds.includes(addId)) {
+        addIds.push(addId);
+        document.getElementById("cashback-phase1-selected").value = addIds.join(",");
+        renderCashbackSelectedUsers();
+        addCashbackUser.setAttribute("aria-pressed", "true");
+        addCashbackUser.querySelector("[data-cashback-selection-label]").textContent = "✓ انتخاب‌شده";
+      }
+      return;
+    }
+
+    var removeCashbackUser = target.closest("[data-remove-cashback-user]");
+    if (removeCashbackUser) {
+      var removeId = Number(removeCashbackUser.dataset.removeCashbackUser);
+      document.getElementById("cashback-phase1-selected").value = selectedCashbackUserIds().filter(function(id) {
+        return id !== removeId;
+      }).join(",");
+      renderCashbackSelectedUsers();
+      if (!document.getElementById("cashback-user-picker-panel")?.hidden) {
+        void searchCashbackUsers(document.getElementById("cashback-user-search")?.value || "");
+      }
+      return;
+    }
+
+    if (!target.closest("#cashback-selected-users-field")) {
+      var openPicker = document.getElementById("cashback-user-picker-panel");
+      if (openPicker && !openPicker.hidden) {
+        openPicker.hidden = true;
+        document.getElementById("cashback-user-picker-toggle")?.setAttribute("aria-expanded", "false");
+      }
+    }
+
     var sectionButton = target.closest("[data-wallet-section]");
     if (sectionButton) {
       var cashback = sectionButton.dataset.walletSection === "cashback";
@@ -1024,6 +1165,14 @@
     var target =
       event.target;
 
+    if (target.id === "cashback-user-search") {
+      clearTimeout(target._searchTimeout);
+      target._searchTimeout = setTimeout(function() {
+        void searchCashbackUsers(target.value.trim());
+      }, 250);
+      return;
+    }
+
     if (
       target.id ===
       "wallet-history-search"
@@ -1074,6 +1223,9 @@
 
   window.renderWalletSettings =
     renderWalletSettings;
+
+  window.initCashbackUserPicker =
+    initCashbackUserPicker;
 
   window.renderWalletHistory =
     renderWalletHistory;

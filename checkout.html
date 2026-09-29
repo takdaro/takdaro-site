@@ -1463,7 +1463,9 @@
             const deliveryErrors = {
               delivery_date_and_time_required: "لطفاً یک روز و ساعت ارسال انتخاب کنید.",
               delivery_date_unavailable: "این روز دیگر برای ارسال در دسترس نیست؛ لطفاً روز دیگری انتخاب کنید.",
-              delivery_time_unavailable: "این ساعت دیگر ظرفیت خالی ندارد؛ لطفاً ساعت دیگری انتخاب کنید."
+              delivery_time_unavailable: "این ساعت دیگر ظرفیت خالی ندارد؛ لطفاً ساعت دیگری انتخاب کنید.",
+              purchase_min_quantity: `حداقل تعداد خرید برای ${data?.product_name || "این محصول"} ${formatNumber(data?.min_quantity || 1)} عدد است.`,
+              purchase_max_quantity: `حداکثر تعداد خرید برای ${data?.product_name || "این محصول"} ${formatNumber(data?.max_quantity || 1)} عدد است.`
             };
             setCheckoutMessage(deliveryErrors[data?.error] || data?.error || "ثبت سفارش با مشکل مواجه شد.", "error");
             submitOrderBtn.disabled = false;

@@ -92,6 +92,10 @@ function productFromRow(product, imageRows, rate) {
     showPrice: toBoolean(product.show_price),
     inStock,
     stockQty,
+    purchaseMinQty: Math.max(1, Number.parseInt(product.purchase_min_quantity, 10) || 1),
+    purchaseMaxQty: product.purchase_max_quantity === null || product.purchase_max_quantity === undefined
+      ? null
+      : Math.max(1, Number.parseInt(product.purchase_max_quantity, 10) || 1),
     stockLabel: buildStockLabel(product),
     shortDescription: cleanText(product.short_description),
     description: cleanText(product.description),
@@ -143,7 +147,7 @@ export async function getPublishedProducts(env, filters = {}) {
   const productsQuery =
     "SELECT " +
     "p.id, p.slug, p.name, p.category, p.price, p.price_label, p.show_price, " +
-    "p.stock_quantity, p.in_stock, p.stock_label, p.short_description, " +
+    "p.stock_quantity, p.in_stock, p.stock_label, p.purchase_min_quantity, p.purchase_max_quantity, p.short_description, " +
     "p.description, p.primary_image, p.page_url, p.status, p.created_at, p.updated_at, " +
     "p.price_type, p.base_price, p.profit_type, p.profit_value, p.fixed_fee, " +
     "p.rounding_type, p.rounding_method, p.calculated_price, p.price_calculated_at " +

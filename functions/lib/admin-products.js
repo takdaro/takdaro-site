@@ -1,6 +1,6 @@
 import { getCurrentRate } from "./rate";
 
-const COLUMNS = "id, slug, name, category, price, price_label, show_price, stock_quantity, in_stock, stock_label, short_description, description, primary_image, page_url, status, created_at, updated_at, price_type, base_price, profit_type, profit_value, fixed_fee, rounding_type, rounding_method, calculated_price, price_calculated_at";
+const COLUMNS = "id, slug, name, category, price, price_label, show_price, stock_quantity, in_stock, stock_label, purchase_min_quantity, purchase_max_quantity, short_description, description, primary_image, page_url, status, created_at, updated_at, price_type, base_price, profit_type, profit_value, fixed_fee, rounding_type, rounding_method, calculated_price, price_calculated_at";
 
 function clean(value, max = 10000) {
   return String(value ?? "").trim().slice(0, max);
@@ -67,6 +67,10 @@ export function adminProductFromRow(row, imagesByProductId, currentRate = null) 
     id: productId, slug: row.slug || "", name: row.name || "", category: row.category || "",
     price: nullableNumber(row.price), price_label: row.price_label || "تماس بگیرید",
     show_price: Number(row.show_price) === 1, stock_quantity: Math.max(0, Number(row.stock_quantity || 0)),
+    purchase_min_quantity: Math.max(1, Number(row.purchase_min_quantity || 1)),
+    purchase_max_quantity: row.purchase_max_quantity === null || row.purchase_max_quantity === undefined ? null : Math.max(1, Number(row.purchase_max_quantity || 0)),
+    purchaseMinQuantity: Math.max(1, Number(row.purchase_min_quantity || 1)),
+    purchaseMaxQuantity: row.purchase_max_quantity === null || row.purchase_max_quantity === undefined ? null : Math.max(1, Number(row.purchase_max_quantity || 0)),
     in_stock: Number(row.in_stock) === 1, stock_label: row.stock_label || "",
     short_description: row.short_description || "", description: row.description || "",
     primary_image: primaryImage, page_url: row.page_url || "", status: row.status || "draft",

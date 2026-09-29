@@ -186,6 +186,8 @@ CREATE TABLE products (
   stock_quantity INTEGER NOT NULL DEFAULT 0,
   in_stock INTEGER NOT NULL DEFAULT 1,
   stock_label TEXT NOT NULL DEFAULT 'موجود',
+  purchase_min_quantity INTEGER NOT NULL DEFAULT 1,
+  purchase_max_quantity INTEGER,
   short_description TEXT,
   description TEXT,
   primary_image TEXT,
@@ -585,4 +587,3 @@ CREATE INDEX idx_wallet_transactions_type ON wallet_transactions(type);
 
 -- index: idx_wallet_transactions_user_id
 CREATE INDEX idx_wallet_transactions_user_id ON wallet_transactions(user_id);
-

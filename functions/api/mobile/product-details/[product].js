@@ -103,6 +103,28 @@ function toOptionalPrice(
   return number;
 }
 
+function toOptionalQuantity(
+  value
+) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return null;
+  }
+
+  const number =
+    toInteger(
+      value,
+      0
+    );
+
+  return number > 0
+    ? number
+    : null;
+}
+
 function toBooleanInteger(
   value,
   fallback = 0
@@ -354,6 +376,8 @@ async function getProductByIdentifier(
             stock_quantity,
             in_stock,
             stock_label,
+            purchase_min_quantity,
+            purchase_max_quantity,
             short_description,
             description,
             primary_image,
@@ -395,6 +419,8 @@ async function getProductByIdentifier(
         stock_quantity,
         in_stock,
         stock_label,
+        purchase_min_quantity,
+        purchase_max_quantity,
         short_description,
         description,
         primary_image,
@@ -506,6 +532,8 @@ async function getProductPayload(
           stock_quantity,
           in_stock,
           stock_label,
+          purchase_min_quantity,
+          purchase_max_quantity,
           short_description,
           description,
           primary_image,
@@ -640,6 +668,52 @@ async function getProductPayload(
             0
         )
       ),
+
+    purchase_min_quantity:
+      Math.max(
+        1,
+        Number(
+          row.purchase_min_quantity ||
+            1
+        )
+      ),
+
+    purchase_max_quantity:
+      row.purchase_max_quantity ===
+        null ||
+      row.purchase_max_quantity ===
+        undefined
+        ? null
+        : Math.max(
+            1,
+            Number(
+              row.purchase_max_quantity ||
+                0
+            )
+          ),
+
+    purchaseMinQuantity:
+      Math.max(
+        1,
+        Number(
+          row.purchase_min_quantity ||
+            1
+        )
+      ),
+
+    purchaseMaxQuantity:
+      row.purchase_max_quantity ===
+        null ||
+      row.purchase_max_quantity ===
+        undefined
+        ? null
+        : Math.max(
+            1,
+            Number(
+              row.purchase_max_quantity ||
+                0
+            )
+          ),
 
     in_stock:
       Number(
@@ -1247,6 +1321,48 @@ export async function onRequestPut(
               )
           );
 
+    const purchaseMinQuantity =
+      body.purchase_min_quantity !==
+          undefined ||
+      body.purchaseMinQuantity !==
+          undefined
+        ? toOptionalQuantity(
+            body.purchase_min_quantity ??
+              body.purchaseMinQuantity
+          ) || 1
+        : Math.max(
+            1,
+            Number(
+              currentProduct.purchase_min_quantity ||
+                1
+            )
+          );
+
+    const requestedPurchaseMaxQuantity =
+      body.purchase_max_quantity !==
+          undefined ||
+      body.purchaseMaxQuantity !==
+          undefined
+        ? toOptionalQuantity(
+            body.purchase_max_quantity ??
+              body.purchaseMaxQuantity
+          )
+        : currentProduct.purchase_max_quantity ===
+              null ||
+          currentProduct.purchase_max_quantity ===
+              undefined
+          ? null
+          : Number(
+              currentProduct.purchase_max_quantity
+            );
+
+    const purchaseMaxQuantity =
+      requestedPurchaseMaxQuantity &&
+      requestedPurchaseMaxQuantity >=
+        purchaseMinQuantity
+        ? requestedPurchaseMaxQuantity
+        : null;
+
     // ==========================================
     // Descriptions
     // ==========================================
@@ -1552,6 +1668,8 @@ export async function onRequestPut(
           stock_quantity = ?,
           in_stock = ?,
           stock_label = ?,
+          purchase_min_quantity = ?,
+          purchase_max_quantity = ?,
           short_description = ?,
           description = ?,
           primary_image = ?,
@@ -1586,6 +1704,8 @@ export async function onRequestPut(
         stockQuantity,
         inStock,
         stockLabel,
+        purchaseMinQuantity,
+        purchaseMaxQuantity,
         shortDescription ||
           null,
         description ||

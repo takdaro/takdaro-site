@@ -483,18 +483,6 @@
       margin-top: 20px;
     }
 
-    .btn-whatsapp {
-      background: #25D366;
-      color: #fff;
-      border: none;
-    }
-
-    .btn-whatsapp:hover {
-      background: #1da851;
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
-    }
-
     .invoice-message {
       padding: 14px 16px;
       border-radius: 16px;
@@ -852,9 +840,6 @@
               <button type="button" class="btn btn-primary" id="print-invoice-btn">
                 🖨️ چاپ فاکتور
               </button>
-              <button type="button" class="btn btn-whatsapp" id="whatsapp-btn">
-                📱 ارسال فاکتور به واتساپ
-              </button>
               <a href="/products.html" class="btn btn-secondary">
                 🛍️ ادامه خرید
               </a>
@@ -966,7 +951,6 @@
         printDate: document.getElementById('print-date'),
 
         logoContainer: document.getElementById('invoice-logo-container'),
-        whatsappBtn: document.getElementById('whatsapp-btn'),
         printBtn: document.getElementById('print-invoice-btn'),
 
         telegramTrackContainer: document.getElementById('telegram-track-container')
@@ -1313,15 +1297,6 @@
           els.logoContainer.innerHTML = `<div class="invoice-logo-placeholder">تک</div>`;
         }
 
-        const whatsappNumber = settings.whatsapp || '09123456789';
-        const cleanNumber = whatsappNumber.replace(/[^0-9]/g, '');
-        const message = encodeURIComponent(
-          `سلام، سفارش ${orderNumber} را ثبت کردم. و رسید واریزی را برای شما ارسال خواهم کرد  لطفاً رسید پرداخت را بررسی کنید.`
-        );
-        els.whatsappBtn.onclick = function() {
-          window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
-        };
-
         loadTelegramTrackStatus(orderNumber);
 
         if (els.loading) els.loading.style.display = 'none';
@@ -1388,3 +1363,4 @@
   </script>
 </body>
 </html>
+

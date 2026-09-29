@@ -1036,6 +1036,31 @@ async function sendAdminFcmNotification(env, eventType, title, body, orderId = n
   }
 }
 
+export async function sendAdminChatMessageNotification(env, {
+  roomId,
+  sender,
+  department,
+  messageType
+} = {}) {
+  const safeSender = String(sender || 'مشتری').trim().slice(0, 60) || 'مشتری';
+  const safeDepartment = String(department || '').trim().slice(0, 60);
+  const body = [safeSender, safeDepartment].filter(Boolean).join(' · ')
+    + (messageType === 'image' ? ' عکس جدیدی فرستاد.' : ' پیام جدیدی فرستاد.');
+
+  return sendAdminFcmNotification(
+    env,
+    'chat_online',
+    '💬 پیام جدید چت آنلاین',
+    body,
+    null,
+    {
+      event_key: 'chat_online',
+      room_id: String(roomId || '').slice(0, 160),
+      screen: 'chat'
+    }
+  );
+}
+
 // ============================================
 // هشدار کاهش موجودی محصول برای ادمین
 export async function sendLowStockNotification(env, product, previousQuantity, currentQuantity, threshold = 5) {
@@ -1373,7 +1398,7 @@ export async function sendOrderStatusChangedNotification(env, orderData, userDat
     if (emailSettings.is_enabled) {
       emailResult = await sendAdminEmailNotification(
         env,
-        newStatus === 'cancelled' ? 'order_cancelled' : 'order_status_changed',
+        newStatus === 'cancelled' ? 'order_cancelled' : ['payment_pending', 'payment_success', 'payment_failed'].includes(newStatus) ? newStatus : 'order_status_changed',
         orderData,
         userData,
         [],
@@ -2545,7 +2570,7 @@ export async function sendUserOrderStatusChangedNotification(env, orderData, use
       emailResult = await sendUserEmailNotification(
         env,
         userData.id,
-        eventType === 'cancelled' ? 'order_cancelled' : 'order_status_changed',
+        eventType === 'cancelled' ? 'order_cancelled' : ['payment_pending', 'payment_success', 'payment_failed'].includes(eventType) ? eventType : 'order_status_changed',
         orderData,
         userData,
         [],

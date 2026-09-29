@@ -1590,7 +1590,6 @@ select:focus-visible {
   z-index: 0;
 }
 
-/* پشتیبانی واتساپ به‌صورت دکمهٔ دایره‌ای مستقل در سمت راست */
 .bottom-nav > .bottom-nav__item[data-nav="support"] {
   position: absolute;
   right: -2px;
@@ -1603,13 +1602,10 @@ select:focus-visible {
   padding: 4px;
   border-radius: 50%;
   background: linear-gradient(145deg, #35d66f, #159447);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   color: #fff;
-  box-shadow: 0 5px 16px rgba(21, 148, 71, .4), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: 0 8px 22px rgba(21, 148, 71, .42), inset 0 1px 0 rgba(255,255,255,.35);
   z-index: 2;
-}
-
-.bottom-nav > .bottom-nav__item:not([data-nav="support"]) {
-  z-index: 1;
 }
 
 .bottom-nav > .bottom-nav__item[data-nav="support"] .bottom-nav__label {
@@ -1624,17 +1620,17 @@ select:focus-visible {
 
 .bottom-nav > .bottom-nav__item[data-nav="support"].is-active {
   background: linear-gradient(145deg, #35d66f, #159447);
-  box-shadow: 0 5px 16px rgba(21, 148, 71, .45), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow: 0 8px 22px rgba(21, 148, 71, .48), inset 0 1px 0 rgba(255,255,255,.35);
 }
 
 .bottom-nav > .bottom-nav__item[data-nav="support"].is-active .bottom-nav__icon {
   transform: none;
 }
 
-/* سه گزینهٔ دیگر داخل کپسول سمت چپ */
 .bottom-nav > .bottom-nav__item:not([data-nav="support"]) {
   flex: 1 1 0;
   max-width: none;
+  z-index: 1;
 }
 
 .bottom-nav__item {
@@ -1778,7 +1774,7 @@ select:focus-visible {
     right: 8px;
     padding: 5px 70px 5px 5px;
     height: 68px;
-    border-radius: 34px;
+    border-radius: 0;
   }
 
   .bottom-nav > .bottom-nav__item[data-nav="support"] {
@@ -1834,7 +1830,7 @@ select:focus-visible {
     right: 6px;
     padding: 4px 64px 4px 4px;
     height: 62px;
-    border-radius: 31px;
+    border-radius: 0;
   }
 
   .bottom-nav > .bottom-nav__item[data-nav="support"] {

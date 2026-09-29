@@ -42,6 +42,12 @@ function toOptionalPrice(value) {
   return parsed;
 }
 
+function toOptionalQuantity(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = toInteger(value, 0);
+  return parsed > 0 ? parsed : null;
+}
+
 function toBooleanInteger(value, fallback = 0) {
   if (typeof value === "boolean") return value ? 1 : 0;
 
@@ -162,6 +168,8 @@ function productFromRow(row, images) {
     price_label: row.price_label || "تماس بگیرید",
     show_price: Number(row.show_price) === 1,
     stock_quantity: Math.max(0, Number(row.stock_quantity || 0)),
+    purchase_min_quantity: Math.max(1, Number(row.purchase_min_quantity || 1)),
+    purchase_max_quantity: row.purchase_max_quantity === null || row.purchase_max_quantity === undefined ? null : Math.max(1, Number(row.purchase_max_quantity || 0)),
     in_stock: Number(row.in_stock) === 1,
     stock_label: row.stock_label || "",
     short_description: row.short_description || "",
@@ -201,6 +209,8 @@ async function getProduct(context, productId) {
         stock_quantity,
         in_stock,
         stock_label,
+        purchase_min_quantity,
+        purchase_max_quantity,
         short_description,
         description,
         primary_image,
@@ -384,6 +394,17 @@ export async function onRequestPut(context) {
     const inStock = stockQuantity > 0 && requestedInStock === 1 ? 1 : 0;
 
     const stockLabel = inStock ? "موجود" : "موجود نیست؛ در حال تأمین";
+    const purchaseMinQuantity = Object.prototype.hasOwnProperty.call(body, "purchase_min_quantity") ||
+      Object.prototype.hasOwnProperty.call(body, "purchaseMinQuantity")
+      ? toOptionalQuantity(body.purchase_min_quantity ?? body.purchaseMinQuantity) || 1
+      : currentProduct.purchase_min_quantity || 1;
+    const requestedPurchaseMaxQuantity = Object.prototype.hasOwnProperty.call(body, "purchase_max_quantity") ||
+      Object.prototype.hasOwnProperty.call(body, "purchaseMaxQuantity")
+      ? toOptionalQuantity(body.purchase_max_quantity ?? body.purchaseMaxQuantity)
+      : currentProduct.purchase_max_quantity;
+    const purchaseMaxQuantity = requestedPurchaseMaxQuantity && requestedPurchaseMaxQuantity >= purchaseMinQuantity
+      ? requestedPurchaseMaxQuantity
+      : null;
 
     const shortDescription = cleanText(
       body.short_description ??
@@ -484,6 +505,8 @@ export async function onRequestPut(context) {
           stock_quantity = ?,
           in_stock = ?,
           stock_label = ?,
+          purchase_min_quantity = ?,
+          purchase_max_quantity = ?,
           short_description = ?,
           description = ?,
           primary_image = ?,
@@ -515,6 +538,8 @@ export async function onRequestPut(context) {
         stockQuantity,
         inStock,
         stockLabel,
+        purchaseMinQuantity,
+        purchaseMaxQuantity,
         shortDescription || null,
         description || null,
         primaryImage || null,

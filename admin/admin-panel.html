@@ -1831,6 +1831,7 @@
             <div class="admin-sidebar-body">
               <nav class="admin-menu" role="tablist">
                 <button class="admin-menu-btn is-active" type="button" data-admin-panel="dashboard" role="tab" aria-selected="true" aria-controls="admin-panel-dashboard" id="admin-tab-dashboard">داشبورد</button>
+                <button class="admin-menu-btn" type="button" data-admin-panel="chat" role="tab" aria-selected="false" aria-controls="admin-panel-chat" id="admin-tab-chat">💬 مدیریت چت آنلاین</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="orders" role="tab" aria-selected="false" aria-controls="admin-panel-orders" id="admin-tab-orders">سفارش‌ها</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="users" role="tab" aria-selected="false" aria-controls="admin-panel-users" id="admin-tab-users">کاربران</button>
                 <button class="admin-menu-btn" type="button" data-admin-panel="wallet" role="tab" aria-selected="false" aria-controls="admin-panel-wallet" id="admin-tab-wallet">کیف پول</button>
@@ -1859,6 +1860,10 @@
               <!-- هر بخش با استفاده از JavaScript بارگذاری می‌شود -->
               <div id="admin-panel-dashboard" class="admin-section is-active" role="tabpanel" aria-labelledby="admin-tab-dashboard">
                 <div class="admin-loading">در حال بارگذاری داشبورد...</div>
+              </div>
+
+              <div id="admin-panel-chat" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-chat">
+                <div class="admin-loading">در حال بارگذاری مدیریت چت آنلاین...</div>
               </div>
 
               <div id="admin-panel-orders" class="admin-section" role="tabpanel" aria-labelledby="admin-tab-orders">
@@ -1933,6 +1938,7 @@
   <script src="assets/js/invoice.js"></script>
   <script src="assets/js/sms.js"></script>
   <script src="assets/js/notifications.js?v=20260921-template-editor-fix"></script>
+  <script src="assets/js/chat.js?v=20260922-upload-flow-v2"></script>
   
   
   <!-- Admin Shell (بعد از همه ماژول‌ها) -->
@@ -1954,6 +1960,9 @@
           if (!response.ok) throw new Error('HTTP ' + response.status);
           var html = await response.text();
           container.innerHTML = html;
+          if (panelName === 'chat' && typeof window.loadChatAdmin === 'function') {
+            await window.loadChatAdmin();
+          }
           console.log('✅ Loaded:', panelName);
         } catch (error) {
           console.error('❌ Error loading ' + panelName + ':', error);
@@ -1967,6 +1976,7 @@
       async function loadAllModules() {
         var modules = [
           { name: 'dashboard', container: 'admin-panel-dashboard' },
+          { name: 'chat', container: 'admin-panel-chat' },
           { name: 'orders', container: 'admin-panel-orders' },
           { name: 'users', container: 'admin-panel-users' },
           { name: 'wallet', container: 'admin-panel-wallet' },

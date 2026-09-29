@@ -56,6 +56,17 @@ export async function hashPassword(password) {
     throw new Error('Password must be at least 8 characters long');
   }
 
+  return hashSecret(password);
+}
+
+export async function hashAccessCode(code) {
+  if (typeof code !== 'string' || !/^[0-9]{4,8}$/.test(code)) {
+    throw new Error('Access code must contain 4 to 8 digits');
+  }
+  return hashSecret(code);
+}
+
+async function hashSecret(password) {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
   const hash = await deriveBits(password, salt, PBKDF2_ITERATIONS);
   return ['pbkdf2', DIGEST.toLowerCase(), PBKDF2_ITERATIONS, toBase64(salt), toBase64(hash)].join('$');

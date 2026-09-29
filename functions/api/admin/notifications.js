@@ -889,9 +889,9 @@ export async function onRequestPost(context) {
     // ⭐ ذخیره Template Email
     // ============================================
     if (action === 'save_email_template') {
-      const { eventType, title, subject, body, isEnabled } = body;
+      const { eventType, title, subject, body: templateBody, isEnabled } = body;
 
-      if (!eventType || !title || !subject || !body) {
+      if (!eventType || !title || !subject || !templateBody) {
         return json({
           success: false,
           error: 'eventType, title, subject و body الزامی هستند.'
@@ -902,7 +902,7 @@ export async function onRequestPost(context) {
         eventType,
         title,
         subject,
-        body,
+        body: templateBody,
         isEnabled: isEnabled !== undefined ? isEnabled : true
       }, adminUser.id);
 

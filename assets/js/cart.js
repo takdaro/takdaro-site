@@ -45,6 +45,27 @@
     return 999;
   }
 
+  function getProductMinQty(product) {
+    const parsed = Number(product?.purchaseMinQty ?? product?.purchase_min_quantity);
+    return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
+  }
+
+  function getProductMaxQty(product) {
+    const stockQty = getProductStockQty(product);
+    const parsed = Number(product?.purchaseMaxQty ?? product?.purchase_max_quantity);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return Math.min(Math.floor(parsed), stockQty);
+    }
+    return stockQty;
+  }
+
+  function clampProductQuantity(product, value) {
+    const minQty = getProductMinQty(product);
+    const maxQty = getProductMaxQty(product);
+    if (maxQty < minQty) return 0;
+    return Math.min(Math.max(normalizeQuantity(value), minQty), maxQty);
+  }
+
   function isProductInStock(product) {
     if (!product) return false;
     if (product.inStock === false) return false;
@@ -69,6 +90,10 @@
     const amount = Number(value);
     if (!Number.isFinite(amount) || amount <= 0) return "تماس بگیرید";
     return `${new Intl.NumberFormat("fa-IR").format(amount)} تومان`;
+  }
+
+  function formatNumber(value) {
+    return new Intl.NumberFormat("fa-IR").format(Number(value) || 0);
   }
 
   function readCart() {
@@ -133,10 +158,10 @@
       if (!isProductInStock(product)) {
         return;
       }
-      const quantity = Math.min(
-        normalizeQuantity(item.quantity),
-        getProductStockQty(product)
-      );
+      const quantity = clampProductQuantity(product, item.quantity);
+      if (quantity < 1) {
+        return;
+      }
       validItems.push({
         productId: product.id,
         slug: product.slug,
@@ -254,6 +279,14 @@
     }
     const cart = getValidatedCart();
     const requestedQuantity = normalizeQuantity(quantity);
+    const minQty = getProductMinQty(product);
+    const maxQty = getProductMaxQty(product);
+    if (maxQty < minQty) {
+      return {
+        success: false,
+        message: `حداقل تعداد قابل سفارش ${formatNumber(minQty)} عدد است و موجودی کافی نیست.`
+      };
+    }
     const existingItem = cart.find((item) => {
       return (
         String(item.productId) === String(product.id) ||
@@ -262,14 +295,14 @@
     });
     if (existingItem) {
       existingItem.quantity = Math.min(
-        existingItem.quantity + requestedQuantity,
-        getProductStockQty(product)
+        Math.max(existingItem.quantity + requestedQuantity, minQty),
+        maxQty
       );
     } else {
       cart.push({
         productId: product.id,
         slug: product.slug,
-        quantity: Math.min(requestedQuantity, getProductStockQty(product))
+        quantity: Math.min(Math.max(requestedQuantity, minQty), maxQty)
       });
     }
     writeCart(cart);
@@ -304,7 +337,10 @@
     } else if (!isProductInStock(product)) {
       cart.splice(itemIndex, 1);
     } else {
-      cart[itemIndex].quantity = Math.min(safeQuantity, getProductStockQty(product));
+      cart[itemIndex].quantity = clampProductQuantity(product, safeQuantity);
+      if (cart[itemIndex].quantity < 1) {
+        cart.splice(itemIndex, 1);
+      }
     }
     writeCart(cart);
     dispatchCartUpdated();

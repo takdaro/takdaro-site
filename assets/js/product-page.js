@@ -51,8 +51,29 @@
     return Math.max(0, Number(product?.stockQty || 0));
   }
 
+  function getPurchaseMinQty(product) {
+    const parsed = Number(product?.purchaseMinQty ?? product?.purchase_min_quantity);
+    return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
+  }
+
+  function getPurchaseMaxQty(product) {
+    const stockQty = getStockQty(product);
+    const parsed = Number(product?.purchaseMaxQty ?? product?.purchase_max_quantity);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return Math.min(Math.floor(parsed), stockQty);
+    }
+    return stockQty;
+  }
+
   function isAvailable(product) {
     return !!product && !!product.inStock && getStockQty(product) > 0;
+  }
+
+  function showMinQuantityMessage(product, minQty) {
+    const productName = product?.name || "این محصول";
+    alert(
+      `حداقل انتخاب این محصول ${productName} کمتر از ${formatNumber(minQty)} عدد نیست.`
+    );
   }
 
   function setText(selector, value) {
@@ -195,15 +216,17 @@
     if (!quantityInput) return 1;
 
     const stockQty = getStockQty(product);
+    const minQty = getPurchaseMinQty(product);
+    const maxQty = getPurchaseMaxQty(product);
 
     let value = parseInt(quantityInput.value, 10);
 
-    if (isNaN(value) || value < 1) {
-      value = 1;
+    if (isNaN(value) || value < minQty) {
+      value = minQty;
     }
 
-    if (stockQty > 0 && value > stockQty) {
-      value = stockQty;
+    if (stockQty > 0 && value > maxQty) {
+      value = maxQty;
     }
 
     quantityInput.value = value;
@@ -220,7 +243,9 @@
     if (!addToCartBtn || !quantityInput) return;
 
     const stockQty = getStockQty(product);
-    const available = isAvailable(product);
+    const available = isAvailable(product) && getPurchaseMaxQty(product) >= getPurchaseMinQty(product);
+    const minQty = getPurchaseMinQty(product);
+    const maxQty = Math.max(minQty, getPurchaseMaxQty(product));
 
     if (!available) {
       addToCartBtn.disabled = true;
@@ -245,11 +270,11 @@
     addToCartBtn.style.cursor = "pointer";
 
     quantityInput.disabled = false;
-    quantityInput.min = 1;
-    quantityInput.max = stockQty;
+    quantityInput.min = minQty;
+    quantityInput.max = maxQty;
 
-    if (!quantityInput.value || Number(quantityInput.value) < 1) {
-      quantityInput.value = 1;
+    if (!quantityInput.value || Number(quantityInput.value) < minQty) {
+      quantityInput.value = minQty;
     }
 
     if (increaseBtn) increaseBtn.disabled = false;
@@ -292,7 +317,8 @@
         const current = normalizeQty(product);
         const stockQty = getStockQty(product);
 
-        quantityInput.value = Math.min(current + 1, stockQty);
+        const maxQty = getPurchaseMaxQty(product);
+        quantityInput.value = Math.min(current + 1, maxQty);
         quantityInput.focus();
       });
     }
@@ -304,8 +330,16 @@
         if (!quantityInput || quantityInput.disabled) return;
 
         const current = normalizeQty(product);
+        const minQty = getPurchaseMinQty(product);
 
-        quantityInput.value = Math.max(1, current - 1);
+        if (current <= minQty) {
+          quantityInput.value = minQty;
+          showMinQuantityMessage(product, minQty);
+          quantityInput.focus();
+          return;
+        }
+
+        quantityInput.value = Math.max(minQty, current - 1);
         quantityInput.focus();
       });
     }
@@ -323,6 +357,11 @@
         const product = findProduct();
 
         if (!quantityInput.disabled) {
+          const minQty = getPurchaseMinQty(product);
+          const rawValue = parseInt(quantityInput.value, 10);
+          if (!Number.isNaN(rawValue) && rawValue < minQty) {
+            showMinQuantityMessage(product, minQty);
+          }
           normalizeQty(product);
         }
       });
@@ -344,16 +383,27 @@
         }
 
         const qty = normalizeQty(product);
-        const stockQty = getStockQty(product);
+        const minQty = getPurchaseMinQty(product);
+        const maxQty = getPurchaseMaxQty(product);
         const slug = addToCartBtn.dataset.productSlug || getSlug();
 
-        if (qty > stockQty) {
+        if (qty < minQty) {
+          showMinQuantityMessage(product, minQty);
+
+          if (quantityInput) {
+            quantityInput.value = minQty;
+          }
+
+          return;
+        }
+
+        if (qty > maxQty) {
           alert(
-            `حداکثر تعداد قابل سفارش ${formatNumber(stockQty)} عدد است.`
+            `حداکثر تعداد قابل سفارش ${formatNumber(maxQty)} عدد است.`
           );
 
           if (quantityInput) {
-            quantityInput.value = stockQty;
+            quantityInput.value = maxQty;
           }
 
           return;

@@ -56,6 +56,12 @@ function toOptionalPrice(value) {
   return parsed;
 }
 
+function toOptionalQuantity(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = toInteger(value, 0);
+  return parsed > 0 ? parsed : null;
+}
+
 function toBooleanInteger(value, fallback = 0) {
   if (typeof value === "boolean") return value ? 1 : 0;
 
@@ -195,6 +201,8 @@ function productFromRow(row, imagesByProductId, currentRate = null) {
     price_label: row.price_label || "تماس بگیرید",
     show_price: Number(row.show_price) === 1,
     stock_quantity: Math.max(0, Number(row.stock_quantity || 0)),
+    purchase_min_quantity: Math.max(1, Number(row.purchase_min_quantity || 1)),
+    purchase_max_quantity: row.purchase_max_quantity === null || row.purchase_max_quantity === undefined ? null : Math.max(1, Number(row.purchase_max_quantity || 0)),
     in_stock: Number(row.in_stock) === 1,
     stock_label: row.stock_label || "",
     short_description: row.short_description || "",
@@ -286,6 +294,8 @@ async function getProductRow(db, productId) {
         stock_quantity,
         in_stock,
         stock_label,
+        purchase_min_quantity,
+        purchase_max_quantity,
         short_description,
         description,
         primary_image,
@@ -342,6 +352,9 @@ function getProductInput(body) {
 
   const inStock = stockQuantity > 0 ? 1 : 0;
   const stockLabel = inStock ? "موجود" : "موجود نیست؛ در حال تأمین";
+  const purchaseMinQuantity = toOptionalQuantity(body?.purchase_min_quantity ?? body?.purchaseMinQuantity) || 1;
+  const requestedPurchaseMaxQuantity = toOptionalQuantity(body?.purchase_max_quantity ?? body?.purchaseMaxQuantity);
+  const purchaseMaxQuantity = requestedPurchaseMaxQuantity && requestedPurchaseMaxQuantity >= purchaseMinQuantity ? requestedPurchaseMaxQuantity : null;
 
   const shortDescription = cleanText(
     body?.short_description ?? body?.shortDescription,
@@ -395,6 +408,8 @@ function getProductInput(body) {
     stockQuantity,
     inStock,
     stockLabel,
+    purchaseMinQuantity,
+    purchaseMaxQuantity,
     shortDescription,
     description,
     pageUrl,
@@ -608,6 +623,8 @@ export async function onRequestPost(context) {
           stock_quantity,
           in_stock,
           stock_label,
+          purchase_min_quantity,
+          purchase_max_quantity,
           short_description,
           description,
           primary_image,
@@ -625,7 +642,7 @@ export async function onRequestPost(context) {
           price_calculated_at,
           updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `)
       .bind(
         input.slug,
@@ -637,6 +654,8 @@ export async function onRequestPost(context) {
         input.stockQuantity,
         input.inStock,
         input.stockLabel,
+        input.purchaseMinQuantity,
+        input.purchaseMaxQuantity,
         input.shortDescription || null,
         input.description || null,
         input.primaryImage || null,
@@ -827,6 +846,8 @@ export async function onRequestPut(context) {
           stock_quantity = ?,
           in_stock = ?,
           stock_label = ?,
+          purchase_min_quantity = ?,
+          purchase_max_quantity = ?,
           short_description = ?,
           description = ?,
           primary_image = ?,
@@ -858,6 +879,8 @@ export async function onRequestPut(context) {
         input.stockQuantity,
         input.inStock,
         input.stockLabel,
+        input.purchaseMinQuantity,
+        input.purchaseMaxQuantity,
         input.shortDescription || null,
         input.description || null,
         input.primaryImage || null,

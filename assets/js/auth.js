@@ -1,4 +1,4 @@
-﻿const Auth = (() => {
+const Auth = (() => {
   const endpoints = {
     register: "/api/auth/register",
     login: "/api/auth/login",
@@ -67,9 +67,10 @@
   // خروج
   // ==========================================
   async function logout() {
-    return request(endpoints.logout, {
-      method: "POST"
-    });
+    const result=await request(endpoints.logout, {method: 'POST'});
+    if(result.ok && result.data?.success){try { localStorage.setItem('takdaro:logout-at', String(Date.now())); } catch {}
+          window.dispatchEvent(new Event('takdaro:logout'));}
+    return result;
   }
 
   // ==========================================
