@@ -350,6 +350,30 @@
         grid-template-columns: 1fr;
       }
     }
+
+    .form-field [aria-invalid="true"] {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+    }
+    .checkout-validation-dialog {
+      width: min(480px, calc(100% - 32px));
+      max-height: calc(100dvh - 48px);
+      overflow-y: auto;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+      font: inherit;
+      text-align: right;
+    }
+    .checkout-validation-dialog::backdrop { background: rgba(2, 48, 71, 0.55); }
+    .checkout-validation-dialog h2 { margin: 0 0 12px; font-size: 1.15rem; color: var(--primary); }
+    .checkout-validation-dialog p,
+    .checkout-validation-dialog ul { line-height: 1.9; }
+    .checkout-validation-dialog ul { padding-inline-start: 24px; margin: 12px 0 20px; }
+    .checkout-validation-dialog .btn { width: 100%; }
   </style>
 </head>
 <body>
@@ -555,6 +579,14 @@
   <div id="site-cart"></div>
   <div id="bottom-nav"></div>
 
+
+  <dialog id="checkout-validation-dialog" class="checkout-validation-dialog" aria-labelledby="checkout-validation-title" aria-describedby="checkout-validation-description">
+    <h2 id="checkout-validation-title">اطلاعات سفارش را کامل کنید</h2>
+    <p id="checkout-validation-description">برای ثبت سفارش، لطفاً موارد زیر را تکمیل یا اصلاح کنید:</p>
+    <ul id="checkout-validation-list"></ul>
+    <button type="button" class="btn btn-primary" id="checkout-validation-close" autofocus>تکمیل اطلاعات</button>
+  </dialog>
+
 <script src="/assets/js/layout.js?v=chat-only-20260929-5"></script>
 <script src="/assets/js/chat-launcher.js?v=identity-entry-20260929-8"></script>
   <script src="/assets/js/products.js"></script>
@@ -680,7 +712,14 @@
 
     function selectDeliveryDate(date) {
       const day = deliveryState.days.find((item) => item.date === date && item.available);
-      if (!day) return;
+      if (!day) {
+        deliveryState.selectedDate = "";
+        deliverySlotSelect.innerHTML = '<option value="">ابتدا تاریخ ارسال را انتخاب کنید</option>';
+        deliverySlotSelect.disabled = true;
+        if (deliverySlotHelp) deliverySlotHelp.textContent = "ابتدا یک روز قابل ارسال را انتخاب کنید.";
+        if (deliveryPickerHelp) deliveryPickerHelp.textContent = "لطفاً یک روز قابل ارسال را انتخاب کنید.";
+        return;
+      }
       deliveryState.selectedDate = date;
       deliverySlotSelect.innerHTML = '<option value="">انتخاب ساعت ارسال</option>';
       day.slots.forEach((slot) => {
@@ -1312,37 +1351,116 @@
     // ============================================
     // اعتبارسنجی فرم
     // ============================================
-    function validateForm(data) {
-      if (!data.firstName || !data.lastName || !data.province || !data.city || !data.postalCode || !data.phone || !data.address) {
-        setCheckoutMessage("لطفاً تمام اطلاعات خریدار را کامل وارد کنید.", "error");
-        return false;
-      }
+    const validationDialog = document.getElementById("checkout-validation-dialog");
+    const validationList = document.getElementById("checkout-validation-list");
+    let validationFocusTarget = null;
 
-      if (!shippingState.shippingMethod) {
-        setCheckoutMessage("لطفاً ابتدا استان و شهر را انتخاب کنید.", "error");
-        return false;
-      }
-
-      if (!deliveryState.selectedDate || !deliverySlotSelect.value) {
-        setCheckoutMessage("لطفاً ابتدا یک روز و سپس ساعت ارسال همان روز را انتخاب کنید.", "error");
-        return false;
-      }
-
-      const phone = toEnglishDigits(data.phone).replace(/\D/g, "");
-      const postalCode = toEnglishDigits(data.postalCode).replace(/\D/g, "");
-
-      if (phone.length < 10) {
-        setCheckoutMessage("شماره تماس واردشده معتبر نیست.", "error");
-        return false;
-      }
-
-      if (postalCode.length !== 10) {
-        setCheckoutMessage("کد پستی باید 10 رقم باشد.", "error");
-        return false;
-      }
-
-      return true;
+    function readCheckoutForm() {
+      return {
+        firstName: document.getElementById("first-name").value.trim(),
+        lastName: document.getElementById("last-name").value.trim(),
+        province: provinceSelect.value.trim(),
+        city: citySelect.value.trim(),
+        postalCode: document.getElementById("postal-code").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        delivery_date: deliveryState.selectedDate,
+        delivery_slot_id: deliverySlotSelect.value
+      };
     }
+
+    function getCheckoutIssues(data) {
+      const issues = [];
+      const requiredFields = [
+        ["firstName", "first-name", "نام"],
+        ["lastName", "last-name", "نام خانوادگی"],
+        ["province", "province", "استان"],
+        ["city", "city", "شهر"],
+        ["postalCode", "postal-code", "کد پستی"],
+        ["phone", "phone", "شماره تماس"],
+        ["address", "address", "آدرس دقیق و توضیحات تحویل"]
+      ];
+      requiredFields.forEach(([key, id, label]) => {
+        if (!data[key]) issues.push({ id, message: "لطفاً " + label + " را تکمیل کنید." });
+      });
+
+      if (data.province && data.city && !shippingState.shippingMethod) {
+        issues.push({ id: "city", message: "روش ارسال هنوز مشخص نشده است؛ لطفاً منتظر محاسبه ارسال بمانید و در صورت ادامه مشکل، شهر را دوباره انتخاب کنید." });
+      }
+
+      const selectedDay = deliveryState.days.find((day) => day.date === data.delivery_date && day.available);
+      if (!deliveryDateInput.value || deliveryDateInput.value !== data.delivery_date || !selectedDay) {
+        let message = "لطفاً تاریخ ارسال را انتخاب کنید.";
+        if (shippingState.shippingMethod && !deliveryState.days.length) {
+          message = "روزهای ارسال هنوز در دسترس نیستند؛ لطفاً منتظر بارگذاری بمانید و در صورت ادامه مشکل، شهر را دوباره انتخاب کنید.";
+        } else if (shippingState.shippingMethod && !deliveryState.days.some((day) => day.available)) {
+          message = "برای این شهر در بازه فعلی روز قابل ارسال وجود ندارد؛ لطفاً شهر را بررسی کنید یا با پشتیبانی تماس بگیرید.";
+        }
+        issues.push({ id: "delivery-date", message });
+      }
+      if (!selectedDay || !data.delivery_slot_id || !selectedDay.slots.some((slot) => String(slot.id) === data.delivery_slot_id)) {
+        issues.push({ id: "delivery-slot", message: "لطفاً پس از انتخاب تاریخ، ساعت ارسال همان روز را انتخاب کنید." });
+      }
+
+      if (data.phone && toEnglishDigits(data.phone).replace(/\D/g, "").length < 10) {
+        issues.push({ id: "phone", message: "شماره تماس واردشده معتبر نیست؛ لطفاً آن را اصلاح کنید." });
+      }
+      if (data.postalCode && toEnglishDigits(data.postalCode).replace(/\D/g, "").length !== 10) {
+        issues.push({ id: "postal-code", message: "کد پستی باید ۱۰ رقم باشد؛ لطفاً آن را اصلاح کنید." });
+      }
+      // Keep the popup and focus order consistent with the visible form.
+      const fieldOrder = ["first-name", "last-name", "province", "city", "delivery-date", "delivery-slot", "postal-code", "phone", "address"];
+      return issues.sort((a, b) => fieldOrder.indexOf(a.id) - fieldOrder.indexOf(b.id));
+    }
+
+    function clearCheckoutFieldErrors() {
+      checkoutForm.querySelectorAll('[aria-invalid="true"]').forEach((field) => field.removeAttribute("aria-invalid"));
+    }
+
+    function validateForm(data) {
+      const issues = getCheckoutIssues(data);
+      clearCheckoutFieldErrors();
+      if (!issues.length) return true;
+
+      validationList.replaceChildren();
+      issues.forEach((issue) => {
+        document.getElementById(issue.id).setAttribute("aria-invalid", "true");
+        const item = document.createElement("li");
+        item.textContent = issue.message;
+        validationList.appendChild(item);
+      });
+      const fields = issues.map((issue) => document.getElementById(issue.id));
+      validationFocusTarget = fields.find((field) => !field.disabled) || provinceSelect;
+      if (issues.some((issue) => issue.id === "delivery-date") && deliveryDateInput.disabled && data.province && data.city) {
+        validationFocusTarget = citySelect;
+      }
+      setCheckoutMessage("لطفاً قسمت‌های مشخص‌شده را تکمیل یا اصلاح کنید.", "error");
+      if (typeof validationDialog.showModal === "function") {
+        if (!validationDialog.open) validationDialog.showModal();
+      } else {
+        window.alert(issues.map((issue) => issue.message).join("\n"));
+        validationFocusTarget.scrollIntoView({ block: "center" });
+        validationFocusTarget.focus({ preventScroll: true });
+      }
+      return false;
+    }
+
+    document.getElementById("checkout-validation-close").addEventListener("click", () => validationDialog.close());
+    validationDialog.addEventListener("close", () => {
+      if (validationFocusTarget && !validationFocusTarget.disabled) {
+        validationFocusTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+        validationFocusTarget.focus({ preventScroll: true });
+      }
+    });
+    function refreshCheckoutFieldErrors() {
+      const invalidIds = new Set(getCheckoutIssues(readCheckoutForm()).map((issue) => issue.id));
+      checkoutForm.querySelectorAll('[aria-invalid="true"]').forEach((field) => {
+        if (!invalidIds.has(field.id)) field.removeAttribute("aria-invalid");
+      });
+    }
+    checkoutForm.addEventListener("input", refreshCheckoutFieldErrors);
+    // Capture date changes after their existing handler updates the selected day.
+    checkoutForm.addEventListener("change", refreshCheckoutFieldErrors);
 
     // ============================================
     // پر کردن اطلاعات کاربر
@@ -1422,17 +1540,7 @@
           return;
         }
 
-        const formData = {
-          firstName: document.getElementById("first-name").value.trim(),
-          lastName: document.getElementById("last-name").value.trim(),
-          province: document.getElementById("province").value.trim(),
-          city: document.getElementById("city").value.trim(),
-          postalCode: document.getElementById("postal-code").value.trim(),
-          phone: document.getElementById("phone").value.trim(),
-          address: document.getElementById("address").value.trim(),
-          delivery_date: deliveryState.selectedDate,
-          delivery_slot_id: deliverySlotSelect.value
-        };
+        const formData = readCheckoutForm();
 
         if (!validateForm(formData)) return;
 
