@@ -3,6 +3,7 @@
 // ============================================
 
 import { getDb } from './db.js';
+import { isUserCashbackEnabled } from './cashback-settings.js';
 import { getStatusLabel } from './status-mapping.js';
 
 // ============================================
@@ -1019,11 +1020,34 @@ async function seedDefaultEmailTemplates(env, userId = null) {
 // توابع رندر Template
 // ============================================
 
+// Remove the whole cashback card, including nested divs in saved templates.
+function removeCashbackSections(body) {
+  const opening = /<div\b[^>]*\bclass\s*=\s*["'][^"']*\bcashback-box\b[^"']*["'][^>]*>/gi;
+  let match;
+  while ((match = opening.exec(body))) {
+    const tags = /<\/?div\b[^>]*>/gi;
+    tags.lastIndex = opening.lastIndex;
+    let depth = 1;
+    let tag;
+    while ((tag = tags.exec(body))) {
+      depth += /^<\//.test(tag[0]) ? -1 : 1;
+      if (depth === 0) break;
+    }
+    if (depth !== 0) break;
+    body = body.slice(0, match.index) + body.slice(tags.lastIndex);
+    opening.lastIndex = match.index;
+  }
+  return body;
+}
+
 export function renderEmailTemplate(template, data) {
   if (!template) return { subject: '', body: '' };
 
   let subject = template.subject || '';
   let body = template.body || '';
+  if (data.cashback_enabled !== true || !(Number(data.cashback_amount) > 0)) {
+    body = removeCashbackSections(body);
+  }
 
   const variables = {
     '{customer_name}': data.customer_name || '',
@@ -1143,7 +1167,7 @@ export async function sendEmail(env, data) {
 // ============================================
 
 export async function sendEmailWithTemplate(env, data) {
-  const { eventType, recipient, data: templateData, from, fromName, referenceId = null, referenceType = 'order', userId = null, isUserNotification = true } = data;
+  const { eventType, recipient, data: suppliedTemplateData, from, fromName, referenceId = null, referenceType = 'order', userId = null, isUserNotification = true } = data;
 
   if (!eventType || !recipient) {
     throw new Error('eventType و recipient الزامی هستند.');
@@ -1153,6 +1177,18 @@ export async function sendEmailWithTemplate(env, data) {
   if (!settings.is_enabled) {
     return { success: false, error: 'کانال Email غیرفعال است.' };
   }
+
+  const cashbackAmount = eventType === 'cashback_applied'
+    ? Number(suppliedTemplateData?.amount || 0)
+    : Number(suppliedTemplateData?.cashback_amount || 0);
+  const cashbackEnabled = cashbackAmount > 0 && await isUserCashbackEnabled(
+    getDb(env), suppliedTemplateData?.customer_user_id || userId,
+    referenceType === 'order' ? referenceId : null
+  );
+  if (eventType === 'cashback_applied' && !cashbackEnabled) {
+    return { success: false, skipped: true, reason: 'cashback_disabled' };
+  }
+  const templateData = { ...suppliedTemplateData, cashback_enabled: cashbackEnabled };
 
   const result = await getAndRenderEmailTemplate(env, eventType + ':' + (isUserNotification ? 'user' : 'admin'), templateData);
   if (!result.template) {
@@ -1320,6 +1356,7 @@ export async function sendUserEmailNotification(env, userId, eventType, orderDat
     const itemsSubtotal = calculateItemsSubtotal(items);
 
     const templateData = {
+      customer_user_id: userId,
       customer_name: userData.fullName || '',
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
@@ -1364,6 +1401,7 @@ export async function sendAdminEmailNotification(env, eventType, orderData, user
     const itemsSubtotal = calculateItemsSubtotal(items);
 
     const templateData = {
+      customer_user_id: userData.id,
       customer_name: userData.fullName || '',
       customer_phone: userData.phone || '',
       order_number: orderData.orderNumber || '',
@@ -1403,6 +1441,7 @@ export async function sendWalletEmailNotification(env, userId, eventType, userDa
 
 
     const templateData = {
+      customer_user_id: userId,
       customer_name: userData.fullName || '',
       customer_phone: userData.phone || '',
       amount: transactionData.amount || 0,

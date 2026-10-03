@@ -25,6 +25,7 @@ const source = fs.readFileSync(new URL('../functions/lib/email.js', import.meta.
   .replace(/export function/g, 'function')
   .replace(/export \{[\s\S]*?\};/g, '');
 const context = vm.createContext({ console, getDb: env => env.DB, getStatusLabel: value => value,
+  isUserCashbackEnabled: async () => true,
   fetch: async (_url, request) => { sent.push(JSON.parse(request.body)); return { ok: true, json: async () => ({ id: 'mock' }) }; }
 });
 vm.runInContext(source, context);
@@ -82,14 +83,14 @@ for (const entry of (await context.getAllEmailTemplates(env)).filter(t => t.audi
   await context.toggleEmailTemplate(env, event + ':admin', false, 1);
   sent.length = 0;
   for (const isUserNotification of [true, false]) {
-    await context.sendEmailWithTemplate(env, { eventType: event, recipient: 'test@example.com', data: {}, isUserNotification });
+    await context.sendEmailWithTemplate(env, { eventType: event, recipient: 'test@example.com', data: { amount: 50, customer_user_id: user.id }, isUserNotification });
   }
   assert.equal(sent.length, 1, event + ': admin disabled independently');
   await context.toggleEmailTemplate(env, event + ':user', false, 1);
   await context.toggleEmailTemplate(env, event + ':admin', true, 1);
   sent.length = 0;
   for (const isUserNotification of [true, false]) {
-    await context.sendEmailWithTemplate(env, { eventType: event, recipient: 'test@example.com', data: {}, isUserNotification });
+    await context.sendEmailWithTemplate(env, { eventType: event, recipient: 'test@example.com', data: { amount: 50, customer_user_id: user.id }, isUserNotification });
   }
   assert.equal(sent.length, 1, event + ': user disabled independently');
 }
