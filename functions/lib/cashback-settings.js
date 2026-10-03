@@ -108,3 +108,27 @@ export async function saveCashbackSettings(db, body = {}) {
 
   return getCashbackSettings(db);
 }
+
+// Use current settings for message visibility, including existing orders.
+export async function isUserCashbackEnabled(db, userId, orderId = null) {
+  try {
+    const settings = await getCashbackSettings(db);
+    if (!settings.cashback_enabled || settings.cashback_percent <= 0) return false;
+    if (settings.cashback_eligibility_mode === "all") return true;
+
+    let resolvedUserId = Number(userId || 0);
+    if (!resolvedUserId && orderId) {
+      const order = await db.prepare('SELECT user_id FROM orders WHERE id = ? LIMIT 1').bind(orderId).first();
+      resolvedUserId = Number(order?.user_id || 0);
+    }
+    if (!resolvedUserId) return false;
+    if (settings.cashback_eligibility_mode === "selected") {
+      return settings.cashback_selected_user_ids.includes(resolvedUserId);
+    }
+    const user = await db.prepare('SELECT role FROM users WHERE id = ? LIMIT 1').bind(resolvedUserId).first();
+    return String(user?.role || '').trim().toLowerCase() === 'vip';
+  } catch (error) {
+    console.error('Failed to check cashback message eligibility:', error);
+    return false;
+  }
+}

@@ -229,7 +229,7 @@ export function buildOrderCreatedMessage(orderData, userData, items) {
   message += `  ─────────────────\n`;
   message += `  <b>مبلغ قابل پرداخت: ${formatNumber(payableAmount || totalAmount)} تومان</b>\n`;
 
-  if (cashbackAmount > 0) {
+  if (orderData.cashbackEnabled === true && cashbackAmount > 0) {
     message += `\n  🎁 <b>کش‌بک این سفارش: ${formatNumber(cashbackAmount)} تومان</b>`;
     message += `\n  (پس از تکمیل سفارش به کیف پول اضافه می‌شود)`;
   }
@@ -614,7 +614,7 @@ export function buildUserOrderCreatedMessage(orderData, userData, items) {
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `💳 <b>مبلغ نهایی:</b> ${formatNumber(payableAmount || totalAmount)} تومان\n\n`;
 
-  if (cashbackAmount > 0) {
+  if (orderData.cashbackEnabled === true && cashbackAmount > 0) {
     message += `💰 <b>کش‌بک این سفارش:</b> ${formatNumber(cashbackAmount)} تومان\n`;
     message += `(پس از تکمیل سفارش به کیف پول شما اضافه می‌شود)\n\n`;
   }
@@ -647,7 +647,7 @@ export function buildUserPaymentSuccessMessage(orderData, userData, paymentMetho
     message += `💳 <b>روش پرداخت:</b> ${paymentMethod}\n\n`;
   }
 
-  if (cashbackAmount > 0) {
+  if (orderData.cashbackEnabled === true && cashbackAmount > 0) {
     message += `🎁 <b>کش‌بک این سفارش:</b> ${formatNumber(cashbackAmount)} تومان\n`;
     message += `(پس از تکمیل سفارش به کیف پول شما اضافه می‌شود)\n\n`;
   }

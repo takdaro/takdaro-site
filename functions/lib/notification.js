@@ -1,3 +1,5 @@
+import { isUserCashbackEnabled } from './cashback-settings.js';
+
 // ============================================
 // سرویس اصلی اعلان‌ها (Notification Service)
 // ============================================
@@ -1086,7 +1088,8 @@ export async function sendLowStockNotification(env, product, previousQuantity, c
 // 1. اعلان سفارش جدید (ادمین)
 // ============================================
 export async function sendOrderCreatedNotification(env, orderData, userData, items, baseUrl = '') {
-  const message = buildOrderCreatedMessage(orderData, userData, items);
+  const cashbackEnabled = await isUserCashbackEnabled(env.DB, userData.id, orderData.orderId);
+  const message = buildOrderCreatedMessage({ ...orderData, cashbackEnabled }, userData, items);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, baseUrl);
   
   const telegramResult = await sendTelegramNotification(
@@ -1740,6 +1743,9 @@ export async function sendWalletWithdrawalStatusNotification(env, userData, amou
 // 10. اعلان اعمال کش‌بک
 // ============================================
 export async function sendCashbackAppliedNotification(env, orderData, userData, cashbackAmount, newBalance = 0) {
+  if (!(cashbackAmount > 0) || !(await isUserCashbackEnabled(env.DB, userData.id, orderData.orderId))) {
+    return { success: false, skipped: true, reason: 'cashback_disabled' };
+  }
   const message = buildCashbackAppliedMessage(orderData, userData, cashbackAmount, newBalance);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
@@ -2304,7 +2310,8 @@ export async function sendUserOrderCreatedNotification(env, orderData, userData,
     hasItems: Array.isArray(items) ? items.length : 0
   });
 
-  const message = buildUserOrderCreatedMessage(orderData, userData, items);
+  const cashbackEnabled = await isUserCashbackEnabled(env.DB, userData.id, orderData.orderId);
+  const message = buildUserOrderCreatedMessage({ ...orderData, cashbackEnabled }, userData, items);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
   const telegramResult = await sendUserTelegramNotification(
@@ -2410,7 +2417,8 @@ export async function sendUserOrderCreatedNotification(env, orderData, userData,
 // 12. اعلان پرداخت موفق برای کاربر
 // ============================================
 export async function sendUserPaymentSuccessNotification(env, orderData, userData, paymentMethod = '', baseUrl = '') {
-  const message = buildUserPaymentSuccessMessage(orderData, userData, paymentMethod);
+  const cashbackEnabled = await isUserCashbackEnabled(env.DB, userData.id, orderData.orderId);
+  const message = buildUserPaymentSuccessMessage({ ...orderData, cashbackEnabled }, userData, paymentMethod);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
   const telegramResult = await sendUserTelegramNotification(

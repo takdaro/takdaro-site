@@ -1,3 +1,5 @@
+import { isUserCashbackEnabled } from '../../lib/cashback-settings.js';
+
 // ============================================
 // Webhook تلگرام - دریافت و پردازش پیام‌ها
 // ============================================
@@ -120,7 +122,7 @@ async function getLastOrder(env, userId) {
 /**
  * ساخت پیام جزییات سفارش
  */
-function buildOrderDetailsMessage(order, items) {
+function buildOrderDetailsMessage(order, items, cashbackEnabled = false) {
   let message = `📋 <b>جزییات آخرین سفارش</b>\n\n`;
 
   message += `🆔 <b>شماره سفارش:</b>\n`;
@@ -157,7 +159,7 @@ function buildOrderDetailsMessage(order, items) {
   message += `  ─────────────────\n`;
   message += `  <b>مبلغ قابل پرداخت: ${formatNumber(order.payable_amount || order.total_amount)} تومان</b>\n`;
 
-  if (order.cashback_amount > 0) {
+  if (cashbackEnabled && order.cashback_amount > 0) {
     message += `\n  🎁 <b>کش‌بک این سفارش: ${formatNumber(order.cashback_amount)} تومان</b>`;
   }
 
@@ -246,7 +248,8 @@ async function handleStatusCommand(env, chatId, botToken) {
   }
 
   // ساخت پیام جزییات
-  const message = buildOrderDetailsMessage(data.order, data.items);
+  const cashbackEnabled = await isUserCashbackEnabled(env.DB, userId);
+  const message = buildOrderDetailsMessage(data.order, data.items, cashbackEnabled);
 
   // ارسال پیام
   const result = await sendTelegramMessage(botToken, chatId, message);
