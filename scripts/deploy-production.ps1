@@ -12,7 +12,7 @@ if ((Git-Output @('branch', '--show-current')) -ne 'main') { throw 'Production r
 Git-Output @('fetch', 'origin')
 $revision = Git-Output @('rev-parse', 'HEAD')
 if ($revision -ne (Git-Output @('rev-parse', 'origin/main'))) { throw 'Local main must equal GitHub main.' }
-node --test tests/confirmed-release.test.cjs tests/chat-entry.test.cjs
+node --test tests/confirmed-release.test.cjs tests/confirmed-chat-entry.test.cjs tests/purchase-limits.test.cjs tests/telegram-order-details.test.cjs
 if ($LASTEXITCODE -ne 0) { throw 'Chat entry test failed.' }
 $root = Split-Path $PSScriptRoot -Parent
 $wrangler = Join-Path $root 'sms-worker/node_modules/wrangler/bin/wrangler.js'
