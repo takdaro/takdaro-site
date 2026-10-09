@@ -195,6 +195,10 @@ const Auth = (() => {
       return null;
     }
 
+    try {
+      if (new URL(redirect, window.location.origin).origin !== window.location.origin) return null;
+    } catch { return null; }
+
     return redirect;
   }
 
@@ -242,6 +246,12 @@ const Auth = (() => {
         event.preventDefault();
 
         setMessage(messageBox, "");
+
+        if (submitButton?.disabled) return;
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
 
         const full_name =
           form.full_name?.value || "";

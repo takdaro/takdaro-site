@@ -5,6 +5,7 @@
 import { getDb } from './db.js';
 import { isUserCashbackEnabled } from './cashback-settings.js';
 import { getStatusLabel } from './status-mapping.js';
+import { getOrderShippingDetails, getDeliveryScheduleLabel, normalizeOrderNotificationData, escapeShippingHtml } from './order-notification-data.js';
 
 // ============================================
 // توابع کمکی
@@ -217,6 +218,7 @@ const EMAIL_EVENTS = {
   payment_success: ['پرداخت موفق', 'پرداخت سفارش شما با موفقیت انجام شد.', 'پرداخت سفارش مشتری با موفقیت انجام شد.'],
   payment_failed: ['پرداخت ناموفق', 'پرداخت سفارش شما ناموفق بود.', 'پرداخت سفارش مشتری ناموفق بود.'],
   order_status_changed: ['تغییر وضعیت سفارش', 'وضعیت سفارش شما تغییر کرد.', 'وضعیت سفارش مشتری تغییر کرد.'],
+  delivery_schedule_changed: ['تغییر زمان ارسال', 'زمان ارسال سفارش شما به‌روزرسانی شد. تاریخ و ساعت جدید در ادامه آمده است.', 'زمان ارسال سفارش مشتری به‌روزرسانی شد. تاریخ و ساعت جدید در ادامه آمده است.'],
   order_cancelled: ['لغو سفارش', 'سفارش شما لغو شد.', 'سفارش مشتری لغو شد.'],
   wallet_credit: ['افزایش موجودی کیف پول', 'موجودی کیف پول شما افزایش یافت.', 'موجودی کیف پول مشتری افزایش یافت.'],
   wallet_debit: ['کاهش موجودی کیف پول', 'موجودی کیف پول شما کاهش یافت.', 'موجودی کیف پول مشتری کاهش یافت.'],
@@ -259,6 +261,8 @@ function orderTemplateBody(event, audience) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
 <title>فاکتور سفارش</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -303,18 +307,6 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
   .items-table thead th, .items-table tbody td { padding:8px 5px; }
   .btn-primary, .btn-secondary { display:block; margin:8px 0; text-align:center; }
 }
-@media (prefers-color-scheme: dark) {
-  body { background:#0f172a; color:#e5e7eb; }
-  .email-wrapper { background:#111827; box-shadow:none; }
-  .greeting, .section-title, .summary-value, .items-table tbody td { color:#f8fafc; }
-  .intro, .summary-label { color:#cbd5e1; }
-  .summary-card { background:linear-gradient(135deg,#1e293b,#243447); border-right-color:#38bdf8; }
-  .items-table thead th { background:#1e293b; color:#cbd5e1; border-color:#334155; }
-  .items-table tbody td { border-color:#334155; }
-  .items-table .total-row td { background:#0f172a; border-color:#334155; }
-  .btn-secondary { background:#111827; color:#e0f2fe !important; border-color:#334155; }
-  .email-footer { background:#0f172a; border-color:#334155; color:#94a3b8; }
-}
 </style>
 </head>
 <body>
@@ -349,7 +341,7 @@ body { font-family:'Tahoma','Arial',sans-serif; background:#f0f2f5; direction:rt
 <div class="cashback-box">کش‌بک این سفارش: <strong>{cashback_amount} تومان</strong></div>
 <div class="summary-card">
 <div class="summary-row"><span class="summary-label">تاریخ و ساعت ارسال ایمیل</span><span class="summary-value">{sent_at}</span></div>
-<div class="summary-row"><span class="summary-label">زمان ارسال سفارش</span><span class="summary-value">{delivery_date} {delivery_time}</span></div>
+<div class="summary-row"><span class="summary-label">{delivery_label}</span><span class="summary-value">{delivery_date} {delivery_time}</span></div>
 <div class="summary-row"><span class="summary-label">کد رهگیری</span><span class="summary-value">{tracking_code}</span></div>
 </div>
 <div class="actions">
@@ -1042,6 +1034,7 @@ function removeCashbackSections(body) {
 
 export function renderEmailTemplate(template, data) {
   if (!template) return { subject: '', body: '' };
+  const shipping = getOrderShippingDetails(data);
 
   let subject = template.subject || '';
   let body = template.body || '';
@@ -1056,7 +1049,8 @@ export function renderEmailTemplate(template, data) {
     '{amount}': formatPersianAmount(data.amount),
     '{payment_status}': data.payment_status || '',
     '{order_status}': getPersianOrderStatus(data.order_status),
-    '{tracking_code}': data.tracking_code || '',
+    '{tracking_code}': shipping.shippingCode,
+    '{shipping_code}': shipping.shippingCode,
     '{order_date}': formatPersianDate(data.order_date || new Date().toISOString()),
     '{wallet_transaction_type}': data.wallet_transaction_type || '',
     '{wallet_balance_before}': formatPersianAmount(data.wallet_balance_before),
@@ -1068,8 +1062,9 @@ export function renderEmailTemplate(template, data) {
     '{items_subtotal}': formatPersianAmount(data.items_subtotal || 0),
     '{cashback_amount}': formatPersianAmount(data.cashback_amount || 0),
     '{shipping_amount}': formatPersianAmount(data.shipping_amount || 0),
-    '{delivery_date}': data.delivery_date || '',
-    '{delivery_time}': data.delivery_time || '',
+    '{delivery_label}': getDeliveryScheduleLabel(data),
+    '{delivery_date}': escapeShippingHtml(shipping.deliveryDate),
+    '{delivery_time}': escapeShippingHtml(data.delivery_time || ''),
     '{delivery_summary}': data.delivery_summary || '',
     '{sent_at}': formatPersianDate(data.sent_at || new Date().toISOString()),
     '{site_url}': data.site_url || 'https://www.takdaro.com',
@@ -1337,16 +1332,15 @@ export async function logEmailNotification(env, data) {
 // ============================================
 
 function buildDeliverySummary(orderData = {}) {
-  const date = orderData.deliveryDate || orderData.delivery_date || '';
-  const from = orderData.deliveryTimeFrom || orderData.delivery_time_from || '';
-  const to = orderData.deliveryTimeTo || orderData.delivery_time_to || '';
+  const { deliveryDate: date, deliveryTimeFrom: from, deliveryTimeTo: to } = getOrderShippingDetails(orderData);
   if (!date && !from && !to) return '';
   const time = [from, to].filter(Boolean).join(' تا ');
-  return `<div class="delivery-summary" role="group" aria-label="اطلاعات ارسال"><strong>🚚 زمان ارسال</strong><br><span>${date || 'در حال تعیین'}</span>${time ? ` <span>(${time})</span>` : ''}</div>`;
+  return `<div class="delivery-summary" role="group" aria-label="اطلاعات ارسال"><strong>🚚 ${getDeliveryScheduleLabel(orderData)}</strong><br><span>${escapeShippingHtml(date || 'در حال تعیین')}</span>${time ? ` <span>(${escapeShippingHtml(time)})</span>` : ''}</div>`;
 }
 
 export async function sendUserEmailNotification(env, userId, eventType, orderData, userData, items = [], baseUrl = '') {
   try {
+    orderData = normalizeOrderNotificationData(orderData);
     const userEmail = userData.email;
     if (!userEmail) {
       return { success: false, error: 'کاربر ایمیل ندارد.' };
@@ -1392,6 +1386,7 @@ export async function sendUserEmailNotification(env, userId, eventType, orderDat
 
 export async function sendAdminEmailNotification(env, eventType, orderData, userData, items = [], baseUrl = '') {
   try {
+    orderData = normalizeOrderNotificationData(orderData);
     const settings = await getEmailSettings(env);
     const adminEmail = settings.config.admin_email || '';
 

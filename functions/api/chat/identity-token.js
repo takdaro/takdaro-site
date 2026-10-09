@@ -1,12 +1,4 @@
-function cookieValue(request, key) {
-  const part = (request.headers.get("cookie") || "")
-    .split(";")
-    .map((value) => value.trim())
-    .find((value) => value.startsWith(`${key}=`));
-
-  return part ? decodeURIComponent(part.slice(key.length + 1)) : null;
-}
-
+function cookieValue(request, key) { const part = (request.headers.get("cookie") || "").split("; ").find((v) => v.startsWith(`${key}=`)); return part ? part.slice(key.length + 1) : null; }
 export async function onRequestPost(context) {
   const sessionId = cookieValue(context.request, "session_id");
   if (!sessionId) return Response.json({ success: false, error: "unauthorized" }, { status: 401 });

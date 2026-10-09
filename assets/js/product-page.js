@@ -1,4 +1,14 @@
 (function () {
+  function updateWhatsAppConsultation(product) {
+    const name = String(product?.name || document.querySelector('[data-product-name]')?.textContent || '').trim();
+    if (!name) return;
+    document.querySelectorAll('[data-product-root] a[href^="https://wa.me/"]').forEach((link) => {
+      const url = new URL(link.href);
+      url.searchParams.set('text', `سلام، من در مورد محصول ${name} سوال داشتم`);
+      link.href = url.toString();
+    });
+  }
+
   function getRoot() {
     return document.querySelector("[data-product-root]");
   }
@@ -72,8 +82,12 @@
   function showMinQuantityMessage(product, minQty) {
     const productName = product?.name || "این محصول";
     alert(
-      `حداقل انتخاب این محصول ${productName} کمتر از ${formatNumber(minQty)} عدد نیست.`
+      `حداقل تعداد قابل سفارش برای «${productName}» ${formatNumber(minQty)} عدد است.`
     );
+  }
+
+  function showMaxQuantityMessage(product, maxQty) {
+    alert(`حداکثر تعداد قابل سفارش برای «${product?.name || "این محصول"}» ${formatNumber(maxQty)} عدد است.`);
   }
 
   function setText(selector, value) {
@@ -148,6 +162,7 @@
 
   function renderProduct(product) {
     if (!product) return;
+    updateWhatsAppConsultation(product);
 
     // Customer-facing order: short description, user quantity selection, then full details.
     const details = document.querySelector('.product-details');
@@ -318,6 +333,9 @@
         const stockQty = getStockQty(product);
 
         const maxQty = getPurchaseMaxQty(product);
+        if (current >= maxQty) {
+          showMaxQuantityMessage(product, maxQty);
+        }
         quantityInput.value = Math.min(current + 1, maxQty);
         quantityInput.focus();
       });
@@ -345,14 +363,6 @@
     }
 
     if (quantityInput) {
-      quantityInput.addEventListener("input", () => {
-        const product = findProduct();
-
-        if (!quantityInput.disabled) {
-          normalizeQty(product);
-        }
-      });
-
       quantityInput.addEventListener("blur", () => {
         const product = findProduct();
 
@@ -361,6 +371,9 @@
           const rawValue = parseInt(quantityInput.value, 10);
           if (!Number.isNaN(rawValue) && rawValue < minQty) {
             showMinQuantityMessage(product, minQty);
+          }
+          if (rawValue > getPurchaseMaxQty(product)) {
+            showMaxQuantityMessage(product, getPurchaseMaxQty(product));
           }
           normalizeQty(product);
         }
@@ -481,6 +494,7 @@
   }
 
   function init() {
+    updateWhatsAppConsultation(findProduct());
     bindPurchaseEvents();
     bindStockRefreshEvents();
 

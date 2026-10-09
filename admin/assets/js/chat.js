@@ -5,21 +5,74 @@
     if (!body || !search || !refresh || !pane || refresh.dataset.ready === '1') return;
     refresh.dataset.ready = '1';
     let rooms = [], activeRoomId = null, view = null, polling = false;
-    const drafts = new Map(), readRooms = new Set();
+    const drafts = new Map();
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const endpoint = id => '/api/admin/chat/rooms/' + encodeURIComponent(id);
+    const isAdminMessage = message => message.role === 'admin' || (!message.role && message.sender === 'ادمین');
     const lightbox = document.querySelector('#chat-image-lightbox');
     if (lightbox) document.body.appendChild(lightbox);
     function closeImage() { if (lightbox) { lightbox.hidden = true; lightbox.querySelector('img').removeAttribute('src'); } }
     lightbox?.addEventListener('click', e => { if (e.target === lightbox || e.target.closest('button')) closeImage(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImage(); });
-    pane.addEventListener('click', e => {
+    pane.addEventListener('click', async e => {
       const img = e.target.closest('.chat-history img');
       if (img && lightbox) {
+        const id = activeRoomId;
+        if (img.refreshChatImage) await img.refreshChatImage(true);
+        if (id !== activeRoomId || !img.isConnected) return;
         lightbox.querySelector('img').src = img.src;
         const link = lightbox.querySelector('a'); if (link) link.href = img.src;
         lightbox.hidden = false;
       }
+    });
+    function attachImageRefresh(img, message, current) {
+      let path = message.path, busy = false, attempted = false;
+      if (!path) {
+        try {
+          const address = new URL(message.url);
+          if (address.hostname === 'jodfggzgazbaxymxptwy.supabase.co') {
+            const match = address.pathname.match(/^\/storage\/v1\/object\/(?:sign|public)\/chat-images\/(.+)$/);
+            if (match) path = decodeURIComponent(match[1]);
+          }
+        } catch {}
+      }
+      img.refreshChatImage = async manual => {
+        if (!path || busy || (!manual && attempted)) return;
+        busy = true; attempted = true;
+        try {
+          const response = await fetch('/api/admin/chat/image-url?path=' + encodeURIComponent(path), { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(15000) });
+          if (!response.ok) throw new Error();
+          const image = await response.json();
+          if (view !== current || !img.isConnected || !String(image.url || '').startsWith('https://')) return;
+          img.src = image.url;
+          img.title = '';
+        } catch { img.title = 'تصویر دریافت نشد؛ برای تلاش دوباره کلیک کنید.'; }
+        finally { busy = false; }
+      };
+      img.addEventListener('error', () => void img.refreshChatImage(false));
+      if (img.complete && !img.naturalWidth) void img.refreshChatImage(false);
+    }
+    pane.addEventListener('click', async e => {
+      const button = e.target.closest('[data-message-action]'), current = view, id = activeRoomId;
+      if (!button || !current || !id) return;
+      const message = current.messages?.[Number(button.dataset.index)];
+      if (!message) return;
+      if (button.dataset.messageAction === 'copy') {
+        try { await navigator.clipboard.writeText(message.text || ''); button.title = 'کپی شد'; }
+        catch { alert('کپی انجام نشد؛ متن را انتخاب و کپی کنید.'); }
+        return;
+      }
+      if (!isAdminMessage(message) || !message.id || !current.capabilities?.edit) return;
+      const text = prompt('ویرایش پیام مدیریتی', message.text || '');
+      if (text === null || !text.trim() || text === message.text) return;
+      if (text.length > 4000) { alert('حداکثر طول پیام ۴۰۰۰ نویسه است.'); return; }
+      button.disabled = true;
+      try {
+        const response = await fetch(endpoint(id), { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: 'edit', messageId: message.id, expectedText: message.text || '', text }), signal: AbortSignal.timeout(30000) });
+        if (!response.ok) throw new Error(response.status === 409 ? 'پیام هم‌زمان تغییر کرده؛ تاریخچه را تازه کنید.' : 'ویرایش انجام نشد.');
+        if (view === current && activeRoomId === id) await loadHistory();
+      } catch (error) { alert(error.message || 'ویرایش انجام نشد.'); }
+      finally { button.disabled = false; }
     });
     function draft(id) {
       if (!drafts.has(id)) drafts.set(id, {text:'', file:null, preview:null, saved:null, uploading:false, sending:false, progress:0, error:'', notice:'', xhr:null, version:0});
@@ -27,8 +80,8 @@
     }
     function renderRooms() {
       const q = search.value.trim().toLowerCase();
-      const list = rooms.filter(r => !q || String(r.sender || '').toLowerCase().includes(q) || String(r.phone || '').includes(q));
-      body.innerHTML = list.length ? list.map(r => '<button type="button" class="chat-list-item' + (r.roomId === activeRoomId ? ' active' : '') + '" data-room="' + esc(r.roomId) + '"><span><strong>' + esc(r.sender || 'نامشخص') + '</strong><small>' + esc(r.phone || 'ثبت نشده') + '</small>' + (Number(r.unread || 0) > 0 && !readRooms.has(r.roomId) ? '<i class="chat-unread-dot"></i>' : '') + '</span></button>').join('') : '<div class="admin-loading">گفتگویی پیدا نشد.</div>';
+      const list = rooms.filter(r => !q || String(r.sender || '').toLowerCase().includes(q) || String(r.phone || '').includes(q) || String(r.email || '').toLowerCase().includes(q)).sort((a,b)=>Number(b.sentAt||0)-Number(a.sentAt||0));
+      body.innerHTML = list.length ? list.map(r => '<button type="button" class="chat-list-item' + (r.roomId === activeRoomId ? ' active' : '') + '" data-room="' + esc(r.roomId) + '"><span><strong>' + esc(r.sender || 'نامشخص') + '</strong><small>' + esc(r.phone || 'ثبت نشده') + '</small>' + (Number(r.unread || 0) > 0 && r.roomId !== activeRoomId ? '<i class="chat-unread-dot"></i>' : '') + '</span></button>').join('') : '<div class="admin-loading">گفتگویی پیدا نشد.</div>';
     }
     body.addEventListener('click', e => { const button = e.target.closest('[data-room]'); if (button) selectRoom(button.dataset.room); });
     function updateComposer(id) {
@@ -121,7 +174,7 @@
     deleteButton?.addEventListener('click', deleteRoom);
     function selectRoom(id) {
       if (activeRoomId === id) return;
-      activeRoomId = id; readRooms.add(id); renderRooms(); if (deleteButton) deleteButton.disabled = false;
+      activeRoomId = id; renderRooms(); if (deleteButton) deleteButton.disabled = false;
       const selectedRoom = rooms.find(r => r.roomId === id);
       document.querySelector('#chat-selected-title').textContent = selectedRoom ? (selectedRoom.sender || 'مشتری') + (selectedRoom.department ? ' · ' + selectedRoom.department : '') : 'مشتری';
       const d = draft(id);
@@ -144,6 +197,7 @@
     }
     async function loadHistory(forceScroll = false) {
       const id = activeRoomId, current = view; if (!id || !current) return;
+      if (document.visibilityState !== 'visible' || !pane.getClientRects().length) return;
       const sequence = ++current.sequence;
       try {
         const response = await fetch(endpoint(id), {credentials:'same-origin', cache:'no-store', signal:AbortSignal.timeout(15000)});
@@ -151,10 +205,23 @@
         const data = await response.json();
         if (view !== current || sequence !== current.sequence) return;
         const messages = Array.isArray(data.messages) ? data.messages : [], fingerprint = JSON.stringify(messages);
+        current.messages = messages;
+        current.capabilities = data.capabilities || {};
+        const unread = current.capabilities.readReceipts ? messages.filter(message => message.id && !message.readAt && !isAdminMessage(message)) : [];
+        if (unread.length) {
+          requestAnimationFrame(() => {
+            if (view !== current || activeRoomId !== id || document.visibilityState !== 'visible' || !pane.getClientRects().length) return;
+            void fetch(endpoint(id), { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: 'read', messages: unread.map(message => ({ id: message.id, revision: Number(message.editedAt || message.sentAt || 0) })) }), signal: AbortSignal.timeout(15000) }).catch(() => {});
+          });
+        }
         if (fingerprint === current.fingerprint) return;
         const history = current.history, nearBottom = history.scrollHeight - history.scrollTop - history.clientHeight < 80;
         current.fingerprint = fingerprint;
-        history.innerHTML = messages.length ? messages.map(m => '<div class="chat-history-msg ' + (m.sender === 'ادمین' ? 'is-admin' : 'is-customer') + '"><small>' + esc(m.sender || 'پیام') + ' · ' + (m.sentAt ? esc(new Date(m.sentAt).toLocaleString('fa-IR')) : '') + '</small>' + (m.type === 'image' && String(m.url || '').startsWith('https://') ? '<img src="' + esc(m.url) + '" alt="' + esc(m.name || 'عکس ارسالی') + '" style="max-width:min(220px,100%);max-height:260px;border-radius:8px;display:block">' : '') + '<div>' + esc(m.text || '') + '</div></div>').join('') : '<p>پیامی ثبت نشده است.</p>';
+        history.innerHTML = messages.length ? messages.map((m, index) => '<div class="chat-history-msg ' + (isAdminMessage(m) ? 'is-admin' : 'is-customer') + '"><small>' + esc(m.sender || 'پیام') + ' · ' + (m.sentAt ? esc(new Date(m.sentAt).toLocaleString('fa-IR')) : '') + '</small>' + (m.type === 'image' && String(m.url || '').startsWith('https://') ? '<img src="' + esc(m.url) + '" alt="' + esc(m.name || 'عکس ارسالی') + '" style="max-width:min(220px,100%);max-height:260px;border-radius:8px;display:block">' : '') + '<div style="user-select:text">' + esc(m.text || '') + '</div><small>' + (m.editedAt ? 'ویرایش‌شده · ' : '') + '<span style="color:' + (m.readAt ? '#087ea4' : '#667781') + '" title="' + (m.readAt ? 'خوانده‌شده توسط طرف مقابل' : 'ثبت‌شده؛ خواندن تأیید نشده') + '">' + (m.readAt ? '✓✓' : '✓') + '</span></small>' + (m.text ? '<button type="button" data-message-action="copy" data-index="' + index + '" title="کپی متن" aria-label="کپی متن">⧉</button>' : '') + (isAdminMessage(m) && m.id && current.capabilities.edit ? '<button type="button" data-message-action="edit" data-index="' + index + '" title="ویرایش پیام مدیریتی" aria-label="ویرایش پیام مدیریتی">✎</button>' : '') + '</div>').join('') : '<p>پیامی ثبت نشده است.</p>';
+        history.querySelectorAll('.chat-history-msg').forEach((box, index) => {
+          const img = box.querySelector('img');
+          if (img) attachImageRefresh(img, messages[index], current);
+        });
         if (forceScroll || nearBottom) {
           history.scrollTop = history.scrollHeight;
           history.querySelectorAll('img').forEach(img => img.addEventListener('load', () => { if (view === current) history.scrollTop = history.scrollHeight; }, {once:true}));

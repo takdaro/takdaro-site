@@ -1,6 +1,7 @@
 import { requireAdmin, logAdminAction } from "../../lib/admin";
 import { getCurrentRate, calculateProductPrice } from "../../lib/rate";
 import { listAdminProducts } from "../../lib/admin-products";
+import { readPurchaseLimits } from "../../lib/purchase-limits";
 import { sendLowStockNotification } from "../../lib/notification";
 
 function json(data, status = 200) {
@@ -331,7 +332,7 @@ async function getProductPayload(db, productId) {
   return productFromRow(row, imagesByProductId);
 }
 
-function getProductInput(body) {
+function getProductInput(body, current = {}) {
   const name = cleanText(body?.name, 250);
   const slug = cleanSlug(body?.slug || name);
 
@@ -352,9 +353,8 @@ function getProductInput(body) {
 
   const inStock = stockQuantity > 0 ? 1 : 0;
   const stockLabel = inStock ? "موجود" : "موجود نیست؛ در حال تأمین";
-  const purchaseMinQuantity = toOptionalQuantity(body?.purchase_min_quantity ?? body?.purchaseMinQuantity) || 1;
-  const requestedPurchaseMaxQuantity = toOptionalQuantity(body?.purchase_max_quantity ?? body?.purchaseMaxQuantity);
-  const purchaseMaxQuantity = requestedPurchaseMaxQuantity && requestedPurchaseMaxQuantity >= purchaseMinQuantity ? requestedPurchaseMaxQuantity : null;
+  const limits = readPurchaseLimits(body, current);
+  const purchaseMinQuantity = limits.min, purchaseMaxQuantity = limits.max;
 
   const shortDescription = cleanText(
     body?.short_description ?? body?.shortDescription,
@@ -410,6 +410,7 @@ function getProductInput(body) {
     stockLabel,
     purchaseMinQuantity,
     purchaseMaxQuantity,
+    limitsError: limits.error,
     shortDescription,
     description,
     pageUrl,
@@ -541,6 +542,7 @@ export async function onRequestPost(context) {
     }
 
     const input = getProductInput(body);
+    if (input.limitsError) return json({ success: false, error: input.limitsError }, 400);
 
     if (!input.name) {
       return json(
@@ -759,7 +761,8 @@ export async function onRequestPut(context) {
       );
     }
 
-    const input = getProductInput(body);
+    const input = getProductInput(body, currentProduct);
+    if (input.limitsError) return json({ success: false, error: input.limitsError }, 400);
 
     if (!input.name) {
       return json(

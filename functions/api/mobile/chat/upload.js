@@ -23,6 +23,7 @@ export async function onRequestPost(context) {
       method: "POST",
       body: file,
       headers: {
+        "x-chat-admin-token": context.env.CHAT_ADMIN_TOKEN,
         "content-type": contentType,
         "x-file-name": fileName || "admin-image",
       },
@@ -33,7 +34,10 @@ export async function onRequestPost(context) {
     const saved = JSON.parse(raw);
     if (!saved?.path) return Response.json({ success: false, error: "image_upload_failed" }, { status: 502 });
 
-    const signed = await fetch(`${base}/image-url?path=${encodeURIComponent(saved.path)}`, { signal: AbortSignal.timeout(30000) });
+    const signed = await fetch(`${base}/image-url?path=${encodeURIComponent(saved.path)}`, {
+      headers: { "x-chat-admin-token": context.env.CHAT_ADMIN_TOKEN },
+      signal: AbortSignal.timeout(30000),
+    });
     const image = await signed.json().catch(() => null);
     if (!signed.ok || typeof image?.url !== "string" || !image.url.startsWith("https://")) {
       return Response.json({ success: false, error: "image_url_failed" }, { status: 502 });

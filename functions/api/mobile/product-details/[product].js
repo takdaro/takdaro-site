@@ -11,6 +11,7 @@ import {
 import {
   logAdminAction
 } from "../../../lib/admin";
+import { readPurchaseLimits } from "../../../lib/purchase-limits";
 
 import {
   getCurrentRate,
@@ -1321,47 +1322,9 @@ export async function onRequestPut(
               )
           );
 
-    const purchaseMinQuantity =
-      body.purchase_min_quantity !==
-          undefined ||
-      body.purchaseMinQuantity !==
-          undefined
-        ? toOptionalQuantity(
-            body.purchase_min_quantity ??
-              body.purchaseMinQuantity
-          ) || 1
-        : Math.max(
-            1,
-            Number(
-              currentProduct.purchase_min_quantity ||
-                1
-            )
-          );
-
-    const requestedPurchaseMaxQuantity =
-      body.purchase_max_quantity !==
-          undefined ||
-      body.purchaseMaxQuantity !==
-          undefined
-        ? toOptionalQuantity(
-            body.purchase_max_quantity ??
-              body.purchaseMaxQuantity
-          )
-        : currentProduct.purchase_max_quantity ===
-              null ||
-          currentProduct.purchase_max_quantity ===
-              undefined
-          ? null
-          : Number(
-              currentProduct.purchase_max_quantity
-            );
-
-    const purchaseMaxQuantity =
-      requestedPurchaseMaxQuantity &&
-      requestedPurchaseMaxQuantity >=
-        purchaseMinQuantity
-        ? requestedPurchaseMaxQuantity
-        : null;
+    const limits = readPurchaseLimits(body, currentProduct);
+    if (limits.error) return json({ success: false, error: limits.error }, 400);
+    const purchaseMinQuantity = limits.min, purchaseMaxQuantity = limits.max;
 
     // ==========================================
     // Descriptions

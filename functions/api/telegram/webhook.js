@@ -1,4 +1,5 @@
 import { isUserCashbackEnabled } from '../../lib/cashback-settings.js';
+import { buildTelegramShippingDetails } from '../../lib/order-notification-data.js';
 
 // ============================================
 // Webhook تلگرام - دریافت و پردازش پیام‌ها
@@ -70,6 +71,9 @@ async function getLastOrder(env, userId) {
         o.cashback_status,
         o.created_at,
         o.updated_at,
+        o.delivery_date,
+        o.delivery_time_from,
+        o.delivery_time_to,
         o.address_id,
         a.full_name AS shipping_full_name,
         a.address_line AS shipping_address_line,
@@ -178,7 +182,7 @@ function buildOrderDetailsMessage(order, items, cashbackEnabled = false) {
     }
   }
 
-  return message;
+  return message + buildTelegramShippingDetails(order);
 }
 
 /**

@@ -3,6 +3,7 @@
 // ============================================
 
 import { getStatusLabel } from './status-mapping.js';
+import { normalizeOrderNotificationData, buildTelegramShippingDetails } from './order-notification-data.js';
 
 /**
  * ارسال پیام به تلگرام
@@ -177,6 +178,7 @@ function getStatusText(status) {
 // 1. پیام سفارش جدید (ادمین) - اصلاح شده
 // ============================================
 export function buildOrderCreatedMessage(orderData, userData, items) {
+  orderData = normalizeOrderNotificationData(orderData);
   const {
     orderNumber,
     totalAmount,
@@ -242,13 +244,14 @@ export function buildOrderCreatedMessage(orderData, userData, items) {
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 // ============================================
 // 2. پیام پرداخت موفق (ادمین)
 // ============================================
 export function buildPaymentSuccessMessage(orderData, userData, paymentMethod = '') {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, payableAmount, status, createdAt } = orderData;
   const { fullName, email, phone } = userData;
 
@@ -277,13 +280,14 @@ export function buildPaymentSuccessMessage(orderData, userData, paymentMethod = 
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 // ============================================
 // 3. پیام تغییر وضعیت پرداخت (ادمین) - ⭐ فقط وضعیت سفارش
 // ============================================
 export function buildPaymentStatusChangedMessage(orderData, userData, oldStatus, newStatus) {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, status: orderStatus, createdAt } = orderData;
   const { fullName, email } = userData;
 
@@ -306,13 +310,14 @@ export function buildPaymentStatusChangedMessage(orderData, userData, oldStatus,
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 // ============================================
 // 4. پیام تغییر وضعیت سفارش (ادمین)
 // ============================================
 export function buildOrderStatusChangedMessage(orderData, userData, oldStatus, newStatus) {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName, email } = userData;
 
@@ -338,13 +343,14 @@ export function buildOrderStatusChangedMessage(orderData, userData, oldStatus, n
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 // ============================================
 // 5. پیام لغو سفارش (ادمین)
 // ============================================
 export function buildOrderCancelledMessage(orderData, userData, refundAmount = 0) {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName, email, phone } = userData;
 
@@ -373,7 +379,7 @@ export function buildOrderCancelledMessage(orderData, userData, refundAmount = 0
   message += `🕐 <b>تاریخ و ساعت:</b>\n`;
   message += `  ${formatDate(createdAt)}\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 // ============================================
@@ -566,6 +572,7 @@ export function buildCashbackAppliedMessage(orderData, userData, cashbackAmount,
  * 11. پیام ثبت سفارش برای کاربر (تکمیل شده)
  */
 export function buildUserOrderCreatedMessage(orderData, userData, items) {
+  orderData = normalizeOrderNotificationData(orderData);
   const {
     orderNumber,
     totalAmount,
@@ -624,13 +631,14 @@ export function buildUserOrderCreatedMessage(orderData, userData, items) {
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `از خرید شما سپاسگزاریم ❤️\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 /**
  * 12. پیام پرداخت موفق برای کاربر (تکمیل شده)
  */
 export function buildUserPaymentSuccessMessage(orderData, userData, paymentMethod = '') {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, payableAmount, cashbackAmount, status, createdAt } = orderData;
   const { fullName } = userData;
 
@@ -657,13 +665,14 @@ export function buildUserPaymentSuccessMessage(orderData, userData, paymentMetho
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `از اعتماد شما سپاسگزاریم ❤️\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 /**
  * 13. پیام تغییر وضعیت سفارش برای کاربر
  */
 export function buildUserOrderStatusChangedMessage(orderData, userData, oldStatus, newStatus, trackingCode = '') {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName } = userData;
 
@@ -697,17 +706,12 @@ export function buildUserOrderStatusChangedMessage(orderData, userData, oldStatu
   message += `➡️ <b>وضعیت جدید:</b>\n`;
   message += `  ${getStatusText(newStatus)}\n\n`;
 
-  if (trackingCode) {
-    message += `📮 <b>کد رهگیری:</b>\n`;
-    message += `  ${trackingCode}\n\n`;
-  }
-
-  message += `🕐 <b>تاریخ:</b> ${formatDate(createdAt)}\n\n`;
+  message += `🕐 <b>تاریخ ثبت سفارش:</b> ${formatDate(createdAt)}\n\n`;
 
   if (newStatus === 'shipped' || newStatus === 'courier_delivery' || newStatus === 'bus_shipping') {
     message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     message += `📌 <b>نکته:</b>\n`;
-    message += `  سفارش شما ارسال شده است. کد رهگیری را در بالا مشاهده کنید.\n`;
+    message += `  سفارش شما ارسال شده است.${orderData.shippingCode ? ' کد ارسال در همین پیام درج شده است.' : ''}\n`;
   } else if (newStatus === 'completed') {
     message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     message += `🎉 <b>سفارش شما تکمیل شد!</b>\n`;
@@ -716,13 +720,14 @@ export function buildUserOrderStatusChangedMessage(orderData, userData, oldStatu
 
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 /**
  * 14. پیام لغو سفارش برای کاربر (جدید)
  */
 export function buildUserOrderCancelledMessage(orderData, userData, refundAmount = 0) {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, status, createdAt } = orderData;
   const { fullName } = userData;
 
@@ -746,13 +751,14 @@ export function buildUserOrderCancelledMessage(orderData, userData, refundAmount
 
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 /**
  * 15. پیام پیگیری سفارش (تکمیل شده)
  */
 export function buildUserOrderTrackingMessage(orderData, userData, items = []) {
+  orderData = normalizeOrderNotificationData(orderData);
   const { orderNumber, totalAmount, payableAmount, status, createdAt, updatedAt } = orderData;
   const { fullName } = userData;
 
@@ -794,7 +800,7 @@ export function buildUserOrderTrackingMessage(orderData, userData, items = []) {
   message += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   message += `📌 برای مشاهده جزئیات کامل، روی دکمه زیر کلیک کنید.\n`;
 
-  return message;
+  return message + buildTelegramShippingDetails(orderData);
 }
 
 /**

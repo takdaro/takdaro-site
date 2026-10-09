@@ -694,7 +694,7 @@
             </div>
 
             <div class="invoice-section" id="delivery-invoice-section" hidden>
-              <h3>🚚 زمان ارسال سفارش</h3>
+              <h3 id="delivery-invoice-heading">🚚 زمان ارسال</h3>
               <div class="invoice-summary-grid">
                 <div class="summary-item">
                   <span class="label">تاریخ ارسال</span>
@@ -846,6 +846,7 @@
               <a href="/account.html" class="btn btn-secondary">
                 📋 مشاهده سفارشات
               </a>
+              <a href="https://t.me/TakdaroSupport_bot?start=support" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">مشاوره در تلگرام</a>
             </div>
 
           </div>
@@ -858,8 +859,7 @@
   <div id="site-cart"></div>
   <div id="bottom-nav"></div>
 
-<script src="assets/js/layout.js?v=chat-only-20260929-5"></script>
-<script src="assets/js/chat-launcher.js?v=identity-entry-20260929-8"></script>
+  <script src="assets/js/layout.js"></script>
   <script src="assets/js/products.js"></script>
   <script src="assets/js/cart.js"></script>
   <script src="assets/js/app.js"></script>
@@ -926,6 +926,7 @@
         metaCreatedAt: document.getElementById('meta-created-at'),
         metaStatus: document.getElementById('meta-status'),
         deliverySection: document.getElementById('delivery-invoice-section'),
+        deliveryHeading: document.getElementById('delivery-invoice-heading'),
         deliveryDate: document.getElementById('delivery-invoice-date'),
         deliveryTime: document.getElementById('delivery-invoice-time'),
 
@@ -1238,6 +1239,7 @@
         const deliveryTimeFrom = String(order.delivery_time_from || '').trim();
         const deliveryTimeTo = String(order.delivery_time_to || '').trim();
         if (els.deliverySection) els.deliverySection.hidden = !deliveryDate;
+        if (els.deliveryHeading) els.deliveryHeading.textContent = '🚚 ' + (order.delivery_label || 'زمان تقریبی ارسال');
         if (els.deliveryDate) els.deliveryDate.textContent = deliveryDate ? persianDigits(deliveryDate.replace(/-/g, '/')) : '-';
         if (els.deliveryTime) els.deliveryTime.textContent = deliveryTimeFrom && deliveryTimeTo
           ? `${persianDigits(deliveryTimeFrom)} تا ${persianDigits(deliveryTimeTo)}`

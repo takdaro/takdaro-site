@@ -3,9 +3,12 @@ import {
   sendUserOrderStatusChangedNotification,
   sendOrderCancelledNotification,
   sendUserOrderCancelledNotification,
-  sendCashbackAppliedNotification
+  sendCashbackAppliedNotification,
+  sendDeliveryScheduleChangedNotification
 } from '../../../lib/notification.js';
 import { getCurrentRate } from '../../../lib/rate.js';
+import { getOrderShippingDetails } from '../../../lib/order-notification-data.js';
+import { validateDeliverySchedule } from '../../../lib/delivery-schedule-validation.js';
 
 function getCookie(cookieString, key) {
   if (!cookieString) return null;
@@ -98,6 +101,9 @@ async function getOrderByNumber(db, orderNumber) {
         COALESCE(o.cashback_status, 'none')
           AS cashback_status,
         o.notes,
+        o.delivery_date,
+        o.delivery_time_from,
+        o.delivery_time_to,
         o.created_at,
         o.updated_at,
         u.full_name,
@@ -1187,16 +1193,14 @@ export async function onRequestPost(context) {
     }
 
     if (body?.action === "update_delivery_schedule") {
-      const englishDigits = (value) => String(value ?? "").replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)));
-      const deliveryDate = englishDigits(body.delivery_date).trim().replace(/-/g, "/");
-      const timeFrom = englishDigits(body.delivery_time_from).trim();
-      const timeTo = englishDigits(body.delivery_time_to).trim();
-      if (!/^\d{4}\/\d{2}\/\d{2}$/.test(deliveryDate)) {
-        return json({ success: false, error: "تاریخ شمسی را با قالب سال/ماه/روز وارد کنید." }, 400);
-      }
-      if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeFrom) || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(timeTo)) {
-        return json({ success: false, error: "ساعت شروع و پایان را درست وارد کنید." }, 400);
-      }
+      const schedule = validateDeliverySchedule(body);
+      if (!schedule.ok) return json({ success: false, error: schedule.error }, 400);
+      const { deliveryDate, timeFrom, timeTo } = schedule;
+
+      const unchanged = currentOrder.delivery_date === deliveryDate
+        && currentOrder.delivery_time_from === timeFrom && currentOrder.delivery_time_to === timeTo;
+      if (unchanged) return json({ success: true, changed: false,
+        delivery: { delivery_date: deliveryDate, delivery_time_from: timeFrom, delivery_time_to: timeTo } });
 
       await context.env.DB.prepare(`
         UPDATE orders
@@ -1204,8 +1208,19 @@ export async function onRequestPost(context) {
         WHERE id = ?
       `).bind(deliveryDate, timeFrom, timeTo, currentOrder.id).run();
 
+      let notifications;
+      try {
+        notifications = await sendDeliveryScheduleChangedNotification(context.env, {
+          ...currentOrder, delivery_date: deliveryDate, delivery_time_from: timeFrom, delivery_time_to: timeTo,
+        }, context.env.SITE_BASE_URL || new URL(context.request.url).origin);
+      } catch (error) {
+        notifications = { success: false, error: 'زمان ذخیره شد، اما ارسال اعلان‌ها کامل نشد.' };
+      }
+
       return json({
         success: true,
+        changed: true,
+        notifications,
         delivery: { delivery_date: deliveryDate, delivery_time_from: timeFrom, delivery_time_to: timeTo }
       });
     }
@@ -1375,6 +1390,7 @@ export async function onRequestPost(context) {
       }
 
       const orderData = {
+        ...getOrderShippingDetails(finalOrder),
         orderId: finalOrder.id,
         orderNumber:
           finalOrder.order_number,

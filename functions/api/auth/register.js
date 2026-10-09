@@ -2,8 +2,17 @@
 
 function normalizePhone(value) {
   if (!value) return "";
-  return String(value).trim().replace(/[^\d+]/g, "");
+  let phone = String(value).trim().replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit))).replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+  if (!/^[+\d\s()-]+$/.test(phone)) return "";
+  phone = phone.replace(/[\s()-]/g, '');
+  if (phone.startsWith('0098')) phone = '0' + phone.slice(4);
+  else if (phone.startsWith('+98')) phone = '0' + phone.slice(3);
+  else if (phone.startsWith('98')) phone = '0' + phone.slice(2);
+  else if (/^9\d{9}$/.test(phone)) phone = '0' + phone;
+  return /^09\d{9}$/.test(phone) ? phone : "";
 }
+
+const phoneSql = "replace(replace(replace(replace(trim(phone), ' ', ''), '-', ''), '(', ''), ')', '')";
 
 // ============================================
 // دریافت تنظیمات ثبت‌نام و کد عبور سایت
@@ -51,7 +60,13 @@ async function getAuthSettings(env) {
 // ============================================
 export async function onRequestPost(context) {
   try {
-    const body = await context.request.json();
+    let body;
+    try { body = await context.request.json(); } catch {
+      return Response.json({ success: false, error: 'اطلاعات فرم معتبر نیست.' }, { status: 400 });
+    }
+    if (!body || Array.isArray(body) || typeof body !== 'object' || ['full_name', 'email', 'phone', 'password', 'access_code'].some(key => body[key] !== undefined && typeof body[key] !== 'string')) {
+      return Response.json({ success: false, error: 'اطلاعات فرم معتبر نیست.' }, { status: 400 });
+    }
 
     // ============================================
     // دریافت تنظیمات سایت
@@ -108,12 +123,19 @@ export async function onRequestPost(context) {
         {
           success: false,
           error:
-            "full_name, email, phone, password required"
+            "نام، ایمیل، شماره موبایل معتبر و رمز عبور را وارد کنید."
         },
         {
           status: 400
         }
       );
+    }
+
+    if (full_name.length < 2 || full_name.length > 150 || /[\x00-\x1f]/.test(full_name)) {
+      return Response.json({ success: false, error: 'نام و نام خانوادگی باید بین ۲ تا ۱۵۰ نویسه باشد.' }, { status: 400 });
+    }
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /[\x00-\x1f]/.test(email)) {
+      return Response.json({ success: false, error: 'ایمیل معتبر وارد کنید.' }, { status: 400 });
     }
 
     // ============================================
@@ -171,12 +193,12 @@ export async function onRequestPost(context) {
     // ============================================
     // بررسی رمز عبور کاربر
     // ============================================
-    if (password.length < 6) {
+    if (password.length < 8 || password.length > 256) {
       return Response.json(
         {
           success: false,
           error:
-            "password must be at least 6 characters"
+            "رمز عبور باید بین ۸ تا ۲۵۶ نویسه باشد."
         },
         {
           status: 400
@@ -201,7 +223,7 @@ export async function onRequestPost(context) {
         {
           success: false,
           error:
-            "please choose a stronger password"
+            "لطفاً رمز عبور قوی‌تری انتخاب کنید."
         },
         {
           status: 400
@@ -215,7 +237,7 @@ export async function onRequestPost(context) {
     const existingEmail =
       await context.env.DB
         .prepare(
-          "SELECT id FROM users WHERE email = ?"
+          "SELECT id FROM users WHERE email = ? COLLATE NOCASE"
         )
         .bind(email)
         .first();
@@ -224,7 +246,7 @@ export async function onRequestPost(context) {
       return Response.json(
         {
           success: false,
-          error: "email already exists"
+          error: "این ایمیل قبلاً ثبت شده است."
         },
         {
           status: 409
@@ -235,19 +257,20 @@ export async function onRequestPost(context) {
     // ============================================
     // بررسی تکراری نبودن شماره تلفن
     // ============================================
+    const phoneVariants = [phone, '+98' + phone.slice(1), '98' + phone.slice(1), '0098' + phone.slice(1), phone.slice(1)];
     const existingPhone =
       await context.env.DB
         .prepare(
-          "SELECT id FROM users WHERE phone = ?"
+          `SELECT id FROM users WHERE ${phoneSql} IN (?, ?, ?, ?, ?)`
         )
-        .bind(phone)
+        .bind(...phoneVariants)
         .first();
 
     if (existingPhone) {
       return Response.json(
         {
           success: false,
-          error: "phone already exists"
+          error: "این شماره موبایل قبلاً ثبت شده است."
         },
         {
           status: 409
@@ -273,15 +296,25 @@ export async function onRequestPost(context) {
             phone,
             password_hash
           )
-          VALUES (?, ?, ?, ?)
+          SELECT ?, ?, ?, ?
+          WHERE NOT EXISTS (
+            SELECT 1 FROM users WHERE email = ? COLLATE NOCASE OR ${phoneSql} IN (?, ?, ?, ?, ?)
+          )
         `)
         .bind(
           full_name,
           email,
           phone,
-          password_hash
+          password_hash,
+          email,
+          ...phoneVariants
         )
         .run();
+
+    if (!result.success) throw new Error('Registration insert failed');
+    if (Number(result.meta?.changes) !== 1) {
+      return Response.json({ success: false, error: 'این ایمیل یا شماره موبایل قبلاً ثبت شده است.' }, { status: 409 });
+    }
 
     // ============================================
     // پاسخ موفق
@@ -311,7 +344,7 @@ export async function onRequestPost(context) {
         {
           success: false,
           error:
-            "email or phone already exists"
+            "این ایمیل یا شماره موبایل قبلاً ثبت شده است."
         },
         {
           status: 409
@@ -322,7 +355,7 @@ export async function onRequestPost(context) {
     return Response.json(
       {
         success: false,
-        error: message
+        error: 'ثبت‌نام انجام نشد؛ لطفاً دوباره تلاش کنید.'
       },
       {
         status: 500

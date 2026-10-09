@@ -397,6 +397,9 @@
             class="form-input"
             type="text"
             placeholder="مثلاً علی رضایی"
+            minlength="2"
+            maxlength="150"
+            autocomplete="name"
             required
           />
 
@@ -418,6 +421,9 @@
             class="form-input"
             type="tel"
             placeholder="مثلاً 09123456789"
+            autocomplete="tel"
+            inputmode="tel"
+            maxlength="24"
             required
           />
 
@@ -440,6 +446,7 @@
             type="email"
             placeholder="example@mail.com"
             autocomplete="email"
+            maxlength="254"
             required
           />
 
@@ -460,7 +467,9 @@
             name="password"
             class="form-input"
             type="password"
-            placeholder="حداقل 6 کاراکتر"
+            placeholder="حداقل ۸ کاراکتر"
+            minlength="8"
+            maxlength="256"
             autocomplete="new-password"
             required
           />
@@ -669,21 +678,6 @@
           redirectAfterSuccess: "/login.html"
         });
 
-        // ==========================================
-        // بررسی اعلان‌ها بعد از ثبت‌نام موفق
-        // ==========================================
-
-        const form = document.getElementById('register-form');
-        if (form) {
-          form.addEventListener('submit', async function() {
-            // بعد از 2 ثانیه بررسی کن
-            setTimeout(() => {
-              if (window.NotificationUI) {
-                window.NotificationUI.checkAndEnable();
-              }
-            }, 2000);
-          });
-        }
       }
     );
   </script>

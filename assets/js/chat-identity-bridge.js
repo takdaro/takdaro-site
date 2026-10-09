@@ -119,5 +119,9 @@
     pending = true;
     frameInit();
   }
+
+  window.addEventListener('focus', () => {
+    if (getVisibleFrame()) { pending = true; identify(); }
+  });
 })();
 

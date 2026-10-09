@@ -1,4 +1,5 @@
 import { isUserCashbackEnabled } from './cashback-settings.js';
+import { loadOrderNotificationData, buildTelegramShippingDetails, escapeShippingHtml } from './order-notification-data.js';
 
 // ============================================
 // سرویس اصلی اعلان‌ها (Notification Service)
@@ -1088,6 +1089,7 @@ export async function sendLowStockNotification(env, product, previousQuantity, c
 // 1. اعلان سفارش جدید (ادمین)
 // ============================================
 export async function sendOrderCreatedNotification(env, orderData, userData, items, baseUrl = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
   const cashbackEnabled = await isUserCashbackEnabled(env.DB, userData.id, orderData.orderId);
   const message = buildOrderCreatedMessage({ ...orderData, cashbackEnabled }, userData, items);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, baseUrl);
@@ -1204,6 +1206,7 @@ export async function sendOrderCreatedNotification(env, orderData, userData, ite
 // 2. اعلان پرداخت موفق (ادمین)
 // ============================================
 export async function sendPaymentSuccessNotification(env, orderData, userData, paymentMethod = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
   const message = buildPaymentSuccessMessage(orderData, userData, paymentMethod);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
@@ -1319,6 +1322,7 @@ export async function sendPaymentSuccessNotification(env, orderData, userData, p
 // 3. اعلان تغییر وضعیت پرداخت (ادمین)
 // ============================================
 export async function sendPaymentStatusChangedNotification(env, orderData, userData, oldStatus, newStatus) {
+  orderData = await loadOrderNotificationData(env, orderData);
   const message = buildPaymentStatusChangedMessage(orderData, userData, oldStatus, newStatus);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
@@ -1355,6 +1359,8 @@ export async function sendPaymentStatusChangedNotification(env, orderData, userD
 // 4. اعلان تغییر وضعیت سفارش (ادمین)
 // ============================================
 export async function sendOrderStatusChangedNotification(env, orderData, userData, oldStatus, newStatus) {
+  orderData = await loadOrderNotificationData(env, orderData);
+  orderData = { ...orderData, status: newStatus || orderData.status };
   const message = buildOrderStatusChangedMessage(orderData, userData, oldStatus, newStatus);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
@@ -1474,6 +1480,7 @@ export async function sendOrderStatusChangedNotification(env, orderData, userDat
 // 5. اعلان لغو سفارش (ادمین)
 // ============================================
 export async function sendOrderCancelledNotification(env, orderData, userData, refundAmount = 0) {
+  orderData = await loadOrderNotificationData(env, orderData);
   const message = buildOrderCancelledMessage(orderData, userData, refundAmount);
   const replyMarkup = createOrderViewButton(orderData.orderNumber, '');
   
@@ -2302,6 +2309,7 @@ export async function updateUserNotificationPreferences(env, userId, preferences
 // 11. اعلان ثبت سفارش برای کاربر
 // ============================================
 export async function sendUserOrderCreatedNotification(env, orderData, userData, items, baseUrl = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
   console.log('📱 sendUserOrderCreatedNotification - شروع:', {
     orderId: orderData.orderId,
     userId: userData.id,
@@ -2417,6 +2425,7 @@ export async function sendUserOrderCreatedNotification(env, orderData, userData,
 // 12. اعلان پرداخت موفق برای کاربر
 // ============================================
 export async function sendUserPaymentSuccessNotification(env, orderData, userData, paymentMethod = '', baseUrl = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
   const cashbackEnabled = await isUserCashbackEnabled(env.DB, userData.id, orderData.orderId);
   const message = buildUserPaymentSuccessMessage({ ...orderData, cashbackEnabled }, userData, paymentMethod);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
@@ -2518,6 +2527,9 @@ export async function sendUserPaymentSuccessNotification(env, orderData, userDat
 // 13. اعلان تغییر وضعیت سفارش برای کاربر
 // ============================================
 export async function sendUserOrderStatusChangedNotification(env, orderData, userData, oldStatus, newStatus, trackingCode = '', baseUrl = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
+  orderData = { ...orderData, status: newStatus || orderData.status };
+  trackingCode = orderData.shippingCode;
   const statusEventMap = {
     'payment_pending': 'payment_pending',
     'payment_success': 'payment_success',
@@ -2634,6 +2646,7 @@ export async function sendUserOrderStatusChangedNotification(env, orderData, use
 // 14. اعلان لغو سفارش برای کاربر
 // ============================================
 export async function sendUserOrderCancelledNotification(env, orderData, userData, refundAmount = 0, baseUrl = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
   const message = buildUserOrderCancelledMessage(orderData, userData, refundAmount);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
@@ -2734,6 +2747,7 @@ export async function sendUserOrderCancelledNotification(env, orderData, userDat
 // 15. ارسال پیام پیگیری سفارش به کاربر
 // ============================================
 export async function sendUserOrderTrackingNotification(env, orderData, userData, items = [], baseUrl = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
   const message = buildUserOrderTrackingMessage(orderData, userData, items);
   const replyMarkup = createUserOrderTrackingButton(orderData.orderNumber, baseUrl);
   
@@ -2812,7 +2826,34 @@ export async function sendUserWalletNotification(env, userId, eventType, transac
 // ============================================
 // 17. تابع ارسال همزمان به ادمین و کاربر
 // ============================================
+export async function sendDeliveryScheduleChangedNotification(env, order, baseUrl = '') {
+  const snapshot = await loadOrderNotificationData(env, {
+    ...order, orderId: order.id, totalAmount: order.total_amount,
+    shippingAmount: order.shipping_amount, createdAt: order.created_at,
+  });
+  const user = { id: order.user_id, fullName: order.full_name || '', email: order.email || '', phone: order.phone || '' };
+  const message = `🚚 <b>تغییر زمان ارسال سفارش</b>\n\n<b>شماره سفارش:</b> ${escapeShippingHtml(snapshot.orderNumber)}\n`
+    + `<b>وضعیت سفارش:</b> ${escapeShippingHtml(getStatusLabel(snapshot.status))}\n`
+    + '<b>تاریخ و ساعت جدید:</b>\n' + buildTelegramShippingDetails(snapshot);
+  const results = {};
+  const channels = {
+    adminTelegram: () => sendTelegramNotification(env, 'order_status_changed', message,
+      createOrderViewButton(snapshot.orderNumber, baseUrl), snapshot.orderId, false),
+    userTelegram: () => sendUserTelegramNotification(env, user.id, 'order_status_changed', message,
+      createUserOrderTrackingButton(snapshot.orderNumber, baseUrl), snapshot.orderId, false),
+    adminEmail: () => sendAdminEmailNotification(env, 'delivery_schedule_changed', snapshot, user, [], baseUrl),
+    userEmail: () => sendUserEmailNotification(env, user.id, 'delivery_schedule_changed', snapshot, user, [], baseUrl),
+  };
+  // A failed/disabled channel must not prevent attempts on the other channels or undo the saved schedule.
+  for (const [channel, send] of Object.entries(channels)) {
+    try { results[channel] = await send(); }
+    catch (error) { results[channel] = { success: false, error: String(error?.message || error) }; }
+  }
+  return { success: Object.values(results).every(result => result?.success === true), results };
+}
+
 export async function sendNotificationToAdminAndUser(env, adminEventType, userEventType, orderData, userData, items, baseUrl = '', paymentMethod = '', trackingCode = '') {
+  orderData = await loadOrderNotificationData(env, orderData);
   const results = {
     admin: null,
     user: null

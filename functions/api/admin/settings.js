@@ -1,8 +1,8 @@
-import { getCurrentUser, requireAdmin } from "../../lib/admin";
+import { getCurrentUser, requireAdmin, isAdmin } from "../../lib/admin";
 import { hashAccessCode } from "../../lib/password";
 
 function json(data, status = 200) {
-  return Response.json(data, { status });
+  return Response.json(data, { status, headers: { 'cache-control': 'no-store' } });
 }
 
 function normalizeText(value) {
@@ -106,6 +106,7 @@ export async function onRequestGet(context) {
     // ============================================
 
     delete settings.site_access_code_hash;
+    if (!isAdmin(user)) delete settings.rate_api_key;
 
     return json({
       success: true,

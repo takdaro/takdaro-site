@@ -14,10 +14,7 @@
     if (!target) return;
 
     try {
-      const separator = filePath.includes("?") ? "&" : "?";
-      const response = await fetch(`${filePath}${separator}v=chat-only-20260929-4`, {
-        cache: "no-store"
-      });
+      const response = await fetch(filePath);
       const html = await response.text();
       const base = getBasePath();
       target.innerHTML = html.replaceAll("{{BASE}}", base);
@@ -26,172 +23,20 @@
     }
   }
 
-  function hideTakdaroChatLauncher() {
-    let style = document.getElementById("takdaro-chat-launcher-hide");
-    if (!style) {
-      style = document.createElement("style");
-      style.id = "takdaro-chat-launcher-hide";
-      style.textContent = ".takdaro-chat-button{display:none!important;}";
-      document.head.appendChild(style);
-    }
-  }
-
-  function loadTakdaroChatBridge(callback) {
-    if (window.TakdaroChat?.__identityBridge) {
-      if (typeof callback === "function") callback();
-      return;
-    }
-
-    let bridge = document.querySelector('script[data-takdaro-chat-identity-bridge]');
-    if (!bridge) {
-      bridge = document.createElement("script");
-      bridge.src = "/assets/js/chat-identity-bridge.js?v=site-session-7";
-      bridge.async = true;
-      bridge.dataset.takdaroChatIdentityBridge = "true";
-      document.head.appendChild(bridge);
-    }
-
-    if (typeof callback === "function") {
-      bridge.addEventListener("load", callback, { once: true });
-      bridge.addEventListener("error", callback, { once: true });
-    }
-  }
-
-  function loadTakdaroChatSdk(callback) {
-    hideTakdaroChatLauncher();
-
-    if (window.TakdaroChat) {
-      loadTakdaroChatBridge(callback);
-      return;
-    }
-
-    const existingScript = document.querySelector('script[data-takdaro-chat-sdk]');
-    if (existingScript) {
-      if (typeof callback === "function") {
-        existingScript.addEventListener("load", () => loadTakdaroChatBridge(callback), { once: true });
-      }
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://chat.takdaro.com/embed.js?v=identity-ready-2";
+  function loadTakdaroChatSdk() {
+    if (window.TakdaroChat || document.querySelector('script[data-takdaro-chat-sdk]')) return;
+    const script = document.createElement('script');
+    script.src = 'https://chat.takdaro.com/embed.js?v=identity-ready-2';
     script.async = true;
-    script.dataset.takdaroChatSdk = "true";
+    script.dataset.takdaroChatSdk = 'true';
     script.onload = function () {
-      hideTakdaroChatLauncher();
-      loadTakdaroChatBridge(callback);
+      const bridge = document.createElement('script');
+      bridge.src = '/assets/js/chat-identity-bridge.js?v=identity-ready-2';
+      bridge.async = true;
+      document.head.appendChild(bridge);
     };
     document.head.appendChild(script);
   }
-
-  function cleanChatText(value) {
-    return String(value || "").replace(/\s+/g, " ").trim();
-  }
-
-  function getCurrentProductForChat(trigger) {
-    const root = trigger?.closest("[data-product-root]") || document.querySelector("[data-product-root]");
-    if (!root) return null;
-
-    const slug = cleanChatText(
-      trigger?.dataset?.productSlug ||
-      root.dataset.productSlug ||
-      document.getElementById("add-to-cart-btn")?.dataset?.productSlug
-    );
-
-    const products = Array.isArray(window.PRODUCTS) ? window.PRODUCTS : [];
-    const product = products.find((item) => item?.slug === slug) || {};
-    const name = cleanChatText(
-      trigger?.dataset?.productName ||
-      product.name ||
-      root.querySelector("[data-product-name]")?.textContent
-    );
-    const id = cleanChatText(trigger?.dataset?.productId || product.id || "");
-    const pageUrl = cleanChatText(
-      trigger?.dataset?.productUrl ||
-      product.pageUrl ||
-      window.location.href
-    );
-
-    return {
-      id,
-      slug,
-      name: name || "محصول",
-      url: pageUrl
-    };
-  }
-
-  function getProductChatUrl(product) {
-    const rawUrl = cleanChatText(product?.url || window.location.href);
-    const slugPath = product?.slug ? `/products/${encodeURIComponent(product.slug)}.html` : window.location.pathname;
-
-    try {
-      const parsed = new URL(rawUrl, window.location.origin);
-      const path = parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : slugPath;
-      return `https://www.takdaro.com${path}`;
-    } catch (error) {
-      return `https://www.takdaro.com${slugPath}`;
-    }
-  }
-
-  function buildPurchaseConsultationContext(trigger) {
-    const product = getCurrentProductForChat(trigger);
-    if (!product) return null;
-
-    const productUrl = getProductChatUrl(product);
-    const section = "purchase_consultation";
-    const sectionLabel = "مشاوره خرید";
-    const draftMessage = `سلام، برای مشاوره قبل خرید محصول «${product.name}» راهنمایی می‌خواهم.\nلینک محصول: ${productUrl}`;
-
-    return {
-      source: "product_page",
-      section,
-      sectionKey: section,
-      sectionSlug: section,
-      sectionLabel,
-      department: sectionLabel,
-      category: sectionLabel,
-      topic: sectionLabel,
-      draftMessage,
-      product: {
-        ...product,
-        url: productUrl
-      }
-    };
-  }
-
-  function applyTakdaroChatContext(context) {
-    if (!context || !window.TakdaroChat) return;
-
-    window.TakdaroChat.__pendingContext = context;
-
-    if (typeof window.TakdaroChat.setContext === "function") {
-      window.TakdaroChat.setContext(context);
-    }
-
-    if (typeof window.TakdaroChat.setDraft === "function") {
-      window.TakdaroChat.setDraft(context.draftMessage, context);
-    }
-
-    if (typeof window.TakdaroChat.selectSection === "function") {
-      window.TakdaroChat.selectSection(context.section, context);
-    }
-  }
-
-  function openTakdaroChat(context) {
-    loadTakdaroChatSdk(function () {
-      hideTakdaroChatLauncher();
-      applyTakdaroChatContext(context);
-      if (typeof window.TakdaroChat?.open === "function") {
-        window.TakdaroChat.open();
-      } else if (typeof window.TakdaroChat?.toggle === "function") {
-        window.TakdaroChat.toggle();
-      }
-      applyTakdaroChatContext(context);
-      hideTakdaroChatLauncher();
-    });
-  }
-
-  window.openTakdaroChat = openTakdaroChat;
 
   function setupMobileMenu() {
     const menuToggle = document.querySelector(".menu-toggle");
@@ -295,8 +140,6 @@
             throw new Error("logout-failed");
           }
 
-try { localStorage.setItem('takdaro:logout-at', String(Date.now())); } catch {}
-          window.dispatchEvent(new Event('takdaro:logout'));
           window.location.replace(`${getBasePath()}index.html`);
         } catch (error) {
           button.disabled = false;
@@ -572,45 +415,11 @@ try { localStorage.setItem('takdaro:logout-at', String(Date.now())); } catch {}
   // ==========================================
   // 🔹 مدیریت Bottom Navigation
   // ==========================================
-  function isContextualChatTrigger(target) {
-    return target?.closest?.(
-      "[data-chat-context-trigger], [data-purchase-consultation-chat]"
-    ) || null;
-  }
-
-  function handleContextualChatClick(event) {
-    const trigger = isContextualChatTrigger(event.target);
-    if (!trigger) return;
-
-    const context = buildPurchaseConsultationContext(trigger);
-    if (!context) return;
-
-    event.preventDefault();
-    openTakdaroChat(context);
-  }
-
-  function setupContextualChatTriggers() {
-    if (document.documentElement.dataset.contextualChatBound === "true") return;
-    document.documentElement.dataset.contextualChatBound = "true";
-    document.addEventListener("click", handleContextualChatClick, true);
-  }
-
   function setupBottomNav() {
     const items = document.querySelectorAll(".bottom-nav__item");
     const currentPath = window.location.pathname;
 
     items.forEach((item) => {
-      if (item.matches("[data-chat-trigger]")) {
-        if (item.dataset.bound === "true") return;
-        item.dataset.bound = "true";
-
-        item.addEventListener("click", function (e) {
-          e.preventDefault();
-          openTakdaroChat();
-        });
-        return;
-      }
-
       const href = item.getAttribute("href");
       if (!href) return;
 
@@ -663,6 +472,7 @@ try { localStorage.setItem('takdaro:logout-at', String(Date.now())); } catch {}
     await loadPartial("site-footer", `${base}components/footer.html`);
     await loadPartial("site-cart", `${base}components/cart-drawer.html`);
     await loadPartial("bottom-nav", `${base}components/bottom-nav.html`);
+    loadTakdaroChatSdk();
 
     // مقصدهای داخل صفحه بعد از بارگذاری partialها قابل اسکرول هستند.
     if (window.location.hash) {
@@ -672,10 +482,7 @@ try { localStorage.setItem('takdaro:logout-at', String(Date.now())); } catch {}
     }
 
     setupCartDrawer();
-    setupContextualChatTriggers();
     setupBottomNav();
-
-    document.addEventListener("products:ready", setupContextualChatTriggers);
 
     // به‌روزرسانی اولیه Badge‌ها با تأخیر برای اطمینان از DOM
     setTimeout(function() {
@@ -701,4 +508,3 @@ try { localStorage.setItem('takdaro:logout-at', String(Date.now())); } catch {}
     document.dispatchEvent(new CustomEvent("layout:loaded"));
   });
 })();
-

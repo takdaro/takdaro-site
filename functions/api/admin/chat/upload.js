@@ -9,13 +9,13 @@ export async function onRequestPost(context) {
   if (file.byteLength > 20 * 1024 * 1024) return Response.json({ error: "image_too_large", maxBytes: 20 * 1024 * 1024 }, { status: 413 });
   if (!file.byteLength) return Response.json({ error: "empty_image" }, { status: 400 });
   try {
-  const response = await fetch("https://chat.takdaro.com/upload", { method: "POST", body: file, headers: { "x-file-name": context.request.headers.get("x-file-name") || "admin-image", "content-type": contentType }, signal: AbortSignal.timeout(120000) });
+  const response = await fetch("https://chat.takdaro.com/upload", { method: "POST", body: file, headers: { "x-chat-admin-token": token, "x-file-name": context.request.headers.get("x-file-name") || "admin-image", "content-type": contentType }, signal: AbortSignal.timeout(120000) });
   const raw = await response.text();
   if (!response.ok) return new Response(raw, { status: response.status, headers: { "content-type": "application/json" } });
   try {
     const saved = JSON.parse(raw);
     if (saved.path) {
-      const image = await fetch(`https://chat.takdaro.com/image-url?path=${encodeURIComponent(saved.path)}`, { signal: AbortSignal.timeout(30000) });
+      const image = await fetch(`https://chat.takdaro.com/image-url?path=${encodeURIComponent(saved.path)}`, { headers: { 'x-chat-admin-token': token }, signal: AbortSignal.timeout(30000) });
       if (image.ok) {
         const signed = await image.json();
         if (typeof signed.url === "string" && signed.url.startsWith("https://")) return Response.json({ ...saved, url: signed.url });

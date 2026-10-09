@@ -1,5 +1,6 @@
 import { requireAdmin, logAdminAction } from "../../../lib/admin";
 import { sendLowStockNotification } from "../../../lib/notification";
+import { readPurchaseLimits } from "../../../lib/purchase-limits";
 
 function json(data, status = 200) {
   return Response.json(data, {
@@ -394,17 +395,9 @@ export async function onRequestPut(context) {
     const inStock = stockQuantity > 0 && requestedInStock === 1 ? 1 : 0;
 
     const stockLabel = inStock ? "موجود" : "موجود نیست؛ در حال تأمین";
-    const purchaseMinQuantity = Object.prototype.hasOwnProperty.call(body, "purchase_min_quantity") ||
-      Object.prototype.hasOwnProperty.call(body, "purchaseMinQuantity")
-      ? toOptionalQuantity(body.purchase_min_quantity ?? body.purchaseMinQuantity) || 1
-      : currentProduct.purchase_min_quantity || 1;
-    const requestedPurchaseMaxQuantity = Object.prototype.hasOwnProperty.call(body, "purchase_max_quantity") ||
-      Object.prototype.hasOwnProperty.call(body, "purchaseMaxQuantity")
-      ? toOptionalQuantity(body.purchase_max_quantity ?? body.purchaseMaxQuantity)
-      : currentProduct.purchase_max_quantity;
-    const purchaseMaxQuantity = requestedPurchaseMaxQuantity && requestedPurchaseMaxQuantity >= purchaseMinQuantity
-      ? requestedPurchaseMaxQuantity
-      : null;
+    const limits = readPurchaseLimits(body, currentProduct);
+    if (limits.error) return json({ success: false, error: limits.error }, 400);
+    const purchaseMinQuantity = limits.min, purchaseMaxQuantity = limits.max;
 
     const shortDescription = cleanText(
       body.short_description ??

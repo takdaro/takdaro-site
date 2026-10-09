@@ -1,3 +1,5 @@
+import { getDeliveryScheduleLabel } from '../../../lib/order-notification-data.js';
+
 function getCookie(cookieString, key) {
   if (!cookieString) return null;
   const cookies = cookieString.split("; ");
@@ -130,6 +132,7 @@ export async function onRequestGet(context) {
         order_number: order.order_number || "",
         status: order.status || "payment_pending",
         payment_status: order.payment_status || "pending",
+        delivery_label: getDeliveryScheduleLabel(order),
         subtotal_amount: Number(order.subtotal_amount || 0),
         shipping_amount: Number(order.shipping_amount || 0),
         total_amount: Number(order.total_amount || 0),
