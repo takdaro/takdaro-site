@@ -1,7 +1,7 @@
 {
   "format": 1,
-  "deploymentId": "69cd55b9-1ca2-495d-a47d-fef194f11f45",
-  "packageHash": "926854b80eab4b247acf47efa48ab6af243e843c430d9b3843e96884753e01dc",
+  "deploymentId": "d8ce6065-4c40-4ba5-a634-2a37465e8398",
+  "packageHash": "82472eb6bb372618e398e717a910b7c9f9218c67bb340486ced2c35216375ad2",
   "files": [
     [
       "_routes.json",
@@ -477,7 +477,7 @@
     ],
     [
       "components/footer.html",
-      "4b5b4b2d185fa881fcf69904e0333a46746b6757a4e72d072739c92418697479"
+      "8adb69208c892321c1e276ed5fb6e84bb03904ec34c6d48ef6971057e471c816"
     ],
     [
       "components/header.html",
